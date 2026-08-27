@@ -1,0 +1,8 @@
+# One line ending in the repo, whatever the OS checking it out.
+* text=auto eol=lf
+
+# Binary
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff2 binary
