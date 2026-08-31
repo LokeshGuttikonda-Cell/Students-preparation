@@ -14,13 +14,15 @@ export const metadata: Metadata = {
     "Interview and placement preparation: topic-wise MCQ practice, timed mock tests and weak-area analysis.",
 };
 
+import { AuthProvider } from "../context/AuthContext";
+
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={inter.variable}>
       <body className="min-h-dvh bg-surface text-text antialiased">
-        {children}
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );
