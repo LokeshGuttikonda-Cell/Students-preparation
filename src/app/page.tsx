@@ -29,6 +29,11 @@ export default function Home() {
                 <span className="text-xs text-text-muted hidden sm:inline">
                   Signed in as <strong className="text-text">{user.name}</strong>
                 </span>
+                <Link href="/dashboard">
+                  <Button variant="secondary" size="sm" className="text-xs">
+                    My Dashboard
+                  </Button>
+                </Link>
                 {user.role === 'ADMIN' && (
                   <Link href="/admin">
                     <Button variant="secondary" size="sm" className="text-xs">
