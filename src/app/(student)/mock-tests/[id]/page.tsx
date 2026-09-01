@@ -10,6 +10,7 @@ import {
 } from '../../../../lib/mock-test-client';
 import { TimerCountdown } from '../../../../components/mock-test/TimerCountdown';
 import { QuestionPalette } from '../../../../components/mock-test/QuestionPalette';
+import { SectionTabs } from '../../../../components/mock-test/SectionTabs';
 import { SubmitConfirmModal } from '../../../../components/mock-test/SubmitConfirmModal';
 import { OptionRow } from '../../../../components/practice/OptionRow';
 import { Button } from '../../../../components/ui/Button';
@@ -167,6 +168,20 @@ export default function MockTestRunnerPage() {
     questionStartTimeRef.current = Date.now();
   };
 
+  const handleSelectSection = useCallback(
+    (sectionId: string) => {
+      if (!data) return;
+      const targetIdx = data.questions.findIndex(
+        (q) => q.sectionId === sectionId,
+      );
+      if (targetIdx !== -1) {
+        setCurrentIndex(targetIdx);
+        questionStartTimeRef.current = Date.now();
+      }
+    },
+    [data],
+  );
+
   const handleSubmit = useCallback(async () => {
     if (!data || isSubmitting) return;
 
@@ -299,6 +314,48 @@ export default function MockTestRunnerPage() {
   });
   const unansweredCount = data.questions.length - answeredCount;
 
+  // Multi-section progress calculation
+  const activeSectionId =
+    currentQuestion.sectionId ?? (data.sections?.[0]?.id ?? null);
+
+  const sectionProgress: Record<
+    string,
+    { answered: number; total: number; reviewed: number }
+  > = {};
+  const sectionsSummary: Array<{
+    title: string;
+    answered: number;
+    total: number;
+  }> = [];
+
+  if (data.sections && data.sections.length > 0) {
+    for (const sec of data.sections) {
+      sectionProgress[sec.id] = { answered: 0, total: 0, reviewed: 0 };
+    }
+    for (const q of data.questions) {
+      if (q.sectionId && sectionProgress[q.sectionId]) {
+        sectionProgress[q.sectionId].total++;
+        const ans = answersMap.get(q.id);
+        if (ans?.selectedOptionId) {
+          sectionProgress[q.sectionId].answered++;
+        }
+        if (ans?.isMarkedForReview) {
+          sectionProgress[q.sectionId].reviewed++;
+        }
+      }
+    }
+    for (const sec of data.sections) {
+      const prog = sectionProgress[sec.id];
+      if (prog) {
+        sectionsSummary.push({
+          title: sec.title,
+          answered: prog.answered,
+          total: prog.total,
+        });
+      }
+    }
+  }
+
   return (
     <div className="min-h-dvh flex flex-col bg-canvas text-text">
       {/* Top Header with Timer and Test Title */}
@@ -356,6 +413,7 @@ export default function MockTestRunnerPage() {
                   currentIndex={currentIndex}
                   questions={data.questions}
                   answers={answersMap}
+                  sections={data.sections}
                   onSelectQuestion={(idx) => {
                     handleSelectQuestion(idx);
                     setIsMobilePaletteOpen(false);
@@ -364,6 +422,16 @@ export default function MockTestRunnerPage() {
               </div>
             )}
           </div>
+
+          {/* Section Tabs (Multi-Section Tests) */}
+          {data.sections && data.sections.length > 1 && (
+            <SectionTabs
+              sections={data.sections}
+              activeSectionId={activeSectionId}
+              onSelectSection={handleSelectSection}
+              sectionProgress={sectionProgress}
+            />
+          )}
 
           <div className="bg-surface rounded-xl border border-border p-6 sm:p-8 space-y-6 shadow-xs">
             {/* Meta Tags */}
@@ -471,6 +539,7 @@ export default function MockTestRunnerPage() {
             totalQuestions={data.questions.length}
             currentIndex={currentIndex}
             questions={data.questions}
+            sections={data.sections}
             answers={answersMap}
             onSelectQuestion={handleSelectQuestion}
           />
@@ -492,6 +561,7 @@ export default function MockTestRunnerPage() {
         answeredCount={answeredCount}
         unansweredCount={unansweredCount}
         markedCount={markedCount}
+        sectionsSummary={sectionsSummary}
         isSubmitting={isSubmitting}
         onConfirm={handleSubmit}
         onCancel={() => setIsModalOpen(false)}

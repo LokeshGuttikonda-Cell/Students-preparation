@@ -9,6 +9,7 @@ export interface SubmitConfirmModalProps {
   answeredCount: number;
   unansweredCount: number;
   markedCount: number;
+  sectionsSummary?: Array<{ title: string; answered: number; total: number }>;
   isSubmitting?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
@@ -20,6 +21,7 @@ export const SubmitConfirmModal: React.FC<SubmitConfirmModalProps> = ({
   answeredCount,
   unansweredCount,
   markedCount,
+  sectionsSummary,
   isSubmitting = false,
   onConfirm,
   onCancel,
@@ -64,6 +66,30 @@ export const SubmitConfirmModal: React.FC<SubmitConfirmModalProps> = ({
             <p className="text-xs text-text-muted">Marked</p>
           </div>
         </div>
+
+        {/* Multi-Section Progress Breakdown */}
+        {sectionsSummary && sectionsSummary.length > 1 && (
+          <div className="space-y-2 border-t border-border pt-3">
+            <h4 className="text-xs font-semibold text-text uppercase tracking-wider">
+              Sectional Breakdown
+            </h4>
+            <div className="space-y-1.5 max-h-36 overflow-y-auto">
+              {sectionsSummary.map((s, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between text-xs bg-canvas px-3 py-1.5 rounded border border-border"
+                >
+                  <span className="truncate max-w-[220px] text-text font-medium">
+                    {s.title}
+                  </span>
+                  <span className="tabular font-semibold text-text-muted">
+                    {s.answered}/{s.total}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {unansweredCount > 0 && (
           <div className="bg-warning-50 border border-warning-200 text-warning-800 p-3 rounded-md text-xs">

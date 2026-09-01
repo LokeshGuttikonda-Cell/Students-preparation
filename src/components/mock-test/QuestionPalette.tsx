@@ -5,7 +5,8 @@ import React from 'react';
 export interface QuestionPaletteProps {
   totalQuestions: number;
   currentIndex: number;
-  questions: Array<{ id: string }>;
+  questions: Array<{ id: string; sectionId?: string | null }>;
+  sections?: Array<{ id: string; title: string }>;
   answers: Map<
     string,
     { selectedOptionId: string | null; isMarkedForReview: boolean }
@@ -18,10 +19,55 @@ export const QuestionPalette: React.FC<QuestionPaletteProps> = ({
   totalQuestions,
   currentIndex,
   questions,
+  sections,
   answers,
   onSelectQuestion,
   className = '',
 }) => {
+  const hasMultipleSections = sections && sections.length > 1;
+
+  const renderQuestionButton = (q: { id: string }, idx: number) => {
+    const ans = answers.get(q.id);
+    const isAnswered = Boolean(ans && ans.selectedOptionId);
+    const isMarked = Boolean(ans && ans.isMarkedForReview);
+    const isCurrent = idx === currentIndex;
+
+    let stateClasses = 'bg-surface border-border text-text hover:border-primary-700';
+
+    if (isAnswered && isMarked) {
+      stateClasses =
+        'bg-primary-700 text-white font-semibold ring-2 ring-review border-primary-700';
+    } else if (isAnswered) {
+      stateClasses =
+        'bg-primary-700 text-white font-semibold border-primary-700';
+    } else if (isMarked) {
+      stateClasses =
+        'bg-surface text-text ring-2 ring-review border-border font-medium';
+    }
+
+    const currentRing = isCurrent ? 'ring-2 ring-focus ring-offset-2' : '';
+
+    return (
+      <button
+        key={q.id}
+        type="button"
+        onClick={() => onSelectQuestion(idx)}
+        className={`min-h-[44px] sm:min-h-[38px] w-full rounded border flex items-center justify-center text-xs font-semibold tabular touch-manipulation transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 ${stateClasses} ${currentRing}`}
+        aria-label={`Question ${idx + 1}: ${
+          isAnswered && isMarked
+            ? 'Answered and Marked for Review'
+            : isAnswered
+            ? 'Answered'
+            : isMarked
+            ? 'Marked for Review'
+            : 'Unanswered'
+        }`}
+      >
+        {idx + 1}
+      </button>
+    );
+  };
+
   return (
     <div className={`space-y-4 ${className}`}>
       <div className="flex items-center justify-between">
@@ -33,47 +79,33 @@ export const QuestionPalette: React.FC<QuestionPaletteProps> = ({
         </span>
       </div>
 
-      {/* 5-State Question Grid */}
-      <div className="grid grid-cols-5 gap-2 max-h-64 overflow-y-auto p-1">
-        {questions.map((q, idx) => {
-          const ans = answers.get(q.id);
-          const isAnswered = Boolean(ans && ans.selectedOptionId);
-          const isMarked = Boolean(ans && ans.isMarkedForReview);
-          const isCurrent = idx === currentIndex;
+      {hasMultipleSections ? (
+        <div className="space-y-4 max-h-72 overflow-y-auto p-1">
+          {sections.map((sec) => {
+            const secQuestions = questions
+              .map((q, idx) => ({ q, idx }))
+              .filter(({ q }) => q.sectionId === sec.id);
 
-          let stateClasses = 'bg-surface border-border text-text hover:border-primary-700';
+            if (secQuestions.length === 0) return null;
 
-          if (isAnswered && isMarked) {
-            stateClasses = 'bg-primary-700 text-white font-semibold ring-2 ring-review border-primary-700';
-          } else if (isAnswered) {
-            stateClasses = 'bg-primary-700 text-white font-semibold border-primary-700';
-          } else if (isMarked) {
-            stateClasses = 'bg-surface text-text ring-2 ring-review border-border font-medium';
-          }
-
-          const currentRing = isCurrent ? 'ring-2 ring-focus ring-offset-2' : '';
-
-          return (
-            <button
-              key={q.id}
-              type="button"
-              onClick={() => onSelectQuestion(idx)}
-              className={`min-h-[44px] sm:min-h-[38px] w-full rounded border flex items-center justify-center text-xs font-semibold tabular touch-manipulation transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 ${stateClasses} ${currentRing}`}
-              aria-label={`Question ${idx + 1}: ${
-                isAnswered && isMarked
-                  ? 'Answered and Marked for Review'
-                  : isAnswered
-                  ? 'Answered'
-                  : isMarked
-                  ? 'Marked for Review'
-                  : 'Unanswered'
-              }`}
-            >
-              {idx + 1}
-            </button>
-          );
-        })}
-      </div>
+            return (
+              <div key={sec.id} className="space-y-1.5">
+                <div className="text-[11px] font-semibold text-text-muted uppercase tracking-wider border-b border-border/60 pb-1">
+                  {sec.title}
+                </div>
+                <div className="grid grid-cols-5 gap-2">
+                  {secQuestions.map(({ q, idx }) => renderQuestionButton(q, idx))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        /* Flat 5-State Question Grid */
+        <div className="grid grid-cols-5 gap-2 max-h-64 overflow-y-auto p-1">
+          {questions.map((q, idx) => renderQuestionButton(q, idx))}
+        </div>
+      )}
 
       {/* Palette Legend */}
       <div className="border-t border-border pt-3 space-y-2 text-xs text-text-muted">

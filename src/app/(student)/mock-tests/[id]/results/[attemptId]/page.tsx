@@ -171,6 +171,113 @@ export default function MockTestResultsPage() {
           </div>
         </div>
 
+        {/* Role Qualification Benchmark Banner */}
+        {scorecard.roleQualification?.isRoleBenchmark && (
+          <div
+            className={`border rounded-2xl p-6 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${
+              scorecard.roleQualification.isQualified
+                ? 'bg-success-50/80 border-success-500/40 text-success-900'
+                : 'bg-warning-50/80 border-warning-500/40 text-warning-950'
+            }`}
+          >
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 font-bold text-base sm:text-lg">
+                <span>{scorecard.roleQualification.isQualified ? '✓' : '⚠️'}</span>
+                <span>
+                  {scorecard.roleQualification.isQualified
+                    ? 'Role Technical Benchmark: QUALIFIED'
+                    : 'Role Technical Benchmark: ACTION REQUIRED'}
+                </span>
+              </div>
+              <p className="text-sm opacity-90">
+                {scorecard.roleQualification.verdictText}
+              </p>
+            </div>
+            <div className="shrink-0">
+              <span
+                className={`text-xs font-bold uppercase tracking-wider px-3 py-1.5 rounded-full border ${
+                  scorecard.roleQualification.isQualified
+                    ? 'bg-success-600 text-white border-success-700'
+                    : 'bg-warning-600 text-white border-warning-700'
+                }`}
+              >
+                {scorecard.roleQualification.isQualified ? 'Benchmark Cleared' : 'Needs Practice'}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Sectional Performance Breakdown (Multi-Section Tests) */}
+        {scorecard.sectionBreakdown && scorecard.sectionBreakdown.length > 0 && (
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <h3 className="text-xl font-bold text-text">
+                Sectional Performance Scorecard
+              </h3>
+              <p className="text-sm text-text-muted">
+                Section-by-section breakdown evaluating whether individual competency cutoffs were cleared.
+              </p>
+            </div>
+
+            <div className="bg-surface border border-border rounded-xl overflow-hidden shadow-xs">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-canvas border-b border-border text-xs uppercase tracking-wider text-text-muted font-semibold">
+                    <tr>
+                      <th className="px-5 py-3">Section Title</th>
+                      <th className="px-5 py-3 text-center">Questions</th>
+                      <th className="px-5 py-3 text-center">Correct</th>
+                      <th className="px-5 py-3 text-center">Incorrect</th>
+                      <th className="px-5 py-3 text-center">Score</th>
+                      <th className="px-5 py-3 text-center">Accuracy</th>
+                      <th className="px-5 py-3 text-center">Cutoff Target</th>
+                      <th className="px-5 py-3 text-right">Section Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {scorecard.sectionBreakdown.map((s) => (
+                      <tr key={s.sectionId} className="hover:bg-canvas/50 transition-colors">
+                        <td className="px-5 py-3.5 font-semibold text-text">
+                          {s.title}
+                        </td>
+                        <td className="px-5 py-3.5 text-center tabular text-text-muted font-medium">
+                          {s.total}
+                        </td>
+                        <td className="px-5 py-3.5 text-center tabular text-success-700 font-semibold">
+                          {s.correct}
+                        </td>
+                        <td className="px-5 py-3.5 text-center tabular text-error-600 font-semibold">
+                          {s.incorrect}
+                        </td>
+                        <td className="px-5 py-3.5 text-center tabular font-bold text-primary-900">
+                          {s.score} / {s.maxScore}
+                        </td>
+                        <td className="px-5 py-3.5 text-center tabular font-bold">
+                          {s.accuracy}%
+                        </td>
+                        <td className="px-5 py-3.5 text-center tabular text-xs text-text-muted">
+                          {s.cutoffScore !== null ? `≥ ${s.cutoffScore} pts` : 'None'}
+                        </td>
+                        <td className="px-5 py-3.5 text-right">
+                          {s.clearedCutoff ? (
+                            <span className="text-xs font-semibold text-success-700 bg-success-50 px-2.5 py-1 rounded-full border border-success-200 inline-flex items-center gap-1">
+                              <span>✓</span> Cleared
+                            </span>
+                          ) : (
+                            <span className="text-xs font-semibold text-error-600 bg-error-50 px-2.5 py-1 rounded-full border border-error-200 inline-flex items-center gap-1">
+                              <span>✗</span> Below Cutoff
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Section 1: Weak-Area Topic Breakdown */}
         <div className="space-y-4">
           <div className="space-y-1">

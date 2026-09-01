@@ -10,6 +10,16 @@ export interface MockTestItem {
   createdAt: string;
 }
 
+export interface TestSectionItem {
+  id: string;
+  title: string;
+  description?: string | null;
+  orderIndex: number;
+  durationMinutes?: number | null;
+  cutoffScore?: number | null;
+  questionCount: number;
+}
+
 export interface MockTestAttemptData {
   attempt: {
     id: string;
@@ -23,6 +33,7 @@ export interface MockTestAttemptData {
     negativeMarking: number | null;
     title: string;
   };
+  sections?: TestSectionItem[];
   questions: Array<{
     id: string;
     topicId: string;
@@ -31,6 +42,8 @@ export interface MockTestAttemptData {
     orderIndex: number;
     topicName: string;
     subjectName: string;
+    sectionId?: string | null;
+    sectionTitle?: string | null;
     options: Array<{
       id: string;
       body: string;
@@ -69,6 +82,26 @@ export interface MockTestScorecardData {
     unanswered: number;
     accuracy: number;
   }>;
+  sectionBreakdown?: Array<{
+    sectionId: string;
+    title: string;
+    orderIndex: number;
+    durationMinutes: number | null;
+    cutoffScore: number | null;
+    total: number;
+    correct: number;
+    incorrect: number;
+    unanswered: number;
+    score: number;
+    maxScore: number;
+    accuracy: number;
+    clearedCutoff: boolean;
+  }>;
+  roleQualification?: {
+    isRoleBenchmark: boolean;
+    isQualified: boolean;
+    verdictText: string;
+  };
   questions: Array<{
     id: string;
     topicId: string;
@@ -78,6 +111,8 @@ export interface MockTestScorecardData {
     orderIndex: number;
     topicName: string;
     subjectName: string;
+    sectionId?: string | null;
+    sectionTitle?: string | null;
     options: Array<{
       id: string;
       body: string;
