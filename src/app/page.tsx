@@ -29,6 +29,11 @@ export default function Home() {
                 <span className="text-xs text-text-muted hidden sm:inline">
                   Signed in as <strong className="text-text">{user.name}</strong>
                 </span>
+                <Link href="/roles">
+                  <Button variant="ghost" size="sm" className="text-xs">
+                    Career Roles
+                  </Button>
+                </Link>
                 <Link href="/dashboard">
                   <Button variant="secondary" size="sm" className="text-xs">
                     My Dashboard
@@ -52,6 +57,11 @@ export default function Home() {
               </div>
             ) : (
               <div className="flex items-center gap-2">
+                <Link href="/roles">
+                  <Button variant="ghost" size="sm" className="text-xs">
+                    Career Roles
+                  </Button>
+                </Link>
                 <Link href="/login">
                   <Button variant="ghost" size="sm">
                     Sign In
@@ -88,41 +98,88 @@ export default function Home() {
         </div>
 
         {/* Feature Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Practice Mode Card */}
-          <Card className="hover:border-primary-700/50 hover:shadow-md transition-all">
-            <CardContent className="p-8 space-y-5">
-              <div className="w-10 h-10 rounded-lg bg-primary-50 border border-primary-200 flex items-center justify-center text-primary-700">
-                <svg
-                  className="w-6 h-6"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-                  />
-                </svg>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Career Roles Card (Phase 2) */}
+          <Card className="hover:border-primary-700/50 hover:shadow-md transition-all border-primary-200/80 bg-surface">
+            <CardContent className="p-7 space-y-5 flex flex-col justify-between h-full">
+              <div className="space-y-4">
+                <div className="w-10 h-10 rounded-lg bg-accent-50 border border-accent-200 flex items-center justify-center text-accent-700">
+                  <svg
+                    className="w-6 h-6"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                    />
+                  </svg>
+                </div>
+
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl font-bold text-primary-900">
+                      Career Roles
+                    </h2>
+                    <span className="text-[10px] font-bold uppercase bg-accent-100 text-accent-800 px-2 py-0.5 rounded border border-accent-300">
+                      Job-Ready
+                    </span>
+                  </div>
+                  <p className="text-sm text-text-muted mt-2 leading-relaxed">
+                    Prepare for Cloud &amp; DevOps, Java, Python, Data Analyst, or CRM roles.
+                    Master weighted competencies with real-world benchmark cutoffs.
+                  </p>
+                </div>
               </div>
 
-              <div>
-                <h2 className="text-xl font-bold text-primary-900">
-                  Topic-Wise Practice
-                </h2>
-                <p className="text-sm text-text-muted mt-2 leading-relaxed">
-                  Solve assessment questions topic-by-topic. Get immediate
-                  verdicts on every choice with exhaustive step-by-step
-                  mathematical and logical explanations.
-                </p>
+              <div className="pt-2">
+                <Link href="/roles">
+                  <Button variant="primary" className="w-full min-h-[44px]">Explore Roles &rarr;</Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Practice Mode Card */}
+          <Card className="hover:border-primary-700/50 hover:shadow-md transition-all">
+            <CardContent className="p-7 space-y-5 flex flex-col justify-between h-full">
+              <div className="space-y-4">
+                <div className="w-10 h-10 rounded-lg bg-primary-50 border border-primary-200 flex items-center justify-center text-primary-700">
+                  <svg
+                    className="w-6 h-6"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                    />
+                  </svg>
+                </div>
+
+                <div>
+                  <h2 className="text-xl font-bold text-primary-900">
+                    Topic-Wise Practice
+                  </h2>
+                  <p className="text-sm text-text-muted mt-2 leading-relaxed">
+                    Solve assessment questions topic-by-topic. Get immediate
+                    verdicts on every choice with exhaustive step-by-step
+                    mathematical and logical explanations.
+                  </p>
+                </div>
               </div>
 
               <div className="pt-2">
                 <Link href="/practice">
-                  <Button variant="primary">Start Practicing &rarr;</Button>
+                  <Button variant="secondary" className="w-full min-h-[44px]">Start Practicing &rarr;</Button>
                 </Link>
               </div>
             </CardContent>
@@ -130,43 +187,45 @@ export default function Home() {
 
           {/* Timed Mock Tests Card */}
           <Card className="hover:border-accent-500/50 hover:shadow-md transition-all">
-            <CardContent className="p-8 space-y-5">
-              <div className="w-10 h-10 rounded-lg bg-accent-50 border border-accent-200 flex items-center justify-center text-accent-700">
-                <svg
-                  className="w-6 h-6"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              </div>
-
-              <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-xl font-bold text-primary-900">
-                    Timed Mock Tests
-                  </h2>
-                  <span className="text-[11px] font-semibold uppercase bg-accent-100 text-accent-800 px-2 py-0.5 rounded border border-accent-300">
-                    Full Simulation
-                  </span>
+            <CardContent className="p-7 space-y-5 flex flex-col justify-between h-full">
+              <div className="space-y-4">
+                <div className="w-10 h-10 rounded-lg bg-accent-50 border border-accent-200 flex items-center justify-center text-accent-700">
+                  <svg
+                    className="w-6 h-6"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
                 </div>
-                <p className="text-sm text-text-muted mt-2 leading-relaxed">
-                  Experience full-length aptitude tests with server-synchronized
-                  timers, palette question navigation, mark-for-review, and
-                  performance scoring.
-                </p>
+
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl font-bold text-primary-900">
+                      Timed Mock Tests
+                    </h2>
+                    <span className="text-[10px] font-bold uppercase bg-accent-100 text-accent-800 px-2 py-0.5 rounded border border-accent-300">
+                      Simulation
+                    </span>
+                  </div>
+                  <p className="text-sm text-text-muted mt-2 leading-relaxed">
+                    Experience full-length aptitude tests with server-synchronized
+                    timers, palette question navigation, mark-for-review, and
+                    performance scoring.
+                  </p>
+                </div>
               </div>
 
               <div className="pt-2">
                 <Link href="/mock-tests">
-                  <Button variant="accent">Explore Mock Tests &rarr;</Button>
+                  <Button variant="accent" className="w-full min-h-[44px]">Explore Mock Tests &rarr;</Button>
                 </Link>
               </div>
             </CardContent>
