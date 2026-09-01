@@ -83,3 +83,70 @@ export async function getWeakAreaAnalytics(): Promise<WeakAreaAnalyticsData> {
 
   return (await res.json()) as WeakAreaAnalyticsData;
 }
+
+export interface RoleReadinessCompetency {
+  id: string;
+  topicId: string;
+  topicName: string;
+  topicSlug: string;
+  subjectId: string;
+  subjectName: string;
+  weightPercentage: number;
+  benchmarkAccuracy: number;
+  studentQuestionsAttempted: number;
+  studentAccuracy: number;
+  coverageRatio: number;
+  gap: number;
+  status: 'READY' | 'IN_PROGRESS' | 'NOT_STARTED';
+  practiceTopicId: string;
+}
+
+export interface RoleReadinessData {
+  role: {
+    id: string;
+    name: string;
+    slug: string;
+    description: string | null;
+    targetLevel: string;
+  };
+  rri: number;
+  readinessTier: 'READY' | 'COMPETITIVE' | 'NEEDS_PRACTICE' | 'BEGINNER';
+  summary: string;
+  competencies: RoleReadinessCompetency[];
+  benchmarkMockTests: Array<{
+    id: string;
+    title: string;
+    slug: string;
+    durationMinutes: number;
+    questionCount: number;
+  }>;
+}
+
+export async function getRoleReadiness(
+  roleTrackId?: string,
+): Promise<RoleReadinessData> {
+  const url = roleTrackId
+    ? `/api/v1/attempts/analytics/role-readiness?roleTrackId=${encodeURIComponent(roleTrackId)}`
+    : '/api/v1/attempts/analytics/role-readiness';
+
+  const res = await fetch(url, { cache: 'no-store' });
+  if (!res.ok) {
+    throw new Error('Failed to fetch role readiness analytics');
+  }
+
+  return (await res.json()) as RoleReadinessData;
+}
+
+export async function setTargetRole(
+  roleTrackId: string | null,
+): Promise<void> {
+  const res = await fetch('/api/v1/auth/target-role', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ roleTrackId }),
+  });
+
+  if (!res.ok) {
+    throw new Error('Failed to update target career role');
+  }
+}

@@ -3,6 +3,8 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { WeakAreaCard } from '../WeakAreaCard';
 import { AttemptHistoryTable } from '../AttemptHistoryTable';
+import { RoleReadinessWidget } from '../RoleReadinessWidget';
+import { CompetencyGapAnalyzer } from '../CompetencyGapAnalyzer';
 import type { WeakAreaItem, AttemptHistoryItem } from '../../../lib/analytics-client';
 
 describe('WeakAreaCard', () => {
@@ -128,5 +130,166 @@ describe('AttemptHistoryTable', () => {
     const nextButton = screen.getByRole('button', { name: /Next/i });
     fireEvent.click(nextButton);
     expect(onPageChange).toHaveBeenCalledWith(2);
+  });
+});
+
+describe('RoleReadinessWidget', () => {
+  const sampleReadiness = {
+    role: {
+      id: 'role_devops',
+      name: 'Cloud & DevOps Engineer',
+      slug: 'cloud-devops',
+      description: 'Infrastructure automation',
+      targetLevel: 'ENTRY_LEVEL',
+    },
+    rri: 75,
+    readinessTier: 'COMPETITIVE' as const,
+    summary: 'Competitive profile for Cloud & DevOps Engineer.',
+    competencies: [],
+    benchmarkMockTests: [
+      {
+        id: 'mt_devops',
+        title: 'DevOps Benchmark Mock 1',
+        slug: 'devops-mock-1',
+        durationMinutes: 45,
+        questionCount: 15,
+      },
+    ],
+  };
+
+  const sampleRoles = [
+    {
+      id: 'role_devops',
+      name: 'Cloud & DevOps Engineer',
+      slug: 'cloud-devops',
+      description: null,
+      targetLevel: 'ENTRY_LEVEL',
+      orderIndex: 0,
+      competenciesCount: 2,
+      mockTestsCount: 1,
+      competencies: [],
+    },
+    {
+      id: 'role_java',
+      name: 'Java Backend Developer',
+      slug: 'java-backend',
+      description: null,
+      targetLevel: 'ENTRY_LEVEL',
+      orderIndex: 1,
+      competenciesCount: 2,
+      mockTestsCount: 1,
+      competencies: [],
+    },
+  ];
+
+  it('renders role title, RRI score gauge, and competitive tier badge', () => {
+    const onSelectRole = vi.fn();
+    const onSaveTarget = vi.fn();
+
+    render(
+      <RoleReadinessWidget
+        data={sampleReadiness}
+        rolesList={sampleRoles}
+        selectedRoleId="role_devops"
+        userTargetRoleId="role_java"
+        onSelectRole={onSelectRole}
+        onSaveAsTarget={onSaveTarget}
+      />,
+    );
+
+    expect(
+      screen.getByRole('heading', { name: 'Cloud & DevOps Engineer' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('75%')).toBeInTheDocument();
+    expect(screen.getByText('Competitive Profile')).toBeInTheDocument();
+    expect(screen.getByText('Set as My Target Role')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Set as My Target Role'));
+    expect(onSaveTarget).toHaveBeenCalledWith('role_devops');
+
+    const select = screen.getByLabelText(/View Role:/i);
+    fireEvent.change(select, { target: { value: 'role_java' } });
+    expect(onSelectRole).toHaveBeenCalledWith('role_java');
+
+    expect(
+      screen.getByText(/Take Benchmark Mock Test/i).closest('a'),
+    ).toHaveAttribute('href', '/mock-tests/mt_devops');
+  });
+
+  it('displays "Active Target Role" badge when current role matches target', () => {
+    render(
+      <RoleReadinessWidget
+        data={sampleReadiness}
+        rolesList={sampleRoles}
+        selectedRoleId="role_devops"
+        userTargetRoleId="role_devops"
+        onSelectRole={vi.fn()}
+        onSaveAsTarget={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('★ Active Target Role')).toBeInTheDocument();
+  });
+});
+
+describe('CompetencyGapAnalyzer', () => {
+  const sampleCompetencies = [
+    {
+      id: 'comp_1',
+      topicId: 'top_ci',
+      topicName: 'CI/CD Pipelines',
+      topicSlug: 'ci-cd',
+      subjectId: 'sub_devops',
+      subjectName: 'DevOps Systems',
+      weightPercentage: 40,
+      benchmarkAccuracy: 70,
+      studentQuestionsAttempted: 10,
+      studentAccuracy: 80,
+      coverageRatio: 100,
+      gap: 0,
+      status: 'READY' as const,
+      practiceTopicId: 'top_ci',
+    },
+    {
+      id: 'comp_2',
+      topicId: 'top_k8s',
+      topicName: 'Kubernetes',
+      topicSlug: 'k8s',
+      subjectId: 'sub_devops',
+      subjectName: 'DevOps Systems',
+      weightPercentage: 60,
+      benchmarkAccuracy: 75,
+      studentQuestionsAttempted: 5,
+      studentAccuracy: 40,
+      coverageRatio: 53,
+      gap: 35,
+      status: 'IN_PROGRESS' as const,
+      practiceTopicId: 'top_k8s',
+    },
+  ];
+
+  it('renders topic benchmarks, student accuracies, and deficit badges', () => {
+    render(
+      <CompetencyGapAnalyzer
+        competencies={sampleCompetencies}
+        roleName="Cloud & DevOps Engineer"
+      />,
+    );
+
+    expect(
+      screen.getByText('Cloud & DevOps Engineer Competency Gap Analyzer'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('CI/CD Pipelines')).toBeInTheDocument();
+    expect(screen.getByText('80%')).toBeInTheDocument();
+    expect(screen.getByText('Cleared')).toBeInTheDocument();
+
+    expect(screen.getByText('Kubernetes')).toBeInTheDocument();
+    expect(screen.getAllByText('40%').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/-35% Deficit/i)).toBeInTheDocument();
+
+    const practiceButtons = screen.getAllByRole('button', { name: /Practice Topic/i });
+    expect(practiceButtons).toHaveLength(2);
+    expect(practiceButtons[0].closest('a')).toHaveAttribute('href', '/practice/top_ci');
+    expect(practiceButtons[1].closest('a')).toHaveAttribute('href', '/practice/top_k8s');
   });
 });

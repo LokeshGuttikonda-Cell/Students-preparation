@@ -7,9 +7,15 @@ import { useAuth } from '../../../context/AuthContext';
 import {
   getUserAttempts,
   getWeakAreaAnalytics,
+  getRoleReadiness,
+  setTargetRole,
   type PaginatedAttempts,
   type WeakAreaAnalyticsData,
+  type RoleReadinessData,
 } from '../../../lib/analytics-client';
+import { getRoles, type RoleTrackItem } from '../../../lib/roles-client';
+import { RoleReadinessWidget } from '../../../components/analytics/RoleReadinessWidget';
+import { CompetencyGapAnalyzer } from '../../../components/analytics/CompetencyGapAnalyzer';
 import { WeakAreaCard } from '../../../components/analytics/WeakAreaCard';
 import { AttemptHistoryTable } from '../../../components/analytics/AttemptHistoryTable';
 import { Card } from '../../../components/ui/Card';
@@ -17,31 +23,65 @@ import { Button } from '../../../components/ui/Button';
 
 export default function StudentDashboardPage() {
   const router = useRouter();
-  const { user, isLoading: isAuthLoading } = useAuth();
+  const { user, isLoading: isAuthLoading, refresh: refreshUser } = useAuth();
 
   const [analytics, setAnalytics] = useState<WeakAreaAnalyticsData | null>(null);
   const [history, setHistory] = useState<PaginatedAttempts | null>(null);
+  const [readiness, setReadiness] = useState<RoleReadinessData | null>(null);
+  const [rolesList, setRolesList] = useState<RoleTrackItem[]>([]);
+  const [selectedRoleId, setSelectedRoleId] = useState<string>('');
+  const [isSavingTarget, setIsSavingTarget] = useState(false);
+
   const [currentPage, setCurrentPage] = useState(1);
   const [filterType, setFilterType] = useState<'ALL' | 'PRACTICE' | 'MOCK_TEST'>('ALL');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadData = useCallback(async (page: number, type: 'ALL' | 'PRACTICE' | 'MOCK_TEST') => {
+  const loadData = useCallback(async (page: number, type: 'ALL' | 'PRACTICE' | 'MOCK_TEST', roleIdParam?: string) => {
     try {
       setIsLoading(true);
       const attemptTypeParam = type === 'ALL' ? undefined : type;
-      const [analyticsData, historyData] = await Promise.all([
+      const [analyticsData, historyData, rolesData, readinessData] = await Promise.all([
         getWeakAreaAnalytics(),
         getUserAttempts(page, 10, attemptTypeParam),
+        getRoles().catch(() => []),
+        getRoleReadiness(roleIdParam || undefined).catch(() => null),
       ]);
       setAnalytics(analyticsData);
       setHistory(historyData);
+      setRolesList(rolesData);
+      if (readinessData) {
+        setReadiness(readinessData);
+        setSelectedRoleId(readinessData.role.id);
+      }
       setIsLoading(false);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load dashboard data');
       setIsLoading(false);
     }
   }, []);
+
+  const handleSelectRole = async (roleId: string) => {
+    setSelectedRoleId(roleId);
+    try {
+      const res = await getRoleReadiness(roleId);
+      setReadiness(res);
+    } catch (err: unknown) {
+      console.error('Failed to load readiness for role', err);
+    }
+  };
+
+  const handleSaveAsTarget = async (roleId: string) => {
+    try {
+      setIsSavingTarget(true);
+      await setTargetRole(roleId);
+      await refreshUser();
+      setIsSavingTarget(false);
+    } catch (err: unknown) {
+      setIsSavingTarget(false);
+      setError(err instanceof Error ? err.message : 'Failed to update target role');
+    }
+  };
 
   useEffect(() => {
     if (!isAuthLoading && !user) {
@@ -134,6 +174,25 @@ export default function StudentDashboardPage() {
           <div className="p-4 bg-error-50 border border-error-500/30 text-error-700 rounded-lg text-sm">
             {error}
           </div>
+        )}
+
+        {/* Role Readiness Accelerator Section */}
+        {readiness && (
+          <section className="space-y-6">
+            <RoleReadinessWidget
+              data={readiness}
+              rolesList={rolesList}
+              selectedRoleId={selectedRoleId || readiness.role.id}
+              userTargetRoleId={user?.targetRoleId}
+              onSelectRole={handleSelectRole}
+              onSaveAsTarget={handleSaveAsTarget}
+              isSavingTarget={isSavingTarget}
+            />
+            <CompetencyGapAnalyzer
+              competencies={readiness.competencies}
+              roleName={readiness.role.name}
+            />
+          </section>
         )}
 
         {/* Top KPI Cards */}

@@ -5,6 +5,8 @@ export interface UserProfile {
   email: string;
   name: string;
   role: 'STUDENT' | 'ADMIN';
+  targetRoleId?: string | null;
+  targetRole?: { id: string; name: string; slug: string } | null;
   createdAt: string;
 }
 
