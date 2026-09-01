@@ -58,7 +58,7 @@ export const QuestionPalette: React.FC<QuestionPaletteProps> = ({
               key={q.id}
               type="button"
               onClick={() => onSelectQuestion(idx)}
-              className={`h-9 w-full rounded border flex items-center justify-center text-xs font-semibold tabular transition-all focus:outline-none ${stateClasses} ${currentRing}`}
+              className={`min-h-[44px] sm:min-h-[38px] w-full rounded border flex items-center justify-center text-xs font-semibold tabular touch-manipulation transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 ${stateClasses} ${currentRing}`}
               aria-label={`Question ${idx + 1}: ${
                 isAnswered && isMarked
                   ? 'Answered and Marked for Review'

@@ -73,9 +73,10 @@ export const OptionRow: React.FC<OptionRowProps> = ({
   return (
     <button
       type="button"
+      aria-pressed={state === 'selected'}
       disabled={disabled}
       onClick={onClick}
-      className={`w-full p-4 rounded-md border text-left flex items-start gap-3.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-700 focus-visible:ring-offset-2 disabled:cursor-default ${containerStyles}`}
+      className={`w-full min-h-[48px] touch-manipulation p-4 rounded-md border text-left flex items-start gap-3.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-700 focus-visible:ring-offset-2 disabled:cursor-default ${containerStyles}`}
     >
       <span
         className={`inline-flex items-center justify-center w-7 h-7 rounded-md font-mono font-bold text-xs shrink-0 border ${badgeStyles}`}

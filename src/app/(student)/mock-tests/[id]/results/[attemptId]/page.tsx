@@ -267,7 +267,7 @@ export default function MockTestResultsPage() {
                     key={q.id}
                     type="button"
                     onClick={() => setSelectedQuestionIdx(idx)}
-                    className={`w-8 h-8 rounded border text-xs font-bold tabular transition-all focus:outline-none ${pillColor} ${
+                    className={`min-w-[44px] min-h-[44px] sm:min-w-[36px] sm:min-h-[36px] rounded border text-xs font-bold tabular touch-manipulation transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 ${pillColor} ${
                       isSelected ? 'ring-2 ring-focus ring-offset-2 scale-105' : ''
                     }`}
                   >

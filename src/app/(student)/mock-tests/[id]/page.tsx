@@ -28,6 +28,7 @@ export default function MockTestRunnerPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isMobilePaletteOpen, setIsMobilePaletteOpen] = useState(false);
 
   const questionStartTimeRef = useRef(Date.now());
 
@@ -335,6 +336,35 @@ export default function MockTestRunnerPage() {
       <div className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Question Canvas (Left / 3 cols) */}
         <main className="lg:col-span-3 space-y-6 flex flex-col justify-between">
+          {/* Mobile Palette Toggle */}
+          <div className="lg:hidden">
+            <button
+              type="button"
+              onClick={() => setIsMobilePaletteOpen(!isMobilePaletteOpen)}
+              className="w-full flex items-center justify-between p-3.5 bg-surface rounded-lg border border-border text-xs font-semibold text-text shadow-xs min-h-[44px]"
+            >
+              <span className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-primary-700" />
+                Question Palette ({answeredCount}/{data.questions.length} answered)
+              </span>
+              <span className="text-primary-700">{isMobilePaletteOpen ? 'Hide ▲' : 'Show ▼'}</span>
+            </button>
+            {isMobilePaletteOpen && (
+              <div className="mt-3 bg-surface p-4 rounded-xl border border-border shadow-xs">
+                <QuestionPalette
+                  totalQuestions={data.questions.length}
+                  currentIndex={currentIndex}
+                  questions={data.questions}
+                  answers={answersMap}
+                  onSelectQuestion={(idx) => {
+                    handleSelectQuestion(idx);
+                    setIsMobilePaletteOpen(false);
+                  }}
+                />
+              </div>
+            )}
+          </div>
+
           <div className="bg-surface rounded-xl border border-border p-6 sm:p-8 space-y-6 shadow-xs">
             {/* Meta Tags */}
             <div className="flex items-center justify-between text-xs text-text-muted border-b border-border pb-4">
@@ -435,8 +465,8 @@ export default function MockTestRunnerPage() {
           </div>
         </main>
 
-        {/* Right Sidebar: Question Palette (1 col) */}
-        <aside className="bg-surface rounded-xl border border-border p-5 h-fit shadow-xs">
+        {/* Right Sidebar: Question Palette (1 col, desktop only) */}
+        <aside className="hidden lg:block bg-surface rounded-xl border border-border p-5 h-fit shadow-xs">
           <QuestionPalette
             totalQuestions={data.questions.length}
             currentIndex={currentIndex}
