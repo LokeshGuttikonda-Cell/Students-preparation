@@ -34,6 +34,11 @@ export default function Home() {
                     Career Roles
                   </Button>
                 </Link>
+                <Link href="/sandbox">
+                  <Button variant="ghost" size="sm" className="text-xs">
+                    SQL &amp; Code Lab
+                  </Button>
+                </Link>
                 <Link href="/dashboard">
                   <Button variant="secondary" size="sm" className="text-xs">
                     My Dashboard
@@ -60,6 +65,11 @@ export default function Home() {
                 <Link href="/roles">
                   <Button variant="ghost" size="sm" className="text-xs">
                     Career Roles
+                  </Button>
+                </Link>
+                <Link href="/sandbox">
+                  <Button variant="ghost" size="sm" className="text-xs">
+                    SQL &amp; Code Lab
                   </Button>
                 </Link>
                 <Link href="/login">
@@ -98,7 +108,7 @@ export default function Home() {
         </div>
 
         {/* Feature Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Career Roles Card (Phase 2) */}
           <Card className="hover:border-primary-700/50 hover:shadow-md transition-all border-primary-200/80 bg-surface">
             <CardContent className="p-7 space-y-5 flex flex-col justify-between h-full">
@@ -139,6 +149,38 @@ export default function Home() {
               <div className="pt-2">
                 <Link href="/roles">
                   <Button variant="primary" className="w-full min-h-[44px]">Explore Roles &rarr;</Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Applied Technical Sandbox Card */}
+          <Card className="hover:border-primary-700/50 hover:shadow-md transition-all border-primary-200/80 bg-surface">
+            <CardContent className="p-7 space-y-5 flex flex-col justify-between h-full">
+              <div className="space-y-4">
+                <div className="w-10 h-10 rounded-lg bg-primary-50 border border-primary-200 flex items-center justify-center text-primary-700">
+                  <span className="text-xl font-mono">⚡</span>
+                </div>
+
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl font-bold text-primary-900">
+                      Technical Sandbox
+                    </h2>
+                    <span className="text-[10px] font-bold uppercase bg-primary-100 text-primary-800 px-2 py-0.5 rounded border border-primary-300">
+                      Interactive
+                    </span>
+                  </div>
+                  <p className="text-sm text-text-muted mt-2 leading-relaxed">
+                    Write real SQL queries and test algorithmic logic against live
+                    sample schemas with sub-millisecond in-memory verification.
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <Link href="/sandbox">
+                  <Button variant="primary" className="w-full min-h-[44px]">Open Sandbox &rarr;</Button>
                 </Link>
               </div>
             </CardContent>
