@@ -160,8 +160,8 @@ export default function Home() {
               </div>
 
               <div className="pt-2">
-                <Link href="/practice">
-                  <Button variant="accent">Explore Modules</Button>
+                <Link href="/mock-tests">
+                  <Button variant="accent">Explore Mock Tests &rarr;</Button>
                 </Link>
               </div>
             </CardContent>
