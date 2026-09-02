@@ -240,3 +240,41 @@ export async function getMockTestScorecard(
 
   return (await res.json()) as MockTestScorecardData;
 }
+
+export interface CustomMockTestPayload {
+  roleTrackId?: string;
+  title?: string;
+  topicIds: string[];
+  questionCount?: number;
+  durationMinutes?: number;
+  difficulty?: 'ALL' | 'EASY' | 'MEDIUM' | 'HARD';
+  marksPerQuestion?: number;
+  negativeMarking?: number;
+}
+
+export async function createCustomMockTest(
+  data: CustomMockTestPayload,
+): Promise<{
+  id: string;
+  slug: string;
+  title: string;
+  durationMinutes: number;
+  questionCount: number;
+}> {
+  const res = await fetch('/api/v1/mock-tests/custom', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) {
+    const errorJson = (await res.json().catch(() => ({}))) as {
+      message?: string;
+    };
+    throw new Error(errorJson.message || 'Failed to generate custom simulation');
+  }
+
+  return res.json();
+}
+

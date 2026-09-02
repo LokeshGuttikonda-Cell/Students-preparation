@@ -99,10 +99,30 @@ export default function MockTestsCatalogPage() {
             Timed Mock Assessments
           </h1>
           <p className="text-base text-text-muted max-w-2xl">
-            Simulate actual company recruitment tests under strict server countdown timers.
-            Answer questions across multiple sections with negative marking evaluation.
+            Simulate real role-based technical screening assessments under strict server countdown timers.
+            Answer questions across multiple competency sections with negative marking evaluation.
           </p>
         </div>
+
+        {/* Custom Simulation Generator Banner */}
+        <Card className="bg-primary-900 text-white p-6 border-0 shadow-md relative overflow-hidden">
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="space-y-1.5 max-w-xl">
+              <span className="text-xs font-bold uppercase tracking-wider text-accent-300">
+                ⚡ Build Your Own Mock
+              </span>
+              <h2 className="text-xl font-bold text-white">Custom Simulation Generator</h2>
+              <p className="text-sm text-primary-100">
+                Configure an on-demand timed assessment for your target tech stack. Pick topics, duration, difficulty, and question counts to target specific interview requirements.
+              </p>
+            </div>
+            <Link href="/mock-tests/custom" className="shrink-0">
+              <Button variant="primary" className="bg-white text-primary-900 hover:bg-neutral-100 font-bold border-0">
+                Launch Customizer &rarr;
+              </Button>
+            </Link>
+          </div>
+        </Card>
 
         {error && (
           <div className="p-4 bg-error-50 border border-error-500/30 text-error-700 rounded-lg text-sm">
