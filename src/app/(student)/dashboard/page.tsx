@@ -18,6 +18,14 @@ import { RoleReadinessWidget } from '../../../components/analytics/RoleReadiness
 import { CompetencyGapAnalyzer } from '../../../components/analytics/CompetencyGapAnalyzer';
 import { WeakAreaCard } from '../../../components/analytics/WeakAreaCard';
 import { AttemptHistoryTable } from '../../../components/analytics/AttemptHistoryTable';
+import { StreakWidget } from '../../../components/dashboard/StreakWidget';
+import { BadgeShowcase } from '../../../components/dashboard/BadgeShowcase';
+import {
+  fetchUserStreak,
+  fetchUserBadges,
+  type StreakData,
+  type BadgeItem,
+} from '../../../lib/gamification-client';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
 
@@ -31,6 +39,8 @@ export default function StudentDashboardPage() {
   const [rolesList, setRolesList] = useState<RoleTrackItem[]>([]);
   const [selectedRoleId, setSelectedRoleId] = useState<string>('');
   const [isSavingTarget, setIsSavingTarget] = useState(false);
+  const [streak, setStreak] = useState<StreakData | null>(null);
+  const [badges, setBadges] = useState<BadgeItem[]>([]);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [filterType, setFilterType] = useState<'ALL' | 'PRACTICE' | 'MOCK_TEST'>('ALL');
@@ -41,15 +51,19 @@ export default function StudentDashboardPage() {
     try {
       setIsLoading(true);
       const attemptTypeParam = type === 'ALL' ? undefined : type;
-      const [analyticsData, historyData, rolesData, readinessData] = await Promise.all([
+      const [analyticsData, historyData, rolesData, readinessData, streakData, badgesData] = await Promise.all([
         getWeakAreaAnalytics(),
         getUserAttempts(page, 10, attemptTypeParam),
         getRoles().catch(() => []),
         getRoleReadiness(roleIdParam || undefined).catch(() => null),
+        fetchUserStreak().catch(() => null),
+        fetchUserBadges().catch(() => []),
       ]);
       setAnalytics(analyticsData);
       setHistory(historyData);
       setRolesList(rolesData);
+      setStreak(streakData);
+      setBadges(badgesData);
       if (readinessData) {
         setReadiness(readinessData);
         setSelectedRoleId(readinessData.role.id);
@@ -176,6 +190,9 @@ export default function StudentDashboardPage() {
           </div>
         )}
 
+        {/* Daily Study Streak Tracker (Phase 3) */}
+        <StreakWidget streak={streak} loading={isLoading} />
+
         {/* Role Readiness Accelerator Section */}
         {readiness && (
           <section className="space-y-6">
@@ -266,6 +283,11 @@ export default function StudentDashboardPage() {
               ))}
             </div>
           )}
+        </section>
+
+        {/* Section: Placement Readiness Badges Showcase (Phase 3) */}
+        <section>
+          <BadgeShowcase badges={badges} loading={isLoading} />
         </section>
 
         {/* Section 2: Assessment History Table */}
