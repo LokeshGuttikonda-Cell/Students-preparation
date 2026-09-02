@@ -356,6 +356,30 @@ export default function MockTestRunnerPage() {
     }
   }
 
+  const currentSection = data.sections?.find((s) => s.id === activeSectionId);
+  const currentSectionQuestions = data.questions.filter(
+    (q) => (q.sectionId ?? null) === activeSectionId,
+  );
+  const isLastQuestionOfSection = Boolean(
+    data.sections &&
+      data.sections.length > 1 &&
+      currentSectionQuestions.length > 0 &&
+      currentSectionQuestions[currentSectionQuestions.length - 1]?.id === currentQuestion.id,
+  );
+
+  const nextSectionIndex = data.sections
+    ? data.sections.findIndex((s) => s.id === activeSectionId) + 1
+    : -1;
+  const nextSection =
+    data.sections && nextSectionIndex >= 0 && nextSectionIndex < data.sections.length
+      ? data.sections[nextSectionIndex]
+      : null;
+
+  const handleNextSection = () => {
+    if (!nextSection) return;
+    handleSelectSection(nextSection.id);
+  };
+
   return (
     <div className="min-h-dvh flex flex-col bg-canvas text-text">
       {/* Top Header with Timer and Test Title */}
@@ -365,9 +389,17 @@ export default function MockTestRunnerPage() {
             <h1 className="text-base sm:text-lg font-bold text-primary-900 truncate max-w-xs sm:max-w-md">
               {data.attempt.title}
             </h1>
-            <span className="hidden sm:inline-block text-xs font-semibold text-text-muted bg-canvas px-2.5 py-1 rounded border border-border">
-              Q {currentIndex + 1} of {data.questions.length}
-            </span>
+            {currentSection ? (
+              <span className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-accent-800 bg-accent-50 px-2.5 py-1 rounded border border-accent-200">
+                <span>{currentSection.title}</span>
+                <span>•</span>
+                <span>Q {currentIndex + 1} of {data.questions.length}</span>
+              </span>
+            ) : (
+              <span className="hidden sm:inline-block text-xs font-semibold text-text-muted bg-canvas px-2.5 py-1 rounded border border-border">
+                Q {currentIndex + 1} of {data.questions.length}
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-4">
@@ -529,6 +561,16 @@ export default function MockTestRunnerPage() {
                   N
                 </kbd>
               </Button>
+
+              {isLastQuestionOfSection && nextSection && (
+                <Button
+                  variant="primary"
+                  onClick={handleNextSection}
+                  className="font-semibold shadow-xs"
+                >
+                  <span>Next Section ({nextSection.title}) →</span>
+                </Button>
+              )}
             </div>
           </div>
         </main>

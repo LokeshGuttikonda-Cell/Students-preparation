@@ -20,6 +20,7 @@ export default function MockTestResultsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedQuestionIdx, setSelectedQuestionIdx] = useState(0);
+  const [reviewSectionFilter, setReviewSectionFilter] = useState<string>('ALL');
 
   useEffect(() => {
     getMockTestScorecard(attemptId)
@@ -346,7 +347,7 @@ export default function MockTestResultsPage() {
 
         {/* Section 2: Detailed Question-by-Question Solutions Review */}
         <div className="space-y-6">
-          <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h3 className="text-xl font-bold text-text">
                 Detailed Solutions & Answer Key Review
@@ -356,9 +357,61 @@ export default function MockTestResultsPage() {
               </p>
             </div>
 
-            {/* Question Quick Jump Ribbon */}
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {scorecard.questions.map((q, idx) => {
+            {/* Section Filter Tabs for Multi-Section Review */}
+            {scorecard.sectionBreakdown && scorecard.sectionBreakdown.length > 1 && (
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+                <button
+                  type="button"
+                  onClick={() => setReviewSectionFilter('ALL')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+                    reviewSectionFilter === 'ALL'
+                      ? 'bg-primary-700 text-white border-primary-700'
+                      : 'bg-surface text-text-muted border-border hover:text-text'
+                  }`}
+                >
+                  All ({scorecard.questions.length})
+                </button>
+                {scorecard.sectionBreakdown.map((s) => (
+                  <button
+                    key={s.sectionId}
+                    type="button"
+                    onClick={() => {
+                      setReviewSectionFilter(s.sectionId);
+                      // Auto-select first question in this section
+                      const firstInSecIdx = scorecard.questions.findIndex(
+                        (q) => q.sectionId === s.sectionId,
+                      );
+                      if (firstInSecIdx !== -1) {
+                        setSelectedQuestionIdx(firstInSecIdx);
+                      }
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors flex items-center gap-1.5 ${
+                      reviewSectionFilter === s.sectionId
+                        ? 'bg-primary-700 text-white border-primary-700'
+                        : 'bg-surface text-text-muted border-border hover:text-text'
+                    }`}
+                  >
+                    <span>{s.title}</span>
+                    <span className="opacity-80">({s.total})</span>
+                    {s.clearedCutoff ? (
+                      <span className="text-[10px] text-emerald-300">✓</span>
+                    ) : (
+                      <span className="text-[10px] text-amber-300">!</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Question Quick Jump Ribbon */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {scorecard.questions
+              .map((q, idx) => ({ q, idx }))
+              .filter(({ q }) =>
+                reviewSectionFilter === 'ALL' ? true : q.sectionId === reviewSectionFilter,
+              )
+              .map(({ q, idx }) => {
                 const isCorrect = q.studentAnswer.isCorrect;
                 const isSkipped = !q.studentAnswer.selectedOptionId;
                 const isSelected = idx === selectedQuestionIdx;
@@ -383,7 +436,6 @@ export default function MockTestResultsPage() {
                   </button>
                 );
               })}
-            </div>
           </div>
 
           {/* Active Question Solution Card */}
