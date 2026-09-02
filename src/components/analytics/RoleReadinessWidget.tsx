@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import type { RoleReadinessData } from '../../lib/analytics-client';
 import type { RoleTrackItem } from '../../lib/roles-client';
+import { RoleReadinessRadar } from './RoleReadinessRadar';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 
@@ -195,6 +196,21 @@ export function RoleReadinessWidget({
           </div>
         </div>
       </div>
+
+      {/* Competency Spider Radar Matrix */}
+      {data.competencies && data.competencies.length >= 3 && (
+        <div className="pt-5 border-t border-border">
+          <RoleReadinessRadar
+            dimensions={data.competencies.map((c) => ({
+              dimension: c.topicName,
+              score: c.studentAccuracy,
+              target: c.benchmarkAccuracy,
+            }))}
+            title={`${data.role.name} Competency Spider Matrix`}
+            subtitle="Verified diagnostic accuracy vs recruiter benchmark cutoffs across evaluated topics"
+          />
+        </div>
+      )}
     </Card>
   );
 }

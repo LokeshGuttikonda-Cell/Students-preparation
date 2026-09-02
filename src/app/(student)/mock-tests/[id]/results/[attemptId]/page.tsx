@@ -10,6 +10,7 @@ import {
 import { OptionRow } from '../../../../../../components/practice/OptionRow';
 import { ExplanationCard } from '../../../../../../components/practice/ExplanationCard';
 import { SocraticRemediationCard } from '../../../../../../components/practice/SocraticRemediationCard';
+import { RoleReadinessRadar } from '../../../../../../components/analytics/RoleReadinessRadar';
 import { Button } from '../../../../../../components/ui/Button';
 
 export default function MockTestResultsPage() {
@@ -172,6 +173,51 @@ export default function MockTestResultsPage() {
             </div>
           </div>
         </div>
+
+        {/* Empirical Percentile Rank Banner */}
+        {scorecard.percentileRank && (
+          <div className="bg-gradient-to-r from-primary-900 to-primary-950 text-white rounded-2xl p-6 sm:p-7 shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div className="space-y-1.5 max-w-xl">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-accent-300">
+                  Empirical Percentile Engine
+                </span>
+                <span className="text-[11px] font-semibold bg-white/15 px-2 py-0.5 rounded text-white">
+                  {scorecard.percentileRank.totalPeerAttempts} verified attempt{scorecard.percentileRank.totalPeerAttempts === 1 ? '' : 's'}
+                </span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+                Top {scorecard.percentileRank.topPercentage}% Candidate Standing
+              </h2>
+              <p className="text-xs sm:text-sm text-primary-200">
+                Your performance ranked higher than {scorecard.percentileRank.percentile}% of students on this assessment. Benchmark standing: <strong className="text-white">{scorecard.percentileRank.rankTier}</strong>.
+              </p>
+            </div>
+
+            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4 text-center shrink-0 min-w-[150px]">
+              <span className="text-[11px] font-semibold text-primary-200 uppercase tracking-wider block">
+                Percentile Rank
+              </span>
+              <div className="text-4xl font-extrabold text-white tabular mt-0.5">
+                {scorecard.percentileRank.percentile}th
+              </div>
+              <span className="text-[10px] text-accent-300 font-bold block mt-1">
+                {scorecard.percentileRank.rankTier}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Multi-Competency Radar Matrix */}
+        {scorecard.competencyDimensions && scorecard.competencyDimensions.length > 0 && (
+          <div className="space-y-4">
+            <RoleReadinessRadar
+              dimensions={scorecard.competencyDimensions}
+              title="Role Competency Diagnostic Spider Matrix"
+              subtitle="Candidate demonstrated proficiency vs technical screening benchmark target across assessed dimensions"
+            />
+          </div>
+        )}
 
         {/* Role Qualification Benchmark Banner */}
         {scorecard.roleQualification?.isRoleBenchmark && (

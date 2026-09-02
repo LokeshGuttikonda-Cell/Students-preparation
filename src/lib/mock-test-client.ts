@@ -102,6 +102,18 @@ export interface MockTestScorecardData {
     isQualified: boolean;
     verdictText: string;
   };
+  percentileRank?: {
+    percentile: number;
+    rankTier: string;
+    totalPeerAttempts: number;
+    topPercentage: number;
+  };
+  competencyDimensions?: Array<{
+    dimension: string;
+    score: number;
+    target: number;
+    status: 'MET' | 'NEEDS_PRACTICE';
+  }>;
   questions: Array<{
     id: string;
     topicId: string;
