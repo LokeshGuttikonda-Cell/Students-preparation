@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { getRole, RoleTrackDetail } from '../../../../lib/roles-client';
 import { RoleCompetencyList } from '../../../../components/roles/RoleCompetencyList';
+import { RoleInterviewTrapsSection } from '../../../../components/roles/RoleInterviewTrapsSection';
 import { Card, CardContent } from '../../../../components/ui/Card';
 import { Button } from '../../../../components/ui/Button';
 
@@ -137,7 +138,10 @@ export default function RoleDetailPage() {
           <RoleCompetencyList competencies={role.competencies} />
         </section>
 
-        {/* Section 2: Role Benchmark Mock Tests */}
+        {/* Section 2: Recruiter Traps & Anti-Patterns */}
+        <RoleInterviewTrapsSection roleSlug={role.slug} />
+
+        {/* Section 3: Role Benchmark Mock Tests */}
         <section aria-labelledby="mock-tests-heading" className="space-y-4">
           <div className="flex items-center justify-between border-b border-border pb-3">
             <div>

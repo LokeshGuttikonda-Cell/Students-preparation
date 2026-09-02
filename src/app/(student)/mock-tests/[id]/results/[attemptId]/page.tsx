@@ -9,6 +9,7 @@ import {
 } from '../../../../../../lib/mock-test-client';
 import { OptionRow } from '../../../../../../components/practice/OptionRow';
 import { ExplanationCard } from '../../../../../../components/practice/ExplanationCard';
+import { SocraticRemediationCard } from '../../../../../../components/practice/SocraticRemediationCard';
 import { Button } from '../../../../../../components/ui/Button';
 
 export default function MockTestResultsPage() {
@@ -458,6 +459,14 @@ export default function MockTestResultsPage() {
                 explanation={activeQuestion.explanation}
                 isCorrect={activeQuestion.studentAnswer.isCorrect ?? false}
               />
+
+              {/* AI Socratic Diagnosis for Missed Mock Test Questions */}
+              {!(activeQuestion.studentAnswer.isCorrect ?? false) && (
+                <SocraticRemediationCard
+                  questionId={activeQuestion.id}
+                  selectedOptionId={activeQuestion.studentAnswer.selectedOptionId ?? undefined}
+                />
+              )}
 
               {/* Review Navigation */}
               <div className="flex items-center justify-between pt-4 border-t border-border">

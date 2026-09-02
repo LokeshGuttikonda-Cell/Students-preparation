@@ -12,6 +12,7 @@ import {
 import { PracticeHeader } from '../../../../components/practice/PracticeHeader';
 import { OptionRow, type OptionState } from '../../../../components/practice/OptionRow';
 import { ExplanationCard } from '../../../../components/practice/ExplanationCard';
+import { SocraticRemediationCard } from '../../../../components/practice/SocraticRemediationCard';
 import { DifficultyBadge } from '../../../../components/ui/Badge';
 import { Button } from '../../../../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../../components/ui/Card';
@@ -302,6 +303,14 @@ export default function PracticeRunnerPage() {
           <ExplanationCard
             isCorrect={Boolean(currentQ.answered?.isCorrect)}
             explanation={currentQ.explanation}
+          />
+        )}
+
+        {/* AI Socratic Remediation for Missed Questions */}
+        {isAnswered && !currentQ.answered?.isCorrect && (
+          <SocraticRemediationCard
+            questionId={currentQ.id}
+            selectedOptionId={currentQ.answered?.selectedOptionId}
           />
         )}
 
