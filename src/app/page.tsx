@@ -34,6 +34,11 @@ export default function Home() {
                     Career Roles
                   </Button>
                 </Link>
+                <Link href="/courses">
+                  <Button variant="ghost" size="sm" className="text-xs">
+                    Courses
+                  </Button>
+                </Link>
                 <Link href="/sandbox">
                   <Button variant="ghost" size="sm" className="text-xs">
                     SQL &amp; Code Lab
@@ -65,6 +70,11 @@ export default function Home() {
                 <Link href="/roles">
                   <Button variant="ghost" size="sm" className="text-xs">
                     Career Roles
+                  </Button>
+                </Link>
+                <Link href="/courses">
+                  <Button variant="ghost" size="sm" className="text-xs">
+                    Courses
                   </Button>
                 </Link>
                 <Link href="/sandbox">
@@ -108,7 +118,7 @@ export default function Home() {
         </div>
 
         {/* Feature Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
           {/* Career Roles Card (Phase 2) */}
           <Card className="hover:border-primary-700/50 hover:shadow-md transition-all border-primary-200/80 bg-surface">
             <CardContent className="p-7 space-y-5 flex flex-col justify-between h-full">
@@ -149,6 +159,38 @@ export default function Home() {
               <div className="pt-2">
                 <Link href="/roles">
                   <Button variant="primary" className="w-full min-h-[44px]">Explore Roles &rarr;</Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Technology Courses Card (Phase 3) */}
+          <Card className="hover:border-primary-700/50 hover:shadow-md transition-all border-emerald-200/80 bg-surface">
+            <CardContent className="p-7 space-y-5 flex flex-col justify-between h-full">
+              <div className="space-y-4">
+                <div className="w-10 h-10 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700">
+                  <span className="text-xl">📚</span>
+                </div>
+
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl font-bold text-primary-900">
+                      Tech Courses
+                    </h2>
+                    <span className="text-[10px] font-bold uppercase bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded border border-emerald-300">
+                      Pathways
+                    </span>
+                  </div>
+                  <p className="text-sm text-text-muted mt-2 leading-relaxed">
+                    Follow structured learning pathways for AWS, Azure, Java, Python, SQL,
+                    and CRM. Track module progression and topic mastery.
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <Link href="/courses">
+                  <Button variant="primary" className="w-full min-h-[44px]">Explore Courses &rarr;</Button>
                 </Link>
               </div>
             </CardContent>
