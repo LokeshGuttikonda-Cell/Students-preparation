@@ -398,3 +398,215 @@ export async function reorderAdminCourseModules(
   return res.json();
 }
 
+// --- Mock Tests Studio & Multi-Section Blueprint (Phase 4 Session 19) ---
+
+export interface AdminTestSectionItem {
+  id: string;
+  mockTestId: string;
+  title: string;
+  description?: string | null;
+  durationMinutes?: number | null;
+  cutoffScore?: number | null;
+  orderIndex: number;
+}
+
+export interface AdminMockTestQuestionItem {
+  mockTestId: string;
+  questionId: string;
+  sectionId?: string | null;
+  orderIndex: number;
+  question: {
+    id: string;
+    body: string;
+    difficulty: string;
+    topic: {
+      id: string;
+      name: string;
+      slug: string;
+    };
+  };
+  section?: {
+    id: string;
+    title: string;
+  } | null;
+}
+
+export interface AdminMockTestItem {
+  id: string;
+  title: string;
+  slug: string;
+  description?: string | null;
+  durationMinutes: number;
+  marksPerQuestion: number;
+  negativeMarking?: number | null;
+  roleTrackId?: string | null;
+  status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+  createdAt: string;
+  updatedAt: string;
+  roleTrack?: { id: string; name: string; slug: string } | null;
+  _count: { questions: number; sections: number; attempts: number };
+}
+
+export interface AdminMockTestDetail extends AdminMockTestItem {
+  sections: AdminTestSectionItem[];
+  questions: AdminMockTestQuestionItem[];
+}
+
+export async function getAdminMockTests(status?: string): Promise<AdminMockTestItem[]> {
+  const url = status ? `admin/mock-tests?status=${status}` : 'admin/mock-tests';
+  const res = await fetch(apiUrl(url), {
+    credentials: 'include',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error('Failed to fetch admin mock tests');
+  return res.json();
+}
+
+export async function getAdminMockTest(id: string): Promise<AdminMockTestDetail> {
+  const res = await fetch(apiUrl(`admin/mock-tests/${id}`), {
+    credentials: 'include',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error('Failed to fetch mock test detail');
+  return res.json();
+}
+
+export async function createAdminMockTest(data: {
+  title: string;
+  slug: string;
+  description?: string;
+  durationMinutes: number;
+  marksPerQuestion?: number;
+  negativeMarking?: number | null;
+  roleTrackId?: string | null;
+  status?: string;
+}): Promise<AdminMockTestItem> {
+  const res = await fetch(apiUrl('admin/mock-tests'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.message || 'Failed to create mock test');
+  }
+  return res.json();
+}
+
+export async function updateAdminMockTest(
+  id: string,
+  data: Partial<{
+    title: string;
+    slug: string;
+    description: string;
+    durationMinutes: number;
+    marksPerQuestion: number;
+    negativeMarking: number | null;
+    roleTrackId: string | null;
+    status: string;
+  }>,
+): Promise<AdminMockTestItem> {
+  const res = await fetch(apiUrl(`admin/mock-tests/${id}`), {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.message || 'Failed to update mock test');
+  }
+  return res.json();
+}
+
+export async function deleteAdminMockTest(id: string): Promise<{ id: string }> {
+  const res = await fetch(apiUrl(`admin/mock-tests/${id}`), {
+    method: 'DELETE',
+    credentials: 'include',
+  });
+  if (!res.ok) throw new Error('Failed to delete mock test');
+  return res.json();
+}
+
+export async function createAdminTestSection(
+  testId: string,
+  data: {
+    title: string;
+    description?: string;
+    durationMinutes?: number | null;
+    cutoffScore?: number | null;
+    orderIndex?: number;
+  },
+): Promise<AdminTestSectionItem> {
+  const res = await fetch(apiUrl(`admin/mock-tests/${testId}/sections`), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.message || 'Failed to create section');
+  }
+  return res.json();
+}
+
+export async function updateAdminTestSection(
+  testId: string,
+  sectionId: string,
+  data: Partial<{
+    title: string;
+    description: string;
+    durationMinutes: number | null;
+    cutoffScore: number | null;
+    orderIndex: number;
+  }>,
+): Promise<AdminTestSectionItem> {
+  const res = await fetch(apiUrl(`admin/mock-tests/${testId}/sections/${sectionId}`), {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.message || 'Failed to update section');
+  }
+  return res.json();
+}
+
+export async function deleteAdminTestSection(
+  testId: string,
+  sectionId: string,
+): Promise<{ id: string }> {
+  const res = await fetch(apiUrl(`admin/mock-tests/${testId}/sections/${sectionId}`), {
+    method: 'DELETE',
+    credentials: 'include',
+  });
+  if (!res.ok) throw new Error('Failed to delete section');
+  return res.json();
+}
+
+export async function assignAdminMockQuestions(
+  testId: string,
+  questions: Array<{
+    questionId: string;
+    sectionId?: string | null;
+    orderIndex: number;
+  }>,
+): Promise<AdminMockTestDetail> {
+  const res = await fetch(apiUrl(`admin/mock-tests/${testId}/questions`), {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ questions }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.message || 'Failed to assign questions');
+  }
+  return res.json();
+}
+
+

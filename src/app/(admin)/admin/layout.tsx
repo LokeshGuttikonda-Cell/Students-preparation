@@ -52,6 +52,7 @@ export default function AdminLayout({
     { label: 'Overview', href: '/admin' as const },
     { label: 'Review Queue', href: '/admin/questions' as const },
     { label: 'Courses Studio', href: '/admin/courses' as const },
+    { label: 'Mock Tests Studio', href: '/admin/mock-tests' as const },
     { label: 'Subjects', href: '/admin/subjects' as const },
     { label: 'Topics', href: '/admin/topics' as const },
   ];
