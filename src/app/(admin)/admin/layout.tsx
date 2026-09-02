@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import type { Route } from 'next';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '../../../context/AuthContext';
 import { Button } from '../../../components/ui/Button';
@@ -50,6 +51,7 @@ export default function AdminLayout({
   const navItems = [
     { label: 'Overview', href: '/admin' as const },
     { label: 'Review Queue', href: '/admin/questions' as const },
+    { label: 'Courses Studio', href: '/admin/courses' as const },
     { label: 'Subjects', href: '/admin/subjects' as const },
     { label: 'Topics', href: '/admin/topics' as const },
   ];
@@ -80,7 +82,7 @@ export default function AdminLayout({
               return (
                 <Link
                   key={item.href}
-                  href={item.href}
+                  href={item.href as Route}
                   className={`flex items-center px-3.5 py-2 rounded-md text-sm font-medium transition-colors ${
                     isActive
                       ? 'bg-primary-50 text-primary-900 font-semibold'

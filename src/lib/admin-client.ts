@@ -215,3 +215,186 @@ export async function getAdminMetrics(): Promise<ContentMetrics> {
   if (!res.ok) throw new Error('Failed to fetch metrics');
   return res.json();
 }
+
+// --- Courses & Curriculum Management (Session 18) ---
+
+export interface AdminCourseItem {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string | null;
+  level: string;
+  estimatedHours: number;
+  roleTrackId?: string | null;
+  status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+  orderIndex: number;
+  roleTrack?: { id: string; name: string; slug: string } | null;
+  _count: { modules: number; enrollments: number };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminCourseModuleItem {
+  id: string;
+  courseTrackId: string;
+  title: string;
+  description?: string | null;
+  topicId?: string | null;
+  estimatedMinutes: number;
+  orderIndex: number;
+  topic?: { id: string; name: string; slug: string } | null;
+}
+
+export interface AdminCourseDetail extends AdminCourseItem {
+  modules: AdminCourseModuleItem[];
+}
+
+export async function getAdminCourses(status?: string): Promise<AdminCourseItem[]> {
+  const url = status ? `admin/courses?status=${status}` : 'admin/courses';
+  const res = await fetch(apiUrl(url), {
+    credentials: 'include',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error('Failed to fetch admin courses');
+  return res.json();
+}
+
+export async function getAdminCourse(id: string): Promise<AdminCourseDetail> {
+  const res = await fetch(apiUrl(`admin/courses/${id}`), {
+    credentials: 'include',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error('Failed to fetch course details');
+  return res.json();
+}
+
+export async function createAdminCourse(data: {
+  name: string;
+  slug: string;
+  description?: string;
+  level?: string;
+  estimatedHours?: number;
+  roleTrackId?: string | null;
+  status?: string;
+}): Promise<AdminCourseItem> {
+  const res = await fetch(apiUrl('admin/courses'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.message || 'Failed to create course');
+  }
+  return res.json();
+}
+
+export async function updateAdminCourse(
+  id: string,
+  data: Partial<{
+    name: string;
+    slug: string;
+    description: string;
+    level: string;
+    estimatedHours: number;
+    roleTrackId: string | null;
+    status: string;
+    orderIndex: number;
+  }>,
+): Promise<AdminCourseItem> {
+  const res = await fetch(apiUrl(`admin/courses/${id}`), {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.message || 'Failed to update course');
+  }
+  return res.json();
+}
+
+export async function deleteAdminCourse(id: string): Promise<{ id: string }> {
+  const res = await fetch(apiUrl(`admin/courses/${id}`), {
+    method: 'DELETE',
+    credentials: 'include',
+  });
+  if (!res.ok) throw new Error('Failed to delete course');
+  return res.json();
+}
+
+export async function addAdminCourseModule(
+  courseId: string,
+  data: {
+    title: string;
+    description?: string;
+    topicId?: string | null;
+    estimatedMinutes?: number;
+    orderIndex?: number;
+  },
+): Promise<AdminCourseModuleItem> {
+  const res = await fetch(apiUrl(`admin/courses/${courseId}/modules`), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.message || 'Failed to add module');
+  }
+  return res.json();
+}
+
+export async function updateAdminCourseModule(
+  courseId: string,
+  moduleId: string,
+  data: Partial<{
+    title: string;
+    description: string;
+    topicId: string | null;
+    estimatedMinutes: number;
+    orderIndex: number;
+  }>,
+): Promise<AdminCourseModuleItem> {
+  const res = await fetch(apiUrl(`admin/courses/${courseId}/modules/${moduleId}`), {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.message || 'Failed to update module');
+  }
+  return res.json();
+}
+
+export async function deleteAdminCourseModule(
+  courseId: string,
+  moduleId: string,
+): Promise<{ id: string }> {
+  const res = await fetch(apiUrl(`admin/courses/${courseId}/modules/${moduleId}`), {
+    method: 'DELETE',
+    credentials: 'include',
+  });
+  if (!res.ok) throw new Error('Failed to delete module');
+  return res.json();
+}
+
+export async function reorderAdminCourseModules(
+  courseId: string,
+  moduleIds: string[],
+): Promise<AdminCourseDetail> {
+  const res = await fetch(apiUrl(`admin/courses/${courseId}/modules-order`), {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ moduleIds }),
+  });
+  if (!res.ok) throw new Error('Failed to reorder modules');
+  return res.json();
+}
+
