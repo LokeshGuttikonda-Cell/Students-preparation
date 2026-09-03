@@ -362,9 +362,15 @@ export default function InterviewsHubPage() {
                           )}
                         </td>
                         <td className="px-5 py-4 text-right">
-                          <Link href={`/interviews/${item.id}`}>
+                          <Link
+                            href={
+                              item.status === 'COMPLETED'
+                                ? `/interviews/${item.id}/results`
+                                : `/interviews/${item.id}`
+                            }
+                          >
                             <Button variant="secondary" size="sm">
-                              {item.status === 'COMPLETED' ? 'View Transcript' : 'Resume Room'}
+                              {item.status === 'COMPLETED' ? 'View Scorecard' : 'Resume Room'}
                             </Button>
                           </Link>
                         </td>

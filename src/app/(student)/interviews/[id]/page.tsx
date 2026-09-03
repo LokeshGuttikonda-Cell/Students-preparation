@@ -464,7 +464,12 @@ export default function LiveInterviewRoomPage() {
                 <p className="text-xs text-success-800">
                   Overall Score: <strong>{session.overallScore}%</strong> · Technical: {session.technicalScore}% · Clarity: {session.clarityScore}%
                 </p>
-                <div className="flex justify-center gap-3 pt-1">
+                <div className="flex flex-wrap justify-center gap-3 pt-1">
+                  <Link href={`/interviews/${session.id}/results`}>
+                    <Button variant="primary" size="sm">
+                      View Evaluation Scorecard &amp; Review →
+                    </Button>
+                  </Link>
                   <Link href="/interviews">
                     <Button variant="secondary" size="sm">
                       Start Another Simulation
