@@ -42,7 +42,7 @@ export default function EditQuestionPage() {
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  const loadQuestionData = async () => {
+  const loadQuestionData = React.useCallback(async () => {
     try {
       const [q, t] = await Promise.all([
         getAdminQuestion(params.id),
@@ -62,13 +62,13 @@ export default function EditQuestionPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [params.id]);
 
   useEffect(() => {
     if (params.id) {
       loadQuestionData();
     }
-  }, [params.id]);
+  }, [params.id, loadQuestionData]);
 
   const handleOptionChange = (index: number, text: string) => {
     setOptions((prev) =>

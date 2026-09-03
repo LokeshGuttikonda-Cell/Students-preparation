@@ -49,10 +49,12 @@ export interface CohortSummaryItem {
   cohortSampleSize: number;
 }
 
+import { apiUrl } from './env';
+
 export async function getCohortReadiness(
   roleTrackId: string,
 ): Promise<CohortReadinessResponse> {
-  const res = await fetch(`/api/v1/cohorts/${roleTrackId}`, {
+  const res = await fetch(apiUrl(`cohorts/${roleTrackId}`), {
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
   });
@@ -64,7 +66,7 @@ export async function getCohortReadiness(
 }
 
 export async function getCohortsOverview(): Promise<CohortSummaryItem[]> {
-  const res = await fetch('/api/v1/cohorts', {
+  const res = await fetch(apiUrl('cohorts'), {
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
   });
@@ -74,3 +76,4 @@ export async function getCohortsOverview(): Promise<CohortSummaryItem[]> {
   }
   return res.json();
 }
+

@@ -140,8 +140,11 @@ export interface MockTestScorecardData {
   }>;
 }
 
+import { apiUrl } from './env';
+
 export async function getMockTestsCatalog(): Promise<MockTestItem[]> {
-  const res = await fetch('/api/v1/mock-tests', {
+  const res = await fetch(apiUrl('mock-tests'), {
+    credentials: 'include',
     cache: 'no-store',
   });
 
@@ -154,7 +157,8 @@ export async function getMockTestsCatalog(): Promise<MockTestItem[]> {
 }
 
 export async function getMockTestDetail(id: string): Promise<MockTestItem> {
-  const res = await fetch(`/api/v1/mock-tests/${id}`, {
+  const res = await fetch(apiUrl(`mock-tests/${id}`), {
+    credentials: 'include',
     cache: 'no-store',
   });
 
@@ -168,9 +172,10 @@ export async function getMockTestDetail(id: string): Promise<MockTestItem> {
 export async function startMockTestSession(
   mockTestId: string,
 ): Promise<MockTestAttemptData> {
-  const res = await fetch('/api/v1/attempts', {
+  const res = await fetch(apiUrl('attempts'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify({
       attemptType: 'MOCK_TEST',
       mockTestId,
@@ -197,10 +202,11 @@ export async function saveMockTestAnswer(
   },
 ) {
   const res = await fetch(
-    `/api/v1/attempts/${attemptId}/answers/${questionId}`,
+    apiUrl(`attempts/${attemptId}/answers/${questionId}`),
     {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify(data),
     },
   );
@@ -222,8 +228,9 @@ export async function saveMockTestAnswer(
 export async function submitMockTestSession(
   attemptId: string,
 ): Promise<MockTestScorecardData> {
-  const res = await fetch(`/api/v1/attempts/${attemptId}/submit`, {
+  const res = await fetch(apiUrl(`attempts/${attemptId}/submit`), {
     method: 'POST',
+    credentials: 'include',
   });
 
   if (!res.ok) {
@@ -239,7 +246,8 @@ export async function submitMockTestSession(
 export async function getMockTestScorecard(
   attemptId: string,
 ): Promise<MockTestScorecardData> {
-  const res = await fetch(`/api/v1/attempts/${attemptId}/results`, {
+  const res = await fetch(apiUrl(`attempts/${attemptId}/results`), {
+    credentials: 'include',
     cache: 'no-store',
   });
 
@@ -273,7 +281,7 @@ export async function createCustomMockTest(
   durationMinutes: number;
   questionCount: number;
 }> {
-  const res = await fetch('/api/v1/mock-tests/custom', {
+  const res = await fetch(apiUrl('mock-tests/custom'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
@@ -283,6 +291,7 @@ export async function createCustomMockTest(
   if (!res.ok) {
     const errorJson = (await res.json().catch(() => ({}))) as {
       message?: string;
+
     };
     throw new Error(errorJson.message || 'Failed to generate custom simulation');
   }

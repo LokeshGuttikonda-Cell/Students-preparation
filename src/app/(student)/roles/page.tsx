@@ -55,7 +55,7 @@ export default function RolesCatalogPage() {
         {/* Page Header */}
         <div className="space-y-3">
           <span className="text-xs font-semibold uppercase tracking-wider text-accent-700 bg-accent-50 px-2.5 py-1 rounded border border-accent-200 inline-block">
-            Phase 2: Job-Profile Ready
+            Role Competency Tracks
           </span>
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-primary-900">
             Career Roles &amp; Skill Tracks

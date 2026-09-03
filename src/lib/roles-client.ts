@@ -39,8 +39,11 @@ export interface RoleTrackDetail {
   mockTests: RoleMockTest[];
 }
 
+import { apiUrl } from './env';
+
 export async function getRoles(): Promise<RoleTrackItem[]> {
-  const res = await fetch('/api/v1/roles', {
+  const res = await fetch(apiUrl('roles'), {
+    credentials: 'include',
     cache: 'no-store',
   });
 
@@ -52,7 +55,8 @@ export async function getRoles(): Promise<RoleTrackItem[]> {
 }
 
 export async function getRole(slugOrId: string): Promise<RoleTrackDetail> {
-  const res = await fetch(`/api/v1/roles/${slugOrId}`, {
+  const res = await fetch(apiUrl(`roles/${slugOrId}`), {
+    credentials: 'include',
     cache: 'no-store',
   });
 
@@ -62,3 +66,4 @@ export async function getRole(slugOrId: string): Promise<RoleTrackDetail> {
 
   return (await res.json()) as RoleTrackDetail;
 }
+

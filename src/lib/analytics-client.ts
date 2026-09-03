@@ -47,6 +47,8 @@ export interface PaginatedAttempts {
   hasPreviousPage: boolean;
 }
 
+import { apiUrl } from './env';
+
 export async function getUserAttempts(
   page = 1,
   pageSize = 10,
@@ -61,7 +63,8 @@ export async function getUserAttempts(
     params.set('attemptType', attemptType);
   }
 
-  const res = await fetch(`/api/v1/attempts?${params.toString()}`, {
+  const res = await fetch(apiUrl(`attempts?${params.toString()}`), {
+    credentials: 'include',
     cache: 'no-store',
   });
 
@@ -73,7 +76,8 @@ export async function getUserAttempts(
 }
 
 export async function getWeakAreaAnalytics(): Promise<WeakAreaAnalyticsData> {
-  const res = await fetch('/api/v1/attempts/analytics/weak-areas', {
+  const res = await fetch(apiUrl('attempts/analytics/weak-areas'), {
+    credentials: 'include',
     cache: 'no-store',
   });
 
@@ -125,11 +129,14 @@ export interface RoleReadinessData {
 export async function getRoleReadiness(
   roleTrackId?: string,
 ): Promise<RoleReadinessData> {
-  const url = roleTrackId
-    ? `/api/v1/attempts/analytics/role-readiness?roleTrackId=${encodeURIComponent(roleTrackId)}`
-    : '/api/v1/attempts/analytics/role-readiness';
+  const endpoint = roleTrackId
+    ? `attempts/analytics/role-readiness?roleTrackId=${encodeURIComponent(roleTrackId)}`
+    : 'attempts/analytics/role-readiness';
 
-  const res = await fetch(url, { cache: 'no-store' });
+  const res = await fetch(apiUrl(endpoint), {
+    credentials: 'include',
+    cache: 'no-store',
+  });
   if (!res.ok) {
     throw new Error('Failed to fetch role readiness analytics');
   }
@@ -140,9 +147,10 @@ export async function getRoleReadiness(
 export async function setTargetRole(
   roleTrackId: string | null,
 ): Promise<void> {
-  const res = await fetch('/api/v1/auth/target-role', {
+  const res = await fetch(apiUrl('auth/target-role'), {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify({ roleTrackId }),
   });
 
@@ -150,3 +158,4 @@ export async function setTargetRole(
     throw new Error('Failed to update target career role');
   }
 }
+

@@ -38,7 +38,7 @@ export default function AdminTopicsPage() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const loadData = async () => {
+  const loadData = React.useCallback(async () => {
     try {
       const [subs, tops] = await Promise.all([
         getAdminSubjects(),
@@ -54,11 +54,11 @@ export default function AdminTopicsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [selectedSubjectId, formSubjectId]);
 
   useEffect(() => {
     loadData();
-  }, [selectedSubjectId]);
+  }, [loadData]);
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;

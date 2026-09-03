@@ -51,9 +51,11 @@ export default function CoursesCatalogPage() {
   });
 
   // Unique roles for filtering
-  const availableRoles = Array.from(
-    new Set(courses.map((c) => c.roleTrack).filter(Boolean)),
-  ) as Array<{ id: string; name: string; slug: string }>;
+  const roleMap = new Map<string, { id: string; name: string; slug: string }>();
+  courses.forEach((c) => {
+    if (c.roleTrack) roleMap.set(c.roleTrack.slug, c.roleTrack);
+  });
+  const availableRoles = Array.from(roleMap.values());
 
   return (
     <div className="min-h-dvh bg-canvas py-8 px-4 sm:px-6 lg:px-8">

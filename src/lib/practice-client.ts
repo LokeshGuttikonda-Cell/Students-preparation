@@ -124,8 +124,8 @@ export interface PracticeSubjectWithTopics {
 
 export async function getPracticeCatalog(): Promise<PracticeSubjectWithTopics[]> {
   const [subjectsRes, topicsRes] = await Promise.all([
-    fetch(apiUrl('subjects')),
-    fetch(apiUrl('topics')),
+    fetch(apiUrl('subjects'), { credentials: 'include' }),
+    fetch(apiUrl('topics'), { credentials: 'include' }),
   ]);
 
   if (!subjectsRes.ok || !topicsRes.ok) {

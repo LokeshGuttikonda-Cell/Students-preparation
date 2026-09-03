@@ -74,14 +74,17 @@ INSERT INTO employees (id, name, department_id, salary, hire_date) VALUES
   (107, 'Karthik Rao', 4, 85000, '2024-06-25'),
   (108, 'Meera Joshi', 1, 125000, '2022-04-14');`;
 
+import { apiUrl } from './env';
+
 export async function runSqlQuery(
   query: string,
   schemaDdl?: string,
   seedDataSql?: string,
 ): Promise<SqlExecutionResult> {
-  const res = await fetch('/api/v1/sandbox/sql/run', {
+  const res = await fetch(apiUrl('sandbox/sql/run'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify({ query, schemaDdl, seedDataSql }),
   });
 
@@ -100,9 +103,10 @@ export async function validateSqlQuery(
   expectedQuery?: string,
   expectedRows?: Record<string, unknown>[],
 ): Promise<SqlValidationResult> {
-  const res = await fetch('/api/v1/sandbox/sql/validate', {
+  const res = await fetch(apiUrl('sandbox/sql/validate'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify({
       userQuery,
       schemaDdl,
@@ -125,9 +129,10 @@ export async function runCodeLogic(
   functionName: string,
   testCases: CodeTestCase[],
 ): Promise<CodeExecutionResult> {
-  const res = await fetch('/api/v1/sandbox/code/run', {
+  const res = await fetch(apiUrl('sandbox/code/run'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify({ code, functionName, testCases }),
   });
 
@@ -138,3 +143,4 @@ export async function runCodeLogic(
 
   return (await res.json()) as CodeExecutionResult;
 }
+

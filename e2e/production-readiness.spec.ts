@@ -7,7 +7,7 @@ test.describe("Production Readiness End-to-End Audit", () => {
       page.getByRole("heading", { level: 1, name: "Students-preparation" }),
     ).toBeVisible();
 
-    const exploreLink = page.getByRole("link", { name: /Explore Roles/i });
+    const exploreLink = page.getByRole("link", { name: /Explore Roles/i }).first();
     await expect(exploreLink).toBeVisible();
   });
 

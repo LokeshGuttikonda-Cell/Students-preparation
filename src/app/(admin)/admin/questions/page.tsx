@@ -29,7 +29,7 @@ export default function AdminQuestionsPage() {
   const [topicFilter, setTopicFilter] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
 
-  const loadData = async () => {
+  const loadData = React.useCallback(async () => {
     setIsLoading(true);
     try {
       const [qData, tData] = await Promise.all([
@@ -47,11 +47,11 @@ export default function AdminQuestionsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [statusFilter, topicFilter]);
 
   useEffect(() => {
     loadData();
-  }, [statusFilter, topicFilter]);
+  }, [loadData]);
 
   return (
     <div className="space-y-6">

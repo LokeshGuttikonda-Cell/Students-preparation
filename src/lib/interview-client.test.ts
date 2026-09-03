@@ -6,6 +6,7 @@ import {
   getInterviewSession,
   getUserInterviews,
 } from './interview-client';
+import { apiUrl } from './env';
 
 describe('interview-client', () => {
   beforeEach(() => {
@@ -24,9 +25,10 @@ describe('interview-client', () => {
     } as Response);
 
     const result = await startInterviewSession('r_devops', 25);
-    expect(fetch).toHaveBeenCalledWith('/api/v1/interviews', {
+    expect(fetch).toHaveBeenCalledWith(apiUrl('interviews'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ roleTrackId: 'r_devops', targetDurationMinutes: 25 }),
     });
     expect(result.id).toBe('sess_1');
@@ -44,9 +46,10 @@ describe('interview-client', () => {
     } as Response);
 
     const result = await sendInterviewMessage('sess_1', 'My technical answer');
-    expect(fetch).toHaveBeenCalledWith('/api/v1/interviews/sess_1/message', {
+    expect(fetch).toHaveBeenCalledWith(apiUrl('interviews/sess_1/message'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ content: 'My technical answer' }),
     });
     expect(result.currentStage).toBe('TECHNICAL_DRILL');
@@ -60,9 +63,10 @@ describe('interview-client', () => {
     } as Response);
 
     const result = await completeInterviewSession('sess_1');
-    expect(fetch).toHaveBeenCalledWith('/api/v1/interviews/sess_1/complete', {
+    expect(fetch).toHaveBeenCalledWith(apiUrl('interviews/sess_1/complete'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
     });
     expect(result.overallScore).toBe(92);
   });
@@ -75,7 +79,8 @@ describe('interview-client', () => {
     } as Response);
 
     const result = await getInterviewSession('sess_1');
-    expect(fetch).toHaveBeenCalledWith('/api/v1/interviews/sess_1', {
+    expect(fetch).toHaveBeenCalledWith(apiUrl('interviews/sess_1'), {
+      credentials: 'include',
       cache: 'no-store',
     });
     expect(result.id).toBe('sess_1');
@@ -89,7 +94,8 @@ describe('interview-client', () => {
     } as Response);
 
     const result = await getUserInterviews(2, 5);
-    expect(fetch).toHaveBeenCalledWith('/api/v1/interviews?page=2&pageSize=5', {
+    expect(fetch).toHaveBeenCalledWith(apiUrl('interviews?page=2&pageSize=5'), {
+      credentials: 'include',
       cache: 'no-store',
     });
     expect(result.page).toBe(2);

@@ -37,15 +37,18 @@ export interface DrillQuestion {
   options: DrillQuestionOption[];
 }
 
+import { apiUrl } from './env';
+
 export async function explainMissedQuestion(
   questionId: string,
   selectedOptionId?: string,
   submittedCode?: string,
   targetRoleId?: string,
 ): Promise<SocraticRemediationResult> {
-  const res = await fetch('/api/v1/remediation/explain-missed', {
+  const res = await fetch(apiUrl('remediation/explain-missed'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify({
       questionId,
       selectedOptionId,
@@ -65,9 +68,10 @@ export async function explainMissedQuestion(
 export async function getSimilarDrill(
   questionId: string,
 ): Promise<DrillQuestion> {
-  const res = await fetch('/api/v1/remediation/similar-drill', {
+  const res = await fetch(apiUrl('remediation/similar-drill'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify({ questionId }),
   });
 
@@ -82,7 +86,9 @@ export async function getSimilarDrill(
 export async function getRoleInterviewTraps(
   roleSlugOrId: string,
 ): Promise<RoleTrapItem[]> {
-  const res = await fetch(`/api/v1/remediation/traps/${encodeURIComponent(roleSlugOrId)}`);
+  const res = await fetch(apiUrl(`remediation/traps/${encodeURIComponent(roleSlugOrId)}`), {
+    credentials: 'include',
+  });
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -91,3 +97,4 @@ export async function getRoleInterviewTraps(
 
   return (await res.json()) as RoleTrapItem[];
 }
+

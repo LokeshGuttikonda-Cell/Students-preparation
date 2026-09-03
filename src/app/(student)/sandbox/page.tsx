@@ -20,7 +20,7 @@ export default function SandboxPage() {
                 Applied Technical Lab
               </span>
               <span className="text-[11px] font-semibold bg-primary-50 text-primary-800 px-2 py-0.5 rounded-full border border-primary-200">
-                Phase 2 Studio
+                Interactive Code &amp; SQL Studio
               </span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold text-text">

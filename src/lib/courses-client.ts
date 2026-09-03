@@ -61,8 +61,11 @@ export interface CourseProgressResult {
   }>;
 }
 
+import { apiUrl } from './env';
+
 export async function getCourses(): Promise<CourseTrackItem[]> {
-  const res = await fetch('/api/v1/courses', {
+  const res = await fetch(apiUrl('courses'), {
+    credentials: 'include',
     cache: 'no-store',
   });
 
@@ -74,7 +77,8 @@ export async function getCourses(): Promise<CourseTrackItem[]> {
 }
 
 export async function getCourse(slug: string): Promise<CourseTrackDetail> {
-  const res = await fetch(`/api/v1/courses/${slug}`, {
+  const res = await fetch(apiUrl(`courses/${slug}`), {
+    credentials: 'include',
     cache: 'no-store',
   });
 
@@ -88,11 +92,12 @@ export async function getCourse(slug: string): Promise<CourseTrackDetail> {
 export async function enrollInCourse(
   courseId: string,
 ): Promise<{ success: boolean; enrolledAt: string }> {
-  const res = await fetch(`/api/v1/courses/${courseId}/enroll`, {
+  const res = await fetch(apiUrl(`courses/${courseId}/enroll`), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
+    credentials: 'include',
   });
 
   if (!res.ok) {
@@ -108,7 +113,8 @@ export async function enrollInCourse(
 export async function getCourseProgress(
   courseId: string,
 ): Promise<CourseProgressResult> {
-  const res = await fetch(`/api/v1/courses/${courseId}/progress`, {
+  const res = await fetch(apiUrl(`courses/${courseId}/progress`), {
+    credentials: 'include',
     cache: 'no-store',
   });
 
@@ -118,3 +124,4 @@ export async function getCourseProgress(
 
   return (await res.json()) as CourseProgressResult;
 }
+

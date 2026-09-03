@@ -59,13 +59,16 @@ export interface PaginatedInterviews {
   totalPages: number;
 }
 
+import { apiUrl } from './env';
+
 export async function startInterviewSession(
   roleTrackId: string,
   targetDurationMinutes = 20,
 ): Promise<InterviewSessionData> {
-  const res = await fetch('/api/v1/interviews', {
+  const res = await fetch(apiUrl('interviews'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify({ roleTrackId, targetDurationMinutes }),
   });
 
@@ -85,9 +88,10 @@ export async function sendInterviewMessage(
   aiMessage: InterviewMessageData;
   currentStage: 'INTRODUCTION' | 'TECHNICAL_DRILL' | 'SCENARIO_DESIGN' | 'WRAPUP';
 }> {
-  const res = await fetch(`/api/v1/interviews/${interviewId}/message`, {
+  const res = await fetch(apiUrl(`interviews/${interviewId}/message`), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify({ content }),
   });
 
@@ -102,9 +106,10 @@ export async function sendInterviewMessage(
 export async function completeInterviewSession(
   interviewId: string,
 ): Promise<InterviewSessionData> {
-  const res = await fetch(`/api/v1/interviews/${interviewId}/complete`, {
+  const res = await fetch(apiUrl(`interviews/${interviewId}/complete`), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
   });
 
   if (!res.ok) {
@@ -118,7 +123,8 @@ export async function completeInterviewSession(
 export async function getInterviewSession(
   interviewId: string,
 ): Promise<InterviewSessionData> {
-  const res = await fetch(`/api/v1/interviews/${interviewId}`, {
+  const res = await fetch(apiUrl(`interviews/${interviewId}`), {
+    credentials: 'include',
     cache: 'no-store',
   });
 
@@ -139,7 +145,8 @@ export async function getUserInterviews(
     pageSize: String(pageSize),
   });
 
-  const res = await fetch(`/api/v1/interviews?${params.toString()}`, {
+  const res = await fetch(apiUrl(`interviews?${params.toString()}`), {
+    credentials: 'include',
     cache: 'no-store',
   });
 
@@ -150,3 +157,4 @@ export async function getUserInterviews(
 
   return (await res.json()) as PaginatedInterviews;
 }
+

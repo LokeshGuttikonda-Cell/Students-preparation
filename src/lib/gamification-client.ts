@@ -15,8 +15,11 @@ export interface BadgeItem {
   unlockedAt: string | null;
 }
 
+import { apiUrl } from './env';
+
 export async function fetchUserStreak(): Promise<StreakData> {
-  const res = await fetch('/api/v1/gamification/streak', {
+  const res = await fetch(apiUrl('gamification/streak'), {
+    credentials: 'include',
     cache: 'no-store',
   });
 
@@ -28,7 +31,8 @@ export async function fetchUserStreak(): Promise<StreakData> {
 }
 
 export async function fetchUserBadges(): Promise<BadgeItem[]> {
-  const res = await fetch('/api/v1/gamification/badges', {
+  const res = await fetch(apiUrl('gamification/badges'), {
+    credentials: 'include',
     cache: 'no-store',
   });
 
@@ -38,3 +42,4 @@ export async function fetchUserBadges(): Promise<BadgeItem[]> {
 
   return (await res.json()) as BadgeItem[];
 }
+

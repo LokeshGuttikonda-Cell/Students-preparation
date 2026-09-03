@@ -43,8 +43,10 @@ export interface PublicVerificationItem {
   competencies: string[];
 }
 
+import { apiUrl } from './env';
+
 export async function getUserCredentials(): Promise<CredentialItem[]> {
-  const res = await fetch('/api/v1/credentials', {
+  const res = await fetch(apiUrl('credentials'), {
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
   });
@@ -56,7 +58,7 @@ export async function getUserCredentials(): Promise<CredentialItem[]> {
 }
 
 export async function getRoleMilestones(): Promise<RoleMilestoneItem[]> {
-  const res = await fetch('/api/v1/credentials/milestones', {
+  const res = await fetch(apiUrl('credentials/milestones'), {
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
   });
@@ -70,7 +72,7 @@ export async function getRoleMilestones(): Promise<RoleMilestoneItem[]> {
 export async function claimCredential(
   roleTrackId: string,
 ): Promise<CredentialItem> {
-  const res = await fetch('/api/v1/credentials/claim', {
+  const res = await fetch(apiUrl('credentials/claim'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
@@ -90,7 +92,7 @@ export async function claimCredential(
 export async function verifyCredential(
   code: string,
 ): Promise<PublicVerificationItem> {
-  const res = await fetch(`/api/v1/credentials/verify/${code}`, {
+  const res = await fetch(apiUrl(`credentials/verify/${code}`), {
     headers: { 'Content-Type': 'application/json' },
   });
   if (!res.ok) {
@@ -98,3 +100,4 @@ export async function verifyCredential(
   }
   return res.json();
 }
+
