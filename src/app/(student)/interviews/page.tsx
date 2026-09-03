@@ -102,6 +102,9 @@ export default function InterviewsHubPage() {
               >
                 AI Interviews
               </Link>
+              <Link href="/credentials" className="text-text-muted hover:text-text">
+                Credentials
+              </Link>
             </nav>
           </div>
 

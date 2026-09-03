@@ -146,6 +146,9 @@ export default function StudentDashboardPage() {
               <Link href="/interviews" className="text-text-muted hover:text-text">
                 AI Interviews
               </Link>
+              <Link href="/credentials" className="text-text-muted hover:text-text">
+                Credentials
+              </Link>
             </nav>
           </div>
 
