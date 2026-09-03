@@ -70,6 +70,9 @@ export default function MockTestsCatalogPage() {
               >
                 Timed Mock Tests
               </Link>
+              <Link href="/interviews" className="text-text-muted hover:text-text">
+                AI Interviews
+              </Link>
             </nav>
           </div>
 
