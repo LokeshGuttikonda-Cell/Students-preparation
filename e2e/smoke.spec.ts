@@ -16,3 +16,12 @@ test("design tokens resolve to real colours", async ({ page }) => {
   // fall back to the inherited text colour and the assertion would fail.
   await expect(heading).toHaveCSS("color", "rgb(18, 58, 94)");
 });
+
+test("interviews hub page renders title and simulator header", async ({ page }) => {
+  await page.goto("/interviews");
+
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Socratic AI Technical Interview Simulator" }),
+  ).toBeVisible();
+});
+
