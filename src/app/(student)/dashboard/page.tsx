@@ -149,6 +149,9 @@ export default function StudentDashboardPage() {
               <Link href="/credentials" className="text-text-muted hover:text-text">
                 Credentials
               </Link>
+              <Link href="/analytics/cohort" className="text-text-muted hover:text-text">
+                Cohort Analytics
+              </Link>
             </nav>
           </div>
 

@@ -132,6 +132,14 @@ export default function CredentialsPage() {
             <p className="mt-2 text-slate-600 max-w-2xl text-sm sm:text-base leading-relaxed">
               Earn cryptographically tamper-evident credentials validated against timed role-based assessments and Socratic AI technical interviews. Each credential includes a public verification checksum shareable with employers.
             </p>
+            <div className="mt-4">
+              <Link
+                href="/analytics/cohort"
+                className="text-xs font-semibold text-primary-700 hover:text-primary-800 hover:underline inline-flex items-center gap-1"
+              >
+                📊 Compare your standing on the Peer Cohort Benchmark →
+              </Link>
+            </div>
           </div>
         </div>
 
