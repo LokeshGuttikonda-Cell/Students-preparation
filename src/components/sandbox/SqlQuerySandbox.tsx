@@ -196,7 +196,7 @@ export function SqlQuerySandbox({
           className={`p-4 rounded-lg border text-sm flex items-center justify-between gap-4 ${
             validationResult.passed
               ? 'bg-success-50 border-success-200 text-success-700'
-              : 'bg-warning-50 border-warning-200 text-warning-800'
+              : 'bg-accent-50 border-accent-200 text-accent-800'
           }`}
         >
           <div className="flex items-center gap-2">

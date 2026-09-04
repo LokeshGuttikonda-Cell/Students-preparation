@@ -20,11 +20,21 @@ export function apiUrl(path: string): string {
   const clean = path.startsWith("/") ? path.slice(1) : path;
   const base = API_BASE_URL.replace(/\/$/, "");
 
+  if (base) {
+    if (clean.startsWith("api/v1/")) {
+      return `${base}/${clean}`;
+    }
+    if (clean.startsWith("api/")) {
+      return `${base}/${clean}`;
+    }
+    return `${base}/api/${API_VERSION}/${clean}`;
+  }
+
   if (clean.startsWith("api/v1/")) {
-    return `${base}/${clean}`;
+    return `/${clean}`;
   }
   if (clean.startsWith("api/")) {
-    return `${base}/${clean}`;
+    return `/${clean}`;
   }
-  return `${base}/api/${API_VERSION}/${clean}`;
+  return `/api/${API_VERSION}/${clean}`;
 }

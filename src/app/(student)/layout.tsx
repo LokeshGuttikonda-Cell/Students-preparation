@@ -35,10 +35,18 @@ export default function StudentLayout({
   const { user, logout } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  const isRunner =
+    (pathname?.startsWith('/practice/') && pathname !== '/practice') ||
+    (pathname?.startsWith('/mock-tests/') &&
+      !pathname.includes('/custom') &&
+      !pathname.includes('/results')) ||
+    (pathname?.startsWith('/interviews/') && !pathname.includes('/results'));
+
   return (
     <div className="min-h-dvh flex flex-col bg-canvas text-text">
-      {/* Global Student Navigation Header */}
-      <header className="border-b border-border bg-surface sticky top-0 z-40 shadow-xs">
+      {/* Global Student Navigation Header (suppressed in full-screen runners) */}
+      {!isRunner && (
+        <header className="border-b border-border bg-surface sticky top-0 z-40 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo & Brand */}
@@ -240,6 +248,7 @@ export default function StudentLayout({
           </div>
         )}
       </header>
+      )}
 
       {/* Page Content */}
       <main className="flex-1">

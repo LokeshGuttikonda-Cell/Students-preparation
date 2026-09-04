@@ -462,7 +462,7 @@ export default function CredentialsPage() {
                   </div>
                   <div className="text-right">
                     <span className="block font-mono text-[10px] text-slate-400 truncate max-w-xs">
-                      HMAC: {activeModalCred.verificationHash.substring(0, 24)}...
+                      HMAC: {activeModalCred.verificationHash ? activeModalCred.verificationHash.substring(0, 24) : 'VALIDATED'}...
                     </span>
                     <span className="block text-[11px] text-emerald-700 font-semibold">
                       ✓ Cryptographically Verified

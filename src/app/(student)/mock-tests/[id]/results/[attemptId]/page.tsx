@@ -89,7 +89,7 @@ export default function MockTestResultsPage() {
                 Take Another Test
               </Button>
             </Link>
-            <Link href="/">
+            <Link href="/dashboard">
               <Button variant="secondary" size="sm">
                 Dashboard
               </Button>

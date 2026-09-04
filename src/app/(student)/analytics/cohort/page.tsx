@@ -249,7 +249,7 @@ export default function CohortAnalyticsPage() {
                     <span className="w-2.5 h-2.5 rounded-full bg-primary-600 inline-block" />
                     You are in the{' '}
                     {
-                      readiness.distribution.find((b) => b.isStudentBucket)?.range
+                      (readiness.distribution || []).find((b) => b.isStudentBucket)?.range
                     }{' '}
                     bucket
                   </span>
@@ -259,7 +259,7 @@ export default function CohortAnalyticsPage() {
               {/* Histogram visualization */}
               <div className="pt-6 pb-2">
                 <div className="h-44 flex items-end justify-between gap-1 sm:gap-2 border-b border-slate-200 pb-2">
-                  {readiness.distribution.map((bucket) => {
+                  {(readiness.distribution || []).map((bucket) => {
                     const isCandidate = bucket.isStudentBucket;
                     const heightPercent = Math.max(8, bucket.percentage * 3.5);
 
@@ -305,7 +305,7 @@ export default function CohortAnalyticsPage() {
               </div>
 
               <div className="space-y-4">
-                {readiness.competencyBenchmarks.map((comp) => {
+                {(readiness.competencyBenchmarks || []).map((comp) => {
                   const isPositive = comp.gapFromMedian >= 0;
 
                   return (

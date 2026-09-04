@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../../context/AuthContext';
 import { getRoles, type RoleTrackItem } from '../../../lib/roles-client';
 import {
   getUserInterviews,
@@ -13,7 +12,6 @@ import {
 import { Button } from '../../../components/ui/Button';
 
 export default function InterviewsHubPage() {
-  const { user } = useAuth();
   const router = useRouter();
 
   const [roles, setRoles] = useState<RoleTrackItem[]>([]);
@@ -76,46 +74,6 @@ export default function InterviewsHubPage() {
 
   return (
     <div className="min-h-dvh flex flex-col bg-canvas text-text">
-      {/* Header */}
-      <header className="border-b border-border bg-surface sticky top-0 z-30 shadow-xs">
-        <div className="max-w-content mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <Link
-              href="/"
-              className="text-lg font-bold tracking-tight text-primary-700 hover:opacity-90"
-            >
-              Students-preparation
-            </Link>
-            <nav className="hidden sm:flex items-center gap-4 text-sm font-medium">
-              <Link href="/dashboard" className="text-text-muted hover:text-text">
-                Dashboard
-              </Link>
-              <Link href="/practice" className="text-text-muted hover:text-text">
-                Practice Mode
-              </Link>
-              <Link href="/mock-tests" className="text-text-muted hover:text-text">
-                Mock Tests
-              </Link>
-              <Link
-                href="/interviews"
-                className="text-primary-700 font-semibold border-b-2 border-primary-700 pb-1"
-              >
-                AI Interviews
-              </Link>
-              <Link href="/credentials" className="text-text-muted hover:text-text">
-                Credentials
-              </Link>
-            </nav>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <span className="text-xs text-text-muted">
-              Student: <strong className="text-text">{user?.name || 'Candidate'}</strong>
-            </span>
-          </div>
-        </div>
-      </header>
-
       {/* Main Container */}
       <main className="flex-1 max-w-content mx-auto px-6 py-10 w-full space-y-10">
         {/* Hero Section */}
