@@ -1164,5 +1164,431 @@ Critique: ANSI SQL failed to identify the Write Skew anomaly, which occurs under
     ],
     relatedRoleSlugs: ['backend-systems-engineer', 'data-analyst'],
   },
+
+  // 18. DATA STRUCTURES: Graph Algorithms & Topological Sort
+  {
+    id: 'art-dsa-graphs',
+    slug: 'graph-algorithms-dijkstra-and-topological-sort',
+    domainSlug: 'data-structures-algorithms',
+    domainName: 'Data Structures & Algorithms',
+    title: 'Graph Theory Internals: Dijkstra Shortest Path, Kahn Topological Sort & Cycle Invariants',
+    level: 'INTERMEDIATE',
+    readTimeMinutes: 16,
+    summary: 'Master single-source shortest path relaxation with min-heaps, directed acyclic graph (DAG) topological ordering via Kahn’s in-degree queue, and cycle detection state machines.',
+    prerequisites: ['Binary Heaps / Priority Queues', 'Adjacency List Data Representation'],
+    keyConcepts: ['Edge Relaxation Invariant', 'Dijkstra with Priority Queue O((V + E) log V)', 'Kahn In-Degree Queue', 'Cycle Detection via 3-State DFS', 'Negative Weight Edge Failure Mode'],
+    overview: 'Graphs model relational networks, dependency graphs, distributed routing topologies, and compiler instruction schedules. Determining optimal pathing or execution sequences requires evaluating vertex states and edge relaxation invariants while preventing infinite cycle traversals.',
+    theorySections: [
+      {
+        heading: '1. Dijkstra Shortest Path & The Edge Relaxation Invariant',
+        content: `Dijkstra’s algorithm finds the shortest path from a source vertex S to all other vertices in a directed graph with NON-NEGATIVE edge weights.
+Relaxation Invariant: For an edge (u, v) with weight w:
+  if dist[u] + w < dist[v]:
+    dist[v] = dist[u] + w
+Using a Min-Heap / Binary Priority Queue, extracting the minimum unvisited vertex takes O(log V), yielding a total runtime of O((V + E) log V).
+Crucial Limitation: If a graph contains negative edge weights, the greedy assumption (that extracting a vertex from the min-heap guarantees its optimal distance is permanently finalized) is broken. Bellman-Ford or SPFA must be used instead.`,
+        codeSnippet: {
+          language: 'typescript',
+          code: `interface Edge {
+  to: number;
+  weight: number;
+}
+
+function dijkstra(numVertices: number, adj: Edge[][], src: number): number[] {
+  const dist = new Array(numVertices).fill(Infinity);
+  dist[src] = 0;
+
+  // Simple min-heap queue representation: [vertex, currentDist]
+  const pq: Array<[number, number]> = [[src, 0]];
+
+  while (pq.length > 0) {
+    pq.sort((a, b) => a[1] - b[1]); // Extract min
+    const [u, d] = pq.shift()!;
+
+    if (d > dist[u]) continue; // Stale heap entry
+
+    for (const edge of adj[u]) {
+      if (dist[u] + edge.weight < dist[edge.to]) {
+        dist[edge.to] = dist[u] + edge.weight;
+        pq.push([edge.to, dist[edge.to]]);
+      }
+    }
+  }
+  return dist;
+}`,
+          explanation: 'Demonstrates priority-queue based edge relaxation discarding stale entries with non-negative edge weights.',
+        },
+      },
+      {
+        heading: '2. Kahn’s Algorithm for Topological Sort & Cycle Detection',
+        content: `A Topological Sort is a linear ordering of vertices in a Directed Acyclic Graph (DAG) such that for every directed edge (u, v), vertex u comes before vertex v.
+Kahn's Algorithm operates on vertex In-Degrees:
+1. Compute the in-degree (incoming edges count) for every vertex.
+2. Initialize a queue with all vertices having in-degree = 0.
+3. While the queue is non-empty, dequeue vertex u, append u to the topological ordering, and decrement the in-degree of all adjacent neighbors v.
+4. If a neighbor’s in-degree drops to 0, push it into the queue.
+Invariant: If the topological ordering contains fewer than V vertices, the graph contains at least one directed cycle!`,
+      },
+    ],
+    trapsAndAntiPatterns: [
+      {
+        trap: 'Running Dijkstra on graphs with negative edge weights',
+        misconception: 'Adding a large positive constant to all edges makes Dijkstra valid on graphs with negative edges.',
+        correction: 'Adding a constant C to all edges penalizes paths with MORE edges more heavily than paths with FEWER edges (e.g. adding 10 to a 3-edge path adds 30, but to a 1-edge path adds only 10), altering the true shortest path. Bellman-Ford O(V * E) must be used.',
+      },
+      {
+        trap: 'Attempting topological sort on undirected graphs',
+        misconception: 'Any graph without cycles can have a topological ordering.',
+        correction: 'Topological sort is strictly defined ONLY for Directed Acyclic Graphs (DAGs). In an undirected graph, every edge represents a bidirectional dependency, making a unilateral topological ordering impossible.',
+      },
+    ],
+    practiceMcqs: [
+      {
+        id: 'q-dsa-graph-1',
+        question: 'What is the time complexity of Dijkstra’s algorithm implemented with an adjacency list and a standard binary min-heap priority queue on a graph with V vertices and E edges?',
+        options: [
+          'O(V^2)',
+          'O((V + E) log V)',
+          'O(V * E)',
+          'O(E log E + V)',
+        ],
+        correctIndex: 1,
+        explanation: 'Each vertex is extracted from the min-heap at most once (V log V), and each edge relaxation may update the min-heap priority at most once (E log V), yielding total time O((V + E) log V).',
+      },
+      {
+        id: 'q-dsa-graph-2',
+        question: 'When executing Kahn’s algorithm on a directed graph with 10 vertices, the final output list contains only 7 vertices. What does this definitively prove?',
+        options: [
+          'The graph is disconnected but acyclic.',
+          'The graph contains at least one directed cycle.',
+          'The graph has 3 vertices with zero in-degree.',
+          'The graph has negative edge weights.',
+        ],
+        correctIndex: 1,
+        explanation: 'In Kahn’s algorithm, vertices involved in a directed cycle never reach an in-degree of 0 because their prerequisites are mutually dependent. If the resulting list has fewer than V vertices, a cycle exists.',
+      },
+    ],
+    relatedRoleSlugs: ['backend-systems-engineer', 'python-developer'],
+  },
+
+  // 19. SYSTEM DESIGN: High-Throughput Rate Limiting & Distributed Caching
+  {
+    id: 'art-sys-ratelimit',
+    slug: 'rate-limiting-algorithms-and-distributed-caching',
+    domainSlug: 'system-design-architecture',
+    domainName: 'System Design & Software Architecture',
+    title: 'High-Throughput Rate Limiting: Token Bucket, Sliding Window & Distributed Cache Topologies',
+    level: 'ADVANCED',
+    readTimeMinutes: 18,
+    summary: 'Deconstruct Token Bucket, Leaky Bucket, Sliding Window Counter algorithms, Redis cluster hash slot sharding, and Cache Stampede mitigation via XFetch probabilistic early expiration.',
+    prerequisites: ['Distributed Hash Tables', 'Atomic Operations in Redis / In-Memory Stores'],
+    keyConcepts: ['Token Bucket Refill Math', 'Sliding Window Counter', 'Cache-Aside vs Write-Through', 'Cache Stampede / Thundering Herd', 'XFetch Probabilistic Early Expiration'],
+    overview: 'Rate limiting protects distributed microservices from cascading failures, DDoS traffic spikes, and abusive tenants, while distributed caching offloads high-read traffic from relational storage. Designing these components at scale requires strict atomicity, low memory footprint, and proactive cache invalidation.',
+    theorySections: [
+      {
+        heading: '1. Rate Limiting Algorithm Topologies',
+        content: `Common rate limiting algorithms and their mathematical trade-offs:
+- Token Bucket: Tokens refill at rate R tokens/sec up to capacity B. Requests consume 1 token. Permits bursts up to size B while enforcing an average rate R. Extremely memory-efficient (stores only last_refill_timestamp and current_tokens).
+- Leaky Bucket: Requests enter a FIFO queue and leak out at a constant rate. Smooths bursts into a uniform output rate, but drops traffic when the queue overflows.
+- Fixed Window Counter: Divides time into discrete 1-minute blocks. Vulnerable to the "Boundary Burst" anomaly: twice the permitted rate can hit the API within 1 second spanning the window boundary.
+- Sliding Window Counter: Combines the current window counter with a weighted percentage of the previous window counter:
+  EstimatedCount = CurrentWindowCount + (PreviousWindowCount * (1 - CurrentWindowProgressPercentage))
+This provides sub-percent error rates with zero memory overhead compared to sliding window logs.`,
+        codeSnippet: {
+          language: 'typescript',
+          code: `class SlidingWindowCounterRateLimiter {
+  private windowSizeMs: number = 60000; // 1 minute
+  private limit: number;
+  private prevCount: number = 0;
+  private currCount: number = 0;
+  private currentWindowStart: number;
+
+  constructor(limit: number) {
+    this.limit = limit;
+    this.currentWindowStart = Math.floor(Date.now() / this.windowSizeMs) * this.windowSizeMs;
+  }
+
+  public allowRequest(): boolean {
+    const now = Date.now();
+    const currentWindow = Math.floor(now / this.windowSizeMs) * this.windowSizeMs;
+
+    if (currentWindow > this.currentWindowStart) {
+      this.prevCount = (currentWindow - this.currentWindowStart === this.windowSizeMs) ? this.currCount : 0;
+      this.currCount = 0;
+      this.currentWindowStart = currentWindow;
+    }
+
+    const elapsedInWindow = now - this.currentWindowStart;
+    const progress = elapsedInWindow / this.windowSizeMs;
+    const estimatedCount = Math.floor(this.prevCount * (1 - progress) + this.currCount);
+
+    if (estimatedCount < this.limit) {
+      this.currCount++;
+      return true;
+    }
+    return false;
+  }
+}`,
+          explanation: 'Computes fractional window weighting preventing boundary burst exploits with O(1) memory overhead.',
+        },
+      },
+      {
+        heading: '2. Cache Stampede & The XFetch Algorithm',
+        content: `When a high-traffic cache key expires, thousands of concurrent requests miss the cache simultaneously and bombard the database (Thundering Herd / Cache Stampede).
+Instead of naive Mutex locking which blocks worker threads, modern distributed systems employ the XFetch Probabilistic Early Expiration algorithm:
+  Recompute if: -beta * delta * ln(random(0, 1)) > (expiry_time - current_time)
+where delta is the compute duration and beta > 0.
+As expiration approaches, the probability of a background worker refreshing the key before it expires increases smoothly, eliminating cache miss spikes entirely.`,
+      },
+    ],
+    trapsAndAntiPatterns: [
+      {
+        trap: 'Using Fixed Window counters for financial transaction rate limiting',
+        misconception: 'If limit is 100 requests per minute, a fixed window from :00 to :59 guarantees at most 100 requests in any 60-second span.',
+        correction: 'A client can send 100 requests at 00:59 and 100 requests at 01:00. In that 2-second span, 200 requests hit the backend, violating the 100/min invariant by 2x.',
+      },
+    ],
+    practiceMcqs: [
+      {
+        id: 'q-sys-rl-1',
+        question: 'Why is the Token Bucket algorithm preferred over the Leaky Bucket algorithm for user-facing API gateways?',
+        options: [
+          'Token Bucket consumes more RAM, improving CPU cache hits.',
+          'Token Bucket allows legitimate traffic bursts up to bucket capacity while enforcing a steady long-term rate, whereas Leaky Bucket strictly smooths output and adds latency.',
+          'Token Bucket encrypts payload bodies automatically.',
+          'Token Bucket does not require timestamp tracking.',
+        ],
+        correctIndex: 1,
+        explanation: 'User interactions are naturally bursty (e.g. page refreshes loading multiple resources). Token Bucket permits immediate burst processing up to capacity B while maintaining average rate R, preventing artificial latency.',
+      },
+    ],
+    relatedRoleSlugs: ['backend-systems-engineer', 'cloud-architect'],
+  },
+
+  // 20. MODERN CONCURRENCY: Java Virtual Threads & Low-Latency Systems
+  {
+    id: 'art-sys-concurrency',
+    slug: 'java-virtual-threads-and-concurrency-models',
+    domainSlug: 'system-design-architecture',
+    domainName: 'System Design & Software Architecture',
+    title: 'Modern Concurrency: Java Virtual Threads, Continuation Passing & Lock-Free Atomic Memory',
+    level: 'ADVANCED',
+    readTimeMinutes: 17,
+    summary: 'Deconstruct Project Loom virtual threads, carrier thread scheduling, continuation unmounting, thread pinning hazards, and lock-free Compare-And-Swap (CAS) data structures.',
+    prerequisites: ['Operating System Context Switching', 'Java Memory Model & Volatile Semantics'],
+    keyConcepts: ['Platform vs Virtual Threads (M:N)', 'Carrier Thread Mounting', 'Thread Pinning Hazard', 'Compare-And-Swap (CAS)', 'Memory Barriers & Volatile'],
+    overview: 'Traditional server architectures assigned one OS thread per connection (1:1 model). Because each OS thread consumes 1MB of stack memory and incurs expensive kernel context switches, servers hit scalability ceilings around 10,000 threads. Java 21 Virtual Threads decouple user-mode threads from kernel carrier threads, allowing millions of concurrent lightweight threads.',
+    theorySections: [
+      {
+        heading: '1. Virtual Threads & Continuation Scheduling',
+        content: `A Virtual Thread is an instance of java.lang.Thread that is NOT tied to a specific OS thread.
+When a virtual thread executes blocking I/O (e.g. socket read, JDBC query, sleep):
+1. The underlying virtual machine runtime unmounts the virtual thread from its Carrier OS Thread.
+2. The virtual thread’s stack frame is copied from the CPU stack to the Java Heap as a Continuation.
+3. The carrier OS thread is immediately free to execute other virtual threads.
+4. When the I/O event completes, the OS epoll/kqueue notifies the runtime, which re-mounts the continuation onto an available carrier thread.`,
+      },
+      {
+        heading: '2. The Thread Pinning Hazard',
+        content: `Thread Pinning occurs when a virtual thread CANNOT be unmounted from its carrier thread during blocking I/O:
+Primary causes of pinning:
+- Executing blocking I/O inside a \`synchronized\` block or method (locks monitor in the OS thread frame).
+- Calling native code via JNI.
+Remediation: Replace \`synchronized\` blocks in high-concurrency pathways with \`java.util.concurrent.locks.ReentrantLock\`, which supports virtual thread unmounting seamlessly.`,
+        codeSnippet: {
+          language: 'typescript',
+          code: `// Conceptual model of a Lock-Free Stack using Compare-And-Swap (CAS)
+class StackNode<T> {
+  value: T;
+  next: StackNode<T> | null = null;
+  constructor(val: T) { this.value = val; }
+}
+
+class LockFreeStack<T> {
+  private top: StackNode<T> | null = null;
+
+  public push(value: T): void {
+    const newNode = new StackNode(value);
+    while (true) {
+      const currentTop = this.top;
+      newNode.next = currentTop;
+      // In hardware, this is an atomic compare-and-swap instruction:
+      if (this.compareAndSwapTop(currentTop, newNode)) {
+        return;
+      }
+      // Contention detected: loop retries without sleeping or blocking
+    }
+  }
+
+  private compareAndSwapTop(expected: StackNode<T> | null, update: StackNode<T>): boolean {
+    if (this.top === expected) {
+      this.top = update;
+      return true;
+    }
+    return false;
+  }
+}`,
+          explanation: 'Demonstrates optimistic lock-free concurrency where threads retry via CAS rather than putting OS threads to sleep with mutexes.',
+        },
+      },
+    ],
+    trapsAndAntiPatterns: [
+      {
+        trap: 'Pooling virtual threads in an ExecutorService',
+        misconception: 'Virtual threads should be pooled like platform threads (e.g. pool size = 200).',
+        correction: 'Never pool virtual threads! They are cheap, ephemeral objects designed to be created per-task and garbage-collected upon completion. Pooling virtual threads reintroduces resource starvation.',
+      },
+    ],
+    practiceMcqs: [
+      {
+        id: 'q-sys-loom-1',
+        question: 'What happens when a Java Virtual Thread attempts to execute a blocking socket read inside a `synchronized` block?',
+        options: [
+          'The virtual thread is immediately terminated with an IllegalMonitorStateException.',
+          'The carrier OS thread is pinned and blocked in the kernel, preventing it from processing other virtual threads.',
+          'The JVM automatically converts the synchronized block into a ReentrantLock.',
+          'The operation bypasses the network interface entirely.',
+        ],
+        correctIndex: 1,
+        explanation: 'Inside a synchronized block, the virtual thread is pinned to its carrier thread because monitor locks are tied to the physical OS call frame. The carrier thread cannot be freed for other virtual threads until the synchronized block exits.',
+      },
+    ],
+    relatedRoleSlugs: ['backend-systems-engineer', 'java-backend-developer'],
+  },
+
+  // 21. COMPUTER NETWORKS: TLS 1.3 Cryptography & Forward Secrecy
+  {
+    id: 'art-net-tls',
+    slug: 'tls-13-handshake-and-cryptographic-security',
+    domainSlug: 'computer-networks-protocols',
+    domainName: 'Computer Networks & Communications',
+    title: 'Network Security: TLS 1.3 1-RTT Handshake, Ephemeral Diffie-Hellman & Forward Secrecy',
+    level: 'INTERMEDIATE',
+    readTimeMinutes: 15,
+    summary: 'Master the TLS 1.3 1-RTT handshake protocol, Ephemeral Elliptic Curve Diffie-Hellman (ECDHE), Perfect Forward Secrecy, and 0-RTT replay attack mitigations.',
+    prerequisites: ['TCP Three-Way Handshake', 'Asymmetric vs Symmetric Cryptography'],
+    keyConcepts: ['1-RTT Handshake Optimization', 'Ephemeral Diffie-Hellman (ECDHE)', 'Perfect Forward Secrecy (PFS)', 'Authenticated Encryption with Associated Data (AEAD)', '0-RTT Anti-Replay'],
+    overview: 'Transport Layer Security (TLS) encrypts web traffic at the Transport layer. TLS 1.3 deprecated obsolete cipher suites (such as RSA key exchange and CBC ciphers) to enforce mandatory Perfect Forward Secrecy, cutting handshake latency in half from 2 round trips (2-RTT) down to a single round trip (1-RTT).',
+    theorySections: [
+      {
+        heading: '1. TLS 1.3 1-RTT Handshake Architecture',
+        content: `In TLS 1.2, client and server negotiated cipher suites before exchanging key parameters, requiring two network round-trips.
+In TLS 1.3, the client sends its supported key share guesses directly in the ClientHello:
+1. Client -> Server: ClientHello + Client Key Share (ECDHE parameters) + Supported Cipher Suites.
+2. Server -> Client: ServerHello + Server Key Share + EncryptedExtensions + Certificate + CertificateVerify + Finished.
+3. Both sides immediately derive the shared symmetric encryption key via Elliptic Curve Diffie-Hellman.
+Application data can now be sent alongside the client’s Finished message in just 1 RTT!`,
+      },
+      {
+        heading: '2. Perfect Forward Secrecy (PFS) & Why RSA Key Exchange Was Deprecated',
+        content: `Under legacy static RSA key exchange, the client encrypted a pre-master secret using the server’s public key.
+Disaster Hazard: If an attacker records encrypted network traffic over years and subsequently compromises or steals the server’s private key, ALL historical sessions can be decrypted retrospectively!
+With Ephemeral Diffie-Hellman (ECDHE), keys are generated dynamically per session and immediately discarded from memory. Compromising the server’s long-term certificate private key does NOT reveal historical session keys.`,
+      },
+    ],
+    trapsAndAntiPatterns: [
+      {
+        trap: 'Permitting non-idempotent HTTP requests (e.g. POST /payments) in TLS 1.3 0-RTT resumption',
+        misconception: '0-RTT early data is safe for all HTTP requests because it is encrypted.',
+        correction: '0-RTT early data does not have forward secrecy and is vulnerable to Network Replay Attacks. An attacker can retransmit intercepted 0-RTT packets, causing duplicate payment executions. Only idempotent GET/HEAD requests should be allowed.',
+      },
+    ],
+    practiceMcqs: [
+      {
+        id: 'q-net-tls-1',
+        question: 'Why did TLS 1.3 completely remove static RSA key exchange in favor of Ephemeral Diffie-Hellman (ECDHE)?',
+        options: [
+          'RSA keys cannot be validated by Certificate Authorities.',
+          'Static RSA does not provide Perfect Forward Secrecy; stealing the server private key allows retrospective decryption of all past recorded traffic.',
+          'RSA keys only work with UDP connections.',
+          'RSA keys take longer to parse in JSON format.',
+        ],
+        correctIndex: 1,
+        explanation: 'In static RSA key exchange, the pre-master secret is encrypted with the server public key. If the server private key is ever compromised, any previously recorded encrypted traffic can be decrypted. Ephemeral Diffie-Hellman generates ephemeral keys per session that are never stored on disk.',
+      },
+    ],
+    relatedRoleSlugs: ['cybersecurity-specialist', 'cloud-architect'],
+  },
+
+  // 22. RUNTIME SYSTEMS: Compiler Design, AST & JIT Tiering
+  {
+    id: 'art-sys-compiler',
+    slug: 'compiler-design-ast-and-jit-compilation',
+    domainSlug: 'operating-systems-internals',
+    domainName: 'Operating Systems & Systems Programming',
+    title: 'Language Runtime Internals: Lexical Analysis, AST Generation & JIT Tiered Compilation',
+    level: 'ADVANCED',
+    readTimeMinutes: 18,
+    summary: 'Deconstruct language processing pipelines from tokenization and recursive descent AST parsing to bytecode interpretation and multi-tiered JIT dynamic optimization.',
+    prerequisites: ['Stack Data Structures', 'Tree Traversals (Depth-First Search)'],
+    keyConcepts: ['Lexical Tokenization', 'Abstract Syntax Tree (AST)', 'Recursive Descent Parsing', 'JIT Tiered Compilation (Baseline vs Optimizing)', 'De-optimization Bailout'],
+    overview: 'Whether running JavaScript in V8, Java in HotSpot, or Python in PyPy, modern high-performance runtimes translate human-readable source code into optimized native machine code through multi-tiered execution pipelines combining interpreters and Just-In-Time (JIT) compilers.',
+    theorySections: [
+      {
+        heading: '1. The Parsing Pipeline: Lexer to Abstract Syntax Tree',
+        content: `Execution begins by transforming a flat character stream into an executable tree:
+1. Lexical Analysis (Scanner/Lexer): Converts characters into discrete Tokens (KEYWORDS, IDENTIFIERS, OPERATORS, LITERALS).
+2. Syntactic Analysis (Parser): Validates grammar against Context-Free Grammars (CFG) using techniques like Recursive Descent or LL(k)/LR(k) parsers, building an Abstract Syntax Tree (AST).
+3. Bytecode Generation: Flattens the AST into a linear stream of compact virtual machine bytecodes.`,
+        codeSnippet: {
+          language: 'typescript',
+          code: `// Recursive Descent Expression Evaluator
+interface ASTNode {
+  type: 'NUMBER' | 'BINARY_OP';
+  value?: number;
+  op?: '+' | '-' | '*' | '/';
+  left?: ASTNode;
+  right?: ASTNode;
+}
+
+function evaluateAST(node: ASTNode): number {
+  if (node.type === 'NUMBER') {
+    return node.value!;
+  }
+  const left = evaluateAST(node.left!);
+  const right = evaluateAST(node.right!);
+
+  switch (node.op) {
+    case '+': return left + right;
+    case '-': return left - right;
+    case '*': return left * right;
+    case '/': return left / right;
+    default: throw new Error('Unknown operator');
+  }
+}`,
+          explanation: 'Tree-walking evaluation of an Abstract Syntax Tree node graph.',
+        },
+      },
+      {
+        heading: '2. Multi-Tier JIT Compilation & Dynamic De-Optimization',
+        content: `Modern engines use tiered compilation to optimize startup time while maximizing peak throughput:
+- Tier 0 (Interpreter / Baseline): Fast startup, zero compilation delay, emits bytecode and gathers runtime type profiles (Inline Caches).
+- Tier 1 (Optimizing JIT): Compiles frequently executed "hot" functions into native assembly, making speculative optimizations (e.g. assuming argument x is always a 32-bit integer).
+- De-optimization (Bailout): If speculative assumptions are violated (e.g. a string is passed where an integer was expected), the engine de-optimizes: it reconstructs the interpreter stack frame from native machine state and drops back to the interpreter without crashing.`,
+      },
+    ],
+    trapsAndAntiPatterns: [
+      {
+        trap: 'Assuming JIT-compiled code is always faster than AOT (Ahead-Of-Time) compiled code',
+        misconception: 'JIT compilation is strictly superior to pre-compiled binaries.',
+        correction: 'JIT compilation consumes CPU and RAM at runtime (compilation overhead and profiling buffers) and suffers from warm-up latency. AOT compilation (e.g. Go, Rust, C++) provides instant peak performance without runtime compilation pauses.',
+      },
+    ],
+    practiceMcqs: [
+      {
+        id: 'q-sys-jit-1',
+        question: 'In a tiered Just-In-Time (JIT) runtime such as V8 or Java HotSpot, what triggers a "De-optimization" event?',
+        options: [
+          'The computer runs out of disk storage.',
+          'A speculative optimization invariant is violated at runtime (e.g., unexpected object type passed to an optimized monomorphic function).',
+          'The garbage collector is paused.',
+          'The client network connection experiences latency.',
+        ],
+        correctIndex: 1,
+        explanation: 'Optimizing JIT compilers make speculative assumptions based on profile telemetry (e.g. variable is always int). If a program passes a string instead, the native code cannot execute safely; the runtime bails out, reconstructs the interpreter frame, and resumes in the interpreter.',
+      },
+    ],
+    relatedRoleSlugs: ['fullstack-javascript-developer', 'backend-systems-engineer'],
+  },
 ];
 
