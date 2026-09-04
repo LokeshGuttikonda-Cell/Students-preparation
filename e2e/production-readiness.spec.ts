@@ -53,4 +53,28 @@ test.describe("Production Readiness End-to-End Audit", () => {
       }),
     ).toBeVisible();
   });
+
+  test("7. Technical Knowledge Hub & Documentation boots with search and domain filters", async ({ page }) => {
+    await page.goto("/curriculum");
+    await expect(
+      page.getByRole("heading", {
+        level: 1,
+        name: "Technical Documentation & Concept Guides",
+      }),
+    ).toBeVisible();
+    await expect(page.getByPlaceholder(/Search concepts, algorithms/i)).toBeVisible();
+    await expect(page.getByRole("button", { name: /All Disciplines/i })).toBeVisible();
+  });
+
+  test("8. SQL & Code Logic Validation Sandbox boots with challenge selector", async ({ page }) => {
+    await page.goto("/sandbox");
+    await expect(
+      page.getByRole("heading", {
+        level: 1,
+        name: "SQL & Code Logic Validation Sandbox",
+      }),
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: /Relational SQL Query Lab/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Algorithmic Code Logic Lab/i })).toBeVisible();
+  });
 });

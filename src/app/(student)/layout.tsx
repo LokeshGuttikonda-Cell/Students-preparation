@@ -15,6 +15,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard' as Route },
+  { label: 'Knowledge Hub', href: '/curriculum' as Route },
   { label: 'Practice', href: '/practice' as Route },
   { label: 'Mock Tests', href: '/mock-tests' as Route },
   { label: 'AI Interviews', href: '/interviews' as Route },

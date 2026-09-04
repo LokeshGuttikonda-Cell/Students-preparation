@@ -103,6 +103,32 @@ WHERE e.salary > 85000
 ORDER BY e.salary DESC;`,
     difficulty: 'EASY',
   },
+  {
+    id: 'sql-seniority-rank',
+    title: 'Seniority Ranking by Hire Date',
+    description: 'Assign a sequential seniority ranking to all employees based on their hire date, ordered from earliest hire to most recent.',
+    initialQuery: `SELECT id, name, salary, hire_date,
+       ROW_NUMBER() OVER (ORDER BY hire_date ASC) AS seniority_rank
+FROM employees
+ORDER BY seniority_rank ASC;`,
+    expectedQuery: `SELECT id, name, salary, hire_date,
+       ROW_NUMBER() OVER (ORDER BY hire_date ASC) AS seniority_rank
+FROM employees
+ORDER BY seniority_rank ASC;`,
+    difficulty: 'MEDIUM',
+  },
+  {
+    id: 'sql-cumulative-payroll',
+    title: 'Cumulative Running Total Payroll',
+    description: 'Calculate the cumulative running total of employee salaries ordered by employee id.',
+    initialQuery: `SELECT id, name, salary,
+       SUM(salary) OVER (ORDER BY id ASC) AS running_payroll
+FROM employees;`,
+    expectedQuery: `SELECT id, name, salary,
+       SUM(salary) OVER (ORDER BY id ASC) AS running_payroll
+FROM employees;`,
+    difficulty: 'MEDIUM',
+  },
 ];
 
 const CODE_CHALLENGES: CodeChallenge[] = [
@@ -190,6 +216,75 @@ const CODE_CHALLENGES: CodeChallenge[] = [
       { id: 'tc-ms-1', description: 'Two interleaved arrays', input: [[1, 3, 5], [2, 4, 6]], expectedOutput: [1, 2, 3, 4, 5, 6] },
       { id: 'tc-ms-2', description: 'One empty array', input: [[], [1, 2]], expectedOutput: [1, 2] },
       { id: 'tc-ms-3', description: 'Single element array', input: [[5], []], expectedOutput: [5] },
+    ],
+  },
+  {
+    id: 'code-binary-search',
+    title: 'Binary Search on Sorted Array',
+    description: 'Find the index of target in a sorted integer array in O(log n) time. Return -1 if target does not exist.',
+    functionName: 'binarySearch',
+    initialCode: `function binarySearch(nums, target) {
+  let left = 0;
+  let right = nums.length - 1;
+  while (left <= right) {
+    const mid = Math.floor((left + right) / 2);
+    if (nums[mid] === target) return mid;
+    if (nums[mid] < target) left = mid + 1;
+    else right = mid - 1;
+  }
+  return -1;
+}`,
+    difficulty: 'EASY',
+    testCases: [
+      { id: 'tc-bs-1', description: 'Target present in middle', input: [[-1, 0, 3, 5, 9, 12], 9], expectedOutput: 4 },
+      { id: 'tc-bs-2', description: 'Target not in array', input: [[-1, 0, 3, 5, 9, 12], 2], expectedOutput: -1 },
+      { id: 'tc-bs-3', description: 'Single element match', input: [[5], 5], expectedOutput: 0 },
+    ],
+  },
+  {
+    id: 'code-valid-parens',
+    title: 'Valid Parentheses Bracket Verifier',
+    description: 'Given a string containing only parentheses characters (), {}, [], determine if the input string is valid.',
+    functionName: 'isValid',
+    initialCode: `function isValid(s) {
+  const stack = [];
+  const map = { ')': '(', '}': '{', ']': '[' };
+  for (const ch of s) {
+    if (ch === '(' || ch === '{' || ch === '[') {
+      stack.push(ch);
+    } else {
+      if (stack.pop() !== map[ch]) return false;
+    }
+  }
+  return stack.length === 0;
+}`,
+    difficulty: 'EASY',
+    testCases: [
+      { id: 'tc-vp-1', description: 'Nested mixed brackets', input: ['({[]})'], expectedOutput: true },
+      { id: 'tc-vp-2', description: 'Mismatched closing bracket', input: ['(]'], expectedOutput: false },
+      { id: 'tc-vp-3', description: 'Unclosed opening bracket', input: ['(()'], expectedOutput: false },
+    ],
+  },
+  {
+    id: 'code-kadane-max-subarray',
+    title: "Maximum Subarray Sum (Kadane's Algorithm)",
+    description: 'Find the contiguous subarray with the largest sum in O(n) linear time and return its sum.',
+    functionName: 'maxSubArray',
+    initialCode: `function maxSubArray(nums) {
+  if (nums.length === 0) return 0;
+  let maxSoFar = nums[0];
+  let currentMax = nums[0];
+  for (let i = 1; i < nums.length; i++) {
+    currentMax = Math.max(nums[i], currentMax + nums[i]);
+    maxSoFar = Math.max(maxSoFar, currentMax);
+  }
+  return maxSoFar;
+}`,
+    difficulty: 'MEDIUM',
+    testCases: [
+      { id: 'tc-kd-1', description: 'Mixed positive and negative values', input: [[-2, 1, -3, 4, -1, 2, 1, -5, 4]], expectedOutput: 6 },
+      { id: 'tc-kd-2', description: 'All negative values returns maximum element', input: [[-1, -2, -3]], expectedOutput: -1 },
+      { id: 'tc-kd-3', description: 'Single element array', input: [[10]], expectedOutput: 10 },
     ],
   },
 ];
