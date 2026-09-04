@@ -825,6 +825,10 @@ export const DEFAULT_PRACTICE_CATALOG: PracticeSubjectWithTopics[] = [
       { id: 'topic-ds', name: 'Data Structures Basics', slug: 'data-structures-basics' },
       { id: 'topic-dbms', name: 'DBMS Basics', slug: 'dbms-basics' },
       { id: 'topic-oop', name: 'OOP Concepts', slug: 'oop-concepts' },
+      { id: 'topic-os', name: 'Operating Systems & Linux Internals', slug: 'operating-systems-internals' },
+      { id: 'topic-networks', name: 'Computer Networks & Protocols', slug: 'computer-networks-protocols' },
+      { id: 'topic-adv-algo', name: 'Advanced Algorithms & Dynamic Programming', slug: 'algorithms-dynamic-programming' },
+      { id: 'topic-dist-sys', name: 'Distributed Systems Architecture', slug: 'distributed-systems-architecture' },
     ],
   },
   {

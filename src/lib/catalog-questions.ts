@@ -1341,4 +1341,132 @@ export const FALLBACK_TOPIC_QUESTIONS: RawTopicQuestion[] = [
     ],
     correctOptionId: 'opt-dir-3a',
   },
+
+  // Topic: Operating Systems & Linux Internals
+  {
+    id: 'pq-os-1',
+    topicId: 'topic-os',
+    topicSlug: 'operating-systems-internals',
+    body: 'In virtual memory architecture, what specific role does the Translation Lookaside Buffer (TLB) play?',
+    explanation: 'The TLB is a high-speed hardware cache located in the Memory Management Unit (MMU) that stores recent virtual-to-physical address mappings, avoiding expensive multi-level page table walks.',
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-os-1a', body: 'High-speed hardware cache of recent virtual-to-physical address translations', orderIndex: 0 },
+      { id: 'opt-os-1b', body: 'Disk swap space partition that stores inactive heap allocations', orderIndex: 1 },
+      { id: 'opt-os-1c', body: 'Kernel buffer that caches dirty file blocks prior to fsync()', orderIndex: 2 },
+      { id: 'opt-os-1d', body: 'Register file used by compilers to store local function arguments', orderIndex: 3 },
+    ],
+    correctOptionId: 'opt-os-1a',
+  },
+  {
+    id: 'pq-os-2',
+    topicId: 'topic-os',
+    topicSlug: 'operating-systems-internals',
+    body: 'Which of the following conditions is NOT one of the four Coffman conditions necessary and sufficient for a deadlock to occur?',
+    explanation: 'The four Coffman conditions are: Mutual Exclusion, Hold and Wait, No Preemption, and Circular Wait. Asynchronous execution is an architectural pattern, not a deadlock condition.',
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-os-2a', body: 'Asynchronous task execution', orderIndex: 0 },
+      { id: 'opt-os-2b', body: 'Mutual exclusion', orderIndex: 1 },
+      { id: 'opt-os-2c', body: 'Hold and wait', orderIndex: 2 },
+      { id: 'opt-os-2d', body: 'Circular wait', orderIndex: 3 },
+    ],
+    correctOptionId: 'opt-os-2a',
+  },
+
+  // Topic: Computer Networks & Protocols
+  {
+    id: 'pq-net-1',
+    topicId: 'topic-networks',
+    topicSlug: 'computer-networks-protocols',
+    body: 'During the TCP three-way handshake, what flags and sequence values are sent in the second segment from the server to the client?',
+    explanation: 'The server responds with a segment that has both SYN and ACK flags set, containing its own initial sequence number (ISN_server) and an acknowledgment number equal to the client sequence number + 1 (seq_client + 1).',
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-net-1a', body: 'SYN-ACK with server ISN and ack = client ISN + 1', orderIndex: 0 },
+      { id: 'opt-net-1b', body: 'FIN-ACK with server ISN and ack = client ISN', orderIndex: 1 },
+      { id: 'opt-net-1c', body: 'ACK only with ack = client ISN', orderIndex: 2 },
+      { id: 'opt-net-1d', body: 'RST packet resetting the connection window', orderIndex: 3 },
+    ],
+    correctOptionId: 'opt-net-1a',
+  },
+  {
+    id: 'pq-net-2',
+    topicId: 'topic-networks',
+    topicSlug: 'computer-networks-protocols',
+    body: 'In modern transport architectures, why does HTTP/3 operate over QUIC/UDP rather than TCP?',
+    explanation: 'QUIC provides transport-level stream multiplexing without TCP head-of-line blocking (where a single dropped packet stalls all multiplexed streams) and provides built-in TLS 1.3 encryption with 0-RTT connection re-establishment.',
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-net-2a', body: 'Eliminates TCP head-of-line blocking and integrates encryption with 0-RTT handshakes', orderIndex: 0 },
+      { id: 'opt-net-2b', body: 'UDP packets automatically bypass operating system firewall rules', orderIndex: 1 },
+      { id: 'opt-net-2c', body: 'TCP checksum calculations consume more CPU cycles than AES-GCM decryption', orderIndex: 2 },
+      { id: 'opt-net-2d', body: 'To prevent web browsers from caching static image assets', orderIndex: 3 },
+    ],
+    correctOptionId: 'opt-net-2a',
+  },
+
+  // Topic: Advanced Algorithms & Dynamic Programming
+  {
+    id: 'pq-algo-1',
+    topicId: 'topic-adv-algo',
+    topicSlug: 'algorithms-dynamic-programming',
+    body: 'Why does standard Dijkstra algorithm fail to compute correct shortest paths in directed graphs with negative edge weights?',
+    explanation: 'Dijkstra greedily marks a vertex as visited/finalized once it is extracted from the priority queue, assuming all future path extensions have non-negative cost. A negative edge can create a shorter path to an already finalized vertex. Bellman-Ford or SPFA is required.',
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-algo-1a', body: 'Dijkstra assumes path costs grow monotonically and finalizes vertex distances permanently upon relaxation', orderIndex: 0 },
+      { id: 'opt-algo-1b', body: 'The binary heap priority queue throws an arithmetic underflow exception on negative numbers', orderIndex: 1 },
+      { id: 'opt-algo-1c', body: 'Graph adjacency lists cannot store signed integer edge weights', orderIndex: 2 },
+      { id: 'opt-algo-1d', body: 'Negative edge weights convert the shortest path problem into an NP-Complete problem immediately', orderIndex: 3 },
+    ],
+    correctOptionId: 'opt-algo-1a',
+  },
+  {
+    id: 'pq-algo-2',
+    topicId: 'topic-adv-algo',
+    topicSlug: 'algorithms-dynamic-programming',
+    body: 'Which of the following conditions is required for a problem to be solvable via Dynamic Programming rather than Divide and Conquer?',
+    explanation: 'Dynamic Programming applies when subproblems overlap (the same subproblem is solved repeatedly). Divide and conquer breaks problems into disjoint/independent subproblems (like MergeSort).',
+    difficulty: 'EASY',
+    options: [
+      { id: 'opt-algo-2a', body: 'Overlapping subproblems and optimal substructure', orderIndex: 0 },
+      { id: 'opt-algo-2b', body: 'Disjoint subproblems and monotonic greedy choice', orderIndex: 1 },
+      { id: 'opt-algo-2c', body: 'Linear time complexity of the base case', orderIndex: 2 },
+      { id: 'opt-algo-2d', body: 'Graph bipartiteness', orderIndex: 3 },
+    ],
+    correctOptionId: 'opt-algo-2a',
+  },
+
+  // Topic: Distributed Systems Architecture
+  {
+    id: 'pq-dist-1',
+    topicId: 'topic-dist-sys',
+    topicSlug: 'distributed-systems-architecture',
+    body: 'Under Eric Brewer CAP theorem, when a network partition (P) occurs in a distributed database cluster, what trade-off must the system make?',
+    explanation: 'During a partition (network communication split), the system must choose between Consistency (all nodes return the most recent write or error out) and Availability (every non-failing node returns a response, which might be stale).',
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-dist-1a', body: 'Choose between Consistency (C) and Availability (A)', orderIndex: 0 },
+      { id: 'opt-dist-1b', body: 'Choose between Durability (D) and Latency (L)', orderIndex: 1 },
+      { id: 'opt-dist-1c', body: 'Choose between Horizontal Scaling and Vertical Partitioning', orderIndex: 2 },
+      { id: 'opt-dist-1d', body: 'Revert automatically to single-node relational transactions', orderIndex: 3 },
+    ],
+    correctOptionId: 'opt-dist-1a',
+  },
+  {
+    id: 'pq-dist-2',
+    topicId: 'topic-dist-sys',
+    topicSlug: 'distributed-systems-architecture',
+    body: 'What is the primary vulnerability of the classic Two-Phase Commit (2PC) atomic commit protocol in distributed databases?',
+    explanation: '2PC is a blocking protocol: if the coordinator node crashes permanently after cohorts have voted YES in Phase 1, the cohorts remain blocked holding locks indefinitely waiting for the commit/abort decision.',
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-dist-2a', body: 'It is a blocking protocol; cohort nodes block holding locks indefinitely if the coordinator crashes during Phase 2', orderIndex: 0 },
+      { id: 'opt-dist-2b', body: 'It requires atomic hardware clocks synchronized within 1 nanosecond (TrueTime)', orderIndex: 1 },
+      { id: 'opt-dist-2c', body: 'It cannot be implemented over TCP/IP networks', orderIndex: 2 },
+      { id: 'opt-dist-2d', body: 'It allows dirty reads by default under serializable isolation', orderIndex: 3 },
+    ],
+    correctOptionId: 'opt-dist-2a',
+  },
 ];
