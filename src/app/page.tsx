@@ -25,10 +25,20 @@ export default function Home() {
 
           <div className="flex items-center gap-3">
             {user ? (
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-text-muted hidden md:inline">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-text-muted hidden xl:inline">
                   Signed in as <strong className="text-text">{user.name}</strong>
                 </span>
+                <Link href="/curriculum">
+                  <Button variant="ghost" size="sm" className="text-xs">
+                    Knowledge Hub
+                  </Button>
+                </Link>
+                <Link href="/mock-tests">
+                  <Button variant="ghost" size="sm" className="text-xs">
+                    Mock Tests
+                  </Button>
+                </Link>
                 <Link href="/roles">
                   <Button variant="ghost" size="sm" className="text-xs">
                     Career Roles
@@ -67,6 +77,16 @@ export default function Home() {
               </div>
             ) : (
               <div className="flex items-center gap-2">
+                <Link href="/curriculum">
+                  <Button variant="ghost" size="sm" className="text-xs">
+                    Knowledge Hub
+                  </Button>
+                </Link>
+                <Link href="/mock-tests">
+                  <Button variant="ghost" size="sm" className="text-xs">
+                    Mock Tests
+                  </Button>
+                </Link>
                 <Link href="/roles">
                   <Button variant="ghost" size="sm" className="text-xs">
                     Career Roles
@@ -127,6 +147,34 @@ export default function Home() {
 
         {/* Feature Cards Grid (All Core Subsystems) */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Technical Knowledge Hub Card */}
+          <Card className="hover:border-primary-700/50 hover:shadow-md transition-all border-cyan-200/80 bg-surface">
+            <CardContent className="p-6 space-y-4 flex flex-col justify-between h-full">
+              <div className="space-y-3">
+                <div className="w-10 h-10 rounded-lg bg-cyan-50 border border-cyan-200 flex items-center justify-center text-cyan-700 font-bold">
+                  🏛️
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-bold text-primary-900">
+                      Knowledge Hub
+                    </h2>
+                    <span className="text-[10px] font-bold uppercase bg-cyan-100 text-cyan-800 px-2 py-0.5 rounded border border-cyan-300">
+                      Library
+                    </span>
+                  </div>
+                  <p className="text-xs text-text-muted mt-2 leading-relaxed">
+                    Comprehensive computer science &amp; engineering documentation. Master distributed consensus,
+                    virtual memory, B+ trees, Kafka logs, and neural attention mechanisms.
+                  </p>
+                </div>
+              </div>
+              <Link href="/curriculum">
+                <Button variant="primary" className="w-full text-xs">Explore Knowledge Hub &rarr;</Button>
+              </Link>
+            </CardContent>
+          </Card>
+
           {/* Career Roles Card */}
           <Card className="hover:border-primary-700/50 hover:shadow-md transition-all border-primary-200/80 bg-surface">
             <CardContent className="p-6 space-y-4 flex flex-col justify-between h-full">
@@ -410,6 +458,9 @@ export default function Home() {
             <p>Autonomous Role-Based Preparation Platform for Engineering Career Tracks.</p>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-6">
+            <Link href="/curriculum" className="hover:text-primary-700 transition-colors">
+              Knowledge Hub
+            </Link>
             <Link href="/roles" className="hover:text-primary-700 transition-colors">
               Career Roles
             </Link>

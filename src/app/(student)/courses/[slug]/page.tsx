@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useEffect, useState, use } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import {
   getCourse,
   enrollInCourse,
@@ -13,14 +14,9 @@ import { useAuth } from '../../../../context/AuthContext';
 import { Button } from '../../../../components/ui/Button';
 import { Card, CardContent } from '../../../../components/ui/Card';
 
-interface CourseDetailPageProps {
-  params: Promise<{
-    slug: string;
-  }>;
-}
-
-export default function CourseDetailPage({ params }: CourseDetailPageProps) {
-  const { slug } = use(params);
+export default function CourseDetailPage() {
+  const routeParams = useParams<{ slug: string }>();
+  const slug = routeParams?.slug;
   const { user } = useAuth();
 
   const [course, setCourse] = useState<CourseTrackDetail | null>(null);
@@ -31,11 +27,12 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
   const [enrollSuccess, setEnrollSuccess] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!slug) return;
     async function loadData() {
       try {
         setLoading(true);
         setError(null);
-        const courseData = await getCourse(slug);
+        const courseData = await getCourse(slug!);
         setCourse(courseData);
 
         if (user && (courseData.isEnrolled || courseData.id)) {

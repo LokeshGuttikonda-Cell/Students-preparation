@@ -136,14 +136,29 @@ export default function StudentDashboardPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <Link href="/curriculum">
+              <Button variant="ghost" size="sm" className="text-xs">
+                🏛️ Knowledge Hub
+              </Button>
+            </Link>
+            <Link href="/interviews">
+              <Button variant="ghost" size="sm" className="text-xs">
+                🎙️ AI Interview
+              </Button>
+            </Link>
+            <Link href="/sandbox">
+              <Button variant="ghost" size="sm" className="text-xs">
+                ⚡ Sandbox
+              </Button>
+            </Link>
             <Link href="/practice">
-              <Button variant="secondary" size="sm">
+              <Button variant="secondary" size="sm" className="text-xs">
                 Topic Practice
               </Button>
             </Link>
             <Link href="/mock-tests">
-              <Button variant="primary" size="sm">
+              <Button variant="primary" size="sm" className="text-xs font-semibold">
                 Take Mock Test →
               </Button>
             </Link>
