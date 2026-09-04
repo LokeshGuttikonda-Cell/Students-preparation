@@ -62,7 +62,10 @@ export interface CourseProgressResult {
 }
 
 import { apiUrl } from './env';
-import { DEFAULT_COURSES_CATALOG } from './catalog-data';
+import {
+  DEFAULT_COURSES_CATALOG,
+  DEFAULT_ROLES_CATALOG,
+} from './catalog-data';
 
 export async function getCourses(): Promise<CourseTrackItem[]> {
   try {
@@ -100,6 +103,58 @@ export async function getCourse(slug: string): Promise<CourseTrackDetail> {
 
   const found = DEFAULT_COURSES_CATALOG.find((c) => c.slug === slug || c.id === slug);
   if (found) {
+    const role = DEFAULT_ROLES_CATALOG.find(
+      (r) => r.id === found.roleTrack?.id || r.slug === found.roleTrack?.slug,
+    );
+
+    const competencies = role?.competencies || [];
+    const modules: CourseModuleItem[] =
+      competencies.length > 0
+        ? competencies.map((comp, idx) => ({
+            id: `mod-${found.slug}-${idx + 1}`,
+            title: `Module ${idx + 1}: ${comp.topicName}`,
+            description: `Master core principles, architecture patterns, and practical implementation drills for ${comp.topicName}.`,
+            topicId: comp.topicId,
+            topicName: comp.topicName,
+            topicSlug: comp.topicSlug,
+            estimatedMinutes: Math.round(
+              (found.estimatedHours * 60) / competencies.length,
+            ),
+            orderIndex: idx,
+          }))
+        : [
+            {
+              id: `mod-${found.slug}-1`,
+              title: 'Module 1: Foundations & Architecture',
+              description: 'Comprehensive introduction and foundational concepts.',
+              topicId: 'topic-aws-arch',
+              topicName: 'AWS Cloud Architecture & Services',
+              topicSlug: 'aws-cloud-architecture',
+              estimatedMinutes: 60,
+              orderIndex: 0,
+            },
+            {
+              id: `mod-${found.slug}-2`,
+              title: 'Module 2: Practical Engineering Implementation',
+              description: 'Deep-dive implementation drills and practical problem solving.',
+              topicId: 'topic-linux',
+              topicName: 'Linux System Administration & Shell',
+              topicSlug: 'linux-shell-scripting',
+              estimatedMinutes: 90,
+              orderIndex: 1,
+            },
+            {
+              id: `mod-${found.slug}-3`,
+              title: 'Module 3: Advanced Optimization & Scenarios',
+              description: 'Real-world system design, troubleshooting, and edge cases.',
+              topicId: 'topic-devops',
+              topicName: 'DevOps, Docker & CI/CD Pipelines',
+              topicSlug: 'devops-docker-cicd',
+              estimatedMinutes: 90,
+              orderIndex: 2,
+            },
+          ];
+
     return {
       id: found.id,
       name: found.name,
@@ -111,38 +166,7 @@ export async function getCourse(slug: string): Promise<CourseTrackDetail> {
       isEnrolled: false,
       enrolledAt: null,
       completedAt: null,
-      modules: [
-        {
-          id: `mod-${found.slug}-1`,
-          title: 'Module 1: Foundations & Core Architecture',
-          description: 'Comprehensive introduction and foundational concepts.',
-          topicId: 'topic-1',
-          topicName: 'Core Principles',
-          topicSlug: 'core-principles',
-          estimatedMinutes: 60,
-          orderIndex: 0,
-        },
-        {
-          id: `mod-${found.slug}-2`,
-          title: 'Module 2: Practical Engineering & Implementation',
-          description: 'Deep-dive implementation drills and practical problem solving.',
-          topicId: 'topic-2',
-          topicName: 'Engineering Patterns',
-          topicSlug: 'engineering-patterns',
-          estimatedMinutes: 90,
-          orderIndex: 1,
-        },
-        {
-          id: `mod-${found.slug}-3`,
-          title: 'Module 3: Advanced Optimization & Production Scenarios',
-          description: 'Real-world system design, troubleshooting, and edge cases.',
-          topicId: 'topic-3',
-          topicName: 'Production Optimization',
-          topicSlug: 'production-optimization',
-          estimatedMinutes: 90,
-          orderIndex: 2,
-        },
-      ],
+      modules,
     };
   }
 

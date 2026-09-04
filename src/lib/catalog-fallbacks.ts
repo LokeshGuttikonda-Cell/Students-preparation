@@ -31,241 +31,11 @@ import {
 // ==========================================
 // 1. Topic Questions Catalog (All Topics)
 // ==========================================
-export interface RawTopicQuestion {
-  id: string;
-  topicId: string;
-  topicSlug: string;
-  body: string;
-  explanation: string;
-  difficulty: 'EASY' | 'MEDIUM' | 'HARD';
-  options: Array<{ id: string; body: string; orderIndex: number }>;
-  correctOptionId: string;
-}
-
-export const FALLBACK_TOPIC_QUESTIONS: RawTopicQuestion[] = [
-  // AWS Cloud Architecture
-  {
-    id: 'pq-aws-1',
-    topicId: 'topic-aws-arch',
-    topicSlug: 'aws-cloud-architecture',
-    body: 'In cloud networking, what is the key difference between a Public Subnet and a Private Subnet in a Virtual Private Cloud (VPC)?',
-    explanation: 'A public subnet has a route table entry pointing traffic to an Internet Gateway (0.0.0.0/0 -> igw), whereas a private subnet routes outbound traffic only via a NAT Gateway without direct inbound internet access.',
-    difficulty: 'EASY',
-    options: [
-      { id: 'opt-aws-1a', body: 'A public subnet routes 0.0.0.0/0 to an Internet Gateway; a private subnet routes via a NAT Gateway', orderIndex: 0 },
-      { id: 'opt-aws-1b', body: 'A public subnet uses IPv6 while a private subnet is restricted to IPv4 only', orderIndex: 1 },
-      { id: 'opt-aws-1c', body: 'Private subnets can only contain database compute instances with encrypted disks', orderIndex: 2 },
-      { id: 'opt-aws-1d', body: 'Public subnets bypass Network Access Control Lists (NACLs)', orderIndex: 3 },
-    ],
-    correctOptionId: 'opt-aws-1a',
-  },
-  {
-    id: 'pq-aws-2',
-    topicId: 'topic-aws-arch',
-    topicSlug: 'aws-cloud-architecture',
-    body: 'Which cloud storage tier guarantees strong read-after-write consistency for PUT and DELETE operations of object keys?',
-    explanation: 'Modern cloud object storage engines (such as AWS S3) provide strong read-after-write consistency automatically for all PUT and DELETE operations without performance penalties.',
-    difficulty: 'MEDIUM',
-    options: [
-      { id: 'opt-aws-2a', body: 'Cloud Object Storage (e.g. S3 Standard)', orderIndex: 0 },
-      { id: 'opt-aws-2b', body: 'Cold Archive Tape Vaults', orderIndex: 1 },
-      { id: 'opt-aws-2c', body: 'Local Ephemeral Instance Store only', orderIndex: 2 },
-      { id: 'opt-aws-2d', body: 'Distributed Memory Cache with TTL=0', orderIndex: 3 },
-    ],
-    correctOptionId: 'opt-aws-2a',
-  },
-  // Azure Systems
-  {
-    id: 'pq-az-1',
-    topicId: 'topic-azure-sys',
-    topicSlug: 'azure-cloud-systems',
-    body: 'In Azure networking, which component enforces stateful traffic filtering at the subnet and network interface card (NIC) layer?',
-    explanation: 'Network Security Groups (NSGs) contain stateful security rules that allow or deny inbound or outbound network traffic to several types of Azure resources.',
-    difficulty: 'EASY',
-    options: [
-      { id: 'opt-az-1a', body: 'Network Security Group (NSG)', orderIndex: 0 },
-      { id: 'opt-az-1b', body: 'Traffic Manager DNS Profile', orderIndex: 1 },
-      { id: 'opt-az-1c', body: 'Azure Bastion Host', orderIndex: 2 },
-      { id: 'opt-az-1d', body: 'Virtual WAN Hub', orderIndex: 3 },
-    ],
-    correctOptionId: 'opt-az-1a',
-  },
-  // DevOps & CI/CD
-  {
-    id: 'pq-dev-1',
-    topicId: 'topic-devops',
-    topicSlug: 'devops-docker-cicd',
-    body: 'Why are multi-stage Docker builds recommended in production continuous delivery pipelines?',
-    explanation: 'Multi-stage builds separate the build environment (compilers, build tools, dev dependencies) from the final runtime image, resulting in dramatically smaller container size and a significantly reduced attack surface.',
-    difficulty: 'MEDIUM',
-    options: [
-      { id: 'opt-dev-1a', body: 'They isolate build dependencies from runtime artifacts, producing minimal, secure production containers', orderIndex: 0 },
-      { id: 'opt-dev-1b', body: 'They permit running multiple operating systems inside a single Linux namespace simultaneously', orderIndex: 1 },
-      { id: 'opt-dev-1c', body: 'They eliminate the need for container registry authentication', orderIndex: 2 },
-      { id: 'opt-dev-1d', body: 'They automatically convert interpreted code into native assembly binaries', orderIndex: 3 },
-    ],
-    correctOptionId: 'opt-dev-1a',
-  },
-  {
-    id: 'pq-dev-2',
-    topicId: 'topic-devops',
-    topicSlug: 'devops-docker-cicd',
-    body: 'In Kubernetes, what is the role of a Readiness Probe on a Pod?',
-    explanation: 'A readiness probe determines whether a container is ready to accept incoming network traffic. If it fails, the container is removed from service endpoints and receives no requests until it passes.',
-    difficulty: 'MEDIUM',
-    options: [
-      { id: 'opt-dev-2a', body: 'Determines if a container is ready to accept incoming requests from Services', orderIndex: 0 },
-      { id: 'opt-dev-2b', body: 'Restarts crashed containers automatically when memory limit is exceeded', orderIndex: 1 },
-      { id: 'opt-dev-2c', body: 'Scans the filesystem for vulnerabilities prior to node scheduling', orderIndex: 2 },
-      { id: 'opt-dev-2d', body: 'Provisions persistent volumes on cloud storage controllers', orderIndex: 3 },
-    ],
-    correctOptionId: 'opt-dev-2a',
-  },
-  // Linux & Shell Scripting
-  {
-    id: 'pq-lin-1',
-    topicId: 'topic-linux',
-    topicSlug: 'linux-shell-scripting',
-    body: 'In POSIX Linux administration, what is the key difference between SIGTERM (15) and SIGKILL (9)?',
-    explanation: 'SIGTERM can be caught, handled, or blocked by the application process to perform graceful resource cleanup. SIGKILL is handled directly by the kernel and terminates the process immediately without cleanup.',
-    difficulty: 'MEDIUM',
-    options: [
-      { id: 'opt-lin-1a', body: 'SIGTERM requests graceful cleanup and can be intercepted; SIGKILL forces kernel termination unconditionally', orderIndex: 0 },
-      { id: 'opt-lin-1b', body: 'SIGTERM deletes log files; SIGKILL saves memory coredumps to /tmp', orderIndex: 1 },
-      { id: 'opt-lin-1c', body: 'SIGTERM applies only to root users; SIGKILL applies to unprivileged accounts', orderIndex: 2 },
-      { id: 'opt-lin-1d', body: 'SIGTERM terminates child threads; SIGKILL preserves parent sockets', orderIndex: 3 },
-    ],
-    correctOptionId: 'opt-lin-1a',
-  },
-  // Core Java & Multithreading
-  {
-    id: 'pq-java-1',
-    topicId: 'topic-core-java',
-    topicSlug: 'core-java-multithreading',
-    body: 'In Java multithreading, what memory semantics does the "volatile" keyword guarantee?',
-    explanation: 'The volatile keyword in Java guarantees visibility of changes to variables across threads by preventing CPU register caching and preventing instruction reordering across the volatile read/write barrier.',
-    difficulty: 'HARD',
-    options: [
-      { id: 'opt-java-1a', body: 'Guarantees variable visibility across threads and prevents instruction reordering', orderIndex: 0 },
-      { id: 'opt-java-1b', body: 'Provides mutual exclusion lock like a synchronized block', orderIndex: 1 },
-      { id: 'opt-java-1c', body: 'Forces variables to be allocated strictly on the stack rather than the heap', orderIndex: 2 },
-      { id: 'opt-java-1d', body: 'Prevents garbage collection from cleaning up the referenced instance', orderIndex: 3 },
-    ],
-    correctOptionId: 'opt-java-1a',
-  },
-  // Python Scripting & OOP
-  {
-    id: 'pq-py-1',
-    topicId: 'topic-python',
-    topicSlug: 'python-programming-scripting',
-    body: 'What is the primary danger of using a mutable default argument like `def append_to(item, target=[])` in Python?',
-    explanation: 'In Python, default arguments are evaluated once when the function definition is executed, not each time the function is called. If modified, the same mutated list object persists across subsequent calls.',
-    difficulty: 'MEDIUM',
-    options: [
-      { id: 'opt-py-1a', body: 'The default list is instantiated once at function definition and shared across subsequent calls', orderIndex: 0 },
-      { id: 'opt-py-1b', body: 'Python raises an unhandled SyntaxError at bytecode compilation time', orderIndex: 1 },
-      { id: 'opt-py-1c', body: 'The Global Interpreter Lock deadlocks when multiple threads call the function', orderIndex: 2 },
-      { id: 'opt-py-1d', body: 'It causes variable shadowing within nested closures', orderIndex: 3 },
-    ],
-    correctOptionId: 'opt-py-1a',
-  },
-  // Full Stack JavaScript
-  {
-    id: 'pq-fs-1',
-    topicId: 'topic-fullstack-js',
-    topicSlug: 'fullstack-javascript-apis',
-    body: 'In the Node.js / JavaScript Event Loop, which queue executes first after the currently executing script completes?',
-    explanation: 'Microtasks (Promise callbacks and queueMicrotask) have strict priority over Macrotasks (setTimeout, setInterval, setImmediate) and drain completely before the event loop advances.',
-    difficulty: 'MEDIUM',
-    options: [
-      { id: 'opt-fs-1a', body: 'Microtask queue (Promise callbacks & process.nextTick)', orderIndex: 0 },
-      { id: 'opt-fs-1b', body: 'Timers queue (setTimeout / setInterval)', orderIndex: 1 },
-      { id: 'opt-fs-1c', body: 'Check phase queue (setImmediate)', orderIndex: 2 },
-      { id: 'opt-fs-1d', body: 'Poll I/O callback phase', orderIndex: 3 },
-    ],
-    correctOptionId: 'opt-fs-1a',
-  },
-  // Advanced SQL
-  {
-    id: 'pq-sql-1',
-    topicId: 'topic-adv-sql',
-    topicSlug: 'advanced-sql-optimization',
-    body: 'What is the key performance benefit of creating a Composite Covering Index (INDEX (dept_id, salary) INCLUDE (name)) in relational databases?',
-    explanation: 'A covering index allows the query planner to satisfy the entire SELECT query directly from the index B-tree without performing expensive table lookups (heap fetches) for row pages.',
-    difficulty: 'HARD',
-    options: [
-      { id: 'opt-sql-1a', body: 'Allows the query optimizer to resolve the query directly from the index without table heap lookups', orderIndex: 0 },
-      { id: 'opt-sql-1b', body: 'Automatically locks the table in READ COMMITTED snapshot mode', orderIndex: 1 },
-      { id: 'opt-sql-1c', body: 'Compresses string data into binary integers in memory', orderIndex: 2 },
-      { id: 'opt-sql-1d', body: 'Eliminates all foreign key constraints during concurrent writes', orderIndex: 3 },
-    ],
-    correctOptionId: 'opt-sql-1a',
-  },
-  // CRM Workflows
-  {
-    id: 'pq-crm-1',
-    topicId: 'topic-crm-work',
-    topicSlug: 'crm-workflow-logic',
-    body: 'In enterprise CRM data architecture, what happens when a Master record is deleted in a Master-Detail relationship?',
-    explanation: 'A Master-Detail relationship tightly links child records to a parent record. When the master is deleted, all detail child records are cascaded and deleted automatically.',
-    difficulty: 'MEDIUM',
-    options: [
-      { id: 'opt-crm-1a', body: 'All associated detail child records are cascaded and deleted automatically', orderIndex: 0 },
-      { id: 'opt-crm-1b', body: 'Child records remain intact with a NULL foreign key reference', orderIndex: 1 },
-      { id: 'opt-crm-1c', body: 'The database rejects deletion until an administrator detaches every child record', orderIndex: 2 },
-      { id: 'opt-crm-1d', body: 'Child records are moved to an archive queue without schema deletion', orderIndex: 3 },
-    ],
-    correctOptionId: 'opt-crm-1a',
-  },
-  // Data Structures
-  {
-    id: 'pq-ds-1',
-    topicId: 'topic-ds',
-    topicSlug: 'data-structures-basics',
-    body: 'What is the average-case and worst-case time complexity of lookup in a balanced binary search tree (such as an AVL or Red-Black Tree)?',
-    explanation: 'A balanced BST maintains height proportional to log(n). Therefore both average and worst-case lookup time is strictly O(log n).',
-    difficulty: 'EASY',
-    options: [
-      { id: 'opt-ds-1a', body: 'Average: O(log n), Worst: O(log n)', orderIndex: 0 },
-      { id: 'opt-ds-1b', body: 'Average: O(1), Worst: O(n)', orderIndex: 1 },
-      { id: 'opt-ds-1c', body: 'Average: O(log n), Worst: O(n)', orderIndex: 2 },
-      { id: 'opt-ds-1d', body: 'Average: O(n), Worst: O(n log n)', orderIndex: 3 },
-    ],
-    correctOptionId: 'opt-ds-1a',
-  },
-  // Quantitative Aptitude: Number Systems
-  {
-    id: 'pq-num-1',
-    topicId: 'topic-numbers',
-    topicSlug: 'number-systems',
-    body: 'What is the remainder when 2^10 is divided by 7?',
-    explanation: '2^1=2, 2^2=4, 2^3=1 (mod 7). The powers of 2 modulo 7 cycle with period 3. Since 10 = 3*3 + 1, we have 2^10 ≡ 2^1 ≡ 2 (mod 7).',
-    difficulty: 'MEDIUM',
-    options: [
-      { id: 'opt-num-1a', body: '2', orderIndex: 0 },
-      { id: 'opt-num-1b', body: '1', orderIndex: 1 },
-      { id: 'opt-num-1c', body: '3', orderIndex: 2 },
-      { id: 'opt-num-1d', body: '4', orderIndex: 3 },
-    ],
-    correctOptionId: 'opt-num-1a',
-  },
-  // Logical Reasoning: Syllogisms
-  {
-    id: 'pq-syl-1',
-    topicId: 'topic-syllogisms',
-    topicSlug: 'syllogisms',
-    body: 'Statements: "All clouds are servers. Some servers are databases." Which conclusion logically follows?',
-    explanation: 'From "All clouds are servers" and "Some servers are databases", the overlap between clouds and databases is not guaranteed. Therefore "Some databases may be clouds" is possible, but not deterministically guaranteed.',
-    difficulty: 'MEDIUM',
-    options: [
-      { id: 'opt-syl-1a', body: 'Neither conclusion is deterministically guaranteed without further premise', orderIndex: 0 },
-      { id: 'opt-syl-1b', body: 'All clouds are definitely databases', orderIndex: 1 },
-      { id: 'opt-syl-1c', body: 'No databases are servers', orderIndex: 2 },
-      { id: 'opt-syl-1d', body: 'All servers are clouds', orderIndex: 3 },
-    ],
-    correctOptionId: 'opt-syl-1a',
-  },
-];
+import {
+  FALLBACK_TOPIC_QUESTIONS,
+  type RawTopicQuestion,
+} from './catalog-questions';
+export { FALLBACK_TOPIC_QUESTIONS, type RawTopicQuestion };
 
 export function getFallbackQuestionsForTopic(topicIdOrSlug: string): PracticeQuestion[] {
   const matched = FALLBACK_TOPIC_QUESTIONS.filter(
@@ -286,6 +56,116 @@ export function getFallbackQuestionsForTopic(topicIdOrSlug: string): PracticeQue
       orderIndex: o.orderIndex,
     })),
   }));
+}
+
+export function getDomainTopicsForMockTest(mockTestIdOrSlug: string): string[] {
+  const id = (mockTestIdOrSlug || '').toLowerCase();
+  if (id.includes('aws') || id === 'mock-2') {
+    return ['topic-aws-arch', 'topic-cloud-security', 'topic-devops', 'topic-linux'];
+  }
+  if (id.includes('azure') || id === 'mock-3') {
+    return ['topic-azure-sys', 'topic-cloud-security', 'topic-devops', 'topic-linux'];
+  }
+  if (id.includes('devops') || id.includes('container') || id === 'mock-4') {
+    return ['topic-devops', 'topic-linux', 'topic-cloud-security', 'topic-aws-arch'];
+  }
+  if (id.includes('java') || id === 'mock-5') {
+    return ['topic-core-java', 'topic-oop', 'topic-adv-sql', 'topic-ds'];
+  }
+  if (id.includes('python') || id === 'mock-6') {
+    return ['topic-python', 'topic-ds', 'topic-adv-sql', 'topic-qa-testing'];
+  }
+  if (id.includes('data-analyst') || id.includes('sql') || id === 'mock-7') {
+    return ['topic-adv-sql', 'topic-dbms', 'topic-etl-pipelines', 'topic-percentages'];
+  }
+  if (id.includes('crm') || id === 'mock-8') {
+    return ['topic-crm-work', 'topic-adv-sql', 'topic-fullstack-js', 'topic-oop'];
+  }
+  if (id.includes('data-eng') || id.includes('etl') || id === 'mock-9') {
+    return ['topic-etl-pipelines', 'topic-adv-sql', 'topic-python', 'topic-devops'];
+  }
+  if (id.includes('machine-learning') || id.includes('ml-ai') || id === 'mock-10') {
+    return ['topic-ml-systems', 'topic-python', 'topic-etl-pipelines', 'topic-ds'];
+  }
+  if (id.includes('cyber') || id.includes('defense') || id === 'mock-11') {
+    return ['topic-cloud-security', 'topic-linux', 'topic-aws-arch', 'topic-azure-sys'];
+  }
+  if (id.includes('qa') || id.includes('sdet') || id === 'mock-12') {
+    return ['topic-qa-testing', 'topic-fullstack-js', 'topic-python', 'topic-devops'];
+  }
+  // Default general aptitude mock test (mock-1)
+  return [
+    'topic-numbers',
+    'topic-percentages',
+    'topic-time-work',
+    'topic-prob',
+    'topic-blood',
+    'topic-coding',
+    'topic-syllogisms',
+    'topic-direction',
+    'topic-ds',
+    'topic-dbms',
+    'topic-oop',
+  ];
+}
+
+export function getMockTestQuestionsForDomain(mockTestIdOrSlug: string): Array<{
+  id: string;
+  topicId: string;
+  body: string;
+  explanation: string;
+  difficulty: string;
+  orderIndex: number;
+  topicName: string;
+  subjectName: string;
+  sectionId: string;
+  sectionTitle: string;
+  options: Array<{ id: string; body: string; orderIndex: number; isCorrect: boolean }>;
+  correctOptionId: string;
+}> {
+  const targetTopics = getDomainTopicsForMockTest(mockTestIdOrSlug);
+  const matched = FALLBACK_TOPIC_QUESTIONS.filter((q) => targetTopics.includes(q.topicId));
+  const pool = matched.length >= 8 ? matched : FALLBACK_TOPIC_QUESTIONS;
+  const selected = pool.slice(0, 10);
+
+  // Topic & Subject lookup maps
+  const topicMap = new Map<string, { topicName: string; subjectName: string }>();
+  for (const sub of DEFAULT_PRACTICE_CATALOG) {
+    for (const top of sub.topics) {
+      topicMap.set(top.id, { topicName: top.name, subjectName: sub.name });
+    }
+  }
+
+  const half = Math.ceil(selected.length / 2);
+
+  return selected.map((q, idx) => {
+    const meta = topicMap.get(q.topicId) || {
+      topicName: 'Technical Engineering Core',
+      subjectName: 'Engineering Competency',
+    };
+    const isFirstSection = idx < half;
+    return {
+      id: q.id,
+      topicId: q.topicId,
+      body: q.body,
+      explanation: q.explanation,
+      difficulty: q.difficulty,
+      orderIndex: idx,
+      topicName: meta.topicName,
+      subjectName: meta.subjectName,
+      sectionId: isFirstSection ? 'sec-1' : 'sec-2',
+      sectionTitle: isFirstSection
+        ? 'Section 1: Architecture & Technical Principles'
+        : 'Section 2: Applied Engineering & Troubleshooting',
+      options: q.options.map((o) => ({
+        id: o.id,
+        body: o.body,
+        orderIndex: o.orderIndex,
+        isCorrect: o.id === q.correctOptionId,
+      })),
+      correctOptionId: q.correctOptionId,
+    };
+  });
 }
 
 export function createFallbackPracticeSession(topicId: string): PracticeAttemptData {
@@ -651,6 +531,273 @@ export function verifyFallbackCredential(code: string): PublicVerificationItem {
 // ==========================================
 const SESSIONS_STORE: Map<string, InterviewSessionData> = new Map();
 
+interface RoleInterviewDialogue {
+  introQuestion: string;
+  technicalDrillPrompt: string;
+  scenarioDesignPrompt: string;
+  wrapupPrompt: string;
+  technicalFeedback: string;
+  suggestedAnswer: string;
+  feedbackSummary: string;
+  strengths: string[];
+  growthAreas: string[];
+}
+
+function getRoleInterviewDialogue(roleSlugOrId: string): RoleInterviewDialogue {
+  const s = (roleSlugOrId || '').toLowerCase();
+
+  if (s.includes('aws')) {
+    return {
+      introQuestion: 'Welcome to the AWS Cloud Solutions Architect interview. Please introduce yourself and explain how you apply the AWS Well-Architected Framework pillars when designing resilient multi-tier systems.',
+      technicalDrillPrompt: 'Your application experiences intermittent HTTP 504 timeout errors behind an Application Load Balancer in us-east-1 during traffic surges. Walk me through how you isolate whether the root cause is ALB idle timeout, target group health check failures, or backend connection pool exhaustion.',
+      scenarioDesignPrompt: 'Design an active-active cross-region disaster recovery architecture for a mission-critical web application with an RPO under 1 minute and RTO under 5 minutes.',
+      wrapupPrompt: 'Thorough architectural breakdown. Do you have any questions for me regarding our multi-region AWS infrastructure or cloud governance standards?',
+      technicalFeedback: 'Strong grasp of AWS networking, VPC peering, and multi-region replication. Consider detailing CloudWatch metric alarms and ALB connection draining settings.',
+      suggestedAnswer: 'Structure the response around Amazon Route 53 latency routing, DynamoDB global tables, S3 cross-region replication, and automated health checks.',
+      feedbackSummary: 'Candidate demonstrated advanced understanding of AWS Well-Architected principles, VPC isolation, and cross-region disaster recovery patterns.',
+      strengths: [
+        'Methodical troubleshooting of ALB 504 timeouts',
+        'Strong knowledge of multi-region active-active disaster recovery',
+        'Clear articulation of RTO and RPO trade-offs',
+      ],
+      growthAreas: [
+        'Incorporate specific AWS CloudWatch synthetic canary monitors',
+        'Deepen explanation of IAM role session policies and IMDSv2 security',
+      ],
+    };
+  }
+
+  if (s.includes('azure')) {
+    return {
+      introQuestion: 'Welcome to the Azure Cloud Infrastructure interview. How do you approach enterprise landing zone architecture, subscription governance, and hub-and-spoke VNet topologies in Microsoft Azure?',
+      technicalDrillPrompt: 'A virtual machine in a spoke VNet cannot communicate with an Azure SQL Managed Instance in a peered VNet. How do you systematically troubleshoot UDR route tables, NSGs, and private endpoints?',
+      scenarioDesignPrompt: 'Design a secure, highly available hybrid connectivity architecture between an on-premises datacenter and two Azure regions using ExpressRoute with automated VPN failover.',
+      wrapupPrompt: 'Great technical reasoning. Do you have any architectural questions for our cloud infrastructure team?',
+      technicalFeedback: 'Solid understanding of Azure networking and NSG stateful rules. Consider citing Azure Bastion host tunneling and Azure Policy compliance audits.',
+      suggestedAnswer: 'Trace packet flow using Azure Network Watcher IP Flow Verify and Next Hop tools, verifying effective routes and NSG priority rules.',
+      feedbackSummary: 'Candidate demonstrated thorough knowledge of Azure VNet peering, landing zone governance, and hybrid connectivity failover.',
+      strengths: [
+        'Precise usage of Network Watcher diagnostic tools',
+        'Clear design of ExpressRoute with redundant VPN gateway backup',
+        'Proficient understanding of Azure RBAC and Managed Identities',
+      ],
+      growthAreas: [
+        'Quantify BGP route convergence times during ExpressRoute failover',
+        'Discuss Azure Monitor Log Analytics workspace data retention cost tuning',
+      ],
+    };
+  }
+
+  if (s.includes('java')) {
+    return {
+      introQuestion: 'Welcome to the Java Enterprise Backend Developer interview. Describe your approach to managing object lifecycle, memory allocation, and concurrency in modern Java applications.',
+      technicalDrillPrompt: 'A production Java 21 microservice is experiencing stop-the-world GC pauses exceeding 3 seconds and periodic java.lang.OutOfMemoryError: Java heap space. How do you diagnose and tune the JVM using thread and heap dumps?',
+      scenarioDesignPrompt: 'Design a high-concurrency payment processing engine that handles idempotent transactions, distributed locks, and pessimistic vs optimistic locking against PostgreSQL.',
+      wrapupPrompt: 'Very strong fundamentals on memory models and JVM performance. Do you have any questions about our backend architecture?',
+      technicalFeedback: 'Precise analysis of Java memory regions and volatile visibility semantics. Consider comparing ZGC or Shenandoah garbage collectors for sub-millisecond pauses.',
+      suggestedAnswer: 'Inspect GC logs with tools like jcmd or VisualVM, identify memory leaks via Eclipse MAT retained heap analysis, and tune generational heap parameters.',
+      feedbackSummary: 'Candidate demonstrated exemplary mastery of Java concurrency primitives, JVM heap profiling, and relational database locking semantics.',
+      strengths: [
+        'Accurate explanation of Java memory visibility and volatile semantics',
+        'Methodical approach to analyzing heap memory dumps',
+        'Sound concurrency model using ReentrantLock and virtual threads',
+      ],
+      growthAreas: [
+        'Discuss Java 21 Scoped Values and Structured Concurrency patterns',
+        'Elaborate on database connection pool sizing (HikariCP) relative to CPU cores',
+      ],
+    };
+  }
+
+  if (s.includes('python')) {
+    return {
+      introQuestion: 'Welcome to the Python Developer technical interview. Discuss the trade-offs of using Python for scalable backend systems, specifically around concurrency models like asyncio vs multiprocessing.',
+      technicalDrillPrompt: 'A long-running background worker process in Python is steadily consuming more RAM over time and eventually gets terminated by the OS OOM killer. How do you profile and eliminate memory leaks in CPython?',
+      scenarioDesignPrompt: 'Design a distributed asynchronous job processing pipeline using Celery and Redis with rate limiting, task retries with exponential backoff, and dead-letter queues.',
+      wrapupPrompt: 'Solid understanding of Python internals and async design. What questions do you have about our Python engineering stack?',
+      technicalFeedback: 'Great explanation of mutable default argument traps and the Global Interpreter Lock. Consider profiling memory with tracemalloc and objgraph.',
+      suggestedAnswer: 'Use Python tracemalloc to take heap snapshots, identify cyclic references keeping objects alive, and use multiprocessing or Celery with max-tasks-per-child to recycle worker memory.',
+      feedbackSummary: 'Candidate showcased in-depth understanding of Python memory management, generator lazy evaluation, and distributed asynchronous task queues.',
+      strengths: [
+        'Clear understanding of CPython GIL vs multiprocessing parallelism',
+        'Practical approach to diagnosing memory leaks with tracemalloc',
+        'Resilient worker architecture with Celery dead-letter routing',
+      ],
+      growthAreas: [
+        'Explore uvloop integration for enhanced async I/O performance',
+        'Discuss strict typing with mypy and Pydantic v2 validation models',
+      ],
+    };
+  }
+
+  if (s.includes('fullstack') || s.includes('javascript')) {
+    return {
+      introQuestion: 'Welcome to the Full Stack JavaScript Developer interview. Walk me through the end-to-end request lifecycle from a React client to a Node.js API server and database.',
+      technicalDrillPrompt: 'A Node.js backend experiences severe event loop lag (event loop delay > 500ms) under concurrent requests. How do you identify whether CPU-bound synchronous code or microtask starvation is blocking the loop?',
+      scenarioDesignPrompt: 'Architect a real-time collaborative dashboard with WebSockets, optimistic UI updates, conflict resolution, and offline sync resilience.',
+      wrapupPrompt: 'Impressive coverage of client-server synchronization and event-driven architecture. Any questions for our full-stack engineering leads?',
+      technicalFeedback: 'Excellent explanation of microtask vs macrotask queuing. Consider discussing Server-Sent Events (SSE) as a lightweight alternative to full WebSockets for unidirectional streams.',
+      suggestedAnswer: 'Profile using node:perf_hooks or clinic.js doctor, offload intensive computations to worker threads, and avoid nested Promise loops that starve the macrotask queue.',
+      feedbackSummary: 'Candidate exhibited well-rounded full-stack expertise spanning React state hydration, Node.js event loop scheduling, and real-time WebSocket protocol handling.',
+      strengths: [
+        'Precise understanding of the V8 JavaScript event loop phases',
+        'Practical conflict resolution strategy for real-time state',
+        'Clear emphasis on idempotent HTTP methods and secure CORS configurations',
+      ],
+      growthAreas: [
+        'Discuss web worker offloading for browser-side intensive transforms',
+        'Incorporate HTTP/2 or HTTP/3 multiplexing advantages',
+      ],
+    };
+  }
+
+  if (s.includes('data-analyst') || s.includes('sql')) {
+    return {
+      introQuestion: 'Welcome to the Data Analyst & SQL Specialist interview. How do you translate complex business questions into efficient, auditable analytical queries and executive dashboards?',
+      technicalDrillPrompt: 'An analytical query calculating year-over-year revenue and customer cohort retention takes 12 minutes to execute on a 50-million row table. How do you analyze the query execution plan and optimize it using indexes or CTEs?',
+      scenarioDesignPrompt: 'Design a dimensional data model (Star Schema vs Snowflake Schema) for a multi-channel retail business to support flexible reporting on sales, inventory, and promotions.',
+      wrapupPrompt: 'Excellent analytical intuition and SQL query design. Do you have any questions about our enterprise data warehousing standards?',
+      technicalFeedback: 'Great command of SQL window functions (ROW_NUMBER vs DENSE_RANK). Consider discussing partition pruning and columnar storage benefits (Parquet/ClickHouse).',
+      suggestedAnswer: 'Examine the EXPLAIN ANALYZE output for sequential scans, add composite covering indexes on (cohort_date, customer_id), and pre-aggregate daily facts into materialized summary tables.',
+      feedbackSummary: 'Candidate demonstrated superior proficiency in relational SQL optimization, window analytics, and dimensional star schema design.',
+      strengths: [
+        'Skilled in interpreting EXPLAIN query cost plans',
+        'Effective use of window partition functions for cohort analysis',
+        'Strong dimensional modeling methodology (Facts vs Dimensions)',
+      ],
+      growthAreas: [
+        'Incorporate columnar indexing strategies (e.g. BRIN indexes in Postgres)',
+        'Discuss data freshness SLAs and automated reconciliation checks',
+      ],
+    };
+  }
+
+  if (s.includes('crm')) {
+    return {
+      introQuestion: 'Welcome to the CRM Technical Specialist interview. How do you design scalable data models and automation workflows within enterprise CRM platforms while honoring governor limits?',
+      technicalDrillPrompt: 'A bulk CSV import of 50,000 customer records triggers execution timeouts and governor limit exceptions in your CRM environment. How do you re-architect the trigger logic and batch processes?',
+      scenarioDesignPrompt: 'Design a bidirectional real-time synchronization between an enterprise CRM and an external ERP billing system with idempotent webhook delivery and error escalation.',
+      wrapupPrompt: 'Great coverage of CRM enterprise integration and workflow governance. What questions would you like to ask our CRM architecture group?',
+      technicalFeedback: 'Sound understanding of Master-Detail cascading deletes and trigger bulkification. Consider discussing external object virtualization via OData.',
+      suggestedAnswer: 'Bulkify trigger handlers to process collections of records, move asynchronous enrichment to queueable background jobs, and utilize bulk API endpoints with batch sizes of 200.',
+      feedbackSummary: 'Candidate demonstrated thorough knowledge of CRM relational data schemas, governor limits, and resilient third-party webhook integrations.',
+      strengths: [
+        'Rigorous application of bulkification patterns',
+        'Idempotent webhook deduplication using transaction keys',
+        'Clear distinction between lookup and master-detail relationships',
+      ],
+      growthAreas: [
+        'Explore change data capture (CDC) streaming event architectures',
+        'Detail sandbox staging and metadata deployment regression pipelines',
+      ],
+    };
+  }
+
+  if (s.includes('data-eng') || s.includes('etl')) {
+    return {
+      introQuestion: 'Welcome to the Data Engineer & ETL Architect interview. How do you design robust data lakehouses that provide both batch and streaming capabilities with guaranteed schema evolution?',
+      technicalDrillPrompt: 'A distributed Apache Spark job crashes with ExecutorLostFailure due to severe data skew during a wide join on customer_id. How do you diagnose the skew and implement key salting to balance partitions?',
+      scenarioDesignPrompt: 'Architect an end-to-end streaming ingestion pipeline from Kafka to a Delta Lake/Iceberg bronze-silver-gold architecture with exactly-once semantics and automated backfilling.',
+      wrapupPrompt: 'Outstanding mastery of distributed data pipelines and partition tuning. What questions do you have about our data engineering infrastructure?',
+      technicalFeedback: 'Comprehensive explanation of Spark shuffle bottlenecks and Delta Lake ACID transaction logs. Consider discussing broadcast joins for smaller dimensional tables.',
+      suggestedAnswer: 'Identify skewed partitions via Spark UI task duration histograms, append a random integer salt (0 to N-1) to the join keys to distribute data evenly across worker nodes, and broadcast un-skewed dimension tables.',
+      feedbackSummary: 'Candidate demonstrated deep technical authority on distributed data processing, Lakehouse ACID storage formats, and streaming pipeline idempotency.',
+      strengths: [
+        'Expert diagnostic methodology for Spark data skew',
+        'Clear medallion architecture (bronze/silver/gold) implementation',
+        'Thorough grasp of exactly-once streaming semantics',
+      ],
+      growthAreas: [
+        'Discuss automated compaction and Z-order clustering optimization',
+        'Incorporate data quality contracts with Great Expectations / Deequ',
+      ],
+    };
+  }
+
+  if (s.includes('ml-ai') || s.includes('machine-learning')) {
+    return {
+      introQuestion: 'Welcome to the Machine Learning & AI Systems Engineer interview. How do you bridge the gap between offline model training in Jupyter notebooks and production low-latency inference systems?',
+      technicalDrillPrompt: 'A deployed vector embedding search service experiences p99 latency spikes from 20ms to 850ms under peak query traffic. How do you profile HNSW graph traversal, memory mapping, and batch inference throughput?',
+      scenarioDesignPrompt: 'Design an enterprise RAG (Retrieval-Augmented Generation) pipeline incorporating document chunking, semantic vector indexing, re-ranking, and model drift/hallucination guardrails.',
+      wrapupPrompt: 'Superb grasp of AI production engineering and vector retrieval optimization. What questions do you have for our AI systems team?',
+      technicalFeedback: 'Great command of vector similarity metrics (Cosine vs Euclidean) and model quantization (INT8). Consider discussing cross-encoder re-ranking latency trade-offs.',
+      suggestedAnswer: 'Profile vector index memory usage, optimize HNSW efSearch parameters, batch embedding calculations with GPU TensorRT or ONNX Runtime, and implement semantic caching with Redis.',
+      feedbackSummary: 'Candidate demonstrated comprehensive expertise in production ML pipelines, low-latency vector search optimization, and enterprise RAG architecture guardrails.',
+      strengths: [
+        'Deep understanding of embedding index tuning (HNSW / IVF)',
+        'Practical approach to mitigating model concept drift and data drift',
+        'Clear pipeline design incorporating point-in-time feature stores',
+      ],
+      growthAreas: [
+        'Discuss speculative decoding and KV-cache optimizations for LLMs',
+        'Detail automated evaluation metrics (ROUGE, BLEU, and LLM-as-a-judge)',
+      ],
+    };
+  }
+
+  if (s.includes('cyber') || s.includes('defense') || s.includes('security')) {
+    return {
+      introQuestion: 'Welcome to the Cybersecurity & Infrastructure Defense interview. How do you construct threat models for modern cloud architectures using frameworks like STRIDE and MITRE ATT&CK?',
+      technicalDrillPrompt: 'Your SIEM alerts you to anomalous API calls originating from a compute instance with unauthorized AssumeRole permissions attempting to enumerate cloud storage buckets at 3:00 AM. Walk me through your incident response protocol.',
+      scenarioDesignPrompt: 'Architect a comprehensive defense-in-depth security perimeter for a multi-tenant cloud application, covering mutual TLS, WAF rules, container image signing, and secrets rotation.',
+      wrapupPrompt: 'Very thorough threat detection and incident triage methodology. Any questions for our security operations group?',
+      technicalFeedback: 'Excellent emphasis on Zero Trust and Least Privilege. Consider detailing forensic memory acquisition before terminating compromised compute instances.',
+      suggestedAnswer: 'Immediately isolate the instance via NSG quarantine rules, revoke active IAM credentials, preserve volatile memory for forensics, inspect VPC flow logs, and perform a blast radius audit.',
+      feedbackSummary: 'Candidate demonstrated exceptional rigor in cloud incident response, IAM least privilege auditing, and defense-in-depth perimeter architecture.',
+      strengths: [
+        'Methodical cloud containment and forensic evidence preservation',
+        'Thorough understanding of zero-trust mutual TLS enforcement',
+        'Accurate knowledge of cryptographic forward secrecy (PFS)',
+      ],
+      growthAreas: [
+        'Discuss automated security orchestration and response (SOAR) playbooks',
+        'Detail supply chain security with SLSA framework and SBOM verification',
+      ],
+    };
+  }
+
+  if (s.includes('qa') || s.includes('sdet') || s.includes('testing')) {
+    return {
+      introQuestion: 'Welcome to the QA Automation & SDET Engineer interview. How do you establish test automation strategies that balance test execution speed, defect detection, and maintenance cost?',
+      technicalDrillPrompt: 'An automated UI test suite running Playwright in CI exhibits a 15% flakiness rate due to hydration delays and dynamic content rendering. How do you identify root causes and refactor tests to be 100% deterministic?',
+      scenarioDesignPrompt: 'Design a continuous testing quality gate within a GitOps pipeline that orchestrates unit tests, consumer-driven contract tests, security SAST scans, and automated canary smoke tests.',
+      wrapupPrompt: 'Fantastic understanding of SDET architecture and resilient test harness design. What questions do you have about our engineering quality standards?',
+      technicalFeedback: 'Great application of the Test Automation Pyramid and web-first auto-waiting locators. Consider discussing visual regression testing with Percy or Applitools.',
+      suggestedAnswer: 'Eliminate hardcoded sleep timeouts by replacing them with Playwright auto-waiting web-first assertions, isolate test fixtures with unique database tenants, and trace test network calls.',
+      feedbackSummary: 'Candidate demonstrated deep mastery of modern SDET methodologies, Playwright automation resilience, and continuous delivery quality gates.',
+      strengths: [
+        'Rigorous methodology for isolating and resolving flaky tests',
+        'Solid implementation of consumer-driven contract testing (Pact)',
+        'Clear alignment with the Test Automation Pyramid',
+      ],
+      growthAreas: [
+        'Discuss test suite parallelization across distributed CI worker shards',
+        'Detail mutation testing (e.g. Stryker) to evaluate test suite robustness',
+      ],
+    };
+  }
+
+  // Default: Cloud & DevOps Engineer
+  return {
+    introQuestion: 'Welcome to the DevOps & Site Reliability Engineering interview. To begin our technical screening, please introduce yourself and explain what key architectural trade-offs you prioritize when designing resilient production systems.',
+    technicalDrillPrompt: 'A high-throughput microservice encounters sudden connection pool exhaustion during a 10x traffic surge. Walk me through your step-by-step diagnostic and remediation process.',
+    scenarioDesignPrompt: 'How would you architect this service for zero-downtime canary deployments while ensuring database schema migrations remain backward-compatible?',
+    wrapupPrompt: 'Excellent technical reasoning. We have covered core competencies, resilience patterns, and migration strategies. Do you have any architectural questions for me regarding this engineering role?',
+    technicalFeedback: 'Clear articulation of architectural principles. Consider quantifying reliability targets with specific SLAs/SLOs (e.g. 99.99% availability).',
+    suggestedAnswer: 'Frame the answer around the CAP theorem trade-offs and cite metrics such as MTTR, MTTD, and connection pool queuing latency.',
+    feedbackSummary: 'Candidate demonstrated solid technical fundamentals, thorough debugging methodology, and strong grasp of distributed system failure modes.',
+    strengths: [
+      'Methodical diagnostic approach to connection pool exhaustion',
+      'Clear understanding of blue/green and canary deployment trade-offs',
+      'Concise verbal communication with accurate terminology',
+    ],
+    growthAreas: [
+      'Incorporate concrete latency percentiles (p95, p99) when discussing performance',
+      'Discuss automated rollback strategies with distributed circuit breakers',
+    ],
+  };
+}
+
 export function createFallbackInterviewSession(
   roleTrackId: string,
   targetDurationMinutes = 20,
@@ -659,11 +806,12 @@ export function createFallbackInterviewSession(
     DEFAULT_ROLES_CATALOG.find((r) => r.id === roleTrackId || r.slug === roleTrackId) ||
     DEFAULT_ROLES_CATALOG[0];
 
+  const dialogue = getRoleInterviewDialogue(role.slug || role.id);
   const sessionId = `interview-${role.slug}-${Date.now()}`;
   const initialMessage: InterviewMessageData = {
     id: `msg-${Date.now()}-1`,
     sender: 'AI_INTERVIEWER',
-    content: `Hello! I am your Socratic AI Technical Interviewer for the ${role.name} track. To begin our technical screening, please introduce yourself and explain what key architectural trade-offs you prioritize when designing resilient production systems.`,
+    content: dialogue.introQuestion,
     stage: 'INTRODUCTION',
     turnNumber: 1,
     technicalFeedback: null,
@@ -712,17 +860,18 @@ export function createFallbackInterviewReply(
     session = createFallbackInterviewSession(DEFAULT_ROLES_CATALOG[0].id);
   }
 
+  const roleSlug = session.roleTrack?.slug || DEFAULT_ROLES_CATALOG[0].slug;
+  const dialogue = getRoleInterviewDialogue(roleSlug);
   const turn = session.messages.length + 1;
+
   const candMsg: InterviewMessageData = {
     id: `msg-cand-${Date.now()}`,
     sender: 'CANDIDATE',
     content: candidateContent,
     stage: session.currentStage,
     turnNumber: turn,
-    technicalFeedback:
-      'Clear articulation of architectural principles. Consider quantifying reliability targets with specific SLAs/SLOs (e.g. 99.99% availability).',
-    suggestedBetterAnswer:
-      'Frame the answer around the CAP theorem trade-offs and cite metrics such as MTTR and MTTD.',
+    technicalFeedback: dialogue.technicalFeedback,
+    suggestedBetterAnswer: dialogue.suggestedAnswer,
     createdAt: new Date().toISOString(),
   };
 
@@ -733,16 +882,13 @@ export function createFallbackInterviewReply(
 
   if (session.currentStage === 'INTRODUCTION') {
     nextStage = 'TECHNICAL_DRILL';
-    nextPrompt =
-      'Good baseline context. Let us dive into a technical drill: Suppose a high-throughput microservice encounters sudden connection pool exhaustion during a traffic surge. Walk me through your step-by-step diagnostic and remediation process.';
+    nextPrompt = dialogue.technicalDrillPrompt;
   } else if (session.currentStage === 'TECHNICAL_DRILL') {
     nextStage = 'SCENARIO_DESIGN';
-    nextPrompt =
-      'Solid diagnosis. Now for architectural scenario design: How would you architect this service for zero-downtime rolling deployments while ensuring database schema migrations remain backward-compatible?';
+    nextPrompt = dialogue.scenarioDesignPrompt;
   } else if (session.currentStage === 'SCENARIO_DESIGN') {
     nextStage = 'WRAPUP';
-    nextPrompt =
-      'Excellent technical reasoning. We have covered core competencies, resilience patterns, and migration strategies. Do you have any architectural questions for me regarding this engineering role?';
+    nextPrompt = dialogue.wrapupPrompt;
   } else {
     nextStage = 'WRAPUP';
     nextPrompt =
@@ -777,22 +923,17 @@ export function completeFallbackInterviewSession(interviewId: string): Interview
     session = createFallbackInterviewSession(DEFAULT_ROLES_CATALOG[0].id);
   }
 
+  const roleSlug = session.roleTrack?.slug || DEFAULT_ROLES_CATALOG[0].slug;
+  const dialogue = getRoleInterviewDialogue(roleSlug);
+
   session.status = 'COMPLETED';
   session.completedAt = new Date().toISOString();
   session.overallScore = 88;
   session.technicalScore = 90;
   session.clarityScore = 86;
-  session.feedbackSummary =
-    'Candidate demonstrated solid technical fundamentals, thorough debugging methodology, and strong grasp of distributed system failure modes.';
-  session.strengths = [
-    'Methodical diagnostic approach to connection pool exhaustion',
-    'Clear understanding of blue/green and canary deployment trade-offs',
-    'Concise verbal communication with accurate terminology',
-  ];
-  session.growthAreas = [
-    'Incorporate concrete latency percentiles (p95, p99) when discussing performance',
-    'Discuss automated rollback strategies with distributed circuit breakers',
-  ];
+  session.feedbackSummary = dialogue.feedbackSummary;
+  session.strengths = dialogue.strengths;
+  session.growthAreas = dialogue.growthAreas;
 
   SESSIONS_STORE.set(interviewId, session);
   return session;

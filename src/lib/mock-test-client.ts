@@ -143,6 +143,7 @@ export interface MockTestScorecardData {
 
 import { apiUrl } from './env';
 import { DEFAULT_MOCK_TESTS_CATALOG } from './catalog-data';
+import { getMockTestQuestionsForDomain } from './catalog-fallbacks';
 
 export async function getMockTestsCatalog(): Promise<MockTestItem[]> {
   try {
@@ -286,6 +287,9 @@ function createFallbackSession(mockTestId: string): MockTestAttemptData {
   const now = Date.now();
   const duration = found.durationMinutes || 40;
 
+  const domainQuestions = getMockTestQuestionsForDomain(mockTestId);
+  const half = Math.ceil(domainQuestions.length / 2);
+
   return {
     attempt: {
       id: `attempt-${mockTestId}`,
@@ -306,7 +310,7 @@ function createFallbackSession(mockTestId: string): MockTestAttemptData {
         orderIndex: 0,
         durationMinutes: Math.floor(duration / 2),
         cutoffScore: 2.5,
-        questionCount: 5,
+        questionCount: half,
       },
       {
         id: 'sec-2',
@@ -314,222 +318,85 @@ function createFallbackSession(mockTestId: string): MockTestAttemptData {
         orderIndex: 1,
         durationMinutes: Math.ceil(duration / 2),
         cutoffScore: 2.5,
-        questionCount: 5,
+        questionCount: domainQuestions.length - half,
       },
     ],
-    questions: [
-      {
-        id: 'q-1',
-        topicId: 't-1',
-        body: 'In cloud network architecture, what is the primary role of a Virtual Private Cloud (VPC) / Virtual Network?',
-        difficulty: 'EASY',
-        orderIndex: 0,
-        topicName: 'Cloud Networking',
-        subjectName: 'Cloud & Infrastructure',
-        sectionId: 'sec-1',
-        sectionTitle: 'Section 1: Architecture & Technical Principles',
-        options: [
-          { id: 'opt-1-1', body: 'Provides a logically isolated virtual network dedicated to your cloud resources', orderIndex: 0 },
-          { id: 'opt-1-2', body: 'Replaces external DNS domain registration entirely', orderIndex: 1 },
-          { id: 'opt-1-3', body: 'Automatically compiles source code into machine language', orderIndex: 2 },
-          { id: 'opt-1-4', body: 'Acts as a global physical cable between on-premises datacenters', orderIndex: 3 },
-        ],
-      },
-      {
-        id: 'q-2',
-        topicId: 't-2',
-        body: 'What is the primary benefit of multi-stage Docker builds?',
-        difficulty: 'MEDIUM',
-        orderIndex: 1,
-        topicName: 'Containerization',
-        subjectName: 'DevOps & SRE',
-        sectionId: 'sec-1',
-        sectionTitle: 'Section 1: Architecture & Technical Principles',
-        options: [
-          { id: 'opt-2-1', body: 'Produces minimal production images by leaving behind build-time tools and intermediate artifacts', orderIndex: 0 },
-          { id: 'opt-2-2', body: 'Allows multiple operating systems to boot simultaneously inside one container', orderIndex: 1 },
-          { id: 'opt-2-3', body: 'Guarantees 100% CPU thread utilization regardless of workload', orderIndex: 2 },
-          { id: 'opt-2-4', body: 'Prevents network packets from leaving the host computer', orderIndex: 3 },
-        ],
-      },
-      {
-        id: 'q-3',
-        topicId: 't-3',
-        body: 'Which SOLID principle emphasizes that high-level modules should depend on abstractions, not on concrete details?',
-        difficulty: 'MEDIUM',
-        orderIndex: 2,
-        topicName: 'OOP Architecture',
-        subjectName: 'Enterprise Software',
-        sectionId: 'sec-1',
-        sectionTitle: 'Section 1: Architecture & Technical Principles',
-        options: [
-          { id: 'opt-3-1', body: 'Dependency Inversion Principle (DIP)', orderIndex: 0 },
-          { id: 'opt-3-2', body: 'Single Responsibility Principle (SRP)', orderIndex: 1 },
-          { id: 'opt-3-3', body: 'Open-Closed Principle (OCP)', orderIndex: 2 },
-          { id: 'opt-3-4', body: 'Interface Segregation Principle (ISP)', orderIndex: 3 },
-        ],
-      },
-      {
-        id: 'q-4',
-        topicId: 't-4',
-        body: 'What is the key advantage of SQL window functions like ROW_NUMBER() over subqueries with GROUP BY?',
-        difficulty: 'MEDIUM',
-        orderIndex: 3,
-        topicName: 'SQL Analytics',
-        subjectName: 'Enterprise Databases',
-        sectionId: 'sec-1',
-        sectionTitle: 'Section 1: Architecture & Technical Principles',
-        options: [
-          { id: 'opt-4-1', body: 'They compute aggregate ranks across partition windows without collapsing multiple rows into one', orderIndex: 0 },
-          { id: 'opt-4-2', body: 'They bypass table indexing to run in O(1) constant time', orderIndex: 1 },
-          { id: 'opt-4-3', body: 'They automatically encrypt columns in transit', orderIndex: 2 },
-          { id: 'opt-4-4', body: 'They delete duplicate rows permanently from the disk', orderIndex: 3 },
-        ],
-      },
-      {
-        id: 'q-5',
-        topicId: 't-5',
-        body: 'In enterprise CRM systems, what occurs when a master record is deleted in a Master-Detail relationship?',
-        difficulty: 'MEDIUM',
-        orderIndex: 4,
-        topicName: 'CRM Logic',
-        subjectName: 'Enterprise Workflows',
-        sectionId: 'sec-1',
-        sectionTitle: 'Section 1: Architecture & Technical Principles',
-        options: [
-          { id: 'opt-5-1', body: 'All associated detail child records are automatically deleted via cascading delete', orderIndex: 0 },
-          { id: 'opt-5-2', body: 'Child records remain intact with a NULL foreign key', orderIndex: 1 },
-          { id: 'opt-5-3', body: 'The database transaction fails with an unrecoverable deadlock', orderIndex: 2 },
-          { id: 'opt-5-4', body: 'An automated email is dispatched to all registered administrators', orderIndex: 3 },
-        ],
-      },
-      {
-        id: 'q-6',
-        topicId: 't-6',
-        body: 'In Linux systems, which signal number corresponds to SIGKILL, which forces immediate termination without cleanup?',
-        difficulty: 'EASY',
-        orderIndex: 5,
-        topicName: 'Linux Administration',
-        subjectName: 'Infrastructure',
-        sectionId: 'sec-2',
-        sectionTitle: 'Section 2: Engineering & Troubleshooting',
-        options: [
-          { id: 'opt-6-1', body: 'Signal 9', orderIndex: 0 },
-          { id: 'opt-6-2', body: 'Signal 15', orderIndex: 1 },
-          { id: 'opt-6-3', body: 'Signal 1', orderIndex: 2 },
-          { id: 'opt-6-4', body: 'Signal 2', orderIndex: 3 },
-        ],
-      },
-      {
-        id: 'q-7',
-        topicId: 't-7',
-        body: 'In Python, what is the main consequence of mutable default arguments in function definitions?',
-        difficulty: 'MEDIUM',
-        orderIndex: 6,
-        topicName: 'Python Scripting',
-        subjectName: 'Enterprise Software',
-        sectionId: 'sec-2',
-        sectionTitle: 'Section 2: Engineering & Troubleshooting',
-        options: [
-          { id: 'opt-7-1', body: 'The default object is evaluated once at function definition time and retained across invocations', orderIndex: 0 },
-          { id: 'opt-7-2', body: 'Python raises a TypeError during code compilation', orderIndex: 1 },
-          { id: 'opt-7-3', body: 'The default argument is automatically re-instantiated on every call', orderIndex: 2 },
-          { id: 'opt-7-4', body: 'Garbage collection immediately destroys the argument on return', orderIndex: 3 },
-        ],
-      },
-      {
-        id: 'q-8',
-        topicId: 't-8',
-        body: 'In Java multithreading, what does the volatile keyword guarantee?',
-        difficulty: 'HARD',
-        orderIndex: 7,
-        topicName: 'Core Java',
-        subjectName: 'Enterprise Software',
-        sectionId: 'sec-2',
-        sectionTitle: 'Section 2: Engineering & Troubleshooting',
-        options: [
-          { id: 'opt-8-1', body: 'Guarantees memory visibility across threads, preventing stale cached register reads', orderIndex: 0 },
-          { id: 'opt-8-2', body: 'Guarantees atomic execution of compound operations like count++', orderIndex: 1 },
-          { id: 'opt-8-3', body: 'Locks the object monitor across all methods', orderIndex: 2 },
-          { id: 'opt-8-4', body: 'Prevents thread context switching', orderIndex: 3 },
-        ],
-      },
-      {
-        id: 'q-9',
-        topicId: 't-9',
-        body: 'In database transaction isolation levels, which level prevents Phantom Reads?',
-        difficulty: 'HARD',
-        orderIndex: 8,
-        topicName: 'Advanced SQL',
-        subjectName: 'Enterprise Databases',
-        sectionId: 'sec-2',
-        sectionTitle: 'Section 2: Engineering & Troubleshooting',
-        options: [
-          { id: 'opt-9-1', body: 'Serializable', orderIndex: 0 },
-          { id: 'opt-9-2', body: 'Repeatable Read', orderIndex: 1 },
-          { id: 'opt-9-3', body: 'Read Committed', orderIndex: 2 },
-          { id: 'opt-9-4', body: 'Read Uncommitted', orderIndex: 3 },
-        ],
-      },
-      {
-        id: 'q-10',
-        topicId: 't-10',
-        body: 'In an AWS VPC architecture, which component allows private subnet instances to initiate outbound connections to the Internet?',
-        difficulty: 'MEDIUM',
-        orderIndex: 9,
-        topicName: 'Cloud Architecture',
-        subjectName: 'Infrastructure',
-        sectionId: 'sec-2',
-        sectionTitle: 'Section 2: Engineering & Troubleshooting',
-        options: [
-          { id: 'opt-10-1', body: 'NAT Gateway located in a public subnet', orderIndex: 0 },
-          { id: 'opt-10-2', body: 'Virtual Private Gateway (VGW)', orderIndex: 1 },
-          { id: 'opt-10-3', body: 'Direct Connect Link', orderIndex: 2 },
-          { id: 'opt-10-4', body: 'Egress-only Gateway for IPv4', orderIndex: 3 },
-        ],
-      },
-    ],
+    questions: domainQuestions.map((q) => ({
+      id: q.id,
+      topicId: q.topicId,
+      body: q.body,
+      difficulty: q.difficulty,
+      orderIndex: q.orderIndex,
+      topicName: q.topicName,
+      subjectName: q.subjectName,
+      sectionId: q.sectionId,
+      sectionTitle: q.sectionTitle,
+      options: q.options.map((o) => ({
+        id: o.id,
+        body: o.body,
+        orderIndex: o.orderIndex,
+      })),
+    })),
     answers: [],
     serverNow: new Date().toISOString(),
   };
 }
 
 function createFallbackScorecard(attemptId: string): MockTestScorecardData {
+  const mockTestId = attemptId.replace(/^attempt-/, '') || 'mock-1';
+  const found =
+    DEFAULT_MOCK_TESTS_CATALOG.find(
+      (m) => m.id === mockTestId || m.slug === mockTestId,
+    ) || DEFAULT_MOCK_TESTS_CATALOG[0];
+
+  const domainQuestions = getMockTestQuestionsForDomain(mockTestId);
+  const total = domainQuestions.length || 10;
+  const correct = Math.max(1, Math.round(total * 0.85));
+  const incorrect = total - correct;
+  const score = correct - incorrect * 0.25;
+
+  const topicMap = new Map<string, { topicName: string; subjectName: string; count: number }>();
+  for (const q of domainQuestions) {
+    const entry = topicMap.get(q.topicName) || {
+      topicName: q.topicName,
+      subjectName: q.subjectName,
+      count: 0,
+    };
+    entry.count += 1;
+    topicMap.set(q.topicName, entry);
+  }
+
+  const topicBreakdown = Array.from(topicMap.values()).map((t) => {
+    const c = Math.max(1, Math.round(t.count * 0.85));
+    return {
+      topicName: t.topicName,
+      subjectName: t.subjectName,
+      total: t.count,
+      correct: c,
+      incorrect: t.count - c,
+      unanswered: 0,
+      accuracy: Math.round((c / t.count) * 100),
+    };
+  });
+
+  const half = Math.ceil(total / 2);
+
   return {
     attemptId,
-    mockTestId: 'mock-1',
-    title: 'Comprehensive Role Screening Assessment',
+    mockTestId: found.id,
+    title: found.title,
     status: 'SUBMITTED',
     startedAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
     submittedAt: new Date().toISOString(),
-    score: 8.5,
-    maxScore: 10,
-    correctCount: 9,
-    incorrectCount: 1,
+    score: Number(score.toFixed(2)),
+    maxScore: total,
+    correctCount: correct,
+    incorrectCount: incorrect,
     unansweredCount: 0,
-    totalQuestions: 10,
-    accuracy: 90,
+    totalQuestions: total,
+    accuracy: Math.round((correct / total) * 100),
     timeSpentSeconds: 1450,
-    topicBreakdown: [
-      {
-        topicName: 'Cloud Architecture & Services',
-        subjectName: 'Cloud & Infrastructure Engineering',
-        total: 5,
-        correct: 5,
-        incorrect: 0,
-        unanswered: 0,
-        accuracy: 100,
-      },
-      {
-        topicName: 'DevOps, Docker & CI/CD Pipelines',
-        subjectName: 'Cloud & Infrastructure Engineering',
-        total: 5,
-        correct: 4,
-        incorrect: 1,
-        unanswered: 0,
-        accuracy: 80,
-      },
-    ],
+    topicBreakdown,
     sectionBreakdown: [
       {
         sectionId: 'sec-1',
@@ -537,13 +404,13 @@ function createFallbackScorecard(attemptId: string): MockTestScorecardData {
         orderIndex: 0,
         durationMinutes: 20,
         cutoffScore: 2.5,
-        total: 5,
-        correct: 5,
-        incorrect: 0,
+        total: half,
+        correct: Math.round(half * 0.9),
+        incorrect: half - Math.round(half * 0.9),
         unanswered: 0,
-        score: 5,
-        maxScore: 5,
-        accuracy: 100,
+        score: Math.round(half * 0.9),
+        maxScore: half,
+        accuracy: 90,
         clearedCutoff: true,
       },
       {
@@ -552,12 +419,12 @@ function createFallbackScorecard(attemptId: string): MockTestScorecardData {
         orderIndex: 1,
         durationMinutes: 20,
         cutoffScore: 2.5,
-        total: 5,
-        correct: 4,
-        incorrect: 1,
+        total: total - half,
+        correct: correct - Math.round(half * 0.9),
+        incorrect: incorrect - (half - Math.round(half * 0.9)),
         unanswered: 0,
-        score: 3.75,
-        maxScore: 5,
+        score: Number((score - Math.round(half * 0.9)).toFixed(2)),
+        maxScore: total - half,
         accuracy: 80,
         clearedCutoff: true,
       },
@@ -574,34 +441,39 @@ function createFallbackScorecard(attemptId: string): MockTestScorecardData {
       topPercentage: 12,
     },
     competencyDimensions: [
-      { dimension: 'Cloud & Infrastructure', score: 85, target: 75, status: 'MET' },
-      { dimension: 'Software Architecture', score: 90, target: 70, status: 'MET' },
-      { dimension: 'Relational Analytics', score: 80, target: 70, status: 'MET' },
+      { dimension: 'Core Engineering Principles', score: 88, target: 75, status: 'MET' },
+      { dimension: 'Applied Problem Solving', score: 85, target: 70, status: 'MET' },
+      { dimension: 'Resilience & Architecture', score: 82, target: 70, status: 'MET' },
     ],
-    questions: [
-      {
-        id: 'q-1',
-        topicId: 't-1',
-        body: 'In cloud network architecture, what is the primary role of a Virtual Private Cloud (VPC)?',
-        explanation: 'Provides a logically isolated virtual network dedicated to your cloud resources.',
-        difficulty: 'EASY',
-        orderIndex: 0,
-        topicName: 'Cloud Networking',
-        subjectName: 'Infrastructure',
-        sectionId: 'sec-1',
-        sectionTitle: 'Section 1: Architecture & Technical Principles',
-        options: [
-          { id: 'opt-1-1', body: 'Provides a logically isolated virtual network dedicated to your cloud resources', isCorrect: true, orderIndex: 0 },
-          { id: 'opt-1-2', body: 'Replaces external DNS domain registration entirely', isCorrect: false, orderIndex: 1 },
-        ],
+    questions: domainQuestions.map((q, idx) => {
+      const isCorrect = idx !== 1;
+      return {
+        id: q.id,
+        topicId: q.topicId,
+        body: q.body,
+        explanation: q.explanation,
+        difficulty: q.difficulty,
+        orderIndex: q.orderIndex,
+        topicName: q.topicName,
+        subjectName: q.subjectName,
+        sectionId: q.sectionId,
+        sectionTitle: q.sectionTitle,
+        options: q.options.map((o) => ({
+          id: o.id,
+          body: o.body,
+          isCorrect: o.isCorrect,
+          orderIndex: o.orderIndex,
+        })),
         studentAnswer: {
-          selectedOptionId: 'opt-1-1',
-          isCorrect: true,
+          selectedOptionId: isCorrect
+            ? q.correctOptionId
+            : q.options.find((o) => o.id !== q.correctOptionId)?.id || null,
+          isCorrect,
           isMarkedForReview: false,
           timeSpentSeconds: 45,
         },
-      },
-    ],
+      };
+    }),
   };
 }
 
