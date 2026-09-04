@@ -143,6 +143,42 @@ FROM employees
 ORDER BY salary DESC;`,
     difficulty: 'HARD',
   },
+  {
+    id: 'sql-above-dept-avg',
+    title: 'Employees Earning Above Department Average',
+    description: 'Identify employees whose compensation exceeds the average salary within their department using a correlated subquery or window partition.',
+    initialQuery: `SELECT e.name, d.name AS department, e.salary
+FROM employees e
+JOIN departments d ON e.department_id = d.id
+WHERE e.salary > (
+  SELECT AVG(salary) FROM employees WHERE department_id = e.department_id
+)
+ORDER BY e.salary DESC;`,
+    expectedQuery: `SELECT e.name, d.name AS department, e.salary
+FROM employees e
+JOIN departments d ON e.department_id = d.id
+WHERE e.salary > (
+  SELECT AVG(salary) FROM employees WHERE department_id = e.department_id
+)
+ORDER BY e.salary DESC;`,
+    difficulty: 'MEDIUM',
+  },
+  {
+    id: 'sql-dept-salary-gap',
+    title: 'Department Lead Compensation Gap Analysis',
+    description: 'Calculate the salary differential between each employee and the maximum earner within their department using MAX() OVER (PARTITION BY).',
+    initialQuery: `SELECT e.name, d.name AS department, e.salary,
+       (MAX(e.salary) OVER (PARTITION BY e.department_id) - e.salary) AS gap_to_max
+FROM employees e
+JOIN departments d ON e.department_id = d.id
+ORDER BY department ASC, gap_to_max ASC;`,
+    expectedQuery: `SELECT e.name, d.name AS department, e.salary,
+       (MAX(e.salary) OVER (PARTITION BY e.department_id) - e.salary) AS gap_to_max
+FROM employees e
+JOIN departments d ON e.department_id = d.id
+ORDER BY department ASC, gap_to_max ASC;`,
+    difficulty: 'HARD',
+  },
 ];
 
 const CODE_CHALLENGES: CodeChallenge[] = [
@@ -321,6 +357,48 @@ const CODE_CHALLENGES: CodeChallenge[] = [
       { id: 'tc-cs-1', description: 'Three stairs gives 3 ways', input: [3], expectedOutput: 3 },
       { id: 'tc-cs-2', description: 'Four stairs gives 5 ways', input: [4], expectedOutput: 5 },
       { id: 'tc-cs-3', description: 'Five stairs gives 8 ways', input: [5], expectedOutput: 8 },
+    ],
+  },
+  {
+    id: 'code-coin-change',
+    title: 'Minimum Coins for Change (Dynamic Programming)',
+    description: 'Find the minimum number of coins needed to make up a given amount, or return -1 if impossible.',
+    functionName: 'coinChange',
+    initialCode: `function coinChange(coins, amount) {
+  const dp = new Array(amount + 1).fill(Infinity);
+  dp[0] = 0;
+  for (let i = 1; i <= amount; i++) {
+    for (const c of coins) {
+      if (i - c >= 0 && dp[i - c] !== Infinity) {
+        dp[i] = Math.min(dp[i], dp[i - c] + 1);
+      }
+    }
+  }
+  return dp[amount] === Infinity ? -1 : dp[amount];
+}`,
+    difficulty: 'MEDIUM',
+    testCases: [
+      { id: 'tc-cc-1', description: 'Standard coin denomination mix', input: [[1, 2, 5], 11], expectedOutput: 3 },
+      { id: 'tc-cc-2', description: 'Impossible amount returns -1', input: [[2], 3], expectedOutput: -1 },
+      { id: 'tc-cc-3', description: 'Zero target requires zero coins', input: [[1], 0], expectedOutput: 0 },
+      { id: 'tc-cc-4', description: 'Greedy choice fails, DP finds optimal 2 coins', input: [[1, 3, 4], 6], expectedOutput: 2 },
+    ],
+  },
+  {
+    id: 'code-prefix-search',
+    title: 'Prefix Matching & Lexicographical Ordering',
+    description: 'Filter an array of strings by a search prefix and return all matches sorted alphabetically in ascending order.',
+    functionName: 'findWordsWithPrefix',
+    initialCode: `function findWordsWithPrefix(words, prefix) {
+  return words
+    .filter((w) => w.startsWith(prefix))
+    .sort((a, b) => a.localeCompare(b));
+}`,
+    difficulty: 'EASY',
+    testCases: [
+      { id: 'tc-ps-1', description: 'Prefix matching multiple words', input: [['apple', 'app', 'application', 'banana', 'apricot'], 'app'], expectedOutput: ['app', 'apple', 'application'] },
+      { id: 'tc-ps-2', description: 'Technical prefix matching', input: [['database', 'data', 'datum', 'disk'], 'dat'], expectedOutput: ['data', 'database', 'datum'] },
+      { id: 'tc-ps-3', description: 'Prefix with no matches returns empty array', input: [['cloud', 'server', 'network'], 'xyz'], expectedOutput: [] },
     ],
   },
 ];
