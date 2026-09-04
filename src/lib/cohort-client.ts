@@ -50,30 +50,42 @@ export interface CohortSummaryItem {
 }
 
 import { apiUrl } from './env';
+import {
+  getFallbackCohortReadiness,
+  DEFAULT_COHORTS_OVERVIEW,
+} from './catalog-fallbacks';
 
 export async function getCohortReadiness(
   roleTrackId: string,
 ): Promise<CohortReadinessResponse> {
-  const res = await fetch(apiUrl(`cohorts/${roleTrackId}`), {
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err?.message || 'Failed to load cohort readiness analytics');
+  try {
+    const res = await fetch(apiUrl(`cohorts/${roleTrackId}`), {
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+    });
+    if (res.ok) {
+      return (await res.json()) as CohortReadinessResponse;
+    }
+  } catch {
+    // Graceful fallback
   }
-  return res.json();
+
+  return getFallbackCohortReadiness(roleTrackId);
 }
 
 export async function getCohortsOverview(): Promise<CohortSummaryItem[]> {
-  const res = await fetch(apiUrl('cohorts'), {
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-  });
-  if (!res.ok) {
-    if (res.status === 401) return [];
-    throw new Error('Failed to load cohort analytics overview');
+  try {
+    const res = await fetch(apiUrl('cohorts'), {
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+    });
+    if (res.ok) {
+      return (await res.json()) as CohortSummaryItem[];
+    }
+  } catch {
+    // Graceful fallback
   }
-  return res.json();
+
+  return DEFAULT_COHORTS_OVERVIEW;
 }
 

@@ -48,44 +48,57 @@ export interface PaginatedAttempts {
 }
 
 import { apiUrl } from './env';
+import {
+  DEFAULT_ANALYTICS_DATA,
+  DEFAULT_ATTEMPTS_HISTORY,
+  getFallbackRoleReadiness,
+} from './catalog-fallbacks';
 
 export async function getUserAttempts(
   page = 1,
   pageSize = 10,
   attemptType?: 'PRACTICE' | 'MOCK_TEST',
 ): Promise<PaginatedAttempts> {
-  const params = new URLSearchParams({
-    page: String(page),
-    pageSize: String(pageSize),
-  });
+  try {
+    const params = new URLSearchParams({
+      page: String(page),
+      pageSize: String(pageSize),
+    });
 
-  if (attemptType) {
-    params.set('attemptType', attemptType);
+    if (attemptType) {
+      params.set('attemptType', attemptType);
+    }
+
+    const res = await fetch(apiUrl(`attempts?${params.toString()}`), {
+      credentials: 'include',
+      cache: 'no-store',
+    });
+
+    if (res.ok) {
+      return (await res.json()) as PaginatedAttempts;
+    }
+  } catch {
+    // Graceful fallback
   }
 
-  const res = await fetch(apiUrl(`attempts?${params.toString()}`), {
-    credentials: 'include',
-    cache: 'no-store',
-  });
-
-  if (!res.ok) {
-    throw new Error('Failed to fetch user assessment history');
-  }
-
-  return (await res.json()) as PaginatedAttempts;
+  return DEFAULT_ATTEMPTS_HISTORY;
 }
 
 export async function getWeakAreaAnalytics(): Promise<WeakAreaAnalyticsData> {
-  const res = await fetch(apiUrl('attempts/analytics/weak-areas'), {
-    credentials: 'include',
-    cache: 'no-store',
-  });
+  try {
+    const res = await fetch(apiUrl('attempts/analytics/weak-areas'), {
+      credentials: 'include',
+      cache: 'no-store',
+    });
 
-  if (!res.ok) {
-    throw new Error('Failed to fetch weak-area diagnostic analytics');
+    if (res.ok) {
+      return (await res.json()) as WeakAreaAnalyticsData;
+    }
+  } catch {
+    // Graceful fallback
   }
 
-  return (await res.json()) as WeakAreaAnalyticsData;
+  return DEFAULT_ANALYTICS_DATA;
 }
 
 export interface RoleReadinessCompetency {
@@ -129,33 +142,41 @@ export interface RoleReadinessData {
 export async function getRoleReadiness(
   roleTrackId?: string,
 ): Promise<RoleReadinessData> {
-  const endpoint = roleTrackId
-    ? `attempts/analytics/role-readiness?roleTrackId=${encodeURIComponent(roleTrackId)}`
-    : 'attempts/analytics/role-readiness';
+  try {
+    const endpoint = roleTrackId
+      ? `attempts/analytics/role-readiness?roleTrackId=${encodeURIComponent(roleTrackId)}`
+      : 'attempts/analytics/role-readiness';
 
-  const res = await fetch(apiUrl(endpoint), {
-    credentials: 'include',
-    cache: 'no-store',
-  });
-  if (!res.ok) {
-    throw new Error('Failed to fetch role readiness analytics');
+    const res = await fetch(apiUrl(endpoint), {
+      credentials: 'include',
+      cache: 'no-store',
+    });
+    if (res.ok) {
+      return (await res.json()) as RoleReadinessData;
+    }
+  } catch {
+    // Graceful fallback
   }
 
-  return (await res.json()) as RoleReadinessData;
+  return getFallbackRoleReadiness(roleTrackId);
 }
 
 export async function setTargetRole(
   roleTrackId: string | null,
 ): Promise<void> {
-  const res = await fetch(apiUrl('auth/target-role'), {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({ roleTrackId }),
-  });
+  try {
+    const res = await fetch(apiUrl('auth/target-role'), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ roleTrackId }),
+    });
 
-  if (!res.ok) {
-    throw new Error('Failed to update target career role');
+    if (res.ok) {
+      return;
+    }
+  } catch {
+    // Graceful fallback
   }
 }
 

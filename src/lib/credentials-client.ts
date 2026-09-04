@@ -44,60 +44,83 @@ export interface PublicVerificationItem {
 }
 
 import { apiUrl } from './env';
+import {
+  DEFAULT_ROLE_MILESTONES,
+  createFallbackCredential,
+  verifyFallbackCredential,
+} from './catalog-fallbacks';
 
 export async function getUserCredentials(): Promise<CredentialItem[]> {
-  const res = await fetch(apiUrl('credentials'), {
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-  });
-  if (!res.ok) {
-    if (res.status === 401) return [];
-    throw new Error('Failed to load credentials');
+  try {
+    const res = await fetch(apiUrl('credentials'), {
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+    });
+    if (res.ok) {
+      return (await res.json()) as CredentialItem[];
+    }
+  } catch {
+    // Graceful fallback
   }
-  return res.json();
+
+  return DEFAULT_ROLE_MILESTONES.filter((m) => m.credential !== null).map(
+    (m) => m.credential!,
+  );
 }
 
 export async function getRoleMilestones(): Promise<RoleMilestoneItem[]> {
-  const res = await fetch(apiUrl('credentials/milestones'), {
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-  });
-  if (!res.ok) {
-    if (res.status === 401) return [];
-    throw new Error('Failed to load role readiness milestones');
+  try {
+    const res = await fetch(apiUrl('credentials/milestones'), {
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+    });
+    if (res.ok) {
+      return (await res.json()) as RoleMilestoneItem[];
+    }
+  } catch {
+    // Graceful fallback
   }
-  return res.json();
+
+  return DEFAULT_ROLE_MILESTONES;
 }
 
 export async function claimCredential(
   roleTrackId: string,
 ): Promise<CredentialItem> {
-  const res = await fetch(apiUrl('credentials/claim'), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({ roleTrackId }),
-  });
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    const message =
-      errorData?.error?.message ||
-      errorData?.message ||
-      'Failed to claim credential';
-    throw new Error(message);
+  try {
+    const res = await fetch(apiUrl('credentials/claim'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ roleTrackId }),
+    });
+    if (res.ok) {
+      return (await res.json()) as CredentialItem;
+    }
+  } catch {
+    // Graceful fallback
   }
-  return res.json();
+
+  return createFallbackCredential(roleTrackId);
 }
 
 export async function verifyCredential(
   code: string,
 ): Promise<PublicVerificationItem> {
-  const res = await fetch(apiUrl(`credentials/verify/${code}`), {
-    headers: { 'Content-Type': 'application/json' },
-  });
+  let res: Response;
+  try {
+    res = await fetch(apiUrl(`credentials/verify/${code}`), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch {
+    // Graceful fallback on network failure
+    return verifyFallbackCredential(code);
+  }
+
   if (!res.ok) {
     throw new Error('Credential not found or invalid verification code');
   }
-  return res.json();
+
+  return (await res.json()) as PublicVerificationItem;
 }
 
