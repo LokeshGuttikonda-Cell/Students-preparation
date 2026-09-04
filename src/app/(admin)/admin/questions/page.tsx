@@ -29,6 +29,8 @@ export default function AdminQuestionsPage() {
   const [topicFilter, setTopicFilter] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
 
+  const [searchQuery, setSearchQuery] = useState<string>('');
+
   const loadData = React.useCallback(async () => {
     setIsLoading(true);
     try {
@@ -53,6 +55,15 @@ export default function AdminQuestionsPage() {
     loadData();
   }, [loadData]);
 
+  const filteredQuestions = questions.filter((q) => {
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.toLowerCase();
+    const bodyMatch = q.body.toLowerCase().includes(query);
+    const authorMatch = q.author?.name?.toLowerCase().includes(query) || false;
+    const topicMatch = q.topic?.name?.toLowerCase().includes(query) || false;
+    return bodyMatch || authorMatch || topicMatch;
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -71,6 +82,17 @@ export default function AdminQuestionsPage() {
 
       {/* Filter Toolbar */}
       <div className="flex flex-wrap items-center gap-3 bg-surface p-4 border border-border rounded-lg">
+        <div className="flex-1 min-w-[200px] max-w-sm">
+          <input
+            type="text"
+            placeholder="Search questions by text, author, or topic..."
+            value={searchQuery}
+            aria-label="Search questions"
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full px-3 py-2 text-sm bg-surface border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent placeholder:text-text-muted"
+          />
+        </div>
+
         <div className="w-48">
           <Select
             value={statusFilter}
@@ -100,13 +122,18 @@ export default function AdminQuestionsPage() {
           </Select>
         </div>
 
-        {(statusFilter || topicFilter) && (
+        <div className="text-xs text-text-muted font-medium ml-auto">
+          Showing {filteredQuestions.length} of {questions.length} questions
+        </div>
+
+        {(statusFilter || topicFilter || searchQuery) && (
           <Button
             variant="ghost"
             size="sm"
             onClick={() => {
               setStatusFilter('');
               setTopicFilter('');
+              setSearchQuery('');
             }}
           >
             Clear Filters
@@ -134,14 +161,14 @@ export default function AdminQuestionsPage() {
                     Loading question bank...
                   </TableCell>
                 </TableRow>
-              ) : questions.length === 0 ? (
+              ) : filteredQuestions.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-8 text-text-muted">
                     No questions found matching criteria.
                   </TableCell>
                 </TableRow>
               ) : (
-                questions.map((q) => (
+                filteredQuestions.map((q) => (
                   <TableRow key={q.id}>
                     <TableCell className="max-w-md">
                       <p className="font-medium text-text line-clamp-2">{q.body}</p>

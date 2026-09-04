@@ -3,9 +3,11 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import type { Route } from 'next';
 import { getRole, RoleTrackDetail } from '../../../../lib/roles-client';
 import { RoleCompetencyList } from '../../../../components/roles/RoleCompetencyList';
 import { RoleInterviewTrapsSection } from '../../../../components/roles/RoleInterviewTrapsSection';
+import { getArticlesForRole, type CurriculumArticle } from '../../../../lib/curriculum-client';
 import { Card, CardContent } from '../../../../components/ui/Card';
 import { Button } from '../../../../components/ui/Button';
 
@@ -14,6 +16,7 @@ export default function RoleDetailPage() {
   const slug = params?.slug;
 
   const [role, setRole] = useState<RoleTrackDetail | null>(null);
+  const [roleArticles, setRoleArticles] = useState<CurriculumArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,8 +26,12 @@ export default function RoleDetailPage() {
       try {
         setLoading(true);
         setError(null);
-        const data = await getRole(slug);
+        const [data, articles] = await Promise.all([
+          getRole(slug),
+          getArticlesForRole(slug),
+        ]);
         setRole(data);
+        setRoleArticles(articles);
       } catch (err) {
         setError(
           err instanceof Error
@@ -141,7 +148,75 @@ export default function RoleDetailPage() {
         {/* Section 2: Recruiter Traps & Anti-Patterns */}
         <RoleInterviewTrapsSection roleSlug={role.slug} />
 
-        {/* Section 3: Role Benchmark Mock Tests */}
+        {/* Section 3: Live Socratic AI Technical Interview */}
+        <Card className="bg-primary-900 text-white p-6 sm:p-8 border-0 shadow-md">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="space-y-2 max-w-xl">
+              <span className="text-xs font-bold uppercase tracking-wider text-accent-300">
+                🎙️ Live Socratic Evaluation
+              </span>
+              <h2 className="text-xl sm:text-2xl font-bold text-white">
+                AI Technical Scenario Interview
+              </h2>
+              <p className="text-sm text-primary-100 leading-relaxed">
+                Simulate a real technical screening interview for the {role.name} role.
+                Answer scenario questions with live speech recognition, counter-probes, and automated rubric scoring.
+              </p>
+            </div>
+            <Link href="/interviews" className="shrink-0">
+              <Button variant="primary" className="bg-white text-primary-900 hover:bg-neutral-100 font-bold border-0 min-h-[44px]">
+                Launch Interview Room &rarr;
+              </Button>
+            </Link>
+          </div>
+        </Card>
+
+        {/* Section 4: Curated Knowledge Hub Guides */}
+        {roleArticles.length > 0 && (
+          <section aria-labelledby="articles-heading" className="space-y-4">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <div>
+                <h2 id="articles-heading" className="text-xl font-bold text-primary-900">
+                  Curated Technical Documentation
+                </h2>
+                <p className="text-xs text-text-muted mt-1">
+                  In-depth architectural articles, invariants, and implementation patterns mapped to this role.
+                </p>
+              </div>
+              <Link href="/curriculum" className="text-xs font-semibold text-primary-700 hover:underline">
+                View All Knowledge Hub &rarr;
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {roleArticles.map((art) => (
+                <Card key={art.id} className="p-5 hover:border-primary-600/50 hover:shadow-xs transition-all flex flex-col justify-between">
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-medium text-text-muted">{art.domainName}</span>
+                      <span className="text-[11px] font-semibold text-primary-700 bg-primary-50 px-2 py-0.5 rounded">
+                        {art.level} · {art.readTimeMinutes} min
+                      </span>
+                    </div>
+                    <h3 className="text-base font-bold text-text hover:text-primary-800 transition-colors">
+                      {art.title}
+                    </h3>
+                    <p className="text-xs text-text-muted line-clamp-2 leading-relaxed">
+                      {art.summary}
+                    </p>
+                  </div>
+                  <div className="pt-4">
+                    <Link href={`/curriculum/${art.slug}` as Route} className="text-xs font-semibold text-primary-700 hover:underline inline-flex items-center gap-1">
+                      Read Technical Guide &rarr;
+                    </Link>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Section 5: Role Benchmark Mock Tests */}
         <section aria-labelledby="mock-tests-heading" className="space-y-4">
           <div className="flex items-center justify-between border-b border-border pb-3">
             <div>
@@ -213,7 +288,30 @@ export default function RoleDetailPage() {
             </div>
           )}
         </section>
+
+        {/* Section 6: Applied Code & SQL Sandbox Banner */}
+        <Card className="p-6 border border-border bg-surface shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <span className="text-xs font-bold text-primary-700 uppercase tracking-wider">
+                ⚡ Applied Engineering
+              </span>
+              <h3 className="text-lg font-bold text-primary-900">
+                Interactive Code & SQL Sandbox
+              </h3>
+              <p className="text-xs text-text-muted max-w-xl">
+                Practice algorithm implementations and multi-tenant SQL queries directly in a secure, zero-setup browser sandbox.
+              </p>
+            </div>
+            <Link href="/sandbox" className="shrink-0">
+              <Button variant="secondary" size="sm">
+                Open Sandbox &rarr;
+              </Button>
+            </Link>
+          </div>
+        </Card>
       </div>
     </div>
   );
 }
+

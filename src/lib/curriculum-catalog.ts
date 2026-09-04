@@ -754,4 +754,415 @@ When moving in the same direction, their relative speed is the ABSOLUTE DIFFEREN
     ],
     relatedRoleSlugs: ['data-analyst', 'python-developer'],
   },
+  // 13. DATA ENGINEERING: Apache Kafka Internals & Stream Processing
+  {
+    id: 'art-de-kafka',
+    slug: 'apache-kafka-internals-and-stream-processing',
+    domainSlug: 'data-engineering-pipelines',
+    domainName: 'Data Engineering & Streaming Pipelines',
+    title: 'Distributed Log Storage Internals: Kafka Partitions, Rebalance & Exactly-Once Semantics',
+    level: 'ADVANCED',
+    readTimeMinutes: 18,
+    summary: 'Master distributed append-only commit logs, In-Sync Replicas (ISR), consumer group rebalance protocols, and Exactly-Once Semantics (EOS) with transactional producers.',
+    prerequisites: ['Operating System Page Cache & Disk I/O', 'Network Socket Communication'],
+    keyConcepts: ['Append-Only Commit Log', 'Zero-Copy (sendfile)', 'In-Sync Replicas (ISR)', 'Consumer Group Protocol', 'Exactly-Once Semantics (EOS)'],
+    overview: 'Unlike traditional message brokers that rely on random-access disk indexing or in-memory queues with transient destructive dequeues, modern distributed stream platforms model data streams as immutable, distributed, append-only partitioned commit logs. By leveraging sequential disk I/O, OS page caching, and the Linux sendfile() zero-copy syscall, brokers achieve multi-gigabyte throughput with microsecond latency.',
+    theorySections: [
+      {
+        heading: '1. Log Segment Storage & Zero-Copy Efficiency',
+        content: `Each topic partition is represented on the filesystem as a sequence of segment files (.log) with corresponding sparse index (.index) and time index (.timeindex) files.
+Sequential disk writes bypass random head seeks on HDDs and avoid write amplification on SSDs. Furthermore, when serving consumers, brokers read from the Linux page cache and invoke the sendfile() system call:
+  Kernel Space: Disk -> OS Page Cache -> Socket Buffer -> NIC
+This eliminates intermediate user-space buffer copies and context switches, allowing network transfer at line rate.`,
+        codeSnippet: {
+          language: 'typescript',
+          code: `// Conceptual model of an append-only commit log partition
+interface LogEntry {
+  offset: number;
+  timestamp: number;
+  key: string;
+  value: Uint8Array;
+}
+
+class PartitionCommitLog {
+  private entries: LogEntry[] = [];
+  private nextOffset: number = 0;
+
+  public append(key: string, value: Uint8Array): number {
+    const assignedOffset = this.nextOffset++;
+    this.entries.push({
+      offset: assignedOffset,
+      timestamp: Date.now(),
+      key,
+      value,
+    });
+    return assignedOffset;
+  }
+
+  public readFrom(offset: number, maxCount: number): LogEntry[] {
+    return this.entries.filter(e => e.offset >= offset).slice(0, maxCount);
+  }
+}`,
+          explanation: 'Demonstrates append-only offset assignment where entries are immutable once written and indexed sequentially.',
+        },
+      },
+      {
+        heading: '2. High-Watermark (HW) & In-Sync Replicas (ISR)',
+        content: `Data durability is governed by replication factor R and the ISR set. The partition leader accepts writes and replicates them to follower brokers.
+- Log End Offset (LEO): The offset of the next record to be written in a broker's local replica.
+- High-Watermark (HW): The highest offset replicated across ALL in-sync replicas in the ISR.
+Consumers are only permitted to read records up to the High-Watermark, preventing uncommitted data from being exposed if the leader fails before replication finishes.`,
+      },
+      {
+        heading: '3. Consumer Group Coordination & Rebalance Protocols',
+        content: `Consumers form consumer groups to scale consumption across partitions. When a consumer joins, leaves, or fails a heartbeat check:
+1. The Group Coordinator triggers a Rebalance.
+2. Under Eager Rebalance, all consumers stop processing and revoke assignments (Stop-the-World).
+3. Under Cooperative Sticky Rebalance, consumers continue processing unaffected partitions while only reassigned partitions are migrated, drastically slashing rebalance latency.`,
+      },
+    ],
+    trapsAndAntiPatterns: [
+      {
+        trap: 'Confusing auto.offset.reset = earliest with reprocessing all historical data on restart',
+        misconception: 'Developers assume setting auto.offset.reset=earliest will cause a restarting consumer to re-read all messages from offset 0.',
+        correction: 'auto.offset.reset only applies when NO committed offset exists for that consumer group. If a committed offset is stored in __consumer_offsets, the consumer resumes from the committed offset regardless of this setting.',
+      },
+      {
+        trap: 'Assuming acks=all guarantees zero data loss with min.insync.replicas=1',
+        misconception: 'If producer sets acks=all, messages are safe from broker failure even if other replicas are offline.',
+        correction: 'If min.insync.replicas is 1, acks=all considers the write successful as soon as only the leader acknowledges it. If the leader crashes before other brokers recover, the message is permanently lost.',
+      },
+    ],
+    practiceMcqs: [
+      {
+        id: 'q-de-kafka-1',
+        question: 'Under a Kafka topic with replication-factor=3 and min.insync.replicas=2, what happens if 2 follower replicas crash and a producer attempts to write with acks=all?',
+        options: [
+          'The write succeeds because the leader is still online and accepts messages.',
+          'The write fails with NotEnoughReplicasException because fewer than 2 replicas are in the ISR.',
+          'The leader automatically buffers messages in RAM until followers recover.',
+          'The cluster shuts down to prevent data corruption.',
+        ],
+        correctIndex: 1,
+        explanation: 'When min.insync.replicas=2 and 2 out of 3 brokers are offline, the ISR contains only 1 replica (the leader). A write with acks=all requires at least 2 in-sync replicas, so the broker rejects the produce request with NotEnoughReplicasException.',
+      },
+      {
+        id: 'q-de-kafka-2',
+        question: 'How does Kafka achieve high consumer read throughput using the Linux kernel?',
+        options: [
+          'By compressing messages in CPU L1 cache before sending to clients',
+          'By using sendfile() system call to transfer page cache buffers directly to the network socket without user-space copying',
+          'By spinning up a separate worker thread for each client read socket',
+          'By writing all messages into an in-memory Redis cluster',
+        ],
+        correctIndex: 1,
+        explanation: 'Kafka relies on the zero-copy sendfile() system call. Data is transferred directly from the OS page cache to the network socket buffer inside kernel space, avoiding context switches and user-space memory copies.',
+      },
+    ],
+    relatedRoleSlugs: ['data-engineer', 'backend-systems-engineer'],
+  },
+
+  // 14. QA AUTOMATION: Test Pyramid & Playwright Architecture
+  {
+    id: 'art-qa-playwright',
+    slug: 'test-automation-pyramid-and-playwright-architecture',
+    domainSlug: 'qa-test-automation-engineering',
+    domainName: 'QA Automation & Software Test Engineering',
+    title: 'The Test Automation Pyramid & Modern CDP Browser Orchestration',
+    level: 'INTERMEDIATE',
+    readTimeMinutes: 15,
+    summary: 'Explore the mathematical distribution of the Test Automation Pyramid, Chrome DevTools Protocol (CDP) WebSocket orchestration, and auto-waiting resilience against UI test flakiness.',
+    prerequisites: ['JavaScript/TypeScript Async/Await', 'Document Object Model (DOM) Event Propagation'],
+    keyConcepts: ['Test Pyramid Economics', 'CDP vs WebDriver Architecture', 'Auto-Waiting Locators', 'Hermetic Test Isolation', 'Network Route Mocking'],
+    overview: 'Automated testing suites fail in production when organizations invert the Test Pyramid into an "Ice Cream Cone" or "Cupcake Anti-Pattern", relying predominantly on brittle, slow, end-to-end browser tests. By establishing a 70% Unit, 20% Integration, and 10% E2E distribution, and leveraging bi-directional browser WebSocket protocols, engineering teams achieve high defect escape prevention with near-zero flakiness.',
+    theorySections: [
+      {
+        heading: '1. Test Pyramid Economics & Defect Escape Cost',
+        content: `The cost of defect remediation increases by an order of magnitude across each development stage:
+- Unit Test: Sub-millisecond execution, runs on git commit hooks, pinpoint line-level fault localization.
+- Integration Test: Evaluates component boundaries, database queries, and service contracts in 10-100ms.
+- End-to-End (E2E) Test: Drives complete browser runtimes with network rendering, taking 1-10s per test case.
+Maintaining a 70/20/10 pyramid ensures total build pipeline runtime remains under 10 minutes while preserving complete regression coverage.`,
+      },
+      {
+        heading: '2. Chrome DevTools Protocol (CDP) vs Legacy WebDriver',
+        content: `Legacy testing tools used JSON Wire Protocol over HTTP, requiring a round-trip HTTP POST for every individual DOM query or click action. This created race conditions against dynamic JavaScript client hydration.
+Modern browser automation engines communicate directly over persistent WebSockets using Chrome DevTools Protocol (CDP). This grants:
+- Native event loop interception
+- Real-time DOM mutation observers
+- Bi-directional network request interception and mocking
+- Automatic awaiting of actionable states (visible, stable, enabled, clickable) before executing actions.`,
+        codeSnippet: {
+          language: 'typescript',
+          code: `import { test, expect } from '@playwright/test';
+
+test('hermetic checkout flow with intercepted payment gateway', async ({ page }) => {
+  // Mock external payment gateway network call
+  await page.route('**/api/v1/payments/process', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ transactionId: 'tx-test-999', status: 'SUCCESS' }),
+    });
+  });
+
+  await page.goto('/checkout');
+  // Auto-waits for visibility and interactability without arbitrary sleep()
+  await page.getByRole('button', { name: 'Complete Order' }).click();
+
+  await expect(page.getByText('Payment Confirmed')).toBeVisible();
+});`,
+          explanation: 'Demonstrates resilient locator actionability and hermetic network mocking to avoid external third-party flakiness.',
+        },
+      },
+      ],
+    trapsAndAntiPatterns: [
+      {
+        trap: 'Inserting arbitrary setTimeout or sleep delays to resolve flakiness',
+        misconception: 'Adding sleep(3000) allows the UI animation or network request to finish reliably.',
+        correction: 'Arbitrary timeouts accumulate to hours of CI runtime and still fail when CI runner CPU throttles under load. Use auto-waiting assertions or explicit event-driven waits (e.g. waitForResponse, waitForSelector).',
+      },
+      {
+        trap: 'Testing third-party external services in automated CI regression runs',
+        misconception: 'A real E2E test must hit live payment providers or SMS gateways.',
+        correction: 'External services introduce rate limits, downtime, and nondeterminism. Mock third-party external endpoints at the network boundary during automated CI suites.',
+      },
+    ],
+    practiceMcqs: [
+      {
+        id: 'q-qa-arch-1',
+        question: 'Why does the Chrome DevTools Protocol (CDP) WebSocket architecture provide significantly faster and more stable tests than legacy HTTP WebDriver?',
+        options: [
+          'It compiles the test scripts directly into x86 machine instructions inside the browser.',
+          'It uses a persistent bi-directional WebSocket connection that observes DOM mutation events and network lifecycles directly within the browser engine.',
+          'It disables JavaScript execution inside the browser to accelerate rendering.',
+          'It stores all test assertions in local browser storage.',
+        ],
+        correctIndex: 1,
+        explanation: 'CDP communicates over a single persistent WebSocket, enabling direct bi-directional event subscription, DOM mutation observation, and actionability checks without HTTP request polling overhead.',
+      },
+    ],
+    relatedRoleSlugs: ['qa-automation-engineer', 'fullstack-javascript-developer'],
+  },
+
+  // 15. LOGICAL REASONING: Deductive Logic & Syllogisms
+  {
+    id: 'art-logic-syllogisms',
+    slug: 'categorical-syllogisms-and-deductive-logic',
+    domainSlug: 'logical-reasoning-deduction',
+    domainName: 'Logical Reasoning & Analytical Deduction',
+    title: 'Formal Deductive Logic: Categorical Syllogisms & Venn Diagram Proofs',
+    level: 'BEGINNER',
+    readTimeMinutes: 12,
+    summary: 'Deconstruct formal deductive syllogisms, term distribution rules, mood and figure classifications, and Venn diagrammatic proofs for campus technical assessments.',
+    prerequisites: ['Basic Set Theory (Union, Intersection, Subset)'],
+    keyConcepts: ['Categorical Propositions (A, E, I, O)', 'Term Distribution', 'Middle Term Fallacy', 'Venn Diagram Modeling'],
+    overview: 'Deductive reasoning evaluates the validity of arguments where the truth of the premises strictly guarantees the truth of the conclusion. In technical screening exams, syllogism questions test candidates ability to evaluate formal logical structure independent of real-world empirical beliefs.',
+    theorySections: [
+      {
+        heading: '1. The Four Categorical Proposition Types',
+        content: `Every standard syllogism statement belongs to one of four classical forms:
+- Type A (Universal Affirmative): "All S are P" (Subject distributed, Predicate undistributed)
+- Type E (Universal Negative): "No S are P" (Both Subject and Predicate distributed)
+- Type I (Particular Affirmative): "Some S are P" (Neither Subject nor Predicate distributed)
+- Type O (Particular Negative): "Some S are not P" (Subject undistributed, Predicate distributed)
+
+A term is "distributed" if the proposition makes a claim about EVERY member of the class designated by the term.`,
+      },
+      {
+        heading: '2. The Invariant Rules of Valid Syllogisms',
+        content: `To determine validity without drawing diagrams:
+1. Middle Term Distribution: The middle term (the term appearing in both premises but not the conclusion) MUST be distributed in at least one premise.
+2. End Term Distribution: Any term distributed in the conclusion MUST be distributed in its premise.
+3. Negative Premise Rules:
+   - If one premise is negative, the conclusion MUST be negative.
+   - Two negative premises yield NO valid conclusion.
+4. Particular Premise Rules:
+   - If one premise is particular, the conclusion MUST be particular.
+   - Two particular premises yield NO valid conclusion.`,
+      },
+    ],
+    trapsAndAntiPatterns: [
+      {
+        trap: 'Confusing empirical real-world plausibility with logical validity',
+        misconception: 'If the statement says "All cats are airplanes", candidates reject it because cats cannot fly in reality.',
+        correction: 'Logical deduction is concerned solely with validity (the structural consequence of the premises), NOT truth of the premises in the physical universe.',
+      },
+      {
+        trap: 'Treating "Some S are P" as implying "Some S are NOT P"',
+        misconception: 'In everyday language, saying "Some apples are red" implies some are green.',
+        correction: 'In formal logic, "Some" means "At least one". "Some S are P" is fully consistent with the possibility that ALL S are P.',
+      },
+    ],
+    practiceMcqs: [
+      {
+        id: 'q-logic-syl-1',
+        question: 'Premises: (1) All software engineers are problem solvers. (2) Some problem solvers are musicians. Which conclusion logically follows?',
+        options: [
+          'All software engineers are musicians.',
+          'Some software engineers are musicians.',
+          'No software engineers are musicians.',
+          'None of the above conclusions strictly follows.',
+        ],
+        correctIndex: 3,
+        explanation: 'The middle term is "problem solvers". In premise 1, it is the predicate of a Type A statement (undistributed). In premise 2, it is the subject of a Type I statement (undistributed). Because the middle term is not distributed in either premise, the Fallacy of the Undistributed Middle is committed. No definitive conclusion follows.',
+      },
+    ],
+    relatedRoleSlugs: ['python-developer', 'data-analyst'],
+  },
+
+  // 16. SYSTEM DESIGN: Distributed Consensus Raft & Paxos
+  {
+    id: 'art-sys-consensus',
+    slug: 'distributed-consensus-raft-and-paxos',
+    domainSlug: 'system-design-architecture',
+    domainName: 'System Design & Software Architecture',
+    title: 'Distributed Consensus: Raft Protocol State Machines & Majority Quorums',
+    level: 'ADVANCED',
+    readTimeMinutes: 20,
+    summary: 'Deconstruct how distributed systems achieve fault-tolerant state machine replication through Raft leader election, randomized election timers, log matching invariants, and majority quorum proofs.',
+    prerequisites: ['CAP Theorem and Network Partitions', 'State Machine Replication Concepts'],
+    keyConcepts: ['State Machine Replication (SMR)', 'Majority Quorum (N/2 + 1)', 'Randomized Heartbeat Timers', 'Raft Log Matching Property', 'Joint Consensus Reconfiguration'],
+    overview: 'In an asynchronous network where servers can crash, reboot, or experience network partitions, achieving distributed consensus is the cornerstone of high-availability coordination engines (such as etcd, ZooKeeper, and Spanner). Raft decomposes consensus into three independent subproblems: Leader Election, Log Replication, and Safety Invariants.',
+    theorySections: [
+      {
+        heading: '1. Majority Quorum Mathematics',
+        content: `In a cluster of N nodes, any consensus operation requires agreement from a majority quorum Q:
+  Q = floor(N / 2) + 1
+Key mathematical property: Any two majority quorums Q1 and Q2 MUST overlap by at least one node:
+  |Q1 intersect Q2| >= 1
+Because any elected leader must obtain votes from a majority quorum, and any committed log entry must be written to a majority quorum, every candidate for leadership is guaranteed to intersect with at least one node containing the latest committed log entry.`,
+      },
+      {
+        heading: '2. Raft Leader Election & Split Votes',
+        content: `Raft nodes exist in one of three states: Follower, Candidate, or Leader.
+- When a Follower does not receive a heartbeat within its randomized election timer (e.g. 150ms - 300ms), it transitions to Candidate, increments its current term, votes for itself, and sends RequestVote RPCs.
+- Randomizing the timeout prevents split votes where multiple nodes become candidates simultaneously and divide votes equally.`,
+        codeSnippet: {
+          language: 'typescript',
+          code: `enum RaftState { FOLLOWER, CANDIDATE, LEADER }
+
+interface RaftNode {
+  id: string;
+  currentTerm: number;
+  votedFor: string | null;
+  state: RaftState;
+  log: Array<{ term: number; command: string }>;
+}
+
+function handleRequestVote(
+  node: RaftNode,
+  candidateTerm: number,
+  candidateId: string,
+  lastLogIndex: number,
+  lastLogTerm: number
+): { voteGranted: boolean; term: number } {
+  // Reject if candidate term is older than our term
+  if (candidateTerm < node.currentTerm) {
+    return { voteGranted: false, term: node.currentTerm };
+  }
+
+  // Adopt newer term and revert to follower
+  if (candidateTerm > node.currentTerm) {
+    node.currentTerm = candidateTerm;
+    node.state = RaftState.FOLLOWER;
+    node.votedFor = null;
+  }
+
+  // Check election safety: voter only votes if candidate log is at least as up-to-date
+  const ourLastLogTerm = node.log.length > 0 ? node.log[node.log.length - 1].term : 0;
+  const ourLastLogIndex = node.log.length - 1;
+  const isLogUpToDate =
+    lastLogTerm > ourLastLogTerm ||
+    (lastLogTerm === ourLastLogTerm && lastLogIndex >= ourLastLogIndex);
+
+  const canVote = (node.votedFor === null || node.votedFor === candidateId) && isLogUpToDate;
+
+  if (canVote) {
+    node.votedFor = candidateId;
+    return { voteGranted: true, term: node.currentTerm };
+  }
+
+  return { voteGranted: false, term: node.currentTerm };
+}`,
+          explanation: 'Implements Raft election safety invariant: a node will only cast its vote for a candidate whose log is at least as complete as its own.',
+        },
+      },
+    ],
+    trapsAndAntiPatterns: [
+      {
+        trap: 'Assuming a 5-node cluster provides higher write availability than a 3-node cluster',
+        misconception: 'More nodes in a consensus cluster means the cluster is more resilient and handles higher throughput.',
+        correction: 'A 3-node cluster tolerates 1 failure ((3/2) - 1). A 5-node cluster tolerates 2 failures ((5/2) - 1). However, consensus write latency INCREASES with cluster size because the leader must collect acknowledgments from more nodes (3 instead of 2). Clusters are kept small (3, 5, or 7 nodes) for coordination.',
+      },
+    ],
+    practiceMcqs: [
+      {
+        id: 'q-sys-raft-1',
+        question: 'In a 5-node Raft consensus cluster, what is the maximum number of simultaneous node failures the cluster can survive while continuing to accept state mutations?',
+        options: ['1 node', '2 nodes', '3 nodes', '4 nodes'],
+        correctIndex: 1,
+        explanation: 'A cluster of N nodes requires a majority quorum of floor(N/2) + 1. For N=5, quorum = 3. Therefore, the cluster can tolerate at most 5 - 3 = 2 failed nodes. If 3 nodes fail, only 2 remain, which cannot form a majority of 5.',
+      },
+    ],
+    relatedRoleSlugs: ['backend-systems-engineer', 'devops-engineer'],
+  },
+
+  // 17. DATABASE INTERNALS: ACID, MVCC & Isolation Anomalies
+  {
+    id: 'art-db-mvcc',
+    slug: 'acid-transactions-mvcc-and-isolation-anomalies',
+    domainSlug: 'database-storage-engines',
+    domainName: 'Database Management Systems & Storage',
+    title: 'ACID Internals: MVCC Read Views, WAL ARIES & Concurrency Anomalies',
+    level: 'ADVANCED',
+    readTimeMinutes: 19,
+    summary: 'Explore Multi-Version Concurrency Control (MVCC) row versioning, Write-Ahead Logging (WAL) durability, and isolation anomalies from Dirty Reads to Write Skew.',
+    prerequisites: ['Relational Database Basics', 'Basic B-Tree Index Concepts'],
+    keyConcepts: ['Write-Ahead Logging (WAL)', 'MVCC Visibility Rules', 'Non-Repeatable Read vs Phantom Read', 'Write Skew Phenomenon', 'Snapshot Isolation vs Serializable'],
+    overview: 'Early relational databases enforced transaction isolation using pessimistic Two-Phase Locking (2PL), where shared read locks blocked exclusive write locks, destroying read throughput in concurrent workloads. Modern relational storage engines employ Multi-Version Concurrency Control (MVCC): readers never block writers, and writers never block readers.',
+    theorySections: [
+      {
+        heading: '1. Multi-Version Tuple Representation',
+        content: `Under MVCC, updating a row does not overwrite its disk block in place. Instead, the storage engine appends a new version of the tuple into the page or rollback undo log:
+Every tuple contains metadata headers:
+- xmin: The transaction ID that inserted this version.
+- xmax: The transaction ID that deleted or superseded this version (0 if currently live).
+A transaction with Read View [ActiveTxList] evaluates visibility by checking if a row version was committed prior to the start of the snapshot and not deleted by an already-committed transaction.`,
+      },
+      {
+        heading: '2. Concurrency Anomalies & ANSI Isolation Levels',
+        content: `Standard SQL defines four isolation levels based on prohibited phenomena:
+1. Read Uncommitted: Permits Dirty Reads (reading uncommitted mutations from another transaction).
+2. Read Committed: Prohibits Dirty Reads; permits Non-Repeatable Reads (reading the same row twice within a transaction yields different values).
+3. Repeatable Read: Prohibits Non-Repeatable Reads; evaluates against a point-in-time snapshot.
+4. Serializable: Completely prohibits all concurrent execution anomalies, guaranteeing sequential execution equivalence.
+
+Critique: ANSI SQL failed to identify the Write Skew anomaly, which occurs under Snapshot Isolation when concurrent transactions read overlapping data sets, make disjoint modifications, and violate a global business invariant.`,
+      },
+    ],
+    trapsAndAntiPatterns: [
+      {
+        trap: 'Assuming Repeatable Read prevents all race conditions and anomalies',
+        misconception: 'If a database runs under Repeatable Read, concurrent transactions cannot corrupt data.',
+        correction: 'Repeatable Read / Snapshot Isolation is susceptible to Write Skew. For example, two on-call doctors simultaneously checking if count(on_call) >= 2 and then taking leave will both take leave, leaving zero doctors on call. Full Serializability or SELECT FOR UPDATE is required.',
+      },
+    ],
+    practiceMcqs: [
+      {
+        id: 'q-db-mvcc-1',
+        question: 'Under MVCC, how does a database engine allow long-running analytics read queries to execute concurrently with high-frequency write transactions without locking rows?',
+        options: [
+          'By pausing all write transactions until the read query finishes',
+          'By reading historical tuple versions governed by transaction visibility headers (xmin/xmax) while writers append newer versions',
+          'By converting all writes into temporary file logs stored in memory',
+          'By copying the entire database into a temporary RAM disk',
+        ],
+        correctIndex: 1,
+        explanation: 'MVCC stores multiple versions of a row. When a transaction performs an UPDATE, it appends a new version without deleting the old version in-place. Readers observe a snapshot consisting of versions committed prior to their read view without taking locks.',
+      },
+    ],
+    relatedRoleSlugs: ['backend-systems-engineer', 'data-analyst'],
+  },
 ];
+

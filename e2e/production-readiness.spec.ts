@@ -77,4 +77,30 @@ test.describe("Production Readiness End-to-End Audit", () => {
     await expect(page.getByRole("button", { name: /Relational SQL Query Lab/i })).toBeVisible();
     await expect(page.getByRole("button", { name: /Algorithmic Code Logic Lab/i })).toBeVisible();
   });
+
+  test("9. Timed Mock Assessments catalog boots with real-time search and category filters", async ({ page }) => {
+    await page.goto("/mock-tests");
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Timed Mock Assessments" }),
+    ).toBeVisible();
+    await expect(page.getByPlaceholder(/Search assessments by role, title/i)).toBeVisible();
+    await expect(page.getByRole("tab", { name: /All Assessments/i })).toBeVisible();
+  });
+
+  test("10. Career Role Track detail page renders competencies, Socratic AI interview CTA, and curated Knowledge Hub documentation", async ({ page }) => {
+    await page.goto("/roles/java-backend-developer");
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Java Enterprise Backend Developer" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { level: 2, name: "AI Technical Scenario Interview" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /Launch Interview Room/i }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { level: 3, name: "Interactive Code & SQL Sandbox" }),
+    ).toBeVisible();
+  });
 });
+

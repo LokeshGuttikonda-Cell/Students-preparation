@@ -129,6 +129,20 @@ FROM employees;`,
 FROM employees;`,
     difficulty: 'MEDIUM',
   },
+  {
+    id: 'sql-salary-quartiles',
+    title: 'Employee Salary Quartile Segmentation',
+    description: 'Partition employees into four compensation quartiles (1 to 4) ordered by salary descending using NTILE(4).',
+    initialQuery: `SELECT id, name, salary,
+       NTILE(4) OVER (ORDER BY salary DESC) AS compensation_quartile
+FROM employees
+ORDER BY salary DESC;`,
+    expectedQuery: `SELECT id, name, salary,
+       NTILE(4) OVER (ORDER BY salary DESC) AS compensation_quartile
+FROM employees
+ORDER BY salary DESC;`,
+    difficulty: 'HARD',
+  },
 ];
 
 const CODE_CHALLENGES: CodeChallenge[] = [
@@ -285,6 +299,28 @@ const CODE_CHALLENGES: CodeChallenge[] = [
       { id: 'tc-kd-1', description: 'Mixed positive and negative values', input: [[-2, 1, -3, 4, -1, 2, 1, -5, 4]], expectedOutput: 6 },
       { id: 'tc-kd-2', description: 'All negative values returns maximum element', input: [[-1, -2, -3]], expectedOutput: -1 },
       { id: 'tc-kd-3', description: 'Single element array', input: [[10]], expectedOutput: 10 },
+    ],
+  },
+  {
+    id: 'code-climb-stairs',
+    title: 'Distinct Ways to Climb Stairs (Dynamic Programming)',
+    description: 'Count the number of distinct ways to climb n stairs taking 1 or 2 steps at a time in O(n) time and O(1) space.',
+    functionName: 'climbStairs',
+    initialCode: `function climbStairs(n) {
+  if (n <= 2) return n;
+  let prev2 = 1, prev1 = 2;
+  for (let i = 3; i <= n; i++) {
+    const current = prev1 + prev2;
+    prev2 = prev1;
+    prev1 = current;
+  }
+  return prev1;
+}`,
+    difficulty: 'EASY',
+    testCases: [
+      { id: 'tc-cs-1', description: 'Three stairs gives 3 ways', input: [3], expectedOutput: 3 },
+      { id: 'tc-cs-2', description: 'Four stairs gives 5 ways', input: [4], expectedOutput: 5 },
+      { id: 'tc-cs-3', description: 'Five stairs gives 8 ways', input: [5], expectedOutput: 8 },
     ],
   },
 ];

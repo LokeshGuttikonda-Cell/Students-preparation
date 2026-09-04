@@ -13,7 +13,14 @@ export {
 };
 
 export async function getCurriculumDomains(): Promise<CurriculumDomain[]> {
-  return Promise.resolve([...CURRICULUM_DOMAINS]);
+  const domainsWithAccurateCounts = CURRICULUM_DOMAINS.map((d) => {
+    const actualCount = CURRICULUM_ARTICLES.filter((a) => a.domainSlug === d.slug).length;
+    return {
+      ...d,
+      articlesCount: actualCount > 0 ? actualCount : d.articlesCount,
+    };
+  });
+  return Promise.resolve(domainsWithAccurateCounts);
 }
 
 export async function getCurriculumArticles(domainSlug?: string): Promise<CurriculumArticle[]> {
@@ -21,6 +28,10 @@ export async function getCurriculumArticles(domainSlug?: string): Promise<Curric
     return Promise.resolve([...CURRICULUM_ARTICLES]);
   }
   return Promise.resolve(CURRICULUM_ARTICLES.filter((a) => a.domainSlug === domainSlug));
+}
+
+export async function getArticlesForRole(roleSlug: string): Promise<CurriculumArticle[]> {
+  return Promise.resolve(CURRICULUM_ARTICLES.filter((a) => a.relatedRoleSlugs.includes(roleSlug)));
 }
 
 export async function getCurriculumArticle(slug: string): Promise<CurriculumArticle | null> {
@@ -43,3 +54,4 @@ export async function searchCurriculumArticles(query: string): Promise<Curriculu
 
   return Promise.resolve(results);
 }
+
