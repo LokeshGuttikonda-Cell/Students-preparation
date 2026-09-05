@@ -213,7 +213,7 @@ export default function PracticeRunnerPage() {
               <div className="flex flex-col sm:flex-row gap-3">
                 <Button
                   variant="secondary"
-                  className="w-full"
+                  className="w-full cursor-pointer"
                   onClick={() => {
                     setIsCompleted(false);
                     setCurrentIndex(0);
@@ -222,9 +222,21 @@ export default function PracticeRunnerPage() {
                   Review Answers
                 </Button>
                 <Link href="/practice" className="w-full">
-                  <Button variant="primary" className="w-full">
-                    Practice Another Topic &rarr;
+                  <Button variant="secondary" className="w-full cursor-pointer">
+                    Practice Another Topic
                   </Button>
+                </Link>
+                <Link href="/curriculum" className="w-full">
+                  <Button variant="primary" className="w-full cursor-pointer">
+                    Knowledge Hub &rarr;
+                  </Button>
+                </Link>
+              </div>
+
+              <div className="pt-3 border-t border-border flex items-center justify-between text-xs text-text-muted">
+                <span>Want hands-on execution?</span>
+                <Link href="/sandbox" className="text-primary-800 font-semibold hover:underline">
+                  Launch Applied Sandbox &rarr;
                 </Link>
               </div>
             </CardContent>
