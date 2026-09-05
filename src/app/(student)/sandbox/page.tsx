@@ -429,13 +429,17 @@ export default function SandboxPage() {
               <span className="text-[11px] font-semibold bg-primary-50 text-primary-800 px-2 py-0.5 rounded-full border border-primary-200">
                 Interactive Code &amp; SQL Studio
               </span>
+              <span className="text-[11px] font-semibold bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-200">
+                7 Applied Studios
+              </span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold text-text">
               SQL &amp; Code Logic Validation Sandbox
             </h1>
             <p className="text-sm text-text-muted max-w-2xl">
-              Real engineering screening tests your applied execution. Practice running SQL queries,
-              evaluating algorithmic code logic, stepping through memory visualizers, and simulating hardware cache lines.
+              Real engineering screening tests applied first-principles execution across 7 specialized laboratories:
+              Relational SQL, Algorithmic Code Logic, Visual State Steppers, Memory &amp; Cache Coherence,
+              Distributed Systems, OS Kernel Protocols, and Multi-Tier System Design Architecture.
             </p>
           </div>
 

@@ -269,20 +269,19 @@ export default function Home() {
                 <div>
                   <div className="flex items-center gap-2">
                     <h2 className="text-lg font-bold text-primary-900">
-                      SQL &amp; Code Lab
+                      Applied Engineering Labs
                     </h2>
                     <span className="text-[10px] font-bold uppercase bg-primary-100 text-primary-800 px-2 py-0.5 rounded border border-primary-300">
-                      Sandbox
+                      7 Studios
                     </span>
                   </div>
                   <p className="text-xs text-text-muted mt-2 leading-relaxed">
-                    Execute live SQL queries and validate algorithmic Python scripts in-browser
-                    with sub-millisecond execution and test-case assertions.
+                    Interactive engineering simulators: SQL queries, algorithmic code, visual algorithm steppers, memory hierarchy &amp; cache false sharing, distributed hash rings, OS kernel scheduling, and multi-tier system design.
                   </p>
                 </div>
               </div>
               <Link href="/sandbox">
-                <Button variant="primary" className="w-full text-xs">Open Sandbox &rarr;</Button>
+                <Button variant="primary" className="w-full text-xs">Explore 7 Applied Labs &rarr;</Button>
               </Link>
             </CardContent>
           </Card>
