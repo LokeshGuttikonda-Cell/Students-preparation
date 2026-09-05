@@ -148,50 +148,48 @@ export const FALLBACK_ROLE_TRAPS: Record<string, RoleTrapItem[]> = {
         'Highlight heap allocation overhead, GC pressure, and memory cache line locality.',
     },
   ],
-  'aws-cloud-engineer': [
+  'cloud-solutions-architect': [
     {
-      id: 'trap_aws_1',
-      roleSlug: 'aws-cloud-engineer',
+      id: 'trap_cloud_1',
+      roleSlug: 'cloud-solutions-architect',
       title: 'Confusing Public Subnets with Internet Gateway Association',
       topicName: 'Cloud & Infrastructure Engineering',
       trapDescription:
-        'Believing assigning a public IP to an EC2 instance automatically gives internet access without an Internet Gateway attached and routed in the route table.',
+        'Believing assigning a public IP to a virtual server instance automatically provides internet egress/ingress without an Internet Gateway attached and explicitly routed in the subnet route table.',
       antiPatternExample:
-        'Deploying an instance with auto-assign public IP in a subnet routed only to local target 10.0.0.0/16',
+        'Deploying a virtual machine with auto-assigned public IP in a subnet routed only to local target 10.0.0.0/16',
       correctPatternExample:
-        'Attach an Internet Gateway to the VPC and add 0.0.0.0/0 -> igw-xxxx in the subnet route table',
+        'Attach an Internet Gateway to the VPC and add route destination 0.0.0.0/0 -> igw-gateway in the subnet route table',
       interviewTip:
-        'Diagram the packet path: Public IP -> Route Table -> IGW -> Internet.',
+        'Diagram the packet path: Public IP -> Subnet Route Table -> Gateway -> External Internet.',
     },
     {
-      id: 'trap_aws_2',
-      roleSlug: 'aws-cloud-engineer',
-      title: 'Hardcoding IAM Credentials in Cloud Workloads',
+      id: 'trap_cloud_2',
+      roleSlug: 'cloud-solutions-architect',
+      title: 'Hardcoding Static IAM Credentials in Cloud Workloads',
       topicName: 'Cloud & Infrastructure Engineering',
       trapDescription:
-        'Passing long-lived static AWS access keys in environment variables or code instead of attaching IAM Instance Profiles / Roles.',
+        'Passing long-lived static API access keys in environment variables or code instead of attaching instance roles with short-lived STS tokens.',
       antiPatternExample:
-        'AWS_ACCESS_KEY_ID="AKIA..." AWS_SECRET_ACCESS_KEY="..." hardcoded in app configs',
+        'STATIC_ACCESS_KEY="KEY123..." STATIC_SECRET_KEY="..." hardcoded in app environment files',
       correctPatternExample:
-        'Attach IAM Roles with STS temporary short-lived credentials via instance metadata service',
+        'Attach IAM Roles with temporary, auto-rotated instance metadata service credentials and dedicated secret managers',
       interviewTip:
-        'Always advocate for IAM roles and AWS Secrets Manager with automated key rotation.',
+        'Always advocate for short-lived metadata tokens and centralized secret stores with automated rotation.',
     },
-  ],
-  'azure-cloud-engineer': [
     {
-      id: 'trap_azure_1',
-      roleSlug: 'azure-cloud-engineer',
-      title: 'Neglecting NSG Priority Rules Ordering',
+      id: 'trap_cloud_3',
+      roleSlug: 'cloud-solutions-architect',
+      title: 'Neglecting Network Security Group Priority Rules Ordering',
       topicName: 'Cloud & Infrastructure Engineering',
       trapDescription:
-        'Creating a Deny rule with priority 500 expecting it to block traffic allowed by a lower-number priority 100 rule.',
+        'Creating a Deny rule with lower evaluation priority expecting it to override an earlier permissive Allow rule.',
       antiPatternExample:
-        'Priority 100: Allow All 443; Priority 500: Deny Specific IP on 443 (lower priority is ignored)',
+        'Priority 100: Allow All 443; Priority 500: Deny Specific IP on 443 (higher numerical priority is evaluated later)',
       correctPatternExample:
-        'Assign specific Deny rules a lower priority number (e.g. 100) before broader Allow rules (e.g. 200)',
+        'Assign specific Deny rules a lower priority integer (e.g. 100) before broader Allow rules (e.g. 200)',
       interviewTip:
-        'Remind interviewers that in Azure NSGs, the lowest priority number is processed first.',
+        'Remind interviewers that in cloud firewall NSGs, the lowest numerical priority rule takes precedence upon first match.',
     },
   ],
   'python-developer': [
