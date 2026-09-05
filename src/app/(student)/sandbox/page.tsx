@@ -6,6 +6,7 @@ import { SqlQuerySandbox } from '../../../components/sandbox/SqlQuerySandbox';
 import { CodeLogicSandbox } from '../../../components/sandbox/CodeLogicSandbox';
 import { AlgorithmVisualizerSandbox } from '../../../components/sandbox/AlgorithmVisualizerSandbox';
 import { MemoryCacheInspectorSandbox } from '../../../components/sandbox/MemoryCacheInspectorSandbox';
+import { DistributedSystemsSandbox } from '../../../components/sandbox/DistributedSystemsSandbox';
 import { Button } from '../../../components/ui/Button';
 
 interface SqlChallenge {
@@ -406,7 +407,7 @@ const CODE_CHALLENGES: CodeChallenge[] = [
 ];
 
 export default function SandboxPage() {
-  const [activeTab, setActiveTab] = useState<'SQL' | 'CODE' | 'VISUALIZER' | 'MEMORY'>('SQL');
+  const [activeTab, setActiveTab] = useState<'SQL' | 'CODE' | 'VISUALIZER' | 'MEMORY' | 'DISTRIBUTED'>('SQL');
   const [selectedSqlIndex, setSelectedSqlIndex] = useState(0);
   const [selectedCodeIndex, setSelectedCodeIndex] = useState(0);
 
@@ -498,10 +499,23 @@ export default function SandboxPage() {
             <span>🧠</span>
             <span>Memory &amp; Cache Hierarchy Lab</span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('DISTRIBUTED')}
+            className={`min-h-[44px] px-5 py-2 text-sm font-semibold border-b-2 transition-colors cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+              activeTab === 'DISTRIBUTED'
+                ? 'border-primary-700 text-primary-800'
+                : 'border-transparent text-text-muted hover:text-text hover:border-border'
+            }`}
+          >
+            <span>🌐</span>
+            <span>Distributed Systems &amp; Architecture Lab</span>
+          </button>
         </div>
 
         {/* Challenge Selection Pills for SQL and CODE */}
-        {activeTab !== 'VISUALIZER' && activeTab !== 'MEMORY' && (
+        {activeTab !== 'VISUALIZER' && activeTab !== 'MEMORY' && activeTab !== 'DISTRIBUTED' && (
           <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-text-muted">
@@ -596,9 +610,13 @@ export default function SandboxPage() {
           <div className="space-y-6">
             <AlgorithmVisualizerSandbox />
           </div>
-        ) : (
+        ) : activeTab === 'MEMORY' ? (
           <div className="space-y-6">
             <MemoryCacheInspectorSandbox />
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <DistributedSystemsSandbox />
           </div>
         )}
       </div>

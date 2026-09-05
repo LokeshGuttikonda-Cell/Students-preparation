@@ -122,4 +122,29 @@ describe('SandboxPage', () => {
     fireEvent.click(hashBtn);
     expect(screen.getByText(/Bucket Array Representation/i)).toBeInTheDocument();
   });
+
+  it('switches to Distributed Systems & Architecture Lab tab and interacts with consistent hash ring and rate limiters', () => {
+    render(<SandboxPage />);
+
+    const distTabBtn = screen.getByRole('button', { name: /Distributed Systems & Architecture Lab/i });
+    fireEvent.click(distTabBtn);
+
+    expect(screen.getByText('Consistent Hashing, Rate Limiting & Circuit Breakers')).toBeInTheDocument();
+    expect(screen.getByText(/Circular Hash Space/i)).toBeInTheDocument();
+
+    // Scale Out: Add Node D
+    const scaleOutBtn = screen.getByRole('button', { name: /\+ Scale Out: Add Node D/i });
+    fireEvent.click(scaleOutBtn);
+    expect(screen.getByText('✓ Node D Active (Scale Out)')).toBeInTheDocument();
+
+    // Switch to Traffic Rate Limiters
+    const rlBtn = screen.getByRole('button', { name: /Traffic Rate Limiters/i });
+    fireEvent.click(rlBtn);
+    expect(screen.getByText(/Token Bucket Tank/i)).toBeInTheDocument();
+
+    // Switch to Circuit Breaker State Machine
+    const cbBtn = screen.getByRole('button', { name: /Circuit Breaker State Machine/i });
+    fireEvent.click(cbBtn);
+    expect(screen.getByText('1. CLOSED')).toBeInTheDocument();
+  });
 });
