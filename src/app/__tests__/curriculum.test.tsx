@@ -17,12 +17,18 @@ vi.mock('next/navigation', () => ({
 }));
 
 describe('Curriculum & Knowledge Base Client Tests', () => {
-  it('retrieves curriculum domains and articles', async () => {
+  it('retrieves curriculum domains and articles with complete domain coverage', async () => {
     const domains = await getCurriculumDomains();
     expect(domains.length).toBe(14);
 
     const articles = await getCurriculumArticles();
-    expect(articles.length).toBe(28);
+    expect(articles.length).toBe(32);
+
+    // Assert that every domain has at least 2 master articles
+    for (const domain of domains) {
+      const domainArticles = articles.filter((a) => a.domainSlug === domain.slug);
+      expect(domainArticles.length).toBeGreaterThanOrEqual(2);
+    }
   });
 
   it('filters articles by search query', async () => {
