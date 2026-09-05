@@ -8,6 +8,20 @@ import {
   type InterviewSessionData,
 } from '../../../../../lib/interview-client';
 import { Button } from '../../../../../components/ui/Button';
+import { speakText, isSpeechSynthesisSupported } from '../../../../../lib/speech';
+import { VoiceWaveform } from '../../../../../components/interview/VoiceWaveform';
+
+const SYSTEMS_ENGINEERING_KEYWORDS = [
+  'idempotency', 'idempotent', 'sharding', 'shard', 'partitioning', 'partition',
+  'replication', 'replica', 'consensus', 'raft', 'paxos', 'concurrency', 'mutex',
+  'deadlock', 'backpressure', 'circuit breaker', 'latency', 'throughput',
+  'acid', 'mvcc', 'isolation', 'durability', 'cache', 'caching', 'redis',
+  'b-tree', 'lsm-tree', 'wal', 'write-ahead', 'docker', 'container',
+  'kubernetes', 'canary', 'blue/green', 'observability', 'telemetry',
+  'quorum', 'two-phase commit', 'bloom filter', 'hash ring', 'dns',
+  'grpc', 'protobuf', 'zero-copy', 'epoll', 'event loop', 'asynchronous',
+  'rate limiting', 'token bucket', 'eventual consistency', 'cap theorem',
+];
 
 export default function InterviewResultsPage() {
   const params = useParams();
@@ -17,6 +31,40 @@ export default function InterviewResultsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filterStage, setFilterStage] = useState<string>('ALL');
+  const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
+  const [stopAudioFn, setStopAudioFn] = useState<(() => void) | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
+  const handleToggleAudio = (messageId: string, text: string) => {
+    if (!isSpeechSynthesisSupported()) return;
+
+    if (playingMessageId === messageId) {
+      stopAudioFn?.();
+      setPlayingMessageId(null);
+      setStopAudioFn(null);
+      return;
+    }
+    stopAudioFn?.();
+    const stop = speakText(text, {
+      onStart: () => setPlayingMessageId(messageId),
+      onEnd: () => {
+        setPlayingMessageId(null);
+        setStopAudioFn(null);
+      },
+      onError: () => {
+        setPlayingMessageId(null);
+        setStopAudioFn(null);
+      },
+    });
+    setStopAudioFn(() => stop);
+  };
 
   useEffect(() => {
     async function loadData() {
@@ -92,6 +140,39 @@ export default function InterviewResultsPage() {
       return m.sender === 'CANDIDATE' && !!m.technicalFeedback;
     }
     return m.stage === filterStage;
+  });
+
+  // Speech & Acoustic Diagnostics
+  const candidateWordCount = candidateTurns.reduce((acc, m) => {
+    const words = m.content.trim().split(/\s+/).filter(Boolean).length;
+    return acc + words;
+  }, 0);
+
+  const startMs = new Date(session.startedAt).getTime();
+  const endMs = session.completedAt
+    ? new Date(session.completedAt).getTime()
+    : startMs + (session.targetDurationMinutes || 15) * 60000;
+  const elapsedMinutes = Math.max(1, Math.round((endMs - startMs) / 60000));
+  const speakingPaceWpm = Math.max(1, Math.round(candidateWordCount / elapsedMinutes));
+
+  let cadenceRating = 'Optimal Technical Cadence';
+  let cadenceColor = 'text-primary-800 bg-primary-50 border-primary-200';
+  if (speakingPaceWpm < 100) {
+    cadenceRating = 'Deliberate / Paused';
+    cadenceColor = 'text-amber-800 bg-amber-50 border-amber-200';
+  } else if (speakingPaceWpm > 165) {
+    cadenceRating = 'Rapid Delivery';
+    cadenceColor = 'text-accent-800 bg-accent-50 border-accent-200';
+  }
+
+  const avgWordsPerTurn = candidateTurns.length > 0
+    ? Math.round(candidateWordCount / candidateTurns.length)
+    : 0;
+
+  const candidateFullText = candidateTurns.map((t) => t.content.toLowerCase()).join(' ');
+  const detectedKeyphrases = SYSTEMS_ENGINEERING_KEYWORDS.filter((kw) => {
+    const escaped = kw.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+    return new RegExp(`(?:^|\\W)${escaped}(?:$|\\W)`, 'i').test(candidateFullText);
   });
 
   return (
@@ -208,7 +289,7 @@ export default function InterviewResultsPage() {
             Multi-Axis Technical Competency Breakdown
           </h3>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Axis 1: Technical Domain Accuracy */}
             <div className="bg-surface border border-border rounded-2xl p-5 shadow-xs space-y-3">
               <div className="flex items-center justify-between">
@@ -271,6 +352,70 @@ export default function InterviewResultsPage() {
                 Indicates completion through high-scale architectural design and wrap-up triage rounds.
               </p>
             </div>
+
+            {/* Axis 4: Speech Delivery & Cadence */}
+            <div className="bg-surface border border-border rounded-2xl p-5 shadow-xs space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-text-muted uppercase tracking-wider">
+                  Speech Cadence
+                </span>
+                <span className="text-base font-bold text-indigo-600 tabular-nums">
+                  {speakingPaceWpm} WPM
+                </span>
+              </div>
+              <div className="w-full h-2 bg-canvas rounded-full overflow-hidden border border-border">
+                <div
+                  className="h-full bg-indigo-600 rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min(100, Math.round((speakingPaceWpm / 180) * 100))}%` }}
+                />
+              </div>
+              <p className="text-xs text-text-muted leading-relaxed">
+                {cadenceRating} ({avgWordsPerTurn} words/turn average across {candidateTurns.length} turns).
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Verbal Articulation & Systems Vocabulary Telemetry */}
+        <section className="bg-surface border border-border rounded-2xl p-6 shadow-xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-primary-600" />
+              <h3 className="font-bold text-base text-text">
+                Verbal Articulation & Systems Vocabulary Telemetry
+              </h3>
+            </div>
+            <div className="flex items-center gap-2 text-xs">
+              <span className={`px-2.5 py-1 rounded-full font-bold border ${cadenceColor}`}>
+                {cadenceRating} ({speakingPaceWpm} WPM)
+              </span>
+              <span className="px-2.5 py-1 rounded-full font-bold bg-canvas border border-border text-text-muted">
+                {candidateWordCount} Total Words
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <span className="text-xs font-semibold text-text-muted">
+              Identified Core Systems Engineering Terms & Concepts ({detectedKeyphrases.length}):
+            </span>
+            {detectedKeyphrases.length > 0 ? (
+              <div className="flex flex-wrap gap-2 pt-1">
+                {detectedKeyphrases.map((term) => (
+                  <span
+                    key={term}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-canvas border border-border text-text"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary-500" />
+                    {term}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-text-muted italic">
+                Reinforce verbal usage of academic systems terminology during scenario explanations.
+              </p>
+            )}
           </div>
         </section>
 
@@ -411,10 +556,37 @@ export default function InterviewResultsPage() {
                           {msg.stage}
                         </span>
                       </div>
-                      <span className="text-[11px] text-text-muted tabular-nums">
-                        Turn #{msg.turnNumber}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleAudio(msg.id, msg.content)}
+                          className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium bg-canvas border border-border hover:border-primary-300 hover:text-primary-700 transition-colors cursor-pointer"
+                          title={playingMessageId === msg.id ? 'Stop Turn Audio' : 'Listen to Turn Audio'}
+                          aria-label={playingMessageId === msg.id ? 'Stop Turn Audio' : 'Listen to Turn Audio'}
+                        >
+                          {playingMessageId === msg.id ? (
+                            <>
+                              <span className="w-2 h-2 rounded-xs bg-error-600 animate-pulse" />
+                              <span className="text-error-700 font-semibold">Stop</span>
+                            </>
+                          ) : (
+                            <>
+                              <span>🔊</span>
+                              <span>Listen</span>
+                            </>
+                          )}
+                        </button>
+                        <span className="text-[11px] text-text-muted tabular-nums">
+                          Turn #{msg.turnNumber}
+                        </span>
+                      </div>
                     </div>
+
+                    {playingMessageId === msg.id && (
+                      <div className="mb-3 pl-8">
+                        <VoiceWaveform state="speaking" showTelemetry={false} className="h-6" />
+                      </div>
+                    )}
 
                     <div className="text-sm text-text leading-relaxed whitespace-pre-wrap pl-8">
                       {msg.content}

@@ -75,25 +75,31 @@ INSERT INTO employees (id, name, department_id, salary, hire_date) VALUES
   (108, 'Meera Joshi', 1, 125000, '2022-04-14');`;
 
 import { apiUrl } from './env';
+import { executeSqlQueryLocally, validateSqlQueryLocally } from './in-memory-sql';
+
+export { executeSqlQueryLocally, validateSqlQueryLocally };
 
 export async function runSqlQuery(
   query: string,
   schemaDdl?: string,
   seedDataSql?: string,
 ): Promise<SqlExecutionResult> {
-  const res = await fetch(apiUrl('sandbox/sql/run'), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({ query, schemaDdl, seedDataSql }),
-  });
+  try {
+    const res = await fetch(apiUrl('sandbox/sql/run'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ query, schemaDdl, seedDataSql }),
+    });
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err?.message || 'Failed to execute SQL query');
+    if (res.ok) {
+      return (await res.json()) as SqlExecutionResult;
+    }
+  } catch {
+    // Graceful offline fallback to local in-memory SQL engine
   }
 
-  return (await res.json()) as SqlExecutionResult;
+  return executeSqlQueryLocally(query, schemaDdl, seedDataSql);
 }
 
 export async function validateSqlQuery(
@@ -103,25 +109,28 @@ export async function validateSqlQuery(
   expectedQuery?: string,
   expectedRows?: Record<string, unknown>[],
 ): Promise<SqlValidationResult> {
-  const res = await fetch(apiUrl('sandbox/sql/validate'), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({
-      userQuery,
-      schemaDdl,
-      seedDataSql,
-      expectedQuery,
-      expectedRows,
-    }),
-  });
+  try {
+    const res = await fetch(apiUrl('sandbox/sql/validate'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        userQuery,
+        schemaDdl,
+        seedDataSql,
+        expectedQuery,
+        expectedRows,
+      }),
+    });
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err?.message || 'Failed to validate SQL query');
+    if (res.ok) {
+      return (await res.json()) as SqlValidationResult;
+    }
+  } catch {
+    // Graceful offline fallback to local in-memory SQL engine
   }
 
-  return (await res.json()) as SqlValidationResult;
+  return validateSqlQueryLocally(userQuery, schemaDdl, seedDataSql, expectedQuery, expectedRows);
 }
 
 export function executeCodeLogicLocally(

@@ -100,6 +100,8 @@ describe('InterviewResultsPage', () => {
     expect(screen.getByText('85%')).toBeDefined();
     expect(screen.getByText('Domain Accuracy')).toBeDefined();
     expect(screen.getByText('Articulation Clarity')).toBeDefined();
+    expect(screen.getByText('Speech Cadence')).toBeDefined();
+    expect(screen.getByText(/Verbal Articulation & Systems Vocabulary Telemetry/i)).toBeDefined();
 
     // Strengths
     expect(
@@ -131,6 +133,11 @@ describe('InterviewResultsPage', () => {
         ),
       ).toBeDefined();
     });
+
+    // Audio playback button
+    const listenButtons = screen.getAllByRole('button', { name: /Listen to Turn Audio/i });
+    expect(listenButtons.length).toBeGreaterThan(0);
+    fireEvent.click(listenButtons[0]);
 
     // Turn feedback
     expect(
