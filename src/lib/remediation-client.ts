@@ -38,7 +38,6 @@ export interface DrillQuestion {
 }
 
 import { apiUrl } from './env';
-import { FALLBACK_TOPIC_QUESTIONS } from './catalog-fallbacks';
 import { DEFAULT_ROLES_CATALOG } from './catalog-data';
 
 export const FALLBACK_ROLE_TRAPS: Record<string, RoleTrapItem[]> = {
@@ -376,6 +375,7 @@ export async function explainMissedQuestion(
     // Gracefully fallback to deterministic Socratic remediation
   }
 
+  const { FALLBACK_TOPIC_QUESTIONS } = await import('./catalog-fallbacks');
   const q = FALLBACK_TOPIC_QUESTIONS.find((item) => item.id === questionId);
   const topicName = q?.topicSlug ? q.topicSlug.replace(/-/g, ' ') : 'Technical Domain Concept';
 
@@ -415,6 +415,7 @@ export async function getSimilarDrill(
     // Fallback to local catalog
   }
 
+  const { FALLBACK_TOPIC_QUESTIONS } = await import('./catalog-fallbacks');
   const original = FALLBACK_TOPIC_QUESTIONS.find((item) => item.id === questionId);
   const drillCandidate =
     FALLBACK_TOPIC_QUESTIONS.find(

@@ -13,7 +13,9 @@ import {
   speakText,
   stopSpeaking,
   createSpeechRecognizer,
+  createMicrophoneSpectrumAnalyzer,
   isSpeechRecognitionSupported,
+  type AudioSpectrumAnalyzerController,
 } from '../../../../lib/speech';
 import { VoiceWaveform, type WaveformState } from '../../../../components/interview/VoiceWaveform';
 import { StageStepper } from '../../../../components/interview/StageStepper';
@@ -35,12 +37,46 @@ export default function LiveInterviewRoomPage() {
   const [isAiSpeaking, setIsAiSpeaking] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(false);
+  const [micFrequencyData, setMicFrequencyData] = useState<number[] | undefined>(undefined);
 
   // Countdown timer
   const [timeLeftSeconds, setTimeLeftSeconds] = useState<number>(20 * 60);
 
   const transcriptEndRef = useRef<HTMLDivElement>(null);
   const speechRecognizerRef = useRef<ReturnType<typeof createSpeechRecognizer> | null>(null);
+  const micAnalyzerRef = useRef<AudioSpectrumAnalyzerController | null>(null);
+  const micAnimFrameRef = useRef<number | null>(null);
+
+  const stopMicSpectrum = useCallback(() => {
+    if (micAnimFrameRef.current !== null) {
+      cancelAnimationFrame(micAnimFrameRef.current);
+      micAnimFrameRef.current = null;
+    }
+    if (micAnalyzerRef.current) {
+      micAnalyzerRef.current.stop();
+      micAnalyzerRef.current = null;
+    }
+    setMicFrequencyData(undefined);
+  }, []);
+
+  const startMicSpectrum = useCallback(async () => {
+    try {
+      const analyzer = await createMicrophoneSpectrumAnalyzer();
+      if (!analyzer) return;
+      micAnalyzerRef.current = analyzer;
+
+      const buffer = new Uint8Array(10);
+      const updateFrequencies = () => {
+        if (!micAnalyzerRef.current) return;
+        micAnalyzerRef.current.getFrequencies(buffer);
+        setMicFrequencyData(Array.from(buffer));
+        micAnimFrameRef.current = requestAnimationFrame(updateFrequencies);
+      };
+      micAnimFrameRef.current = requestAnimationFrame(updateFrequencies);
+    } catch {
+      // Gracefully falls back to dynamic sine formant harmonics in VoiceWaveform
+    }
+  }, []);
 
   const scrollToBottom = useCallback(() => {
     transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -83,11 +119,12 @@ export default function LiveInterviewRoomPage() {
 
     return () => {
       stopSpeaking();
+      stopMicSpectrum();
       if (speechRecognizerRef.current) {
         speechRecognizerRef.current.abort();
       }
     };
-  }, [interviewId]);
+  }, [interviewId, stopMicSpectrum]);
 
   // Scroll to bottom when messages update
   useEffect(() => {
@@ -109,17 +146,25 @@ export default function LiveInterviewRoomPage() {
   const toggleListening = () => {
     if (isListening) {
       speechRecognizerRef.current?.stop();
+      stopMicSpectrum();
       setIsListening(false);
       return;
     }
 
     stopSpeaking();
     setIsAiSpeaking(false);
+    startMicSpectrum();
 
     const recognizer = createSpeechRecognizer({
       onStart: () => setIsListening(true),
-      onEnd: () => setIsListening(false),
-      onError: () => setIsListening(false),
+      onEnd: () => {
+        setIsListening(false);
+        stopMicSpectrum();
+      },
+      onError: () => {
+        setIsListening(false);
+        stopMicSpectrum();
+      },
       onResult: (transcript) => {
         setInputText((prev) => {
           const prefix = prev.trim() ? `${prev.trim()} ` : '';
@@ -140,6 +185,7 @@ export default function LiveInterviewRoomPage() {
 
     if (isListening) {
       speechRecognizerRef.current?.stop();
+      stopMicSpectrum();
       setIsListening(false);
     }
     stopSpeaking();
@@ -330,7 +376,10 @@ export default function LiveInterviewRoomPage() {
 
             {/* Audio Waveform */}
             <div className="space-y-1">
-              <VoiceWaveform state={waveformState} />
+              <VoiceWaveform
+                state={waveformState}
+                frequencyData={isListening ? micFrequencyData : undefined}
+              />
               <div className="text-center text-[10px] font-semibold text-text-muted">
                 {isAiSpeaking
                   ? 'AI Interviewer is speaking...'
@@ -524,6 +573,7 @@ export default function LiveInterviewRoomPage() {
                       type="button"
                       onClick={toggleListening}
                       title={isListening ? 'Stop Recording' : 'Speak Verbal Response'}
+                      aria-label={isListening ? 'Stop Recording' : 'Speak Verbal Response'}
                       className={`h-11 px-3.5 rounded-xl border flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                         isListening
                           ? 'bg-error-500 text-white border-error-600 animate-pulse ring-2 ring-error-300'

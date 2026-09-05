@@ -8,6 +8,7 @@ import {
   getCurriculumArticle,
   getAdjacentArticles,
   type CurriculumArticle,
+  type CurriculumArticleSummary,
 } from '../../../../lib/curriculum-client';
 import { Card, CardContent } from '../../../../components/ui/Card';
 import { Button } from '../../../../components/ui/Button';
@@ -16,7 +17,10 @@ export default function CurriculumArticleDetailPage() {
   const routeParams = useParams<{ slug: string }>();
   const slug = routeParams?.slug || '';
   const [article, setArticle] = useState<CurriculumArticle | null>(null);
-  const [adjacent, setAdjacent] = useState<{ prev: CurriculumArticle | null; next: CurriculumArticle | null }>({
+  const [adjacent, setAdjacent] = useState<{
+    prev: CurriculumArticleSummary | null;
+    next: CurriculumArticleSummary | null;
+  }>({
     prev: null,
     next: null,
   });

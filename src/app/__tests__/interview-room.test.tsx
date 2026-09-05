@@ -10,14 +10,24 @@ vi.mock('next/navigation', () => ({
 }));
 
 // Mock speech utilities
+const mockStart = vi.fn();
+const mockStop = vi.fn();
+const mockAbort = vi.fn();
+const mockCreateMicrophoneSpectrumAnalyzer = vi.fn().mockResolvedValue({
+  getFrequencies: vi.fn(),
+  getAverageVolume: vi.fn().mockReturnValue(42),
+  stop: vi.fn(),
+});
+
 vi.mock('../../lib/speech', () => ({
   speakText: vi.fn(),
   stopSpeaking: vi.fn(),
-  createSpeechRecognizer: vi.fn().mockReturnValue({
-    start: vi.fn(),
-    stop: vi.fn(),
-    abort: vi.fn(),
-  }),
+  createSpeechRecognizer: vi.fn().mockImplementation((opts) => ({
+    start: mockStart.mockImplementation(() => opts?.onStart?.()),
+    stop: mockStop.mockImplementation(() => opts?.onEnd?.()),
+    abort: mockAbort,
+  })),
+  createMicrophoneSpectrumAnalyzer: () => mockCreateMicrophoneSpectrumAnalyzer(),
   isSpeechRecognitionSupported: vi.fn().mockReturnValue(true),
 }));
 
@@ -166,6 +176,30 @@ describe('LiveInterviewRoomPage', () => {
         screen.getByText(/Interview simulation has been completed/i),
       ).toBeDefined();
       expect(screen.getByText('90%')).toBeDefined();
+    });
+  });
+
+  it('toggles microphone listening and initiates live spectrum analyzer', async () => {
+    render(<LiveInterviewRoomPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Cloud & DevOps Engineer')).toBeDefined();
+    });
+
+    const micBtn = screen.getByRole('button', { name: /speak verbal response/i });
+    expect(micBtn).toBeDefined();
+
+    fireEvent.click(micBtn);
+
+    await waitFor(() => {
+      expect(mockCreateMicrophoneSpectrumAnalyzer).toHaveBeenCalled();
+      expect(screen.getByText(/Listening to candidate voice/i)).toBeDefined();
+    });
+
+    // Toggle off
+    fireEvent.click(micBtn);
+    await waitFor(() => {
+      expect(screen.getByText(/Voice Ready \(Standby\)/i)).toBeDefined();
     });
   });
 });

@@ -7,7 +7,7 @@ import type { Route } from 'next';
 import { getRole, RoleTrackDetail } from '../../../../lib/roles-client';
 import { RoleCompetencyList } from '../../../../components/roles/RoleCompetencyList';
 import { RoleInterviewTrapsSection } from '../../../../components/roles/RoleInterviewTrapsSection';
-import { getArticlesForRole, type CurriculumArticle } from '../../../../lib/curriculum-client';
+import { getArticlesForRole, type CurriculumArticleSummary } from '../../../../lib/curriculum-client';
 import { Card, CardContent } from '../../../../components/ui/Card';
 import { Button } from '../../../../components/ui/Button';
 
@@ -16,7 +16,7 @@ export default function RoleDetailPage() {
   const slug = params?.slug;
 
   const [role, setRole] = useState<RoleTrackDetail | null>(null);
-  const [roleArticles, setRoleArticles] = useState<CurriculumArticle[]>([]);
+  const [roleArticles, setRoleArticles] = useState<CurriculumArticleSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

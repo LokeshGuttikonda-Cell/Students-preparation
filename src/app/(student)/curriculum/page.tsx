@@ -7,14 +7,14 @@ import {
   getCurriculumDomains,
   getCurriculumArticles,
   type CurriculumDomain,
-  type CurriculumArticle,
+  type CurriculumArticleSummary,
 } from '../../../lib/curriculum-client';
 import { Card, CardContent } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
 
 export default function CurriculumHubPage() {
   const [domains, setDomains] = useState<CurriculumDomain[]>([]);
-  const [articles, setArticles] = useState<CurriculumArticle[]>([]);
+  const [articles, setArticles] = useState<CurriculumArticleSummary[]>([]);
   const [selectedDomain, setSelectedDomain] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedLevel, setSelectedLevel] = useState<string>('all');
@@ -251,7 +251,7 @@ export default function CurriculumHubPage() {
 
                   <div className="pt-3 border-t border-border flex items-center justify-between">
                     <div className="flex items-center gap-2 text-xs text-text-muted">
-                      <span>{art.practiceMcqs.length} Practice MCQs</span>
+                      <span>{art.practiceMcqsCount} Practice MCQs</span>
                       {art.sandboxChallengeId && (
                         <span className="text-emerald-700 font-medium">
                           • Lab Ready

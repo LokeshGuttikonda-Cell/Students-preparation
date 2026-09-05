@@ -1,14 +1,19 @@
-export interface CurriculumArticle {
-  id: string;
-  slug: string;
-  domainSlug: string;
-  domainName: string;
-  title: string;
-  level: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
-  readTimeMinutes: number;
-  summary: string;
+import {
+  type CurriculumDomain,
+  type CurriculumArticleSummary,
+  CURRICULUM_DOMAINS,
+  CURRICULUM_SUMMARIES,
+} from './curriculum-summaries';
+
+export {
+  type CurriculumDomain,
+  type CurriculumArticleSummary,
+  CURRICULUM_DOMAINS,
+  CURRICULUM_SUMMARIES,
+};
+
+export interface CurriculumArticle extends CurriculumArticleSummary {
   prerequisites: string[];
-  keyConcepts: string[];
   overview: string;
   theorySections: Array<{
     heading: string;
@@ -31,118 +36,7 @@ export interface CurriculumArticle {
     correctIndex: number;
     explanation: string;
   }>;
-  relatedRoleSlugs: string[];
-  sandboxChallengeId?: string;
 }
-
-export interface CurriculumDomain {
-  slug: string;
-  name: string;
-  description: string;
-  icon: string;
-  articlesCount: number;
-}
-
-export const CURRICULUM_DOMAINS: CurriculumDomain[] = [
-  {
-    slug: 'data-structures-algorithms',
-    name: 'Data Structures & Algorithms',
-    description: 'Master asymptotic complexity, linear structures, binary search trees, graph traversals, and dynamic programming.',
-    icon: '⚡',
-    articlesCount: 3,
-  },
-  {
-    slug: 'system-design-architecture',
-    name: 'System Design & Software Architecture',
-    description: 'Low-level object-oriented design patterns, SOLID principles, concurrency models, and scalable distributed systems.',
-    icon: '🏛️',
-    articlesCount: 4,
-  },
-  {
-    slug: 'operating-systems-internals',
-    name: 'Operating Systems & Systems Programming',
-    description: 'Kernel architectures, process scheduling, virtual memory, paging algorithms, deadlocks, and Linux cgroups.',
-    icon: '💻',
-    articlesCount: 2,
-  },
-  {
-    slug: 'computer-networks-protocols',
-    name: 'Computer Networks & Communications',
-    description: 'OSI/TCP-IP models, TCP congestion control, UDP/QUIC, DNS hierarchies, TLS 1.3, and modern HTTP/3.',
-    icon: '🌐',
-    articlesCount: 2,
-  },
-  {
-    slug: 'database-storage-engines',
-    name: 'Database Management Systems & Storage',
-    description: 'Relational algebra, B+ Trees vs LSM Trees, ACID transactions, MVCC concurrency, and query plan optimization.',
-    icon: '🗄️',
-    articlesCount: 2,
-  },
-  {
-    slug: 'cloud-infrastructure-architecture',
-    name: 'Cloud Computing & Enterprise Infrastructure',
-    description: 'VPC network topologies, serverless event-driven compute, IAM least privilege, and disaster recovery strategies.',
-    icon: '☁️',
-    articlesCount: 2,
-  },
-  {
-    slug: 'devops-sre-kubernetes',
-    name: 'DevOps, SRE & Container Orchestration',
-    description: 'Docker multi-stage builds, Kubernetes pod scheduling and services, Helm templating, and observability SLI/SLO.',
-    icon: '🚀',
-    articlesCount: 2,
-  },
-  {
-    slug: 'fullstack-web-engineering',
-    name: 'Full-Stack Web Engineering & Modern APIs',
-    description: 'Browser rendering engine, JavaScript Event Loop, React Fiber reconciliation, Next.js RSC, and REST/GraphQL/gRPC.',
-    icon: '🌐',
-    articlesCount: 2,
-  },
-  {
-    slug: 'machine-learning-ai-systems',
-    name: 'Machine Learning, AI & LLM Systems',
-    description: 'Transformers, multi-head attention, fine-tuning with LoRA, Retrieval-Augmented Generation (RAG), and MLOps.',
-    icon: '🤖',
-    articlesCount: 2,
-  },
-  {
-    slug: 'data-engineering-pipelines',
-    name: 'Data Engineering & Streaming Pipelines',
-    description: 'Apache Spark DAG execution, Kafka event streaming, Lakehouse ACID architectures, and Airflow orchestration.',
-    icon: '📊',
-    articlesCount: 2,
-  },
-  {
-    slug: 'cybersecurity-cryptography',
-    name: 'Cybersecurity, AppSec & Cryptography',
-    description: 'OWASP Top 10 vulnerabilities, asymmetric cryptography, PKI, OAuth 2.0 with PKCE, and Zero-Trust network models.',
-    icon: '🛡️',
-    articlesCount: 2,
-  },
-  {
-    slug: 'qa-test-automation-engineering',
-    name: 'QA Automation & Software Test Engineering',
-    description: 'The Test Automation Pyramid, Test-Driven Development (TDD), Playwright CDP architecture, and k6 load testing.',
-    icon: '🧪',
-    articlesCount: 2,
-  },
-  {
-    slug: 'quantitative-aptitude-numerical-logic',
-    name: 'Quantitative Aptitude & Numerical Logic',
-    description: 'Number theory, percentage scaling, time and work mechanics, probability distributions, and speed-time equations.',
-    icon: '📐',
-    articlesCount: 3,
-  },
-  {
-    slug: 'logical-reasoning-deduction',
-    name: 'Logical Reasoning & Analytical Deduction',
-    description: 'Categorical syllogisms, blood relation graphs, circular seating arrangements, and pattern decoding.',
-    icon: '🧩',
-    articlesCount: 2,
-  },
-];
 
 export const CURRICULUM_ARTICLES: CurriculumArticle[] = [
   // 1. DATA STRUCTURES: Binary Search Trees & Self-Balancing Trees
