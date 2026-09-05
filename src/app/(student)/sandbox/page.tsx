@@ -8,6 +8,7 @@ import { AlgorithmVisualizerSandbox } from '../../../components/sandbox/Algorith
 import { MemoryCacheInspectorSandbox } from '../../../components/sandbox/MemoryCacheInspectorSandbox';
 import { DistributedSystemsSandbox } from '../../../components/sandbox/DistributedSystemsSandbox';
 import { KernelNetworkSandbox } from '../../../components/sandbox/KernelNetworkSandbox';
+import { SystemDesignSandbox } from '../../../components/sandbox/SystemDesignSandbox';
 import { Button } from '../../../components/ui/Button';
 
 interface SqlChallenge {
@@ -408,7 +409,7 @@ const CODE_CHALLENGES: CodeChallenge[] = [
 ];
 
 export default function SandboxPage() {
-  const [activeTab, setActiveTab] = useState<'SQL' | 'CODE' | 'VISUALIZER' | 'MEMORY' | 'DISTRIBUTED' | 'KERNEL_NETWORK'>('SQL');
+  const [activeTab, setActiveTab] = useState<'SQL' | 'CODE' | 'VISUALIZER' | 'MEMORY' | 'DISTRIBUTED' | 'KERNEL_NETWORK' | 'SYSTEM_DESIGN'>('SQL');
   const [selectedSqlIndex, setSelectedSqlIndex] = useState(0);
   const [selectedCodeIndex, setSelectedCodeIndex] = useState(0);
 
@@ -526,10 +527,23 @@ export default function SandboxPage() {
             <span>⚙️</span>
             <span>OS Kernel &amp; Network Protocols Lab</span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('SYSTEM_DESIGN')}
+            className={`min-h-[44px] px-5 py-2 text-sm font-semibold border-b-2 transition-colors cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+              activeTab === 'SYSTEM_DESIGN'
+                ? 'border-primary-700 text-primary-800'
+                : 'border-transparent text-text-muted hover:text-text hover:border-border'
+            }`}
+          >
+            <span>🏗️</span>
+            <span>System Design Architecture Lab</span>
+          </button>
         </div>
 
         {/* Challenge Selection Pills for SQL and CODE */}
-        {activeTab !== 'VISUALIZER' && activeTab !== 'MEMORY' && activeTab !== 'DISTRIBUTED' && activeTab !== 'KERNEL_NETWORK' && (
+        {activeTab !== 'VISUALIZER' && activeTab !== 'MEMORY' && activeTab !== 'DISTRIBUTED' && activeTab !== 'KERNEL_NETWORK' && activeTab !== 'SYSTEM_DESIGN' && (
           <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-text-muted">
@@ -632,9 +646,13 @@ export default function SandboxPage() {
           <div className="space-y-6">
             <DistributedSystemsSandbox />
           </div>
-        ) : (
+        ) : activeTab === 'KERNEL_NETWORK' ? (
           <div className="space-y-6">
             <KernelNetworkSandbox />
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <SystemDesignSandbox />
           </div>
         )}
       </div>

@@ -167,4 +167,25 @@ describe('SandboxPage', () => {
     fireEvent.click(tcpTabBtn);
     expect(screen.getByText(/Congestion Window Dynamics/i)).toBeInTheDocument();
   });
+
+  it('switches to System Design Architecture Lab tab and interacts with topology simulator and sharding analyzer', () => {
+    render(<SandboxPage />);
+
+    const sysDesignTabBtn = screen.getByRole('button', { name: /System Design Architecture Lab/i });
+    fireEvent.click(sysDesignTabBtn);
+
+    expect(screen.getByText(/System Design Architecture Studio & Traffic Bottleneck Simulator/i)).toBeInTheDocument();
+    expect(screen.getByText(/Distributed Architecture Request Propagation Topology/i)).toBeInTheDocument();
+    expect(screen.getByText('OPTIMAL')).toBeInTheDocument();
+
+    // Trigger Cache Stampede failure preset
+    const stampedeBtn = screen.getByRole('button', { name: /Cache Stampede/i });
+    fireEvent.click(stampedeBtn);
+    expect(screen.getByText(/CRITICAL SYSTEM BOTTLE-NECK DETECTED|SYSTEM DEGRADED/i)).toBeInTheDocument();
+
+    // Switch Sharding Strategy to Celebrity Key Trap
+    const celebBtn = screen.getByRole('button', { name: /Celebrity Key Trap/i });
+    fireEvent.click(celebBtn);
+    expect(screen.getByText(/The Celebrity \/ Heavy-Hitter Key Problem/i)).toBeInTheDocument();
+  });
 });

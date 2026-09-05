@@ -66,7 +66,7 @@ test.describe("Production Readiness End-to-End Audit", () => {
     await expect(page.getByRole("button", { name: /All Disciplines/i })).toBeVisible();
   });
 
-  test("8. SQL & Code Logic Validation Sandbox boots with all 6 technical labs", async ({ page }) => {
+  test("8. SQL & Code Logic Validation Sandbox boots with all 7 technical labs", async ({ page }) => {
     await page.goto("/sandbox");
     await expect(
       page.getByRole("heading", {
@@ -80,6 +80,7 @@ test.describe("Production Readiness End-to-End Audit", () => {
     await expect(page.getByRole("button", { name: /Memory & Cache Hierarchy Lab/i })).toBeVisible();
     await expect(page.getByRole("button", { name: /Distributed Systems & Architecture Lab/i })).toBeVisible();
     await expect(page.getByRole("button", { name: /OS Kernel & Network Protocols Lab/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /System Design Architecture Lab/i })).toBeVisible();
   });
 
   test("9. Timed Mock Assessments catalog boots with real-time search and category filters", async ({ page }) => {
