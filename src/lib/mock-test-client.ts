@@ -290,6 +290,17 @@ function createFallbackSession(mockTestId: string): MockTestAttemptData {
   const domainQuestions = getMockTestQuestionsForDomain(mockTestId);
   const half = Math.ceil(domainQuestions.length / 2);
 
+  const isGeneralAptitude =
+    mockTestId === 'mock-1' ||
+    found.slug.includes('aptitude') ||
+    found.title.toLowerCase().includes('aptitude');
+  const sec1Title = isGeneralAptitude
+    ? 'Section 1: Quantitative & Numerical Logic'
+    : 'Section 1: Architecture & Technical Principles';
+  const sec2Title = isGeneralAptitude
+    ? 'Section 2: Logical Reasoning & Analytical Deduction'
+    : 'Section 2: Applied Engineering & Troubleshooting';
+
   return {
     attempt: {
       id: `attempt-${mockTestId}`,
@@ -306,7 +317,7 @@ function createFallbackSession(mockTestId: string): MockTestAttemptData {
     sections: [
       {
         id: 'sec-1',
-        title: 'Section 1: Architecture & Technical Principles',
+        title: sec1Title,
         orderIndex: 0,
         durationMinutes: Math.floor(duration / 2),
         cutoffScore: 2.5,
@@ -314,7 +325,7 @@ function createFallbackSession(mockTestId: string): MockTestAttemptData {
       },
       {
         id: 'sec-2',
-        title: 'Section 2: Engineering & Troubleshooting',
+        title: sec2Title,
         orderIndex: 1,
         durationMinutes: Math.ceil(duration / 2),
         cutoffScore: 2.5,
@@ -381,6 +392,17 @@ function createFallbackScorecard(attemptId: string): MockTestScorecardData {
 
   const half = Math.ceil(total / 2);
 
+  const isGeneralAptitude =
+    mockTestId === 'mock-1' ||
+    found.slug.includes('aptitude') ||
+    found.title.toLowerCase().includes('aptitude');
+  const sec1Title = isGeneralAptitude
+    ? 'Section 1: Quantitative & Numerical Logic'
+    : 'Section 1: Architecture & Technical Principles';
+  const sec2Title = isGeneralAptitude
+    ? 'Section 2: Logical Reasoning & Analytical Deduction'
+    : 'Section 2: Applied Engineering & Troubleshooting';
+
   return {
     attemptId,
     mockTestId: found.id,
@@ -400,7 +422,7 @@ function createFallbackScorecard(attemptId: string): MockTestScorecardData {
     sectionBreakdown: [
       {
         sectionId: 'sec-1',
-        title: 'Section 1: Architecture & Technical Principles',
+        title: sec1Title,
         orderIndex: 0,
         durationMinutes: 20,
         cutoffScore: 2.5,
@@ -415,7 +437,7 @@ function createFallbackScorecard(attemptId: string): MockTestScorecardData {
       },
       {
         sectionId: 'sec-2',
-        title: 'Section 2: Engineering & Troubleshooting',
+        title: sec2Title,
         orderIndex: 1,
         durationMinutes: 20,
         cutoffScore: 2.5,

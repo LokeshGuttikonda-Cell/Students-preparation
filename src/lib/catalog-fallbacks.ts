@@ -138,6 +138,15 @@ export function getMockTestQuestionsForDomain(mockTestIdOrSlug: string): Array<{
 
   const half = Math.ceil(selected.length / 2);
 
+  const isGeneralAptitude =
+    mockTestIdOrSlug === 'mock-1' || mockTestIdOrSlug.includes('aptitude');
+  const sec1Title = isGeneralAptitude
+    ? 'Section 1: Quantitative & Numerical Logic'
+    : 'Section 1: Architecture & Technical Principles';
+  const sec2Title = isGeneralAptitude
+    ? 'Section 2: Logical Reasoning & Analytical Deduction'
+    : 'Section 2: Applied Engineering & Troubleshooting';
+
   return selected.map((q, idx) => {
     const meta = topicMap.get(q.topicId) || {
       topicName: 'Technical Engineering Core',
@@ -154,9 +163,7 @@ export function getMockTestQuestionsForDomain(mockTestIdOrSlug: string): Array<{
       topicName: meta.topicName,
       subjectName: meta.subjectName,
       sectionId: isFirstSection ? 'sec-1' : 'sec-2',
-      sectionTitle: isFirstSection
-        ? 'Section 1: Architecture & Technical Principles'
-        : 'Section 2: Applied Engineering & Troubleshooting',
+      sectionTitle: isFirstSection ? sec1Title : sec2Title,
       options: q.options.map((o) => ({
         id: o.id,
         body: o.body,

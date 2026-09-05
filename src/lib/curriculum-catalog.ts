@@ -56,7 +56,7 @@ export const CURRICULUM_DOMAINS: CurriculumDomain[] = [
     name: 'System Design & Software Architecture',
     description: 'Low-level object-oriented design patterns, SOLID principles, concurrency models, and scalable distributed systems.',
     icon: '🏛️',
-    articlesCount: 2,
+    articlesCount: 4,
   },
   {
     slug: 'operating-systems-internals',
@@ -91,14 +91,14 @@ export const CURRICULUM_DOMAINS: CurriculumDomain[] = [
     name: 'DevOps, SRE & Container Orchestration',
     description: 'Docker multi-stage builds, Kubernetes pod scheduling and services, Helm templating, and observability SLI/SLO.',
     icon: '🚀',
-    articlesCount: 2,
+    articlesCount: 1,
   },
   {
     slug: 'fullstack-web-engineering',
     name: 'Full-Stack Web Engineering & Modern APIs',
     description: 'Browser rendering engine, JavaScript Event Loop, React Fiber reconciliation, Next.js RSC, and REST/GraphQL/gRPC.',
     icon: '🌐',
-    articlesCount: 2,
+    articlesCount: 1,
   },
   {
     slug: 'machine-learning-ai-systems',
@@ -119,21 +119,21 @@ export const CURRICULUM_DOMAINS: CurriculumDomain[] = [
     name: 'Cybersecurity, AppSec & Cryptography',
     description: 'OWASP Top 10 vulnerabilities, asymmetric cryptography, PKI, OAuth 2.0 with PKCE, and Zero-Trust network models.',
     icon: '🛡️',
-    articlesCount: 2,
+    articlesCount: 1,
   },
   {
     slug: 'qa-test-automation-engineering',
     name: 'QA Automation & Software Test Engineering',
     description: 'The Test Automation Pyramid, Test-Driven Development (TDD), Playwright CDP architecture, and k6 load testing.',
     icon: '🧪',
-    articlesCount: 2,
+    articlesCount: 1,
   },
   {
     slug: 'quantitative-aptitude-numerical-logic',
     name: 'Quantitative Aptitude & Numerical Logic',
     description: 'Number theory, percentage scaling, time and work mechanics, probability distributions, and speed-time equations.',
     icon: '📐',
-    articlesCount: 2,
+    articlesCount: 3,
   },
   {
     slug: 'logical-reasoning-deduction',
@@ -1589,6 +1589,693 @@ function evaluateAST(node: ASTNode): number {
       },
     ],
     relatedRoleSlugs: ['fullstack-javascript-developer', 'backend-systems-engineer'],
+  },
+  {
+    id: 'art-quant-number-theory',
+    slug: 'number-theory-modular-arithmetic',
+    domainSlug: 'quantitative-aptitude-numerical-logic',
+    domainName: 'Quantitative Aptitude & Numerical Logic',
+    title: 'Number Theory, Modular Arithmetic & Cryptographic Primes',
+    level: 'INTERMEDIATE',
+    readTimeMinutes: 14,
+    summary:
+      'Master the mathematical foundations of modular arithmetic, Euclidean algorithms for greatest common divisor, Bézout’s identity, modular multiplicative inverse, and the Chinese Remainder Theorem.',
+    prerequisites: ['Basic integer division', 'Modular congruences definition', 'Prime factorization'],
+    keyConcepts: [
+      'Euclidean Algorithm for GCD',
+      'Extended Euclidean Algorithm & Bézout Identity',
+      'Modular Multiplicative Inverse',
+      'Fermat’s Little Theorem',
+      'Chinese Remainder Theorem (CRT)',
+      'Fast Modular Exponentiation',
+    ],
+    overview: `Number theory forms the operational bedrock of cryptography, hash functions, distributed timestamping, and computer arithmetic. When dealing with cyclic systems and finite fields, standard arithmetic rules yield to modular congruence, where division is replaced by multiplication with the modular multiplicative inverse. This guide details how to compute GCDs in logarithmic time, solve linear Diophantine equations, compute large powers modulo p, and reconstruct unknown integers from modular remnants.`,
+    theorySections: [
+      {
+        heading: '1. Euclidean Algorithm & Bézout’s Identity',
+        content: `The Euclidean algorithm computes the Greatest Common Divisor (GCD) of two non-negative integers a and b based on the invariant:
+gcd(a, b) = gcd(b, a mod b) with base case gcd(a, 0) = a.
+
+By Lamé’s Theorem, the algorithm terminates in at most 5 * log10(min(a, b)) steps, achieving O(log(min(a, b))) asymptotic time complexity.
+
+Bézout's identity states that for any non-zero integers a and b, there exist integers x and y such that:
+a*x + b*y = gcd(a, b).
+The Extended Euclidean algorithm computes these Bézout coefficients x and y recursively alongside the GCD.`,
+        codeSnippet: {
+          language: 'typescript',
+          code: `export function extendedGcd(a: bigint, b: bigint): [bigint, bigint, bigint] {
+  if (b === 0n) {
+    return [a, 1n, 0n]; // [gcd, x, y] such that a*1 + 0*0 = a
+  }
+  const [gcd, x1, y1] = extendedGcd(b, a % b);
+  // Using invariant: a % b = a - floor(a / b) * b
+  const x = y1;
+  const y = x1 - (a / b) * y1;
+  return [gcd, x, y];
+}
+
+export function modInverse(a: bigint, m: bigint): bigint {
+  const [gcd, x] = extendedGcd(a, m);
+  if (gcd !== 1n) {
+    throw new Error('Modular inverse does not exist: numbers are not coprime');
+  }
+  return ((x % m) + m) % m; // Ensure non-negative representative in [0, m-1]
+}`,
+          explanation:
+            'The extended Euclidean algorithm traverses recursion down to base case b=0, then unwinds while updating Bézout coefficients x and y. If gcd(a, m) === 1, x is the modular inverse of a modulo m.',
+        },
+      },
+      {
+        heading: '2. Fermat’s Little Theorem & Binary Exponentiation',
+        content: `Fermat’s Little Theorem (FLT) establishes that if p is a prime number and a is an integer not divisible by p:
+a^(p - 1) ≡ 1 (mod p).
+Equivalently:
+a^p ≡ a (mod p) and a^(p - 2) ≡ a^(-1) (mod p).
+
+This provides an immediate O(log p) method for computing modular inverse when the modulus is prime, leveraging Binary Exponentiation (repeated squaring):
+To compute (base^exp) mod m:
+- If exp is even: (base^(exp / 2))^2 mod m
+- If exp is odd: (base * base^(exp - 1)) mod m
+This requires at most 2 * log2(exp) multiplications.`,
+      },
+      {
+        heading: '3. Chinese Remainder Theorem (CRT)',
+        content: `The Chinese Remainder Theorem states that given pairwise coprime positive integers m1, m2, ..., mk and any integers a1, a2, ..., ak, the system of simultaneous congruences:
+x ≡ a1 (mod m1)
+x ≡ a2 (mod m2)
+...
+x ≡ ak (mod mk)
+has a unique solution modulo M = m1 * m2 * ... * mk.
+
+Construction:
+For each i, let Mi = M / mi. Since gcd(Mi, mi) = 1, there exists modular inverse yi = Mi^(-1) mod mi.
+The unique solution is given by:
+x = (∑ ai * Mi * yi) mod M.`,
+      },
+    ],
+    trapsAndAntiPatterns: [
+      {
+        trap: 'Direct integer division in modular arithmetic',
+        misconception: 'Writing (a / b) mod m = ((a mod m) / (b mod m)) mod m.',
+        correction:
+          'Modular division is undefined in general. Division by b modulo m is valid only when gcd(b, m) = 1, computed as (a * modInverse(b, m)) mod m.',
+      },
+      {
+        trap: 'Applying Fermat’s Little Theorem to composite moduli',
+        misconception: 'Computing a^(-1) as a^(m - 2) mod m when m is composite.',
+        correction:
+          'FLT strictly holds only for prime moduli. For composite m, use the Extended Euclidean algorithm or Euler’s Totient Theorem: a^(φ(m) - 1) mod m where φ(m) is Euler’s totient function.',
+      },
+    ],
+    practiceMcqs: [
+      {
+        id: 'q-quant-num-1',
+        question:
+          'What is the modular multiplicative inverse of 7 modulo 11, such that (7 * x) ≡ 1 (mod 11)?',
+        options: ['8', '5', '3', '4'],
+        correctIndex: 0,
+        explanation:
+          '7 * 8 = 56. 56 = 5 * 11 + 1, so 56 ≡ 1 (mod 11). By Fermat’s Little Theorem: 7^(11-2) = 7^9 mod 11 = 8. Thus the inverse is 8.',
+      },
+      {
+        id: 'q-quant-num-2',
+        question:
+          'According to Bézout’s Identity, the linear Diophantine equation a*x + b*y = c has integer solutions (x, y) if and only if:',
+        options: [
+          'c is a prime number',
+          'gcd(a, b) divides c',
+          'a and b are both odd numbers',
+          'c is strictly greater than both a and b',
+        ],
+        correctIndex: 1,
+        explanation:
+          'Any linear combination a*x + b*y is necessarily an integer multiple of gcd(a, b). Hence an integer solution exists if and only if c is divisible by gcd(a, b).',
+      },
+    ],
+    relatedRoleSlugs: ['backend-systems-engineer', 'cybersecurity-analyst'],
+  },
+  {
+    id: 'art-quant-combinatorics',
+    slug: 'combinatorics-probability-distributions',
+    domainSlug: 'quantitative-aptitude-numerical-logic',
+    domainName: 'Quantitative Aptitude & Numerical Logic',
+    title: 'Combinatorics, Permutations & Probability Distributions',
+    level: 'INTERMEDIATE',
+    readTimeMinutes: 15,
+    summary:
+      'Master combinatorial counting principles, permutations vs combinations, the Pigeonhole Principle, Inclusion-Exclusion, conditional probability, and Bayes’ theorem.',
+    prerequisites: ['Basic set theory', 'Factorial operations', 'Independent vs dependent events'],
+    keyConcepts: [
+      'Fundamental Counting Principle',
+      'Permutations vs Combinations (nPr vs nCr)',
+      'Dirichlet Pigeonhole Principle',
+      'Inclusion-Exclusion Principle',
+      'Bayes’ Theorem & Posterior Probability',
+      'Binomial Distribution Mechanics',
+    ],
+    overview: `Combinatorics and probability govern algorithmic analysis, network reliability, machine learning classifications, and distributed consensus voting. Understanding whether order matters (permutations) or not (combinations), establishing lower bounds through the Pigeonhole Principle, and updating probabilistic belief via Bayes’ Theorem are mandatory engineering competencies. This guide delivers rigorous formulas, edge cases, and computational optimizations.`,
+    theorySections: [
+      {
+        heading: '1. Permutations, Combinations & Combinatorial Optimization',
+        content: `When selecting r items from an n-element set:
+- Permutations (Order Matters): P(n, r) = n! / (n - r)!
+- Combinations (Order Does Not Matter): C(n, r) = (n r) = n! / (r! * (n - r)!)
+
+Symmetry Property: C(n, r) = C(n, n - r).
+Pascal’s Identity: C(n, r) = C(n - 1, r - 1) + C(n - 1, r).
+
+Computing nCr naively via factorials leads to integer overflow even for moderate n (e.g. 21! overflows 64-bit integer). The optimal multiplicative formulation computes:
+C(n, r) = ∏(i = 1 to r) (n - i + 1) / i in O(r) time and O(1) space.`,
+        codeSnippet: {
+          language: 'typescript',
+          code: `export function combinations(n: number, r: number): number {
+  if (r < 0 || r > n) return 0;
+  if (r === 0 || r === n) return 1;
+  const k = Math.min(r, n - r); // Exploit symmetry C(n, r) = C(n, n-r)
+  let result = 1;
+  for (let i = 1; i <= k; i++) {
+    result = (result * (n - i + 1)) / i;
+  }
+  return Math.round(result);
+}`,
+          explanation:
+            'By computing the product iteratively and dividing by i at each step, the running value always represents an integer (product of i consecutive integers is divisible by i!), avoiding factorial overflow.',
+        },
+      },
+      {
+        heading: '2. The Pigeonhole Principle & Inclusion-Exclusion',
+        content: `The Dirichlet Pigeonhole Principle states:
+If n items are put into k containers with n > k, at least one container must contain at least 2 items.
+Generalized Form: At least one container must hold at least ⌈n / k⌉ items.
+Applications: Proving collision existence in hash tables, cycle detection in finite state machines, and lossless data compression limits.
+
+The Principle of Inclusion-Exclusion (PIE) computes the cardinality of the union of finite sets:
+|A ∪ B| = |A| + |B| - |A ∩ B|
+|A ∪ B ∪ C| = |A| + |B| + |C| - (|A ∩ B| + |B ∩ C| + |C ∩ A|) + |A ∩ B ∩ C|.`,
+      },
+      {
+        heading: '3. Conditional Probability & Bayes’ Theorem',
+        content: `For events A and B with P(B) > 0, the conditional probability of A given B is:
+P(A | B) = P(A ∩ B) / P(B).
+
+Bayes’ Theorem reverses conditional probability, computing posterior belief:
+P(A | B) = [P(B | A) * P(A)] / P(B).
+Using the Law of Total Probability for mutually exclusive exhaustive events {A, ¬A}:
+P(B) = P(B | A) * P(A) + P(B | ¬A) * P(¬A).
+
+Binomial Distribution:
+For n independent Bernoulli trials with success probability p:
+P(X = k) = (n k) * p^k * (1 - p)^(n - k), with E[X] = n*p and Var(X) = n*p*(1 - p).`,
+      },
+    ],
+    trapsAndAntiPatterns: [
+      {
+        trap: 'Base Rate Fallacy in Bayes’ Theorem',
+        misconception: 'Assuming a test with 99% accuracy means a positive test result indicates a 99% probability of having a rare condition.',
+        correction:
+          'If the base rate P(A) is very low (e.g. 0.1%), false positives from the large negative population will outnumber true positives. Always apply the full Bayesian formula including prior probability.',
+      },
+      {
+        trap: 'Double Counting in Overlapping Sets',
+        misconception: 'Adding |A| + |B| to find total unique items without subtracting the intersection |A ∩ B|.',
+        correction:
+          'Any element satisfying both conditions is counted twice. Always subtract pairwise intersections and add back odd-order intersections per Inclusion-Exclusion.',
+      },
+    ],
+    practiceMcqs: [
+      {
+        id: 'q-quant-comb-1',
+        question:
+          'In a group of 13 people, what is the minimum number of people who must share the same birth month, according to the Generalized Pigeonhole Principle?',
+        options: ['1', '2', '3', '4'],
+        correctIndex: 1,
+        explanation:
+          'Items n = 13 (people), containers k = 12 (calendar months). By generalized pigeonhole principle: ⌈13 / 12⌉ = ⌈1.083⌉ = 2 people must share the same birth month.',
+      },
+      {
+        id: 'q-quant-comb-2',
+        question:
+          'A fair coin is tossed 4 times. What is the exact probability of getting exactly 3 heads?',
+        options: ['1/4 (25%)', '3/8 (37.5%)', '1/2 (50%)', '3/16 (18.75%)'],
+        correctIndex: 0,
+        explanation:
+          'Using Binomial distribution P(X = 3) = C(4, 3) * (1/2)^3 * (1/2)^1 = 4 * (1/8) * (1/2) = 4 / 16 = 1/4 (25%).',
+      },
+    ],
+    relatedRoleSlugs: ['data-analytics-engineer', 'machine-learning-engineer'],
+  },
+  {
+    id: 'art-logic-constraint-graphs',
+    slug: 'constraint-satisfaction-networks',
+    domainSlug: 'logical-reasoning-deduction',
+    domainName: 'Logical Reasoning & Analytical Deduction',
+    title: 'Constraint Satisfaction Networks & Graph-Based Deductions',
+    level: 'ADVANCED',
+    readTimeMinutes: 16,
+    summary:
+      'Explore constraint propagation networks, arc consistency (AC-3), 2-Satisfiability reduced to strongly connected components, topological ordering, and bipartite matching.',
+    prerequisites: ['Graph adjacency representations', 'Depth-First Search', 'Boolean propositional logic'],
+    keyConcepts: [
+      'Constraint Satisfaction Problems (CSP)',
+      'AC-3 Arc Consistency Algorithm',
+      '2-SAT & Implication Graphs',
+      'Strongly Connected Components (Kosaraju / Tarjan)',
+      'Topological Dependency Ordering (Kahn’s Algorithm)',
+      'Maximum Bipartite Matching (Hopcroft-Karp)',
+    ],
+    overview: `Complex analytical deduction problems—such as circular seating allocations, multi-variable scheduling constraints, dependency resolution, and logical puzzles—are formally modeled as Constraint Satisfaction Problems (CSPs). Rather than brute-force backtracking, advanced deduction uses Arc Consistency, Implication Graph analysis, and Topological Sorting to eliminate impossible states in polynomial time. This article breaks down the mathematical foundations of graph deduction algorithms.`,
+    theorySections: [
+      {
+        heading: '1. 2-Satisfiability (2-SAT) & Implication Graphs',
+        content: `A 2-CNF formula consists of a conjunction of clauses, each having at most 2 literals:
+(x1 ∨ x2) ∧ (¬x1 ∨ x3) ∧ ...
+
+Since (A ∨ B) is logically equivalent to (¬A → B) ∧ (¬B → A), every clause generates two directed implication edges in an Implication Graph G = (V, E) where vertices are literals {x, ¬x}.
+
+Theorem (Aspvall, Plass & Tarjan, 1979):
+A 2-SAT instance is satisfiable if and only if for every variable x, x and ¬x do NOT belong to the same Strongly Connected Component (SCC).
+
+Algorithm in O(V + E) linear time:
+1. Build directed implication graph with 2N vertices and 2M edges.
+2. Run Tarjan’s or Kosaraju’s algorithm to partition vertices into SCCs.
+3. For each variable x: If SCC(x) == SCC(¬x), return UNSATISFIABLE.
+4. Otherwise, assign truth values in reverse topological order of the SCC DAG.`,
+        codeSnippet: {
+          language: 'typescript',
+          code: `export function kahnTopologicalSort(
+  numNodes: number,
+  edges: [number, number][],
+): number[] {
+  const inDegree = new Array<number>(numNodes).fill(0);
+  const adj = new Map<number, number[]>();
+
+  for (let i = 0; i < numNodes; i++) adj.set(i, []);
+  for (const [from, to] of edges) {
+    adj.get(from)!.push(to);
+    inDegree[to]++;
+  }
+
+  const queue: number[] = [];
+  for (let i = 0; i < numNodes; i++) {
+    if (inDegree[i] === 0) queue.push(i);
+  }
+
+  const order: number[] = [];
+  while (queue.length > 0) {
+    const curr = queue.shift()!;
+    order.push(curr);
+    for (const neighbor of adj.get(curr) || []) {
+      inDegree[neighbor]--;
+      if (inDegree[neighbor] === 0) {
+        queue.push(neighbor);
+      }
+    }
+  }
+
+  if (order.length !== numNodes) {
+    throw new Error('Graph contains a directed cycle! Valid dependency order impossible.');
+  }
+  return order;
+}`,
+          explanation:
+            'Kahn’s algorithm maintains an in-degree array. Nodes with in-degree 0 are processed and removed, decrementing neighbor in-degrees. If order length < total nodes, a cycle exists.',
+        },
+      },
+      {
+        heading: '2. Constraint Satisfaction & Arc Consistency (AC-3)',
+        content: `A CSP is defined by a triplet (X, D, C):
+- X: set of variables {X1, X2, ..., Xn}
+- D: domain of possible values for each variable {D1, D2, ..., Dn}
+- C: set of constraints restricting allowable variable tuples.
+
+An arc (Xi, Xj) is arc-consistent if for every value x ∈ Di, there exists some value y ∈ Dj that satisfies the binary constraint between Xi and Xj.
+The AC-3 (Arc Consistency Algorithm #3) maintains a queue of arcs. Whenever a value is deleted from Di to satisfy an arc, all incoming arcs to Xi are re-enqueued.
+Time Complexity: O(c * d^3) where c is number of constraints and d is maximum domain size. AC-3 dramatically prunes the search tree before backtracking.`,
+      },
+      {
+        heading: '3. Bipartite Matching in Analytical Allocation',
+        content: `Many logical puzzles involve pairing two sets of entities (e.g. candidates to job roles, students to exam rooms) subject to compatibility edges.
+- Hall’s Marriage Theorem: A bipartite graph G = (A ∪ B, E) has a matching that covers A if and only if for every subset S ⊆ A, the size of its neighborhood |N(S)| ≥ |S|.
+- Hopcroft-Karp Algorithm: Finds the maximum cardinality bipartite matching in O(E * √V) time using alternating BFS levels and disjoint augmenting DFS paths.`,
+      },
+    ],
+    trapsAndAntiPatterns: [
+      {
+        trap: 'Assuming 3-SAT can be solved like 2-SAT',
+        misconception: 'Trying to create implication graphs for 3-variable clauses (A ∨ B ∨ C).',
+        correction:
+          '2-SAT maps to binary implications and is solvable in linear time O(V + E). 3-SAT cannot be factored into deterministic pairwise implications and is NP-complete.',
+      },
+      {
+        trap: 'Greedy Allocation in Resource Matching',
+        misconception: 'Iterating through entities and greedily assigning the first available compatible slot.',
+        correction:
+          'Greedy selection often locks up slots needed by later constrained entities, yielding suboptimal matching. Use augmenting path algorithms (Hopcroft-Karp or Ford-Fulkerson).',
+      },
+    ],
+    practiceMcqs: [
+      {
+        id: 'q-logic-csp-1',
+        question:
+          'In an implication graph representing a 2-SAT boolean formula, the formula is determined to be UNSATISFIABLE if and only if:',
+        options: [
+          'The graph has more edges than vertices',
+          'A variable x and its negation ¬x belong to the same Strongly Connected Component (SCC)',
+          'The graph contains at least one node with in-degree 0',
+          'The graph contains an odd number of total variables',
+        ],
+        correctIndex: 1,
+        explanation:
+          'If x and ¬x are in the same SCC, there exists a path x → ¬x (implying x ⇒ ¬x, so x must be false) and a path ¬x → x (implying ¬x ⇒ x, so x must be true). Both cannot be satisfied simultaneously, proving contradiction.',
+      },
+    ],
+    relatedRoleSlugs: ['backend-systems-engineer', 'data-analytics-engineer'],
+  },
+  {
+    id: 'art-cloud-kernel-primitives',
+    slug: 'linux-kernel-cgroups-container-primitives',
+    domainSlug: 'cloud-infrastructure-architecture',
+    domainName: 'Cloud Computing & Enterprise Infrastructure',
+    title: 'Linux Kernel Subsystems, Cgroups v2 & Container Isolation Primitives',
+    level: 'ADVANCED',
+    readTimeMinutes: 18,
+    summary:
+      'Deconstruct the Linux kernel subsystems powering containers: namespaces, cgroups v2 resource accounting, seccomp syscall filtering, and pivot_root virtual file hierarchies.',
+    prerequisites: ['Linux process management', 'Virtual memory concepts', 'POSIX system calls'],
+    keyConcepts: [
+      'Containers vs Virtual Machines',
+      'Linux Kernel Namespaces (PID, NET, MNT, IPC, UTS, USER)',
+      'Cgroups v2 Unified Hierarchy',
+      'OOM Killer & memory.max / memory.high',
+      'Syscall Filtering via seccomp-bpf',
+      'OverlayFS Storage Driver Mechanics',
+    ],
+    overview: `Containers are not virtual machines: there is no guest kernel, no hypervisor overhead, and no simulated BIOS. A container is simply a standard Linux process running directly on the host kernel, wrapped by kernel isolation primitives: Namespaces (which restrict what the process can see) and Control Groups / cgroups (which restrict what the process can consume). This guide examines the low-level kernel mechanics that enterprise clouds rely on to execute multi-tenant container workloads securely.`,
+    theorySections: [
+      {
+        heading: '1. Linux Namespaces: The Visibility Boundary',
+        content: `Linux namespaces partition global kernel resources into isolated instances:
+- PID Namespace: Process IDs are renumbered starting from 1 inside the container. Process 1 becomes the container init process responsible for reaping zombie processes.
+- NET Namespace: Provides isolated network stack (independent loopback lo, eth0 virtual interface pairs veth, IP routing tables, iptables/nftables chains, and listening socket ports).
+- MNT (Mount) Namespace: Isolates the filesystem mount table. Coupled with pivot_root, it restricts the container process to its own rootfs.
+- IPC Namespace: Isolates System V IPC and POSIX message queues.
+- UTS Namespace: Isolates the hostname and NIS domain name.
+- USER Namespace: Maps UID 0 (root) inside the container to an unprivileged UID (e.g. UID 10001) on the host, preventing host root compromise even if a container breakout occurs.`,
+        codeSnippet: {
+          language: 'bash',
+          code: `# Creating an isolated PID, Mount, Network, and UTS namespace using unshare:
+unshare --mount --pid --net --uts --fork /bin/bash
+
+# Setting up a memory ceiling with cgroups v2:
+# 1. Create a cgroup directory in unified hierarchy
+mkdir /sys/fs/cgroup/sandbox-service
+
+# 2. Assign maximum memory limit (256MB)
+echo "268435456" > /sys/fs/cgroup/sandbox-service/memory.max
+
+# 3. Add container process PID to cgroup tasks
+echo $PID > /sys/fs/cgroup/sandbox-service/cgroup.procs`,
+          explanation:
+            'unshare system call creates new namespaces for the spawned shell. Cgroups v2 unified tree manages memory limits at /sys/fs/cgroup. When process memory exceeds memory.max, the kernel triggers synchronous reclamation or the OOM killer.',
+        },
+      },
+      {
+        heading: '2. Cgroups v2: Resource Accounting & OOM Protection',
+        content: `Control Groups v2 provides a unified hierarchy replacing the legacy cgroups v1 multi-tree model:
+- memory.max: Hard memory ceiling. Exceeding this triggers the Out-Of-Memory (OOM) killer.
+- memory.high: Soft throttling threshold. Exceeding this slows down processes and forces proactive page cache reclaim without killing the process.
+- cpu.weight: Proportional CPU share (1-10000) under CPU contention.
+- cpu.max: Hard quota enforcing CFS (Completely Fair Scheduler) period and quota (e.g. "50000 100000" restricts process to 50ms every 100ms = 0.5 CPU cores).
+- io.weight & io.max: Disk read/write IOPS and byte bandwidth ceilings.
+
+The Linux OOM Killer evaluates oom_score = (memory_consumed / total_memory) + oom_score_adj. Processes with highest score are sent SIGKILL to preserve kernel stability.`,
+      },
+      {
+        heading: '3. Seccomp-BPF & OverlayFS Architecture',
+        content: `Even with namespaces and cgroups, a process shares the host kernel. If a process invokes a vulnerable system call (e.g. keyctl, ptrace, or unshare), the kernel could be exploited.
+Seccomp (Secure Computing Mode) with BPF filters inspects every syscall before execution:
+- SECCOMP_RET_ALLOW: Permit execution.
+- SECCOMP_RET_ERRNO: Reject syscall returning specified error (e.g. EPERM).
+- SECCOMP_RET_KILL: Immediately terminate process.
+
+OverlayFS creates an efficient layered filesystem:
+- lowerdir: Read-only base container image layers.
+- upperdir: Read-write scratch layer storing newly written or modified files.
+- merged: Unified mount view presented to container process via Copy-on-Write (CoW).`,
+      },
+    ],
+    trapsAndAntiPatterns: [
+      {
+        trap: 'Running containers in privileged mode (--privileged)',
+        misconception: 'Using privileged mode as an easy fix for permissions issues.',
+        correction:
+          'Privileged mode grants all Linux capabilities (CAP_SYS_ADMIN), disables AppArmor/SELinux profiles, and exposes all host devices in /dev, allowing trivial host breakout.',
+      },
+      {
+        trap: 'Omitting PID 1 Zombie Reaping',
+        misconception: 'Running application servers directly as PID 1 without an init system.',
+        correction:
+          'In Linux, orphaned child processes are re-parented to PID 1. If PID 1 does not implement a waitpid() loop, zombies remain indefinitely in the process table, eventually exhausting kernel PID capacity.',
+      },
+    ],
+    practiceMcqs: [
+      {
+        id: 'q-cloud-kernel-1',
+        question:
+          'Which Linux kernel namespace is specifically responsible for providing isolated IP addresses, routing tables, and socket port bindings for a container?',
+        options: ['PID namespace', 'NET namespace', 'UTS namespace', 'IPC namespace'],
+        correctIndex: 1,
+        explanation:
+          'The NET (Network) namespace provides each container process with its own private network stack, including loopback interface, virtual ethernet interfaces (veth pairs), routing tables, and port spaces.',
+      },
+    ],
+    relatedRoleSlugs: ['devops-engineer', 'cloud-solutions-architect'],
+  },
+  {
+    id: 'art-de-columnar-storage',
+    slug: 'columnar-storage-parquet-arrow',
+    domainSlug: 'data-engineering-pipelines',
+    domainName: 'Data Engineering & Streaming Pipelines',
+    title: 'Vectorized Memory & Columnar Storage Engines (Parquet & Arrow)',
+    level: 'ADVANCED',
+    readTimeMinutes: 17,
+    summary:
+      'Compare row-oriented OLTP vs columnar OLAP formats, explore Apache Parquet physical layout, run-length and dictionary encodings, Apache Arrow in-memory zero-copy IPC, and SIMD CPU vectorization.',
+    prerequisites: ['Relational data models', 'Memory hierarchy and CPU caches', 'Data serialization principles'],
+    keyConcepts: [
+      'Row-Oriented (OLTP) vs Column-Oriented (OLAP)',
+      'Apache Parquet Physical Structure (Row Groups & Pages)',
+      'Dictionary Encoding & Run-Length Encoding (RLE)',
+      'Predicate Pushdown & Min/Max Statistics',
+      'Apache Arrow In-Memory Columnar Layout',
+      'SIMD Vectorized Query Processing',
+    ],
+    overview: `While transactional databases (PostgreSQL, MySQL) store data in rows to optimize single-record writes and lookups, analytical lakehouse engines (Spark, ClickHouse, BigQuery, DuckDB) process billions of rows across aggregations. Storing data by columns enables extreme data compression ratios, projection pushdown (reading only required columns), and SIMD CPU vectorized processing. This guide dissects Apache Parquet’s on-disk binary format and Apache Arrow’s in-memory memory standard.`,
+    theorySections: [
+      {
+        heading: '1. Row vs Column Physical Memory Locality',
+        content: `Consider a table with 100 columns and 50 million rows:
+Query: SELECT AVG(latency_ms) FROM telemetry WHERE country = 'US';
+
+In a Row-Oriented format (CSV, Postgres heap pages):
+- Each disk block / cache line loads entire records (columns 1 through 100).
+- Reading 2 columns requires transferring 100% of the dataset into RAM, thrashing CPU L1/L2 caches with 98% unneeded data.
+
+In a Columnar format (Apache Parquet, Apache ORC):
+- Values of latency_ms are stored contiguously in memory; values of country are stored contiguously.
+- The I/O engine reads only the exact byte offsets containing country and latency_ms, eliminating 98% of network and disk I/O.`,
+        codeSnippet: {
+          language: 'python',
+          code: `import pyarrow.parquet as pq
+
+# Reading Parquet with Projection Pushdown & Filter Predicate Pushdown:
+# 1. 'columns' ensures only required columns are decompressed into RAM
+# 2. 'filters' allows reader to skip entire Row Groups using Min/Max page headers
+table = pq.read_table(
+    'telemetry_data.parquet',
+    columns=['latency_ms', 'status_code'],
+    filters=[('status_code', '>=', 500)]
+)
+
+# Convert zero-copy to PyArrow RecordBatch for SIMD processing
+batches = table.to_batches()
+print(f"Loaded {len(table)} records across {len(batches)} vectorized batches")`,
+          explanation:
+            'PyArrow uses column projection and filter pushdown. The reader inspects Parquet file metadata footer: if status_code min is < 500 and max is < 500 in a Row Group, the entire 128MB chunk is bypassed without reading from disk.',
+        },
+      },
+      {
+        heading: '2. Parquet File Structure & Compression Encodings',
+        content: `A Parquet file consists of:
+- File Metadata (Footer): Contains schema, key-value metadata, and pointers to all Row Groups.
+- Row Groups: Horizontal partitions of data (typically 128MB to 512MB each).
+- Column Chunks: A chunk of data for a specific column within a row group.
+- Data Pages: Smallest readable units (typically 1MB) containing values, definition levels (for nullability), and repetition levels (for nested data).
+
+Compression & Encodings:
+- Dictionary Encoding: Replaces repeated string values with small integer IDs (e.g. 1-byte integers for status codes).
+- Run-Length Encoding (RLE): Compresses consecutive identical values as (count, value), e.g. [US, US, US, US] becomes (4, US).
+- Bit-Packing: Packs integers using only necessary bit widths (e.g. integers 0-3 take only 2 bits instead of 32 bits).
+- Page Statistics: Every Page and Column Chunk stores Min and Max values, enabling Predicate Pushdown.`,
+      },
+      {
+        heading: '3. Apache Arrow: Vectorized In-Memory Standard',
+        content: `Historically, every database system had its own internal in-memory format. Transferring data between systems (e.g. Spark to Pandas, or Python to C++) required costly serialization and deserialization (SerDe), often consuming 70-80% of query runtime.
+
+Apache Arrow provides a standardized columnar in-memory format across programming languages:
+- Contiguous Memory Buffers: Arrays are laid out flat in memory, ideal for CPU prefetching and cache hits.
+- Null Bitmaps: 1 bit per value indicates validity, eliminating sentinel values.
+- Zero-Copy Sharing: Multiple processes (or languages like Python and C++) read the same memory buffer via shared memory without copying or serialization.
+- SIMD Vectorization: Single Instruction Multiple Data registers (AVX-512, ARM Neon) process 16 integer operations simultaneously in a single CPU cycle.`,
+      },
+    ],
+    trapsAndAntiPatterns: [
+      {
+        trap: 'The Small File Problem in Parquet Lakehouses',
+        misconception: 'Writing streaming data into thousands of tiny 1MB Parquet files.',
+        correction:
+          'Each Parquet file requires metadata parsing and separate HTTP GET requests in object stores (S3). Tiny files destroy throughput. Target 128MB to 512MB row groups through compaction jobs.',
+      },
+      {
+        trap: 'Using High-Cardinality Columns for Dictionary Encoding',
+        misconception: 'Enabling dictionary encoding on unique UUIDs or timestamps.',
+        correction:
+          'When cardinality is close to total row count, dictionary overhead exceeds the raw data size. Parquet will fall back to plain encoding, wasting memory.',
+      },
+    ],
+    practiceMcqs: [
+      {
+        id: 'q-de-col-1',
+        question:
+          'How does "Predicate Pushdown" optimize query performance when querying Apache Parquet datasets?',
+        options: [
+          'It translates SQL queries into Python code automatically',
+          'It leverages Min/Max statistics stored in Parquet file footers to skip entire Row Groups and Pages without reading them from disk',
+          'It increases the clock frequency of the CPU dynamically',
+          'It converts columnar data into CSV format before transmission',
+        ],
+        correctIndex: 1,
+        explanation:
+          'Parquet files store min and max values in metadata headers. If a query filter specifies WHERE status = 500 and a Row Group has min=200 and max=404, the engine skips the entire Row Group without performing any disk I/O.',
+      },
+    ],
+    relatedRoleSlugs: ['data-engineer', 'data-analytics-engineer'],
+  },
+  {
+    id: 'art-ml-attention-kvcache',
+    slug: 'attention-mechanisms-kv-caching',
+    domainSlug: 'machine-learning-ai-systems',
+    domainName: 'Machine Learning, AI & LLM Systems',
+    title: 'Attention Mechanisms, KV-Caching & Transformer Inference Dynamics',
+    level: 'ADVANCED',
+    readTimeMinutes: 19,
+    summary:
+      'Master the mathematical mechanics of Scaled Dot-Product Attention, Multi-Head projections, the quadratic computational bottleneck, Key-Value (KV) caching, and PagedAttention memory management.',
+    prerequisites: ['Matrix multiplication & linear transformations', 'Softmax activation properties', 'Autoregressive language models'],
+    keyConcepts: [
+      'Scaled Dot-Product Attention Formulation',
+      'Multi-Head Attention (MHA) Projections',
+      'The Quadratic Computational Bottleneck O(N²)',
+      'Key-Value (KV) Caching in Autoregressive Generation',
+      'Multi-Query (MQA) & Grouped-Query Attention (GQA)',
+      'PagedAttention & Virtual Memory VRAM Paging',
+    ],
+    overview: `Transformer architectures underpin all modern Large Language Models (LLMs). While training is dominated by parallel matrix multiplications over static context windows, autoregressive inference generates tokens sequentially, where each new token depends on all previous tokens. Calculating attention naively causes quadratic O(N²) computational overhead. Key-Value (KV) caching stores past token projections to achieve O(N) step latency, but introduces severe VRAM memory constraints. This guide covers the mathematical, algorithmic, and architectural mechanics of attention inference.`,
+    theorySections: [
+      {
+        heading: '1. Scaled Dot-Product & Multi-Head Attention',
+        content: `Given an input sequence represented as embeddings X ∈ R^(N × d_model), linear projection matrices W_Q, W_K, W_V produce Queries (Q), Keys (K), and Values (V):
+Q = X * W_Q,  K = X * W_K,  V = X * W_V
+
+The Scaled Dot-Product Attention equation:
+Attention(Q, K, V) = softmax( (Q * K^T) / sqrt(d_k) ) * V
+
+Why scale by sqrt(d_k)?
+For large projection dimensions d_k, the dot product values grow large in magnitude, pushing the softmax function into regions with extremely small gradients (vanishing gradients). Dividing by sqrt(d_k) stabilizes variance to approximately 1.
+
+Multi-Head Attention (MHA) splits Q, K, V across h parallel heads:
+MHA(Q, K, V) = Concat(head_1, ..., head_h) * W_O
+where head_i = Attention(Q * W_Q_i, K * W_K_i, V * W_V_i).`,
+        codeSnippet: {
+          language: 'python',
+          code: `import torch
+import torch.nn.functional as F
+
+def scaled_dot_product_attention(Q, K, V, mask=None):
+    # Q: [batch, heads, seq_len_q, d_k]
+    # K, V: [batch, heads, seq_len_k, d_k]
+    d_k = Q.size(-1)
+    # Compute similarity logits
+    scores = torch.matmul(Q, K.transpose(-2, -1)) / (d_k ** 0.5)
+    
+    if mask is not None:
+        scores = scores.masked_fill(mask == 0, -1e9)
+        
+    weights = F.softmax(scores, dim=-1)
+    output = torch.matmul(weights, V)
+    return output, weights`,
+          explanation:
+            'Scaled dot product multiplies Q by K^T, scales by sqrt(d_k), applies optional causal attention mask (preventing looking into future tokens), evaluates softmax along last axis, and takes weighted sum of V.',
+        },
+      },
+      {
+        heading: '2. Autoregressive Decoding & The KV-Cache Solution',
+        content: `During autoregressive generation, generating token t requires computing attention against all tokens 1 through t-1.
+Without Caching:
+At step t, the model recomputes Q, K, V for all past t-1 tokens. Total compute for generating N tokens scales quadratically as O(N²), wasting GPU compute.
+
+With KV-Caching:
+Because past token activations do not change, their Key (K) and Value (V) representations are computed once and stored in GPU memory (the KV Cache).
+At step t:
+- Only the Query Q_t for the single new token is computed (dimension 1 × d_k).
+- Q_t is compared against the cached [K_past, K_t] matrix.
+- The step complexity drops from O(t) matrix multiplies to a single vector-matrix multiply O(1) in query length.`,
+      },
+      {
+        heading: '3. Memory Footprint & PagedAttention Dynamics',
+        content: `While KV cache solves computational latency, it creates an enormous VRAM bottleneck:
+KV Cache Size per Token per Request:
+Bytes = 2 (K and V) * 2 (bytes in FP16/BF16) * n_layers * n_heads * d_head
+
+Example (70B parameter model, 80 layers, 64 heads, d_head=128):
+Each token consumes ~1.3 MB of GPU RAM. A 4,000 token context window requires ~5.2 GB of VRAM per concurrent user!
+
+Architectural Solutions:
+1. Grouped-Query Attention (GQA): Multiple query heads share a single key/value head (e.g. 8 query heads per 1 KV head), reducing KV cache size by 8x.
+2. PagedAttention (vLLM): Traditional systems pre-allocated contiguous memory for the maximum context length (e.g. 8k tokens), resulting in 60-80% wasted internal fragmentation. PagedAttention models KV tensors as virtual memory pages stored in non-contiguous blocks, boosting batch throughput by 2-4x.`,
+      },
+    ],
+    trapsAndAntiPatterns: [
+      {
+        trap: 'Unbounded KV-Cache GPU Out-of-Memory Crashes',
+        misconception: 'Allocating KV cache naively per incoming request without admission control or eviction.',
+        correction:
+          'Long concurrent requests will exhaust GPU VRAM abruptly. Implement token budgeting, PagedAttention block management, and context sliding windows (StreamingLLM).',
+      },
+      {
+        trap: 'Missing Causal Mask in Autoregressive Models',
+        misconception: 'Allowing bidirectional attention across tokens during decoder generation.',
+        correction:
+          'Autoregressive decoders must use an upper-triangular causal mask (-infinity on future positions) so tokens cannot attend to subsequent positions.',
+      },
+    ],
+    practiceMcqs: [
+      {
+        id: 'q-ml-att-1',
+        question:
+          'Why is the dot-product of Query (Q) and Key (K) scaled by 1 / sqrt(d_k) in the transformer attention formulation?',
+        options: [
+          'To ensure the output values are always negative integers',
+          'To prevent the dot product magnitude from growing large with high dimension d_k, which would push softmax into vanishing gradient regions',
+          'To compress the sequence into a smaller context window',
+          'To make the matrix multiplication commutative',
+        ],
+        correctIndex: 1,
+        explanation:
+          'Under assumption of zero-mean unit-variance components, the variance of Q·K is d_k. Dividing by sqrt(d_k) scales variance back to 1, preventing softmax values from saturating to 0 and 1 with tiny derivative gradients.',
+      },
+    ],
+    relatedRoleSlugs: ['machine-learning-engineer', 'data-engineer'],
   },
 ];
 

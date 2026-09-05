@@ -19,10 +19,10 @@ vi.mock('next/navigation', () => ({
 describe('Curriculum & Knowledge Base Client Tests', () => {
   it('retrieves curriculum domains and articles', async () => {
     const domains = await getCurriculumDomains();
-    expect(domains.length).toBeGreaterThan(5);
+    expect(domains.length).toBe(14);
 
     const articles = await getCurriculumArticles();
-    expect(articles.length).toBeGreaterThan(5);
+    expect(articles.length).toBe(28);
   });
 
   it('filters articles by search query', async () => {

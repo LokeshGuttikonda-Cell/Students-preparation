@@ -82,5 +82,19 @@ describe('SandboxPage', () => {
     fireEvent.click(twoPointerBtn);
 
     expect(screen.getByText('Initial Extremes: left = 0, right = 7')).toBeInTheDocument();
+
+    // Switch to Graph BFS algorithm
+    const bfsBtn = screen.getByRole('button', { name: /Breadth-First Search/i });
+    fireEvent.click(bfsBtn);
+
+    expect(screen.getByText('Interactive Graph Topology & Frontier')).toBeInTheDocument();
+    expect(screen.getByText('BFS Initialization: Enqueue Source Vertex A')).toBeInTheDocument();
+
+    // Switch to Binary Search Tree algorithm
+    const bstBtn = screen.getByRole('button', { name: /Binary Search Tree/i });
+    fireEvent.click(bstBtn);
+
+    expect(screen.getByText('Binary Search Tree Layout')).toBeInTheDocument();
+    expect(screen.getByText('Insert Key 25: Compare with Root (40)')).toBeInTheDocument();
   });
 });

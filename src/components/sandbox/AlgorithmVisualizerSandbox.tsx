@@ -9,7 +9,53 @@ export type VisualizerAlgorithm =
   | 'TWO_POINTER_SUM'
   | 'STACK_DELIMITERS'
   | 'SLIDING_WINDOW'
-  | 'BUBBLE_SORT';
+  | 'BUBBLE_SORT'
+  | 'GRAPH_BFS_TRAVERSAL'
+  | 'GRAPH_DFS_TRAVERSAL'
+  | 'BST_INSERTION_INORDER';
+
+export interface VisualizerGraphNode {
+  id: string;
+  label: string;
+  x: number;
+  y: number;
+}
+
+export interface VisualizerGraphEdge {
+  from: string;
+  to: string;
+  directed?: boolean;
+}
+
+export interface VisualizerGraphState {
+  nodes: VisualizerGraphNode[];
+  edges: VisualizerGraphEdge[];
+  visitedNodes: string[];
+  activeNodeId?: string;
+  frontierQueue?: string[];
+  frontierLabel?: string;
+  traversalOrder: string[];
+  activeEdge?: { from: string; to: string };
+}
+
+export interface VisualizerTreeNode {
+  id: string;
+  val: number;
+  x: number;
+  y: number;
+  left?: string;
+  right?: string;
+  isNew?: boolean;
+}
+
+export interface VisualizerTreeState {
+  nodes: VisualizerTreeNode[];
+  activeNodeId?: string;
+  comparedNodeId?: string;
+  targetVal?: number;
+  traversalOrder?: number[];
+  traversalLabel?: string;
+}
 
 interface StepFrame {
   stepIndex: number;
@@ -23,6 +69,8 @@ interface StepFrame {
   eliminatedRange?: [number, number]; // start and end indices eliminated
   stack?: string[];
   windowRange?: [number, number];
+  graphState?: VisualizerGraphState;
+  treeState?: VisualizerTreeState;
   metrics?: Record<string, string | number | undefined>;
 }
 
@@ -341,6 +389,457 @@ const ALGORITHM_CONFIGS: AlgorithmConfig[] = [
       ];
     },
   },
+  {
+    id: 'GRAPH_BFS_TRAVERSAL',
+    name: 'Breadth-First Search (Queue Frontier & Shortest Paths)',
+    category: 'Graphs & Networks',
+    timeComplexity: 'O(V + E)',
+    spaceComplexity: 'O(V)',
+    description:
+      'Explore vertices level-by-level using a FIFO queue. In unweighted graphs, BFS is guaranteed to discover the shortest hop-count path from the source vertex to any reachable destination.',
+    generateFrames: () => {
+      const nodes: VisualizerGraphNode[] = [
+        { id: 'A', label: 'A', x: 60, y: 100 },
+        { id: 'B', label: 'B', x: 160, y: 40 },
+        { id: 'C', label: 'C', x: 160, y: 160 },
+        { id: 'D', label: 'D', x: 270, y: 40 },
+        { id: 'E', label: 'E', x: 270, y: 160 },
+        { id: 'F', label: 'F', x: 370, y: 100 },
+      ];
+      const edges: VisualizerGraphEdge[] = [
+        { from: 'A', to: 'B' },
+        { from: 'A', to: 'C' },
+        { from: 'B', to: 'D' },
+        { from: 'B', to: 'E' },
+        { from: 'C', to: 'E' },
+        { from: 'D', to: 'F' },
+        { from: 'E', to: 'F' },
+      ];
+
+      return [
+        {
+          stepIndex: 0,
+          title: 'BFS Initialization: Enqueue Source Vertex A',
+          explanation:
+            'Initialize BFS with source node A at hop distance 0. Node A is pushed to the FIFO exploration queue. Visited set = {}, Queue = [A].',
+          status: 'IN_PROGRESS',
+          graphState: {
+            nodes,
+            edges,
+            visitedNodes: [],
+            activeNodeId: 'A',
+            frontierQueue: ['A'],
+            frontierLabel: 'FIFO Exploration Queue',
+            traversalOrder: [],
+          },
+          metrics: {
+            'Current Level': '0',
+            'Queue Length': 1,
+            'Visited Count': '0 / 6',
+          },
+        },
+        {
+          stepIndex: 1,
+          title: 'Dequeue A: Discover Neighbors B and C (Hop 1)',
+          explanation:
+            'A is dequeued and marked visited. Adjacent unvisited nodes B and C are discovered and enqueued to the FIFO queue frontier at distance 1. Visited = {A}, Queue = [B, C].',
+          status: 'IN_PROGRESS',
+          graphState: {
+            nodes,
+            edges,
+            visitedNodes: ['A'],
+            activeNodeId: 'A',
+            frontierQueue: ['B', 'C'],
+            frontierLabel: 'FIFO Exploration Queue',
+            traversalOrder: ['A'],
+          },
+          metrics: {
+            'Current Level': '1',
+            'Queue Length': 2,
+            'Visited Count': '1 / 6',
+          },
+        },
+        {
+          stepIndex: 2,
+          title: 'Dequeue B: Discover Neighbors D and E (Hop 2)',
+          explanation:
+            'B is dequeued from front of queue and marked visited. B inspects neighbors: D and E are unvisited. Both are enqueued. Queue = [C, D, E]. Traversal order: A → B.',
+          status: 'IN_PROGRESS',
+          graphState: {
+            nodes,
+            edges,
+            visitedNodes: ['A', 'B'],
+            activeNodeId: 'B',
+            frontierQueue: ['C', 'D', 'E'],
+            frontierLabel: 'FIFO Exploration Queue',
+            traversalOrder: ['A', 'B'],
+          },
+          metrics: {
+            'Current Level': '1 → 2',
+            'Queue Length': 3,
+            'Visited Count': '2 / 6',
+          },
+        },
+        {
+          stepIndex: 3,
+          title: 'Dequeue C: Inspect Neighbor E (Already Enqueued)',
+          explanation:
+            'C is dequeued and marked visited. C inspects neighbor E, but E is already in the frontier queue (discovered via B). No new nodes added. Queue = [D, E]. Traversal order: A → B → C.',
+          status: 'IN_PROGRESS',
+          graphState: {
+            nodes,
+            edges,
+            visitedNodes: ['A', 'B', 'C'],
+            activeNodeId: 'C',
+            frontierQueue: ['D', 'E'],
+            frontierLabel: 'FIFO Exploration Queue',
+            traversalOrder: ['A', 'B', 'C'],
+          },
+          metrics: {
+            'Current Level': '1 Completed',
+            'Queue Length': 2,
+            'Visited Count': '3 / 6',
+          },
+        },
+        {
+          stepIndex: 4,
+          title: 'Dequeue D: Discover Target F (Hop 3)',
+          explanation:
+            'D is dequeued and marked visited. D inspects unvisited neighbor F (the destination node!). F is enqueued at hop distance 3. Queue = [E, F]. Traversal order: A → B → C → D.',
+          status: 'IN_PROGRESS',
+          graphState: {
+            nodes,
+            edges,
+            visitedNodes: ['A', 'B', 'C', 'D'],
+            activeNodeId: 'D',
+            frontierQueue: ['E', 'F'],
+            frontierLabel: 'FIFO Exploration Queue',
+            traversalOrder: ['A', 'B', 'C', 'D'],
+          },
+          metrics: {
+            'Current Level': '2 → 3',
+            'Queue Length': 2,
+            'Visited Count': '4 / 6',
+          },
+        },
+        {
+          stepIndex: 5,
+          title: 'Dequeue E: Inspect Neighbor F (Already Enqueued)',
+          explanation:
+            'E is dequeued and marked visited. E checks its edges: F is already in the queue. No new nodes added. Queue = [F]. Traversal order: A → B → C → D → E.',
+          status: 'IN_PROGRESS',
+          graphState: {
+            nodes,
+            edges,
+            visitedNodes: ['A', 'B', 'C', 'D', 'E'],
+            activeNodeId: 'E',
+            frontierQueue: ['F'],
+            frontierLabel: 'FIFO Exploration Queue',
+            traversalOrder: ['A', 'B', 'C', 'D', 'E'],
+          },
+          metrics: {
+            'Current Level': '2 Completed',
+            'Queue Length': 1,
+            'Visited Count': '5 / 6',
+          },
+        },
+        {
+          stepIndex: 6,
+          title: 'Dequeue F: Destination Reached & BFS Completed',
+          explanation:
+            'F is dequeued and marked visited! Destination reached with minimum hop count = 3. All reachable nodes visited. Queue is empty. Full traversal sequence: A → B → C → D → E → F.',
+          status: 'SUCCESS',
+          graphState: {
+            nodes,
+            edges,
+            visitedNodes: ['A', 'B', 'C', 'D', 'E', 'F'],
+            activeNodeId: 'F',
+            frontierQueue: [],
+            frontierLabel: 'FIFO Exploration Queue',
+            traversalOrder: ['A', 'B', 'C', 'D', 'E', 'F'],
+          },
+          metrics: {
+            'Shortest Path Hops': 3,
+            'Queue Length': 0,
+            'Visited Count': '6 / 6 (100%)',
+          },
+        },
+      ];
+    },
+  },
+  {
+    id: 'GRAPH_DFS_TRAVERSAL',
+    name: 'Depth-First Search (Recursive Backtracking & Call Stack)',
+    category: 'Graphs & Networks',
+    timeComplexity: 'O(V + E)',
+    spaceComplexity: 'O(V)',
+    description:
+      'Traverse directed graph branches to maximum depth before backtracking using a LIFO call stack. Essential for cycle detection, topological sorting, and strongly connected components.',
+    generateFrames: () => {
+      const nodes: VisualizerGraphNode[] = [
+        { id: '1', label: '1', x: 60, y: 100 },
+        { id: '2', label: '2', x: 160, y: 40 },
+        { id: '3', label: '3', x: 160, y: 160 },
+        { id: '4', label: '4', x: 270, y: 40 },
+        { id: '5', label: '5', x: 270, y: 160 },
+      ];
+      const edges: VisualizerGraphEdge[] = [
+        { from: '1', to: '2', directed: true },
+        { from: '1', to: '3', directed: true },
+        { from: '2', to: '4', directed: true },
+        { from: '3', to: '5', directed: true },
+        { from: '4', to: '5', directed: true },
+      ];
+
+      return [
+        {
+          stepIndex: 0,
+          title: 'DFS Invocation: Push Node 1 to Call Stack',
+          explanation:
+            'Begin DFS traversal at root vertex 1. Node 1 is pushed onto the recursion call stack. Call Stack = [1]. Visited = [1].',
+          status: 'IN_PROGRESS',
+          graphState: {
+            nodes,
+            edges,
+            visitedNodes: ['1'],
+            activeNodeId: '1',
+            frontierQueue: ['1'],
+            frontierLabel: 'Recursion Call Stack (LIFO)',
+            traversalOrder: ['1'],
+          },
+          metrics: { 'Call Depth': 1, 'Top of Stack': '1', Visited: '1 / 5' },
+        },
+        {
+          stepIndex: 1,
+          title: 'Explore Edge (1 → 2): Descend to Node 2',
+          explanation:
+            'Node 1 investigates outgoing edges. First unvisited neighbor is 2. Recursive call dfs(2) invoked. Push 2 onto stack. Call Stack = [1, 2].',
+          status: 'IN_PROGRESS',
+          graphState: {
+            nodes,
+            edges,
+            visitedNodes: ['1', '2'],
+            activeNodeId: '2',
+            frontierQueue: ['1', '2'],
+            frontierLabel: 'Recursion Call Stack (LIFO)',
+            traversalOrder: ['1', '2'],
+            activeEdge: { from: '1', to: '2' },
+          },
+          metrics: { 'Call Depth': 2, 'Top of Stack': '2', Visited: '2 / 5' },
+        },
+        {
+          stepIndex: 2,
+          title: 'Explore Edge (2 → 4): Descend to Node 4',
+          explanation:
+            'Node 2 investigates outgoing edge (2 → 4). Node 4 is unvisited. Recursive call dfs(4) invoked. Push 4 onto stack. Call Stack = [1, 2, 4].',
+          status: 'IN_PROGRESS',
+          graphState: {
+            nodes,
+            edges,
+            visitedNodes: ['1', '2', '4'],
+            activeNodeId: '4',
+            frontierQueue: ['1', '2', '4'],
+            frontierLabel: 'Recursion Call Stack (LIFO)',
+            traversalOrder: ['1', '2', '4'],
+            activeEdge: { from: '2', to: '4' },
+          },
+          metrics: { 'Call Depth': 3, 'Top of Stack': '4', Visited: '3 / 5' },
+        },
+        {
+          stepIndex: 3,
+          title: 'Explore Edge (4 → 5): Deepest Vertex Reached',
+          explanation:
+            'Node 4 follows directed edge to node 5. Recursive call dfs(5) invoked. Push 5 onto stack. Call Stack = [1, 2, 4, 5]. Node 5 has no unvisited outgoing edges (sink node).',
+          status: 'IN_PROGRESS',
+          graphState: {
+            nodes,
+            edges,
+            visitedNodes: ['1', '2', '4', '5'],
+            activeNodeId: '5',
+            frontierQueue: ['1', '2', '4', '5'],
+            frontierLabel: 'Recursion Call Stack (LIFO)',
+            traversalOrder: ['1', '2', '4', '5'],
+            activeEdge: { from: '4', to: '5' },
+          },
+          metrics: { 'Call Depth': 4, 'Top of Stack': '5', Visited: '4 / 5' },
+        },
+        {
+          stepIndex: 4,
+          title: 'Backtrack: Pop 5, Pop 4, Pop 2 → Return to Node 1',
+          explanation:
+            'dfs(5), dfs(4), and dfs(2) complete their loops with all outgoing edges explored. Stack unwinds: pop 5, pop 4, pop 2. Control returns to node 1 at recursion root.',
+          status: 'IN_PROGRESS',
+          graphState: {
+            nodes,
+            edges,
+            visitedNodes: ['1', '2', '4', '5'],
+            activeNodeId: '1',
+            frontierQueue: ['1'],
+            frontierLabel: 'Recursion Call Stack (LIFO)',
+            traversalOrder: ['1', '2', '4', '5'],
+          },
+          metrics: { 'Call Depth': 1, 'Top of Stack': '1', Status: 'Backtracked' },
+        },
+        {
+          stepIndex: 5,
+          title: 'Explore Edge (1 → 3): Branch into Node 3',
+          explanation:
+            'Node 1 now inspects its second outgoing edge (1 → 3). Node 3 is unvisited. Recursive call dfs(3) invoked. Push 3 onto stack. Call Stack = [1, 3].',
+          status: 'IN_PROGRESS',
+          graphState: {
+            nodes,
+            edges,
+            visitedNodes: ['1', '2', '4', '5', '3'],
+            activeNodeId: '3',
+            frontierQueue: ['1', '3'],
+            frontierLabel: 'Recursion Call Stack (LIFO)',
+            traversalOrder: ['1', '2', '4', '5', '3'],
+            activeEdge: { from: '1', to: '3' },
+          },
+          metrics: { 'Call Depth': 2, 'Top of Stack': '3', Visited: '5 / 5' },
+        },
+        {
+          stepIndex: 6,
+          title: 'Cross-Edge (3 → 5) & DFS Traversal Complete',
+          explanation:
+            'Node 3 checks edge (3 → 5): Node 5 is already marked visited (cross-edge detected; no cycle). dfs(3) returns, pop 3. dfs(1) returns, pop 1. Entire graph traversed!',
+          status: 'SUCCESS',
+          graphState: {
+            nodes,
+            edges,
+            visitedNodes: ['1', '2', '4', '5', '3'],
+            activeNodeId: '1',
+            frontierQueue: [],
+            frontierLabel: 'Recursion Call Stack (LIFO)',
+            traversalOrder: ['1', '2', '4', '5', '3'],
+          },
+          metrics: { 'Call Depth': 0, 'Stack Size': 0, Visited: '5 / 5 (100%)' },
+        },
+      ];
+    },
+  },
+  {
+    id: 'BST_INSERTION_INORDER',
+    name: 'Binary Search Tree (Insertion & In-Order Sorted Walk)',
+    category: 'Trees & Hierarchies',
+    timeComplexity: 'Search/Insert: O(H), In-Order: O(N)',
+    spaceComplexity: 'O(H)',
+    description:
+      'Insert key 25 into a balanced BST by comparing values down to a leaf position, preserving the BST invariant (Left < Root < Right), followed by an In-Order traversal that extracts all values in monotonically sorted ascending order.',
+    generateFrames: () => {
+      const baseNodes: VisualizerTreeNode[] = [
+        { id: 'n40', val: 40, x: 200, y: 30, left: 'n20', right: 'n60' },
+        { id: 'n20', val: 20, x: 110, y: 85, left: 'n10', right: 'n30' },
+        { id: 'n60', val: 60, x: 290, y: 85, left: 'n50', right: 'n70' },
+        { id: 'n10', val: 10, x: 65, y: 140 },
+        { id: 'n30', val: 30, x: 155, y: 140 },
+        { id: 'n50', val: 50, x: 245, y: 140 },
+        { id: 'n70', val: 70, x: 335, y: 140 },
+      ];
+
+      return [
+        {
+          stepIndex: 0,
+          title: 'Insert Key 25: Compare with Root (40)',
+          explanation:
+            'Target key to insert: 25. Starting at root node 40. Comparison: 25 < 40. Because 25 is smaller than root, the BST invariant requires descending into the LEFT subtree.',
+          status: 'IN_PROGRESS',
+          treeState: {
+            nodes: baseNodes,
+            activeNodeId: 'n40',
+            comparedNodeId: 'n40',
+            targetVal: 25,
+            traversalOrder: [],
+            traversalLabel: 'In-Order Traversal Buffer',
+          },
+          metrics: { Target: 25, 'Current Node': 40, Decision: '25 < 40 → Go Left' },
+        },
+        {
+          stepIndex: 1,
+          title: 'Compare with Node 20: 25 > 20 → Go Right',
+          explanation:
+            'Current node is 20. Comparison: 25 > 20. Because target key is strictly greater than 20, the BST invariant requires branching into the RIGHT subtree.',
+          status: 'IN_PROGRESS',
+          treeState: {
+            nodes: baseNodes,
+            activeNodeId: 'n20',
+            comparedNodeId: 'n20',
+            targetVal: 25,
+            traversalOrder: [],
+            traversalLabel: 'In-Order Traversal Buffer',
+          },
+          metrics: { Target: 25, 'Current Node': 20, Decision: '25 > 20 → Go Right' },
+        },
+        {
+          stepIndex: 2,
+          title: 'Compare with Node 30: 25 < 30 → Check Left Child',
+          explanation:
+            'Current node is 30. Comparison: 25 < 30. BST rule dictates branching left. Inspecting node 30’s left child: pointer is NULL (empty slot found!).',
+          status: 'IN_PROGRESS',
+          treeState: {
+            nodes: baseNodes,
+            activeNodeId: 'n30',
+            comparedNodeId: 'n30',
+            targetVal: 25,
+            traversalOrder: [],
+            traversalLabel: 'In-Order Traversal Buffer',
+          },
+          metrics: { Target: 25, 'Current Node': 30, Decision: '30.left is null → Insert here' },
+        },
+        {
+          stepIndex: 3,
+          title: 'Node Inserted: 30.left = New Node(25)',
+          explanation:
+            'New node with key 25 is allocated and linked as the left child of 30. The binary search tree invariant (Left < Root < Right) is strictly preserved across all 8 nodes.',
+          status: 'SUCCESS',
+          treeState: {
+            nodes: [
+              ...baseNodes.map((n) => (n.id === 'n30' ? { ...n, left: 'n25' } : n)),
+              { id: 'n25', val: 25, x: 125, y: 190, isNew: true },
+            ],
+            activeNodeId: 'n25',
+            targetVal: 25,
+            traversalOrder: [],
+            traversalLabel: 'In-Order Traversal Buffer',
+          },
+          metrics: { 'Inserted Key': 25, 'Parent Node': 30, 'Tree Size': '8 Nodes' },
+        },
+        {
+          stepIndex: 4,
+          title: 'In-Order Traversal: Traverse Left Subtree',
+          explanation:
+            'Initiate In-Order traversal (Left → Root → Right). Recursively visit leftmost leaves: 10, then parent 20, then right child’s left child 25, then parent 30. Accumulated: [10, 20, 25, 30].',
+          status: 'IN_PROGRESS',
+          treeState: {
+            nodes: [
+              ...baseNodes.map((n) => (n.id === 'n30' ? { ...n, left: 'n25' } : n)),
+              { id: 'n25', val: 25, x: 125, y: 190 },
+            ],
+            activeNodeId: 'n30',
+            traversalOrder: [10, 20, 25, 30],
+            traversalLabel: 'In-Order Sorted Stream: Left Subtree',
+          },
+          metrics: { Visited: '4 / 8', 'Stream Output': '[10, 20, 25, 30]' },
+        },
+        {
+          stepIndex: 5,
+          title: 'In-Order Traversal Complete: Monotonically Ascending',
+          explanation:
+            'In-order visits Root (40), then right subtree (50, 60, 70). Resulting sequence: [10, 20, 25, 30, 40, 50, 60, 70]. In-Order walk on a BST produces a strictly sorted array in O(N) linear time!',
+          status: 'COMPLETE',
+          treeState: {
+            nodes: [
+              ...baseNodes.map((n) => (n.id === 'n30' ? { ...n, left: 'n25' } : n)),
+              { id: 'n25', val: 25, x: 125, y: 190 },
+            ],
+            traversalOrder: [10, 20, 25, 30, 40, 50, 60, 70],
+            traversalLabel: 'In-Order Monotonically Sorted Sequence',
+          },
+          metrics: { 'Traversal Property': 'Strictly Ascending', 'Total Elements': 8, Complexity: 'O(N)' },
+        },
+      ];
+    },
+  },
 ];
 
 export function AlgorithmVisualizerSandbox() {
@@ -550,6 +1049,318 @@ export function AlgorithmVisualizerSandbox() {
                 ))
               )}
             </div>
+          </div>
+        )}
+
+        {/* Graph Display (for GRAPH_BFS_TRAVERSAL & GRAPH_DFS_TRAVERSAL) */}
+        {currentFrame.graphState && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between text-xs text-text-muted">
+              <span className="font-semibold">Interactive Graph Topology &amp; Frontier</span>
+              <span className="font-mono">
+                Visited: {currentFrame.graphState.visitedNodes.length} /{' '}
+                {currentFrame.graphState.nodes.length} Vertices
+              </span>
+            </div>
+
+            <div className="w-full flex justify-center overflow-x-auto py-2">
+              <svg
+                viewBox="0 0 420 200"
+                className="w-full max-w-[500px] h-48 bg-surface rounded-lg border border-border shadow-2xs"
+              >
+                <defs>
+                  <marker
+                    id="arrowhead"
+                    markerWidth="8"
+                    markerHeight="6"
+                    refX="22"
+                    refY="3"
+                    orient="auto"
+                  >
+                    <polygon points="0 0, 8 3, 0 6" fill="#64748b" />
+                  </marker>
+                  <marker
+                    id="arrowhead-active"
+                    markerWidth="8"
+                    markerHeight="6"
+                    refX="22"
+                    refY="3"
+                    orient="auto"
+                  >
+                    <polygon points="0 0, 8 3, 0 6" fill="#2563eb" />
+                  </marker>
+                </defs>
+
+                {/* Edges */}
+                {currentFrame.graphState.edges.map((edge, idx) => {
+                  const fromNode = currentFrame.graphState!.nodes.find((n) => n.id === edge.from);
+                  const toNode = currentFrame.graphState!.nodes.find((n) => n.id === edge.to);
+                  if (!fromNode || !toNode) return null;
+
+                  const isActiveEdge =
+                    currentFrame.graphState!.activeEdge &&
+                    currentFrame.graphState!.activeEdge.from === edge.from &&
+                    currentFrame.graphState!.activeEdge.to === edge.to;
+
+                  return (
+                    <line
+                      key={`edge-${idx}`}
+                      x1={fromNode.x}
+                      y1={fromNode.y}
+                      x2={toNode.x}
+                      y2={toNode.y}
+                      stroke={isActiveEdge ? '#2563eb' : '#94a3b8'}
+                      strokeWidth={isActiveEdge ? 3 : 2}
+                      strokeDasharray={isActiveEdge ? '4 2' : undefined}
+                      markerEnd={
+                        edge.directed
+                          ? isActiveEdge
+                            ? 'url(#arrowhead-active)'
+                            : 'url(#arrowhead)'
+                          : undefined
+                      }
+                    />
+                  );
+                })}
+
+                {/* Nodes */}
+                {currentFrame.graphState.nodes.map((node) => {
+                  const isActive = currentFrame.graphState!.activeNodeId === node.id;
+                  const isVisited = currentFrame.graphState!.visitedNodes.includes(node.id);
+                  const isInFrontier = currentFrame.graphState!.frontierQueue?.includes(node.id);
+
+                  let fill = '#ffffff';
+                  let stroke = '#cbd5e1';
+                  let textFill = '#1e293b';
+
+                  if (isActive) {
+                    fill = '#2563eb';
+                    stroke = '#1d4ed8';
+                    textFill = '#ffffff';
+                  } else if (isVisited) {
+                    fill = '#059669';
+                    stroke = '#047857';
+                    textFill = '#ffffff';
+                  } else if (isInFrontier) {
+                    fill = '#f59e0b';
+                    stroke = '#d97706';
+                    textFill = '#ffffff';
+                  }
+
+                  return (
+                    <g key={node.id} className="transition-all duration-200">
+                      {isActive && (
+                        <circle
+                          cx={node.x}
+                          cy={node.y}
+                          r="24"
+                          fill="none"
+                          stroke="#3b82f6"
+                          strokeWidth="2"
+                          opacity="0.6"
+                          className="animate-pulse"
+                        />
+                      )}
+                      <circle
+                        cx={node.x}
+                        cy={node.y}
+                        r="18"
+                        fill={fill}
+                        stroke={stroke}
+                        strokeWidth="2.5"
+                      />
+                      <text
+                        x={node.x}
+                        y={node.y}
+                        textAnchor="middle"
+                        dy=".32em"
+                        fill={textFill}
+                        className="text-xs font-bold font-mono select-none"
+                      >
+                        {node.label}
+                      </text>
+                    </g>
+                  );
+                })}
+              </svg>
+            </div>
+
+            {/* Frontier Queue/Stack & Traversal Sequence */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+              <div className="bg-surface border border-border rounded-lg p-3 space-y-1.5">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
+                  {currentFrame.graphState.frontierLabel || 'Frontier Queue'}:
+                </span>
+                <div className="flex items-center gap-1.5 flex-wrap min-h-[28px]">
+                  {currentFrame.graphState.frontierQueue &&
+                  currentFrame.graphState.frontierQueue.length > 0 ? (
+                    currentFrame.graphState.frontierQueue.map((item, idx) => (
+                      <span
+                        key={idx}
+                        className="text-xs font-mono font-bold px-2.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300"
+                      >
+                        {item}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-xs text-text-muted italic">Empty</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-surface border border-border rounded-lg p-3 space-y-1.5">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
+                  Traversal Order / Visited Path:
+                </span>
+                <div className="flex items-center gap-1 flex-wrap min-h-[28px]">
+                  {currentFrame.graphState.traversalOrder.length > 0 ? (
+                    currentFrame.graphState.traversalOrder.map((nodeId, idx) => (
+                      <span key={idx} className="flex items-center gap-1">
+                        <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 border border-emerald-300">
+                          {nodeId}
+                        </span>
+                        {idx < currentFrame.graphState!.traversalOrder.length - 1 && (
+                          <span className="text-text-muted text-xs">→</span>
+                        )}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-xs text-text-muted italic">None visited yet</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tree Display (for BST_INSERTION_INORDER) */}
+        {currentFrame.treeState && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between text-xs text-text-muted">
+              <span className="font-semibold">Binary Search Tree Layout</span>
+              <span className="font-mono">Total Nodes: {currentFrame.treeState.nodes.length}</span>
+            </div>
+
+            <div className="w-full flex justify-center overflow-x-auto py-2">
+              <svg
+                viewBox="0 0 400 220"
+                className="w-full max-w-[480px] h-52 bg-surface rounded-lg border border-border shadow-2xs"
+              >
+                {/* Tree Edges */}
+                {currentFrame.treeState.nodes.map((node) => {
+                  const leftChild = currentFrame.treeState!.nodes.find((n) => n.id === node.left);
+                  const rightChild = currentFrame.treeState!.nodes.find((n) => n.id === node.right);
+
+                  return (
+                    <g key={`edges-${node.id}`}>
+                      {leftChild && (
+                        <line
+                          x1={node.x}
+                          y1={node.y}
+                          x2={leftChild.x}
+                          y2={leftChild.y}
+                          stroke="#94a3b8"
+                          strokeWidth="2"
+                        />
+                      )}
+                      {rightChild && (
+                        <line
+                          x1={node.x}
+                          y1={node.y}
+                          x2={rightChild.x}
+                          y2={rightChild.y}
+                          stroke="#94a3b8"
+                          strokeWidth="2"
+                        />
+                      )}
+                    </g>
+                  );
+                })}
+
+                {/* Tree Nodes */}
+                {currentFrame.treeState.nodes.map((node) => {
+                  const isActive = currentFrame.treeState!.activeNodeId === node.id;
+                  const isCompared = currentFrame.treeState!.comparedNodeId === node.id;
+                  const isNew = node.isNew;
+
+                  let fill = '#ffffff';
+                  let stroke = '#cbd5e1';
+                  let textFill = '#1e293b';
+
+                  if (isNew) {
+                    fill = '#10b981';
+                    stroke = '#059669';
+                    textFill = '#ffffff';
+                  } else if (isActive) {
+                    fill = '#2563eb';
+                    stroke = '#1d4ed8';
+                    textFill = '#ffffff';
+                  } else if (isCompared) {
+                    fill = '#f59e0b';
+                    stroke = '#d97706';
+                    textFill = '#ffffff';
+                  }
+
+                  return (
+                    <g key={node.id} className="transition-all duration-200">
+                      {isActive && (
+                        <circle
+                          cx={node.x}
+                          cy={node.y}
+                          r="22"
+                          fill="none"
+                          stroke="#3b82f6"
+                          strokeWidth="2"
+                          opacity="0.6"
+                          className="animate-pulse"
+                        />
+                      )}
+                      <circle
+                        cx={node.x}
+                        cy={node.y}
+                        r="16"
+                        fill={fill}
+                        stroke={stroke}
+                        strokeWidth="2.5"
+                      />
+                      <text
+                        x={node.x}
+                        y={node.y}
+                        textAnchor="middle"
+                        dy=".32em"
+                        fill={textFill}
+                        className="text-xs font-bold font-mono select-none"
+                      >
+                        {node.val}
+                      </text>
+                    </g>
+                  );
+                })}
+              </svg>
+            </div>
+
+            {/* In-Order Traversal Output Stream */}
+            {currentFrame.treeState.traversalOrder && (
+              <div className="bg-surface border border-border rounded-lg p-3 space-y-1.5">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
+                  {currentFrame.treeState.traversalLabel || 'In-Order Traversal Stream (Sorted)'}:
+                </span>
+                <div className="flex items-center gap-1.5 flex-wrap min-h-[28px]">
+                  {currentFrame.treeState.traversalOrder.length > 0 ? (
+                    currentFrame.treeState.traversalOrder.map((val, idx) => (
+                      <span
+                        key={idx}
+                        className="text-xs font-mono font-bold px-2.5 py-0.5 rounded bg-emerald-100 text-emerald-900 border border-emerald-300 shadow-2xs"
+                      >
+                        {val}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-xs text-text-muted italic">No nodes emitted yet</span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
