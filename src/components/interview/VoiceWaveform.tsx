@@ -8,16 +8,18 @@ export interface VoiceWaveformProps {
   state: WaveformState;
   className?: string;
   showTelemetry?: boolean;
+  frequencyData?: number[];
 }
 
 export function VoiceWaveform({
   state,
   className = '',
   showTelemetry = true,
+  frequencyData,
 }: VoiceWaveformProps) {
   const [frame, setFrame] = useState(0);
 
-  // Dynamic harmonic oscillation when speaking or listening
+  // Dynamic harmonic oscillation when speaking or listening without live audio input
   useEffect(() => {
     if (state === 'idle') return;
 
@@ -28,8 +30,14 @@ export function VoiceWaveform({
     return () => clearInterval(interval);
   }, [state]);
 
-  // Formant / harmonic amplitude for 10 frequency channels
+  // Formant / harmonic amplitude for 10 frequency channels (or real acoustic frequency data)
   const getDynamicHeight = (index: number) => {
+    if (frequencyData && frequencyData.length >= 10 && state !== 'idle') {
+      const raw = frequencyData[index] ?? 0;
+      const normalized = raw > 100 ? Math.round((raw / 255) * 100) : raw;
+      return Math.max(12, Math.min(100, normalized));
+    }
+
     if (state === 'speaking') {
       const baseHeights = [35, 55, 80, 95, 85, 75, 90, 65, 50, 35];
       const sineMod = Math.sin((frame * 0.2) + (index * 0.6)) * 18;
@@ -57,6 +65,13 @@ export function VoiceWaveform({
   };
 
   const getDecibelLevel = () => {
+    if (frequencyData && frequencyData.length >= 10 && state !== 'idle') {
+      const sum = frequencyData.slice(0, 10).reduce((acc, v) => acc + v, 0);
+      const avg = sum / 10;
+      const db = avg > 0 ? -60 + Math.round((avg / 255) * 50) : -90;
+      return `${db} dBFS`;
+    }
+
     if (state === 'speaking') {
       const db = -16 + Math.round(Math.sin(frame * 0.25) * 4);
       return `${db} dBFS`;

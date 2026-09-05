@@ -186,3 +186,57 @@ export function createSpeechRecognizer(options: {
     },
   };
 }
+
+export interface AudioSpectrumAnalyzerController {
+  getFrequencies: (outputArray: Uint8Array) => void;
+  getAverageVolume: () => number;
+  stop: () => void;
+}
+
+/**
+ * Creates a browser-native Web Audio API frequency spectrum analyzer from microphone stream.
+ * SSR-safe, gracefully returns null if unavailable or if permissions are not granted.
+ */
+export async function createMicrophoneSpectrumAnalyzer(): Promise<AudioSpectrumAnalyzerController | null> {
+  if (typeof window === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+    return null;
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const AudioContextClass =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+
+    if (!AudioContextClass) return null;
+
+    const audioCtx = new AudioContextClass();
+    const source = audioCtx.createMediaStreamSource(stream);
+    const analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 64;
+    analyser.smoothingTimeConstant = 0.8;
+    source.connect(analyser);
+
+    return {
+      getFrequencies: (outputArray: Uint8Array) => {
+        analyser.getByteFrequencyData(outputArray as unknown as Uint8Array<ArrayBuffer>);
+      },
+      getAverageVolume: () => {
+        const data = new Uint8Array(analyser.frequencyBinCount);
+        analyser.getByteFrequencyData(data);
+        let sum = 0;
+        for (let i = 0; i < data.length; i++) sum += data[i];
+        return Math.round(sum / data.length);
+      },
+      stop: () => {
+        stream.getTracks().forEach((track) => track.stop());
+        if (audioCtx.state !== 'closed') {
+          audioCtx.close();
+        }
+      },
+    };
+  } catch {
+    return null;
+  }
+}
+

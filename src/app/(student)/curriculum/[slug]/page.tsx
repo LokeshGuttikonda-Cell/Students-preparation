@@ -323,35 +323,96 @@ export default function CurriculumArticleDetailPage() {
           </div>
         </div>
 
-        {/* Next Actions & Sandbox Linking */}
-        <div id="labs" className="bg-gradient-to-br from-primary-900 to-primary-950 text-white p-6 sm:p-8 rounded-2xl shadow-lg flex flex-col sm:flex-row items-center justify-between gap-6 scroll-mt-6">
-          <div className="space-y-1 text-center sm:text-left">
-            <h3 className="text-lg font-bold">Ready to apply these concepts in code?</h3>
-            <p className="text-xs text-primary-200">
-              Run interactive unit tests, execute queries in the browser SQLite sandbox, and test edge cases.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-3 shrink-0">
-            <Link href="/sandbox">
-              <Button
-                variant="secondary"
-                size="sm"
-                className="bg-white text-primary-900 hover:bg-neutral-100 font-bold"
-              >
-                Launch Code &amp; SQL Lab &rarr;
-              </Button>
-            </Link>
-            <Link href="/practice">
-              <Button
-                variant="primary"
-                size="sm"
-                className="bg-accent-600 hover:bg-accent-700 text-white font-bold border-none"
-              >
-                Practice Topic MCQs &rarr;
-              </Button>
-            </Link>
-          </div>
-        </div>
+        {/* Next Actions & Specialized Sandbox Studio Linking */}
+        {(() => {
+          const getDomainStudioInfo = (domainSlug: string) => {
+            switch (domainSlug) {
+              case 'system-design-architecture':
+                return {
+                  tab: 'system-design',
+                  title: 'System Design Architecture Studio',
+                  description: 'Simulate distributed topology throughput, cache stampedes, Little\'s law queuing latencies, and database sharding partition distributions.',
+                };
+              case 'operating-systems':
+              case 'computer-networks':
+                return {
+                  tab: 'kernel',
+                  title: 'OS Kernel & Network Protocols Studio',
+                  description: 'Step through interactive CPU scheduling Gantt charts, Virtual Memory Bélády paging matrices, and TCP Reno vs Tahoe congestion windows.',
+                };
+              case 'distributed-systems':
+              case 'cloud-infrastructure':
+              case 'devops-site-reliability':
+                return {
+                  tab: 'distributed',
+                  title: 'Distributed Systems & Architecture Studio',
+                  description: 'Interact with 360-degree consistent hash rings, Leaky & Token bucket rate limiters, and circuit breaker state machines.',
+                };
+              case 'data-structures-algorithms':
+                return {
+                  tab: 'visual',
+                  title: 'Visual Algorithm Stepper Studio',
+                  description: 'Visualize binary search intervals, two-pointer convergence, sliding window pointers, and graph BFS/DFS traversal frontiers step-by-step.',
+                };
+              case 'database-internals':
+                return {
+                  tab: 'sql',
+                  title: 'Relational SQL Query Lab',
+                  description: 'Execute window ranking, running totals, and correlated subqueries with zero-latency in-memory relational verification.',
+                };
+              case 'fullstack-web-architecture':
+              case 'machine-learning-ai':
+              case 'cybersecurity-cryptography':
+                return {
+                  tab: 'code',
+                  title: 'Algorithmic Code Logic Lab',
+                  description: 'Implement algorithmic functions and validate edge cases with sandboxed in-browser Web Worker execution and timeout isolation.',
+                };
+              default:
+                return {
+                  tab: 'sql',
+                  title: 'Applied Engineering Lab',
+                  description: 'Execute queries, validate code logic, and inspect memory architectures in zero-setup browser simulators.',
+                };
+            }
+          };
+
+          const studio = getDomainStudioInfo(article.domainSlug);
+
+          return (
+            <div id="labs" className="bg-gradient-to-br from-primary-900 to-primary-950 text-white p-6 sm:p-8 rounded-2xl shadow-lg flex flex-col sm:flex-row items-center justify-between gap-6 scroll-mt-6">
+              <div className="space-y-1 text-center sm:text-left">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-accent-400">
+                  Interactive Laboratory Experience
+                </span>
+                <h3 className="text-lg font-bold">Apply this knowledge in {studio.title}</h3>
+                <p className="text-xs text-primary-200 max-w-xl leading-relaxed">
+                  {studio.description}
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-3 shrink-0">
+                <Link href={`/sandbox?tab=${studio.tab}`}>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="bg-white text-primary-900 hover:bg-neutral-100 font-bold"
+                  >
+                    Launch {studio.title} &rarr;
+                  </Button>
+                </Link>
+                <Link href="/practice">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    className="bg-accent-600 hover:bg-accent-700 text-white font-bold border-none"
+                  >
+                    Practice Topic MCQs &rarr;
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Previous & Next Article Navigation Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">

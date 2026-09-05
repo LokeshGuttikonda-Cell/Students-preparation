@@ -188,4 +188,25 @@ describe('SandboxPage', () => {
     fireEvent.click(celebBtn);
     expect(screen.getByText(/The Celebrity \/ Heavy-Hitter Key Problem/i)).toBeInTheDocument();
   });
+
+  it('activates target studio tab directly from URL search parameter on mount', () => {
+    const originalLocation = window.location;
+    Object.defineProperty(window, 'location', {
+      value: { ...originalLocation, search: '?tab=system-design' },
+      configurable: true,
+    });
+
+    try {
+      render(<SandboxPage />);
+      expect(
+        screen.getByText(/System Design Architecture Studio & Traffic Bottleneck Simulator/i),
+      ).toBeInTheDocument();
+      expect(screen.getByText('OPTIMAL')).toBeInTheDocument();
+    } finally {
+      Object.defineProperty(window, 'location', {
+        value: originalLocation,
+        configurable: true,
+      });
+    }
+  });
 });

@@ -290,26 +290,61 @@ export default function RoleDetailPage() {
         </section>
 
         {/* Section 6: Applied Code & SQL Sandbox Banner */}
-        <Card className="p-6 border border-border bg-surface shadow-xs">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="space-y-1">
-              <span className="text-xs font-bold text-primary-700 uppercase tracking-wider">
-                ⚡ Applied Engineering
-              </span>
-              <h3 className="text-lg font-bold text-primary-900">
-                Interactive Code & SQL Sandbox
-              </h3>
-              <p className="text-xs text-text-muted max-w-xl">
-                Practice algorithm implementations and multi-tenant SQL queries directly in a secure, zero-setup browser sandbox.
-              </p>
-            </div>
-            <Link href="/sandbox" className="shrink-0">
-              <Button variant="secondary" size="sm">
-                Open Sandbox &rarr;
-              </Button>
-            </Link>
-          </div>
-        </Card>
+        {(() => {
+          const getRoleStudioTab = (roleSlug: string) => {
+            switch (roleSlug) {
+              case 'cloud-devops-engineer':
+              case 'site-reliability-engineer':
+              case 'devops-engineer':
+                return { tab: 'distributed', name: 'Distributed Systems & Architecture Studio' };
+              case 'cloud-solutions-architect':
+              case 'system-design-architect':
+              case 'enterprise-architect':
+                return { tab: 'system-design', name: 'System Design Architecture Studio' };
+              case 'operating-systems-engineer':
+              case 'cybersecurity-specialist':
+              case 'embedded-systems-engineer':
+                return { tab: 'kernel', name: 'OS Kernel & Network Protocols Studio' };
+              case 'java-backend-developer':
+              case 'database-administrator':
+              case 'data-engineer':
+              case 'backend-systems-engineer':
+                return { tab: 'sql', name: 'Relational SQL Query Lab' };
+              case 'frontend-developer':
+              case 'fullstack-engineer':
+              case 'software-development-engineer':
+              case 'algorithms-specialist':
+                return { tab: 'visual', name: 'Visual Algorithm Stepper Studio' };
+              default:
+                return { tab: 'sql', name: 'Applied Engineering Laboratories' };
+            }
+          };
+
+          const roleStudio = getRoleStudioTab(slug || '');
+
+          return (
+            <Card className="p-6 border border-border bg-surface shadow-xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <span className="text-xs font-bold text-primary-700 uppercase tracking-wider">
+                    ⚡ Applied Engineering
+                  </span>
+                  <h3 className="text-lg font-bold text-primary-900">
+                    Interactive Code &amp; SQL Sandbox
+                  </h3>
+                  <p className="text-xs text-text-muted max-w-xl">
+                    Practice algorithm implementations, multi-tenant SQL queries, and distributed architecture models in the {roleStudio.name}.
+                  </p>
+                </div>
+                <Link href={`/sandbox?tab=${roleStudio.tab}`} className="shrink-0">
+                  <Button variant="secondary" size="sm">
+                    Open Sandbox &rarr;
+                  </Button>
+                </Link>
+              </div>
+            </Card>
+          );
+        })()}
       </div>
     </div>
   );

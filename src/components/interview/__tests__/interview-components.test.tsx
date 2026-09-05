@@ -29,6 +29,16 @@ describe('Interview UI Components', () => {
       render(<VoiceWaveform state="idle" showTelemetry={false} />);
       expect(screen.queryByText('Standby')).toBeNull();
     });
+
+    it('renders waveform using real acoustic frequencyData array', () => {
+      const frequencies = [50, 70, 90, 80, 60, 40, 75, 85, 65, 45];
+      const { container } = render(
+        <VoiceWaveform state="listening" frequencyData={frequencies} />,
+      );
+      const bars = container.querySelectorAll('span');
+      expect(bars.length).toBe(10);
+      expect(screen.getByLabelText('Voice audio visualizer: listening')).toBeDefined();
+    });
   });
 
   describe('StageStepper', () => {

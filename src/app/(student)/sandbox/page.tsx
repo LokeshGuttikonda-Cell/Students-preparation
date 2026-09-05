@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { SqlQuerySandbox } from '../../../components/sandbox/SqlQuerySandbox';
 import { CodeLogicSandbox } from '../../../components/sandbox/CodeLogicSandbox';
@@ -408,10 +408,51 @@ const CODE_CHALLENGES: CodeChallenge[] = [
   },
 ];
 
+export type SandboxTab =
+  | 'SQL'
+  | 'CODE'
+  | 'VISUALIZER'
+  | 'MEMORY'
+  | 'DISTRIBUTED'
+  | 'KERNEL_NETWORK'
+  | 'SYSTEM_DESIGN';
+
 export default function SandboxPage() {
-  const [activeTab, setActiveTab] = useState<'SQL' | 'CODE' | 'VISUALIZER' | 'MEMORY' | 'DISTRIBUTED' | 'KERNEL_NETWORK' | 'SYSTEM_DESIGN'>('SQL');
+  const [activeTab, setActiveTab] = useState<SandboxTab>('SQL');
   const [selectedSqlIndex, setSelectedSqlIndex] = useState(0);
   const [selectedCodeIndex, setSelectedCodeIndex] = useState(0);
+
+  // Sync tab with URL query parameter on mount (?tab=kernel, ?tab=system-design, etc.)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const tabParam = params.get('tab')?.toUpperCase().replace(/-/g, '_');
+    if (!tabParam) return;
+
+    if (tabParam === 'SQL') setActiveTab('SQL');
+    else if (tabParam === 'CODE') setActiveTab('CODE');
+    else if (tabParam === 'VISUAL' || tabParam === 'VISUALIZER' || tabParam === 'ALGORITHM') setActiveTab('VISUALIZER');
+    else if (tabParam === 'MEMORY' || tabParam === 'CACHE') setActiveTab('MEMORY');
+    else if (tabParam === 'DISTRIBUTED' || tabParam === 'SYSTEMS') setActiveTab('DISTRIBUTED');
+    else if (tabParam === 'KERNEL' || tabParam === 'NETWORK' || tabParam === 'KERNEL_NETWORK') setActiveTab('KERNEL_NETWORK');
+    else if (tabParam === 'SYSTEM_DESIGN' || tabParam === 'DESIGN' || tabParam === 'TOPOLOGY') setActiveTab('SYSTEM_DESIGN');
+  }, []);
+
+  const handleTabChange = (newTab: SandboxTab) => {
+    setActiveTab(newTab);
+    if (typeof window !== 'undefined' && window.history?.replaceState) {
+      const url = new URL(window.location.href);
+      let tabSlug = 'sql';
+      if (newTab === 'CODE') tabSlug = 'code';
+      else if (newTab === 'VISUALIZER') tabSlug = 'visual';
+      else if (newTab === 'MEMORY') tabSlug = 'memory';
+      else if (newTab === 'DISTRIBUTED') tabSlug = 'distributed';
+      else if (newTab === 'KERNEL_NETWORK') tabSlug = 'kernel';
+      else if (newTab === 'SYSTEM_DESIGN') tabSlug = 'system-design';
+      url.searchParams.set('tab', tabSlug);
+      window.history.replaceState({}, '', url.toString());
+    }
+  };
 
   const currentSql = SQL_CHALLENGES[selectedSqlIndex] || SQL_CHALLENGES[0];
   const currentCode = CODE_CHALLENGES[selectedCodeIndex] || CODE_CHALLENGES[0];
@@ -456,7 +497,7 @@ export default function SandboxPage() {
         <div className="flex border-b border-border gap-2 overflow-x-auto">
           <button
             type="button"
-            onClick={() => setActiveTab('SQL')}
+            onClick={() => handleTabChange('SQL')}
             className={`min-h-[44px] px-5 py-2 text-sm font-semibold border-b-2 transition-colors cursor-pointer flex items-center gap-2 whitespace-nowrap ${
               activeTab === 'SQL'
                 ? 'border-primary-700 text-primary-800'
@@ -469,7 +510,7 @@ export default function SandboxPage() {
 
           <button
             type="button"
-            onClick={() => setActiveTab('CODE')}
+            onClick={() => handleTabChange('CODE')}
             className={`min-h-[44px] px-5 py-2 text-sm font-semibold border-b-2 transition-colors cursor-pointer flex items-center gap-2 whitespace-nowrap ${
               activeTab === 'CODE'
                 ? 'border-primary-700 text-primary-800'
@@ -482,7 +523,7 @@ export default function SandboxPage() {
 
           <button
             type="button"
-            onClick={() => setActiveTab('VISUALIZER')}
+            onClick={() => handleTabChange('VISUALIZER')}
             className={`min-h-[44px] px-5 py-2 text-sm font-semibold border-b-2 transition-colors cursor-pointer flex items-center gap-2 whitespace-nowrap ${
               activeTab === 'VISUALIZER'
                 ? 'border-primary-700 text-primary-800'
@@ -495,7 +536,7 @@ export default function SandboxPage() {
 
           <button
             type="button"
-            onClick={() => setActiveTab('MEMORY')}
+            onClick={() => handleTabChange('MEMORY')}
             className={`min-h-[44px] px-5 py-2 text-sm font-semibold border-b-2 transition-colors cursor-pointer flex items-center gap-2 whitespace-nowrap ${
               activeTab === 'MEMORY'
                 ? 'border-primary-700 text-primary-800'
@@ -508,7 +549,7 @@ export default function SandboxPage() {
 
           <button
             type="button"
-            onClick={() => setActiveTab('DISTRIBUTED')}
+            onClick={() => handleTabChange('DISTRIBUTED')}
             className={`min-h-[44px] px-5 py-2 text-sm font-semibold border-b-2 transition-colors cursor-pointer flex items-center gap-2 whitespace-nowrap ${
               activeTab === 'DISTRIBUTED'
                 ? 'border-primary-700 text-primary-800'
@@ -521,7 +562,7 @@ export default function SandboxPage() {
 
           <button
             type="button"
-            onClick={() => setActiveTab('KERNEL_NETWORK')}
+            onClick={() => handleTabChange('KERNEL_NETWORK')}
             className={`min-h-[44px] px-5 py-2 text-sm font-semibold border-b-2 transition-colors cursor-pointer flex items-center gap-2 whitespace-nowrap ${
               activeTab === 'KERNEL_NETWORK'
                 ? 'border-primary-700 text-primary-800'
@@ -534,7 +575,7 @@ export default function SandboxPage() {
 
           <button
             type="button"
-            onClick={() => setActiveTab('SYSTEM_DESIGN')}
+            onClick={() => handleTabChange('SYSTEM_DESIGN')}
             className={`min-h-[44px] px-5 py-2 text-sm font-semibold border-b-2 transition-colors cursor-pointer flex items-center gap-2 whitespace-nowrap ${
               activeTab === 'SYSTEM_DESIGN'
                 ? 'border-primary-700 text-primary-800'
