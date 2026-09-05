@@ -147,4 +147,24 @@ describe('SandboxPage', () => {
     fireEvent.click(cbBtn);
     expect(screen.getByText('1. CLOSED')).toBeInTheDocument();
   });
+
+  it('switches to OS Kernel & Network Protocols Lab tab and interacts with CPU scheduling and paging matrix', () => {
+    render(<SandboxPage />);
+
+    const kernelTabBtn = screen.getByRole('button', { name: /OS Kernel & Network Protocols Lab/i });
+    fireEvent.click(kernelTabBtn);
+
+    expect(screen.getByText(/CPU Scheduling Gantt, Virtual Memory Paging & TCP Congestion Dynamics/i)).toBeInTheDocument();
+    expect(screen.getByText('Round Robin (q = 2)')).toBeInTheDocument();
+
+    // Switch to Virtual Memory Paging subtab
+    const pagingTabBtn = screen.getByRole('button', { name: /Virtual Memory Paging/i });
+    fireEvent.click(pagingTabBtn);
+    expect(screen.getByText(/Physical Memory Frame State Matrix/i)).toBeInTheDocument();
+
+    // Switch to TCP Congestion (cwnd) subtab
+    const tcpTabBtn = screen.getByRole('button', { name: /TCP Congestion \(cwnd\)/i });
+    fireEvent.click(tcpTabBtn);
+    expect(screen.getByText(/Congestion Window Dynamics/i)).toBeInTheDocument();
+  });
 });
