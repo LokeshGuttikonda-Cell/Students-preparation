@@ -6,9 +6,9 @@ import type { PracticeSubjectWithTopics } from './practice-client';
 export const DEFAULT_ROLES_CATALOG: RoleTrackItem[] = [
   {
     id: 'role-aws-cloud',
-    name: 'AWS Cloud Solutions Engineer',
+    name: 'Cloud Solutions Architect',
     slug: 'aws-cloud-engineer',
-    description: 'Design, implement, and maintain scalable, highly available, and fault-tolerant infrastructure systems on AWS.',
+    description: 'Design, implement, and maintain scalable, highly available, and fault-tolerant cloud infrastructure.',
     targetLevel: 'ENTRY_LEVEL',
     competenciesCount: 3,
     mockTestsCount: 2,
@@ -16,7 +16,7 @@ export const DEFAULT_ROLES_CATALOG: RoleTrackItem[] = [
       {
         id: 'comp-aws-1',
         topicId: 'topic-aws-arch',
-        topicName: 'AWS Cloud Architecture & Services',
+        topicName: 'Cloud Architecture & Infrastructure Services',
         topicSlug: 'aws-cloud-architecture',
         subjectId: 'sub-cloud',
         subjectName: 'Cloud & Infrastructure Engineering',
@@ -47,9 +47,9 @@ export const DEFAULT_ROLES_CATALOG: RoleTrackItem[] = [
   },
   {
     id: 'role-azure-cloud',
-    name: 'Azure Cloud Infrastructure Engineer',
+    name: 'Cloud Infrastructure Specialist',
     slug: 'azure-cloud-engineer',
-    description: 'Enterprise cloud infrastructure administration, virtual networks, identity management, and Azure workload operations.',
+    description: 'Enterprise cloud infrastructure administration, virtual networks, identity management, and hybrid workload operations.',
     targetLevel: 'ENTRY_LEVEL',
     competenciesCount: 3,
     mockTestsCount: 2,
@@ -57,7 +57,7 @@ export const DEFAULT_ROLES_CATALOG: RoleTrackItem[] = [
       {
         id: 'comp-az-1',
         topicId: 'topic-azure-sys',
-        topicName: 'Azure Cloud Systems & Services',
+        topicName: 'Cloud Systems Administration & Security',
         topicSlug: 'azure-cloud-systems',
         subjectId: 'sub-cloud',
         subjectName: 'Cloud & Infrastructure Engineering',
@@ -118,7 +118,7 @@ export const DEFAULT_ROLES_CATALOG: RoleTrackItem[] = [
       {
         id: 'comp-dev-3',
         topicId: 'topic-aws-arch',
-        topicName: 'AWS Cloud Architecture & Services',
+        topicName: 'Cloud Architecture & Infrastructure Services',
         topicSlug: 'aws-cloud-architecture',
         subjectId: 'sub-cloud',
         subjectName: 'Cloud & Infrastructure Engineering',
@@ -456,7 +456,7 @@ export const DEFAULT_ROLES_CATALOG: RoleTrackItem[] = [
       {
         id: 'comp-cs-3',
         topicId: 'topic-aws-arch',
-        topicName: 'AWS Cloud Architecture & Services',
+        topicName: 'Cloud Architecture & Infrastructure Services',
         topicSlug: 'aws-cloud-architecture',
         subjectId: 'sub-cloud',
         subjectName: 'Cloud & Infrastructure Engineering',
@@ -651,7 +651,7 @@ export const DEFAULT_COURSES_CATALOG: CourseTrackItem[] = [
     description: 'Master core AWS infrastructure concepts, cloud architecture patterns, VPCs, and storage services.',
     level: 'BEGINNER',
     estimatedHours: 12,
-    roleTrack: { id: 'role-aws-cloud', name: 'AWS Cloud Solutions Engineer', slug: 'aws-cloud-engineer' },
+    roleTrack: { id: 'role-aws-cloud', name: 'Cloud Solutions Architect', slug: 'aws-cloud-engineer' },
     modulesCount: 3,
     orderIndex: 0,
   },
@@ -662,7 +662,7 @@ export const DEFAULT_COURSES_CATALOG: CourseTrackItem[] = [
     description: 'Hands-on preparation for Azure cloud engineering, Resource Manager templates, and cloud storage.',
     level: 'INTERMEDIATE',
     estimatedHours: 15,
-    roleTrack: { id: 'role-azure-cloud', name: 'Azure Cloud Infrastructure Engineer', slug: 'azure-cloud-engineer' },
+    roleTrack: { id: 'role-azure-cloud', name: 'Cloud Infrastructure Specialist', slug: 'azure-cloud-engineer' },
     modulesCount: 3,
     orderIndex: 1,
   },
@@ -785,8 +785,8 @@ export const DEFAULT_PRACTICE_CATALOG: PracticeSubjectWithTopics[] = [
     slug: 'cloud-infrastructure',
     description: 'Cloud architecture patterns, infrastructure automation, containerization, and networking.',
     topics: [
-      { id: 'topic-aws-arch', name: 'AWS Cloud Architecture & Services', slug: 'aws-cloud-architecture' },
-      { id: 'topic-azure-sys', name: 'Azure Cloud Systems & Services', slug: 'azure-cloud-systems' },
+      { id: 'topic-aws-arch', name: 'Cloud Architecture & Infrastructure Services', slug: 'aws-cloud-architecture' },
+      { id: 'topic-azure-sys', name: 'Cloud Systems Administration & Security', slug: 'azure-cloud-systems' },
       { id: 'topic-devops', name: 'DevOps, Docker & CI/CD Pipelines', slug: 'devops-docker-cicd' },
       { id: 'topic-linux', name: 'Linux System Administration & Shell', slug: 'linux-shell-scripting' },
       { id: 'topic-cloud-security', name: 'Cloud Cybersecurity & Defense', slug: 'cloud-cybersecurity-defense' },

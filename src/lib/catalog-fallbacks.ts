@@ -265,7 +265,7 @@ export const DEFAULT_ANALYTICS_DATA: WeakAreaAnalyticsData = {
     },
     {
       topicId: 'topic-aws-arch',
-      topicName: 'AWS Cloud Architecture & Services',
+      topicName: 'Cloud Architecture & Infrastructure Services',
       topicSlug: 'aws-cloud-architecture',
       subjectId: 'sub-cloud',
       subjectName: 'Cloud & Infrastructure Engineering',
@@ -284,7 +284,7 @@ export const DEFAULT_ATTEMPTS_HISTORY: PaginatedAttempts = {
       id: 'att-1',
       attemptType: 'MOCK_TEST',
       status: 'SUBMITTED',
-      title: 'AWS Cloud Solutions Engineer Benchmark Mock Test',
+      title: 'Cloud Solutions Architect Benchmark Mock Test',
       startedAt: new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
       submittedAt: new Date(Date.now() - 23 * 3600 * 1000).toISOString(),
       score: 8.5,
@@ -553,44 +553,44 @@ interface RoleInterviewDialogue {
 function getRoleInterviewDialogue(roleSlugOrId: string): RoleInterviewDialogue {
   const s = (roleSlugOrId || '').toLowerCase();
 
-  if (s.includes('aws')) {
+  if (s.includes('aws') || s.includes('solutions')) {
     return {
-      introQuestion: 'Welcome to the AWS Cloud Solutions Architect interview. Please introduce yourself and explain how you apply the AWS Well-Architected Framework pillars when designing resilient multi-tier systems.',
-      technicalDrillPrompt: 'Your application experiences intermittent HTTP 504 timeout errors behind an Application Load Balancer in us-east-1 during traffic surges. Walk me through how you isolate whether the root cause is ALB idle timeout, target group health check failures, or backend connection pool exhaustion.',
-      scenarioDesignPrompt: 'Design an active-active cross-region disaster recovery architecture for a mission-critical web application with an RPO under 1 minute and RTO under 5 minutes.',
-      wrapupPrompt: 'Thorough architectural breakdown. Do you have any questions for me regarding our multi-region AWS infrastructure or cloud governance standards?',
-      technicalFeedback: 'Strong grasp of AWS networking, VPC peering, and multi-region replication. Consider detailing CloudWatch metric alarms and ALB connection draining settings.',
-      suggestedAnswer: 'Structure the response around Amazon Route 53 latency routing, DynamoDB global tables, S3 cross-region replication, and automated health checks.',
-      feedbackSummary: 'Candidate demonstrated advanced understanding of AWS Well-Architected principles, VPC isolation, and cross-region disaster recovery patterns.',
+      introQuestion: 'Welcome to the Cloud Solutions Architect interview. Please introduce yourself and explain how you apply cloud architectural pillars (reliability, security, cost optimization, performance efficiency) when designing resilient multi-tier distributed systems.',
+      technicalDrillPrompt: 'Your application experiences intermittent HTTP 504 gateway timeout errors behind an Application Load Balancer during traffic surges. Walk me through how you isolate whether the root cause is load balancer idle timeout, target group health check failures, or backend container connection pool exhaustion.',
+      scenarioDesignPrompt: 'Design an active-active cross-region disaster recovery architecture for a mission-critical web service with an RPO under 1 minute and RTO under 5 minutes.',
+      wrapupPrompt: 'Thorough architectural breakdown. Do you have any questions for me regarding our multi-region cloud infrastructure or cloud governance standards?',
+      technicalFeedback: 'Strong grasp of cloud virtual networking, VPC peering, and multi-region replication. Consider detailing synthetic canary monitors and load balancer connection draining settings.',
+      suggestedAnswer: 'Structure the response around DNS latency routing, distributed multi-region database tables, object storage cross-region replication, and automated health checks.',
+      feedbackSummary: 'Candidate demonstrated advanced understanding of cloud architecture principles, VPC isolation, and cross-region disaster recovery patterns.',
       strengths: [
-        'Methodical troubleshooting of ALB 504 timeouts',
+        'Methodical troubleshooting of load balancer 504 timeouts',
         'Strong knowledge of multi-region active-active disaster recovery',
         'Clear articulation of RTO and RPO trade-offs',
       ],
       growthAreas: [
-        'Incorporate specific AWS CloudWatch synthetic canary monitors',
-        'Deepen explanation of IAM role session policies and IMDSv2 security',
+        'Incorporate specific synthetic canary monitors',
+        'Deepen explanation of IAM role session policies and instance metadata service (IMDSv2) security',
       ],
     };
   }
 
-  if (s.includes('azure')) {
+  if (s.includes('azure') || s.includes('infrastructure')) {
     return {
-      introQuestion: 'Welcome to the Azure Cloud Infrastructure interview. How do you approach enterprise landing zone architecture, subscription governance, and hub-and-spoke VNet topologies in Microsoft Azure?',
-      technicalDrillPrompt: 'A virtual machine in a spoke VNet cannot communicate with an Azure SQL Managed Instance in a peered VNet. How do you systematically troubleshoot UDR route tables, NSGs, and private endpoints?',
-      scenarioDesignPrompt: 'Design a secure, highly available hybrid connectivity architecture between an on-premises datacenter and two Azure regions using ExpressRoute with automated VPN failover.',
+      introQuestion: 'Welcome to the Cloud Infrastructure Specialist interview. How do you approach enterprise landing zone architecture, resource hierarchy governance, and hub-and-spoke virtual network topologies in cloud enterprise environments?',
+      technicalDrillPrompt: 'A virtual machine in a spoke virtual network cannot communicate with a managed database in a peered network. How do you systematically troubleshoot custom route tables (UDR), network security groups (NSG), and private endpoints?',
+      scenarioDesignPrompt: 'Design a secure, highly available hybrid connectivity architecture between an on-premises datacenter and two cloud regions using dedicated private interconnects with automated IPsec VPN failover.',
       wrapupPrompt: 'Great technical reasoning. Do you have any architectural questions for our cloud infrastructure team?',
-      technicalFeedback: 'Solid understanding of Azure networking and NSG stateful rules. Consider citing Azure Bastion host tunneling and Azure Policy compliance audits.',
-      suggestedAnswer: 'Trace packet flow using Azure Network Watcher IP Flow Verify and Next Hop tools, verifying effective routes and NSG priority rules.',
-      feedbackSummary: 'Candidate demonstrated thorough knowledge of Azure VNet peering, landing zone governance, and hybrid connectivity failover.',
+      technicalFeedback: 'Solid understanding of cloud networking and stateful firewall rules. Consider citing secure bastion host tunneling and automated compliance policy audits.',
+      suggestedAnswer: 'Trace packet flow using network packet inspection and next-hop diagnostic tools, verifying effective route tables and security group priority rules.',
+      feedbackSummary: 'Candidate demonstrated thorough knowledge of virtual network peering, landing zone governance, and hybrid connectivity failover.',
       strengths: [
-        'Precise usage of Network Watcher diagnostic tools',
-        'Clear design of ExpressRoute with redundant VPN gateway backup',
-        'Proficient understanding of Azure RBAC and Managed Identities',
+        'Precise usage of network diagnostic tools',
+        'Clear design of private interconnects with redundant VPN gateway backup',
+        'Proficient understanding of role-based access control (RBAC) and managed identities',
       ],
       growthAreas: [
-        'Quantify BGP route convergence times during ExpressRoute failover',
-        'Discuss Azure Monitor Log Analytics workspace data retention cost tuning',
+        'Quantify BGP route convergence times during private interconnect failover',
+        'Discuss centralized log analytics workspace data retention and ingestion cost tuning',
       ],
     };
   }
