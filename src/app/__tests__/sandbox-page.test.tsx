@@ -97,4 +97,29 @@ describe('SandboxPage', () => {
     expect(screen.getByText('Binary Search Tree Layout')).toBeInTheDocument();
     expect(screen.getByText('Insert Key 25: Compare with Root (40)')).toBeInTheDocument();
   });
+
+  it('switches to Memory & Cache Hierarchy Lab tab and interacts with low-level systems simulator', () => {
+    render(<SandboxPage />);
+
+    const memoryTabBtn = screen.getByRole('button', { name: /Memory & Cache Hierarchy Lab/i });
+    fireEvent.click(memoryTabBtn);
+
+    expect(screen.getByText('Process Virtual Memory & CPU Cache Coherence Simulator')).toBeInTheDocument();
+    expect(screen.getByText('Safe Allocation & Free')).toBeInTheDocument();
+
+    // Verify step forward in memory simulator
+    const nextBtn = screen.getByRole('button', { name: /Next Step →/i });
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Function Call: createUser() Stack Frame Pushed')).toBeInTheDocument();
+
+    // Switch to L1/L2 Cache line subtab
+    const cacheBtn = screen.getByRole('button', { name: /L1\/L2 Cache Lines & False Sharing/i });
+    fireEvent.click(cacheBtn);
+    expect(screen.getByText(/64-Byte L1 Data Cache Line Byte Visualization/i)).toBeInTheDocument();
+
+    // Switch to Hash Table Collision Probing subtab
+    const hashBtn = screen.getByRole('button', { name: /Hash Table Collision Probing/i });
+    fireEvent.click(hashBtn);
+    expect(screen.getByText(/Bucket Array Representation/i)).toBeInTheDocument();
+  });
 });

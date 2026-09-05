@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { SqlQuerySandbox } from '../../../components/sandbox/SqlQuerySandbox';
 import { CodeLogicSandbox } from '../../../components/sandbox/CodeLogicSandbox';
 import { AlgorithmVisualizerSandbox } from '../../../components/sandbox/AlgorithmVisualizerSandbox';
+import { MemoryCacheInspectorSandbox } from '../../../components/sandbox/MemoryCacheInspectorSandbox';
 import { Button } from '../../../components/ui/Button';
 
 interface SqlChallenge {
@@ -405,7 +406,7 @@ const CODE_CHALLENGES: CodeChallenge[] = [
 ];
 
 export default function SandboxPage() {
-  const [activeTab, setActiveTab] = useState<'SQL' | 'CODE' | 'VISUALIZER'>('SQL');
+  const [activeTab, setActiveTab] = useState<'SQL' | 'CODE' | 'VISUALIZER' | 'MEMORY'>('SQL');
   const [selectedSqlIndex, setSelectedSqlIndex] = useState(0);
   const [selectedCodeIndex, setSelectedCodeIndex] = useState(0);
 
@@ -431,7 +432,7 @@ export default function SandboxPage() {
             </h1>
             <p className="text-sm text-text-muted max-w-2xl">
               Real engineering screening tests your applied execution. Practice running SQL queries,
-              evaluating algorithmic code logic, and stepping through memory visualizers frame-by-frame.
+              evaluating algorithmic code logic, stepping through memory visualizers, and simulating hardware cache lines.
             </p>
           </div>
 
@@ -445,11 +446,11 @@ export default function SandboxPage() {
         </div>
 
         {/* Mode Selector Tabs */}
-        <div className="flex border-b border-border gap-2">
+        <div className="flex border-b border-border gap-2 overflow-x-auto">
           <button
             type="button"
             onClick={() => setActiveTab('SQL')}
-            className={`min-h-[44px] px-5 py-2 text-sm font-semibold border-b-2 transition-colors cursor-pointer flex items-center gap-2 ${
+            className={`min-h-[44px] px-5 py-2 text-sm font-semibold border-b-2 transition-colors cursor-pointer flex items-center gap-2 whitespace-nowrap ${
               activeTab === 'SQL'
                 ? 'border-primary-700 text-primary-800'
                 : 'border-transparent text-text-muted hover:text-text hover:border-border'
@@ -462,7 +463,7 @@ export default function SandboxPage() {
           <button
             type="button"
             onClick={() => setActiveTab('CODE')}
-            className={`min-h-[44px] px-5 py-2 text-sm font-semibold border-b-2 transition-colors cursor-pointer flex items-center gap-2 ${
+            className={`min-h-[44px] px-5 py-2 text-sm font-semibold border-b-2 transition-colors cursor-pointer flex items-center gap-2 whitespace-nowrap ${
               activeTab === 'CODE'
                 ? 'border-primary-700 text-primary-800'
                 : 'border-transparent text-text-muted hover:text-text hover:border-border'
@@ -475,7 +476,7 @@ export default function SandboxPage() {
           <button
             type="button"
             onClick={() => setActiveTab('VISUALIZER')}
-            className={`min-h-[44px] px-5 py-2 text-sm font-semibold border-b-2 transition-colors cursor-pointer flex items-center gap-2 ${
+            className={`min-h-[44px] px-5 py-2 text-sm font-semibold border-b-2 transition-colors cursor-pointer flex items-center gap-2 whitespace-nowrap ${
               activeTab === 'VISUALIZER'
                 ? 'border-primary-700 text-primary-800'
                 : 'border-transparent text-text-muted hover:text-text hover:border-border'
@@ -484,10 +485,23 @@ export default function SandboxPage() {
             <span>👁️</span>
             <span>Visual Algorithm Stepper</span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('MEMORY')}
+            className={`min-h-[44px] px-5 py-2 text-sm font-semibold border-b-2 transition-colors cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+              activeTab === 'MEMORY'
+                ? 'border-primary-700 text-primary-800'
+                : 'border-transparent text-text-muted hover:text-text hover:border-border'
+            }`}
+          >
+            <span>🧠</span>
+            <span>Memory &amp; Cache Hierarchy Lab</span>
+          </button>
         </div>
 
         {/* Challenge Selection Pills for SQL and CODE */}
-        {activeTab !== 'VISUALIZER' && (
+        {activeTab !== 'VISUALIZER' && activeTab !== 'MEMORY' && (
           <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-text-muted">
@@ -578,9 +592,13 @@ export default function SandboxPage() {
               testCases={currentCode.testCases}
             />
           </div>
-        ) : (
+        ) : activeTab === 'VISUALIZER' ? (
           <div className="space-y-6">
             <AlgorithmVisualizerSandbox />
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <MemoryCacheInspectorSandbox />
           </div>
         )}
       </div>
