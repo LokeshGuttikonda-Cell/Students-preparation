@@ -81,7 +81,7 @@ export default function InterviewsHubPage() {
           <div className="max-w-2xl space-y-3 relative z-10">
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold uppercase tracking-wider text-accent-300">
-                Phase 5 Simulator
+                AI Socratic Simulator
               </span>
               <span className="text-[11px] font-semibold bg-white/15 px-2.5 py-0.5 rounded-full text-white">
                 Speech-to-Text &amp; Voice Output

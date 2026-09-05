@@ -112,7 +112,7 @@ export default function InterviewResultsPage() {
                 {session.roleTrack.name} — Technical Interview Scorecard
               </h1>
               <span className="text-xs font-bold text-primary-700 bg-primary-50 px-2 py-0.5 rounded border border-primary-200">
-                Phase 5 Evaluation
+                Socratic Evaluation
               </span>
             </div>
           </div>
