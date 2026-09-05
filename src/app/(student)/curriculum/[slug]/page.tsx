@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation';
 import type { Route } from 'next';
 import {
   getCurriculumArticle,
+  getAdjacentArticles,
   type CurriculumArticle,
 } from '../../../../lib/curriculum-client';
 import { Card, CardContent } from '../../../../components/ui/Card';
@@ -15,7 +16,12 @@ export default function CurriculumArticleDetailPage() {
   const routeParams = useParams<{ slug: string }>();
   const slug = routeParams?.slug || '';
   const [article, setArticle] = useState<CurriculumArticle | null>(null);
+  const [adjacent, setAdjacent] = useState<{ prev: CurriculumArticle | null; next: CurriculumArticle | null }>({
+    prev: null,
+    next: null,
+  });
   const [loading, setLoading] = useState(true);
+  const [copiedSnippetIdx, setCopiedSnippetIdx] = useState<number | null>(null);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, number>>({});
   const [showExplanations, setShowExplanations] = useState<Record<string, boolean>>({});
 
@@ -23,14 +29,26 @@ export default function CurriculumArticleDetailPage() {
     async function load() {
       try {
         setLoading(true);
-        const art = await getCurriculumArticle(slug);
+        const [art, adj] = await Promise.all([
+          getCurriculumArticle(slug),
+          getAdjacentArticles(slug),
+        ]);
         setArticle(art);
+        setAdjacent(adj);
       } finally {
         setLoading(false);
       }
     }
     load();
   }, [slug]);
+
+  const handleCopy = (codeText: string, idx: number) => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(codeText);
+      setCopiedSnippetIdx(idx);
+      setTimeout(() => setCopiedSnippetIdx(null), 2000);
+    }
+  };
 
   const handleSelectOption = (questionId: string, optionIdx: number) => {
     if (selectedAnswers[questionId] !== undefined) return; // Answer locked
@@ -123,8 +141,28 @@ export default function CurriculumArticleDetailPage() {
           </div>
         </div>
 
+        {/* Section Quick Jump Bar */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs border-b border-border">
+          <span className="font-semibold text-text-muted shrink-0">Jump to:</span>
+          <a href="#overview" className="px-2.5 py-1 rounded-md bg-surface hover:bg-surface-hover text-text border border-border transition-colors whitespace-nowrap">
+            1. Overview
+          </a>
+          <a href="#theory" className="px-2.5 py-1 rounded-md bg-surface hover:bg-surface-hover text-text border border-border transition-colors whitespace-nowrap">
+            2. Theory &amp; Code
+          </a>
+          <a href="#anti-patterns" className="px-2.5 py-1 rounded-md bg-surface hover:bg-surface-hover text-text border border-border transition-colors whitespace-nowrap">
+            3. Anti-Patterns
+          </a>
+          <a href="#verification" className="px-2.5 py-1 rounded-md bg-surface hover:bg-surface-hover text-text border border-border transition-colors whitespace-nowrap">
+            4. Concept MCQs
+          </a>
+          <a href="#labs" className="px-2.5 py-1 rounded-md bg-primary-50 text-primary-800 border border-primary-200 hover:bg-primary-100 transition-colors whitespace-nowrap font-medium">
+            ⚡ Applied Labs
+          </a>
+        </div>
+
         {/* Overview */}
-        <div className="space-y-3">
+        <div id="overview" className="space-y-3 scroll-mt-6">
           <h2 className="text-xl font-bold text-primary-900">1. Executive Overview</h2>
           <div className="bg-surface p-6 rounded-xl border border-border text-sm text-text leading-relaxed whitespace-pre-line">
             {article.overview}
@@ -132,7 +170,7 @@ export default function CurriculumArticleDetailPage() {
         </div>
 
         {/* Theory & Implementation Sections */}
-        <div className="space-y-6">
+        <div id="theory" className="space-y-6 scroll-mt-6">
           <h2 className="text-xl font-bold text-primary-900">2. Technical Invariants &amp; Architectural Theory</h2>
           {article.theorySections.map((sec, idx) => (
             <div key={idx} className="bg-surface p-6 rounded-xl border border-border space-y-4">
@@ -147,7 +185,16 @@ export default function CurriculumArticleDetailPage() {
                     <span className="font-mono uppercase font-bold text-primary-800">
                       {sec.codeSnippet.language}
                     </span>
-                    <span>Zero External Dependencies</span>
+                    <div className="flex items-center gap-2">
+                      <span>Zero External Dependencies</span>
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(sec.codeSnippet!.code, idx)}
+                        className="px-2 py-0.5 text-[11px] rounded bg-surface hover:bg-surface-hover text-text border border-border transition-colors cursor-pointer"
+                      >
+                        {copiedSnippetIdx === idx ? '✓ Copied' : '📋 Copy'}
+                      </button>
+                    </div>
                   </div>
                   <pre className="p-4 rounded-lg bg-neutral-900 text-neutral-100 font-mono text-xs overflow-x-auto leading-relaxed border border-neutral-800">
                     <code>{sec.codeSnippet.code}</code>
@@ -162,7 +209,7 @@ export default function CurriculumArticleDetailPage() {
         </div>
 
         {/* Production Traps & Anti-Patterns */}
-        <div className="space-y-4">
+        <div id="anti-patterns" className="space-y-4 scroll-mt-6">
           <h2 className="text-xl font-bold text-primary-900">
             3. Production Anti-Patterns &amp; Recruiter Traps
           </h2>
@@ -188,7 +235,7 @@ export default function CurriculumArticleDetailPage() {
         </div>
 
         {/* Interactive Practice MCQs */}
-        <div className="space-y-4">
+        <div id="verification" className="space-y-4 scroll-mt-6">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold text-primary-900">
               4. Socratic Concept Verification (MCQs)
@@ -205,31 +252,27 @@ export default function CurriculumArticleDetailPage() {
               const isCorrect = selectedOpt === mcq.correctIndex;
 
               return (
-                <Card key={mcq.id} className="border-border bg-surface">
-                  <CardContent className="p-6 space-y-4">
-                    <div className="flex items-start gap-3">
-                      <span className="text-xs font-bold px-2 py-0.5 rounded bg-primary-100 text-primary-800 shrink-0">
-                        Q{qIdx + 1}
-                      </span>
-                      <h3 className="text-sm font-semibold text-text leading-relaxed">
-                        {mcq.question}
-                      </h3>
-                    </div>
+                <Card key={mcq.id} className="p-5 sm:p-6 border-border shadow-xs space-y-4 bg-surface">
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="font-semibold text-sm text-text">
+                      Q{qIdx + 1}. {mcq.question}
+                    </span>
+                  </div>
 
-                    {/* Options list */}
+                  <CardContent className="p-0 space-y-3">
                     <div className="space-y-2">
                       {mcq.options.map((opt, optIdx) => {
                         let optStyle =
-                          'border-border hover:bg-surface-muted cursor-pointer text-text';
+                          'bg-canvas border-border text-text hover:bg-surface-hover hover:border-border-hover';
+
                         if (isAnswered) {
                           if (optIdx === mcq.correctIndex) {
                             optStyle =
-                              'border-emerald-500 bg-emerald-50 text-emerald-950 font-semibold';
-                          } else if (optIdx === selectedOpt) {
-                            optStyle =
-                              'border-error-500 bg-error-50 text-error-950';
+                              'bg-emerald-50 border-emerald-500 text-emerald-900 font-medium shadow-xs';
+                          } else if (optIdx === selectedOpt && !isCorrect) {
+                            optStyle = 'bg-error-50 border-error-500 text-error-900 font-medium';
                           } else {
-                            optStyle = 'border-border/50 opacity-60 text-text-muted';
+                            optStyle = 'bg-canvas border-border text-text-muted opacity-60';
                           }
                         }
 
@@ -237,7 +280,7 @@ export default function CurriculumArticleDetailPage() {
                           <div
                             key={optIdx}
                             onClick={() => handleSelectOption(mcq.id, optIdx)}
-                            className={`p-3 rounded-lg border text-xs flex items-center justify-between transition-all ${optStyle}`}
+                            className={`p-3 rounded-lg border text-xs flex items-center justify-between transition-all cursor-pointer ${optStyle}`}
                           >
                             <span>
                               <strong className="mr-2 font-mono">
@@ -281,7 +324,7 @@ export default function CurriculumArticleDetailPage() {
         </div>
 
         {/* Next Actions & Sandbox Linking */}
-        <div className="bg-gradient-to-br from-primary-900 to-primary-950 text-white p-6 sm:p-8 rounded-2xl shadow-lg flex flex-col sm:flex-row items-center justify-between gap-6">
+        <div id="labs" className="bg-gradient-to-br from-primary-900 to-primary-950 text-white p-6 sm:p-8 rounded-2xl shadow-lg flex flex-col sm:flex-row items-center justify-between gap-6 scroll-mt-6">
           <div className="space-y-1 text-center sm:text-left">
             <h3 className="text-lg font-bold">Ready to apply these concepts in code?</h3>
             <p className="text-xs text-primary-200">
@@ -308,6 +351,59 @@ export default function CurriculumArticleDetailPage() {
               </Button>
             </Link>
           </div>
+        </div>
+
+        {/* Previous & Next Article Navigation Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+          {adjacent.prev ? (
+            <Link
+              href={`/curriculum/${adjacent.prev.slug}` as Route}
+              className="group p-4 rounded-xl border border-border bg-surface hover:border-primary-400 hover:shadow-xs transition-all space-y-1 block"
+            >
+              <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider flex items-center gap-1 group-hover:text-primary-700">
+                &larr; Previous Guide
+              </span>
+              <div className="text-sm font-bold text-text group-hover:text-primary-800 line-clamp-1">
+                {adjacent.prev.title}
+              </div>
+              <div className="text-xs text-text-muted">
+                {adjacent.prev.domainName} &bull; {adjacent.prev.readTimeMinutes} min
+              </div>
+            </Link>
+          ) : (
+            <div className="p-4 rounded-xl border border-dashed border-border bg-surface-muted/50 text-text-muted text-xs flex items-center">
+              <span>First guide in the technical knowledge series</span>
+            </div>
+          )}
+
+          {adjacent.next ? (
+            <Link
+              href={`/curriculum/${adjacent.next.slug}` as Route}
+              className="group p-4 rounded-xl border border-border bg-surface hover:border-primary-400 hover:shadow-xs transition-all space-y-1 text-right block"
+            >
+              <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider flex items-center justify-end gap-1 group-hover:text-primary-700">
+                Next Guide &rarr;
+              </span>
+              <div className="text-sm font-bold text-text group-hover:text-primary-800 line-clamp-1">
+                {adjacent.next.title}
+              </div>
+              <div className="text-xs text-text-muted">
+                {adjacent.next.domainName} &bull; {adjacent.next.readTimeMinutes} min
+              </div>
+            </Link>
+          ) : (
+            <Link
+              href="/sandbox"
+              className="group p-4 rounded-xl border border-primary-200 bg-primary-50/50 hover:bg-primary-50 transition-all space-y-1 text-right block"
+            >
+              <span className="text-[11px] font-bold text-primary-800 uppercase tracking-wider flex items-center justify-end gap-1">
+                Curriculum Complete &rarr;
+              </span>
+              <div className="text-sm font-bold text-primary-900">
+                Explore Applied Labs in Sandbox
+              </div>
+            </Link>
+          )}
         </div>
 
         {/* Footer Navigation */}

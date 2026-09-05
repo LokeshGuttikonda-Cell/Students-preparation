@@ -55,3 +55,16 @@ export async function searchCurriculumArticles(query: string): Promise<Curriculu
   return Promise.resolve(results);
 }
 
+export async function getAdjacentArticles(slug: string): Promise<{
+  prev: CurriculumArticle | null;
+  next: CurriculumArticle | null;
+}> {
+  const index = CURRICULUM_ARTICLES.findIndex((a) => a.slug === slug);
+  if (index === -1) {
+    return Promise.resolve({ prev: null, next: null });
+  }
+  const prev = index > 0 ? CURRICULUM_ARTICLES[index - 1] : null;
+  const next = index < CURRICULUM_ARTICLES.length - 1 ? CURRICULUM_ARTICLES[index + 1] : null;
+  return Promise.resolve({ prev, next });
+}
+

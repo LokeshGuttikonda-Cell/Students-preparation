@@ -91,5 +91,13 @@ describe('CurriculumArticleDetailPage Component', () => {
     await waitFor(() => {
       expect(screen.getByText(/Correct Rationale/i)).toBeDefined();
     });
+
+    // Check TOC section jump links
+    expect(screen.getByText('1. Overview')).toBeDefined();
+    expect(screen.getByText('2. Theory & Code')).toBeDefined();
+    expect(screen.getByText('⚡ Applied Labs')).toBeDefined();
+
+    // Check Previous/Next guide navigation cards
+    expect(screen.getByText(/Next Guide →/i)).toBeDefined();
   });
 });
