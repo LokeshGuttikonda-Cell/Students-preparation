@@ -750,6 +750,21 @@ export const FALLBACK_TOPIC_QUESTIONS: RawTopicQuestion[] = [
     ],
     correctOptionId: 'opt-crm-3a',
   },
+  {
+    id: 'pq-crm-4',
+    topicId: 'topic-crm-work',
+    topicSlug: 'crm-workflow-logic',
+    body: 'In enterprise CRM transactional workflows, what concurrency control mechanism prevents lost updates when two asynchronous triggers update the same account simultaneously?',
+    explanation: 'Pessimistic row locking (e.g. FOR UPDATE) or optimistic version checking ensures that concurrent transactions serialize their modifications on the record, preventing lost updates.',
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-crm-4a', body: 'Pessimistic row locking (FOR UPDATE) or optimistic version checking on the target record', orderIndex: 0 },
+      { id: 'opt-crm-4b', body: 'Disabling foreign key constraints during batch execution hours', orderIndex: 1 },
+      { id: 'opt-crm-4c', body: 'Executing triggers in asynchronous parallel threads without transaction rollback', orderIndex: 2 },
+      { id: 'opt-crm-4d', body: 'Relying exclusively on client-side form validation timers', orderIndex: 3 },
+    ],
+    correctOptionId: 'opt-crm-4a',
+  },
 
   // Topic 13: ETL Pipelines & Data Engineering
   {
@@ -863,6 +878,21 @@ export const FALLBACK_TOPIC_QUESTIONS: RawTopicQuestion[] = [
     ],
     correctOptionId: 'opt-ds-3a',
   },
+  {
+    id: 'pq-ds-4',
+    topicId: 'topic-ds',
+    topicSlug: 'data-structures-basics',
+    body: 'What is the time complexity to search for a string of length L in a Trie containing N total words?',
+    explanation: 'Searching in a Trie traverses one edge per character of the search key, giving O(L) lookup time proportional strictly to the string length L, completely independent of the total dictionary size N.',
+    difficulty: 'EASY',
+    options: [
+      { id: 'opt-ds-4a', body: 'O(L), where L is the length of the query string', orderIndex: 0 },
+      { id: 'opt-ds-4b', body: 'O(N * L), requiring comparison against all N words', orderIndex: 1 },
+      { id: 'opt-ds-4c', body: 'O(log N), binary bisecting the word list', orderIndex: 2 },
+      { id: 'opt-ds-4d', body: 'O(2^L), branching exponentially per character', orderIndex: 3 },
+    ],
+    correctOptionId: 'opt-ds-4a',
+  },
 
   // Topic 15: DBMS Basics
   {
@@ -910,6 +940,21 @@ export const FALLBACK_TOPIC_QUESTIONS: RawTopicQuestion[] = [
     ],
     correctOptionId: 'opt-db-3a',
   },
+  {
+    id: 'pq-db-4',
+    topicId: 'topic-dbms',
+    topicSlug: 'dbms-basics',
+    body: 'Which ANSI SQL transaction isolation level prevents Dirty Reads and Non-Repeatable Reads, but may still permit Phantom Reads?',
+    explanation: 'Repeatable Read guarantees rows read cannot be modified by concurrent transactions, preventing dirty reads and non-repeatable reads. However, range queries can still observe newly inserted rows (phantoms) unless Serializable isolation is used.',
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-db-4a', body: 'Repeatable Read', orderIndex: 0 },
+      { id: 'opt-db-4b', body: 'Read Committed', orderIndex: 1 },
+      { id: 'opt-db-4c', body: 'Read Uncommitted', orderIndex: 2 },
+      { id: 'opt-db-4d', body: 'Snapshot Serializable', orderIndex: 3 },
+    ],
+    correctOptionId: 'opt-db-4a',
+  },
 
   // Topic 16: OOP Concepts
   {
@@ -956,6 +1001,21 @@ export const FALLBACK_TOPIC_QUESTIONS: RawTopicQuestion[] = [
       { id: 'opt-oop-3d', body: 'Automatically generates database schema tables from object references', orderIndex: 3 },
     ],
     correctOptionId: 'opt-oop-3a',
+  },
+  {
+    id: 'pq-oop-4',
+    topicId: 'topic-oop',
+    topicSlug: 'oop-concepts',
+    body: 'Under the Liskov Substitution Principle (LSP), what condition must be satisfied when a subclass overrides a superclass method?',
+    explanation: 'Subtypes must be substitutable for their base types without altering program correctness. Preconditions cannot be strengthened and postconditions cannot be weakened in the subtype.',
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-oop-4a', body: 'Subclasses must accept at least all inputs superclasses accept (weaker/equal preconditions) and promise at least what superclasses promise (stronger/equal postconditions)', orderIndex: 0 },
+      { id: 'opt-oop-4b', body: 'Subclasses must throw generic RuntimeExceptions for any method they do not support', orderIndex: 1 },
+      { id: 'opt-oop-4c', body: 'Subclasses must override every private field of the superclass', orderIndex: 2 },
+      { id: 'opt-oop-4d', body: 'Subclasses must always execute in separate OS processes', orderIndex: 3 },
+    ],
+    correctOptionId: 'opt-oop-4a',
   },
 
   // ==========================================
@@ -1008,6 +1068,21 @@ export const FALLBACK_TOPIC_QUESTIONS: RawTopicQuestion[] = [
     ],
     correctOptionId: 'opt-num-3a',
   },
+  {
+    id: 'pq-num-4',
+    topicId: 'topic-numbers',
+    topicSlug: 'number-systems',
+    body: 'What is the smallest positive integer x such that x ≡ 3 (mod 5) and x ≡ 2 (mod 7)?',
+    explanation: 'Testing numbers of the form 5k + 3: 3 (3 mod 7), 8 (1 mod 7), 13 (6 mod 7), 18 (4 mod 7), 23 (2 mod 7 since 23 = 7*3 + 2). The smallest positive integer is 23.',
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-num-4a', body: '23', orderIndex: 0 },
+      { id: 'opt-num-4b', body: '18', orderIndex: 1 },
+      { id: 'opt-num-4c', body: '38', orderIndex: 2 },
+      { id: 'opt-num-4d', body: '33', orderIndex: 3 },
+    ],
+    correctOptionId: 'opt-num-4a',
+  },
 
   // Topic 18: Percentages
   {
@@ -1054,6 +1129,21 @@ export const FALLBACK_TOPIC_QUESTIONS: RawTopicQuestion[] = [
       { id: 'opt-pct-3d', body: '16,000', orderIndex: 3 },
     ],
     correctOptionId: 'opt-pct-3a',
+  },
+  {
+    id: 'pq-pct-4',
+    topicId: 'topic-percentages',
+    topicSlug: 'percentages',
+    body: 'A solution of 40 liters of milk and water contains 10% water. How many liters of pure water must be added so that water becomes 20% of the new mixture?',
+    explanation: 'Milk volume remains constant: 90% of 40 = 36 liters of milk. In the new mixture, milk will be 80% of total volume V: 0.80 * V = 36 => V = 45 liters. Water added = 45 - 40 = 5 liters.',
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-pct-4a', body: '5 liters', orderIndex: 0 },
+      { id: 'opt-pct-4b', body: '4 liters', orderIndex: 1 },
+      { id: 'opt-pct-4c', body: '6 liters', orderIndex: 2 },
+      { id: 'opt-pct-4d', body: '8 liters', orderIndex: 3 },
+    ],
+    correctOptionId: 'opt-pct-4a',
   },
 
   // Topic 19: Time and Work
@@ -1102,6 +1192,21 @@ export const FALLBACK_TOPIC_QUESTIONS: RawTopicQuestion[] = [
     ],
     correctOptionId: 'opt-tw-3a',
   },
+  {
+    id: 'pq-tw-4',
+    topicId: 'topic-time-work',
+    topicSlug: 'time-and-work',
+    body: '12 engineers can complete a system migration in 18 days working 8 hours per day. How many days will 16 engineers take working 9 hours per day?',
+    explanation: 'Using M1 * D1 * H1 = M2 * D2 * H2: 12 * 18 * 8 = 16 * D2 * 9. 1728 = 144 * D2 => D2 = 1728 / 144 = 12 days.',
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-tw-4a', body: '12 days', orderIndex: 0 },
+      { id: 'opt-tw-4b', body: '14 days', orderIndex: 1 },
+      { id: 'opt-tw-4c', body: '10 days', orderIndex: 2 },
+      { id: 'opt-tw-4d', body: '15 days', orderIndex: 3 },
+    ],
+    correctOptionId: 'opt-tw-4a',
+  },
 
   // Topic 20: Probability & Permutations
   {
@@ -1148,6 +1253,21 @@ export const FALLBACK_TOPIC_QUESTIONS: RawTopicQuestion[] = [
       { id: 'opt-prob-3d', body: '5/26', orderIndex: 3 },
     ],
     correctOptionId: 'opt-prob-3a',
+  },
+  {
+    id: 'pq-prob-4',
+    topicId: 'topic-prob',
+    topicSlug: 'probability-permutations',
+    body: 'A project team of 5 is to be formed from 6 senior engineers and 4 technical leads. What is the probability that the team has exactly 3 senior engineers and 2 technical leads?',
+    explanation: 'Total ways = C(10,5) = 252. Favorable ways = C(6,3) * C(4,2) = 20 * 6 = 120. Probability = 120 / 252 = 10 / 21.',
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-prob-4a', body: '10/21', orderIndex: 0 },
+      { id: 'opt-prob-4b', body: '5/12', orderIndex: 1 },
+      { id: 'opt-prob-4c', body: '1/2', orderIndex: 2 },
+      { id: 'opt-prob-4d', body: '8/21', orderIndex: 3 },
+    ],
+    correctOptionId: 'opt-prob-4a',
   },
 
   // ==========================================
@@ -1200,6 +1320,21 @@ export const FALLBACK_TOPIC_QUESTIONS: RawTopicQuestion[] = [
     ],
     correctOptionId: 'opt-br-3a',
   },
+  {
+    id: 'pq-br-4',
+    topicId: 'topic-blood',
+    topicSlug: 'blood-relations',
+    body: 'Introducing a colleague, Vikram said: "Her brother\'s father is the only son of my grandfather." How is the colleague related to Vikram?',
+    explanation: '"The only son of my grandfather" is Vikram\'s father. If her brother\'s father is Vikram\'s father, she shares the same father as Vikram. Therefore, she is Vikram\'s sister.',
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-br-4a', body: 'Sister', orderIndex: 0 },
+      { id: 'opt-br-4b', body: 'Niece', orderIndex: 1 },
+      { id: 'opt-br-4c', body: 'Aunt', orderIndex: 2 },
+      { id: 'opt-br-4d', body: 'Mother', orderIndex: 3 },
+    ],
+    correctOptionId: 'opt-br-4a',
+  },
 
   // Topic 22: Coding-Decoding
   {
@@ -1246,6 +1381,21 @@ export const FALLBACK_TOPIC_QUESTIONS: RawTopicQuestion[] = [
       { id: 'opt-cd-3d', body: '7', orderIndex: 3 },
     ],
     correctOptionId: 'opt-cd-3a',
+  },
+  {
+    id: 'pq-cd-4',
+    topicId: 'topic-coding',
+    topicSlug: 'coding-decoding',
+    body: 'If "GATEWAY" is coded as "TZGEBZB" using reverse alphabet positions (A↔Z, B↔Y, C↔X, etc.), how is "SERVER" coded?',
+    explanation: 'Using reverse alphabet positions (letter index + reverse index = 27): S(19)↔H(8), E(5)↔V(22), R(18)↔I(9), V(22)↔E(5), E(5)↔V(22), R(18)↔I(9). Thus "SERVER" is coded as "HVIEVI".',
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-cd-4a', body: 'HVIEVI', orderIndex: 0 },
+      { id: 'opt-cd-4b', body: 'HVJEVI', orderIndex: 1 },
+      { id: 'opt-cd-4c', body: 'GVIEVI', orderIndex: 2 },
+      { id: 'opt-cd-4d', body: 'HUIEUI', orderIndex: 3 },
+    ],
+    correctOptionId: 'opt-cd-4a',
   },
 
   // Topic 23: Syllogisms
@@ -1294,6 +1444,21 @@ export const FALLBACK_TOPIC_QUESTIONS: RawTopicQuestion[] = [
     ],
     correctOptionId: 'opt-syl-3a',
   },
+  {
+    id: 'pq-syl-4',
+    topicId: 'topic-syllogisms',
+    topicSlug: 'syllogisms',
+    body: 'Statements: "Some algorithms are recursive. All recursive functions consume stack space." Conclusions: I. Some algorithms consume stack space. II. All algorithms consume stack space. Which conclusion(s) follow?',
+    explanation: 'Since some algorithms are recursive, and all recursive functions consume stack space, those algorithms consume stack space. Conclusion I follows. Conclusion II is an invalid overgeneralization.',
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-syl-4a', body: 'Only Conclusion I follows', orderIndex: 0 },
+      { id: 'opt-syl-4b', body: 'Only Conclusion II follows', orderIndex: 1 },
+      { id: 'opt-syl-4c', body: 'Both Conclusion I and II follow', orderIndex: 2 },
+      { id: 'opt-syl-4d', body: 'Neither conclusion follows', orderIndex: 3 },
+    ],
+    correctOptionId: 'opt-syl-4a',
+  },
 
   // Topic 24: Direction Sense & Deduction
   {
@@ -1341,6 +1506,21 @@ export const FALLBACK_TOPIC_QUESTIONS: RawTopicQuestion[] = [
     ],
     correctOptionId: 'opt-dir-3a',
   },
+  {
+    id: 'pq-dir-4',
+    topicId: 'topic-direction',
+    topicSlug: 'direction-sense-deduction',
+    body: 'A network drone flies 20 km North, turns left and flies 30 km West, turns left and flies 20 km South, then turns right and flies 10 km West. How far and in which direction is the drone from its starting hangar?',
+    explanation: 'North-South net displacement: +20 km (North) - 20 km (South) = 0 km. East-West displacement: 30 km (West) + 10 km (West) = 40 km West. The drone is 40 km West of its starting point.',
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-dir-4a', body: '40 km West', orderIndex: 0 },
+      { id: 'opt-dir-4b', body: '30 km West', orderIndex: 1 },
+      { id: 'opt-dir-4c', body: '50 km South-West', orderIndex: 2 },
+      { id: 'opt-dir-4d', body: '20 km West', orderIndex: 3 },
+    ],
+    correctOptionId: 'opt-dir-4a',
+  },
 
   // Topic: Operating Systems & Linux Internals
   {
@@ -1372,6 +1552,36 @@ export const FALLBACK_TOPIC_QUESTIONS: RawTopicQuestion[] = [
       { id: 'opt-os-2d', body: 'Circular wait', orderIndex: 3 },
     ],
     correctOptionId: 'opt-os-2a',
+  },
+  {
+    id: 'pq-os-3',
+    topicId: 'topic-os',
+    topicSlug: 'operating-systems-internals',
+    body: 'What causes the Thrashing phenomenon in virtual memory systems, and how does the Working Set Model mitigate it?',
+    explanation: 'Thrashing occurs when the aggregate working set of executing processes exceeds physical RAM, causing the OS to spend more time servicing page faults than executing instructions. The Working Set Model tracks referenced pages in window Δ and only dispatches processes whose working sets fit in physical RAM.',
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-os-3a', body: 'Excessive page faulting when aggregate working set exceeds RAM; mitigated by keeping only processes whose working sets fit into memory active', orderIndex: 0 },
+      { id: 'opt-os-3b', body: 'CPU overheating due to excessive context switching; mitigated by down-clocking CPU cores', orderIndex: 1 },
+      { id: 'opt-os-3c', body: 'Deadlock in spinlocks; mitigated by priority inversion inheritance', orderIndex: 2 },
+      { id: 'opt-os-3d', body: 'Disk block fragmentation; mitigated by asynchronous ext4 defragmentation', orderIndex: 3 },
+    ],
+    correctOptionId: 'opt-os-3a',
+  },
+  {
+    id: 'pq-os-4',
+    topicId: 'topic-os',
+    topicSlug: 'operating-systems-internals',
+    body: 'What is the primary performance advantage of Linux Fast Userspace Mutexes (futex) over traditional kernel mutex system calls?',
+    explanation: 'A futex performs atomic Compare-And-Swap (CAS) locking entirely in user space without entering the kernel if there is no lock contention. The kernel system call is only invoked when contention occurs and a thread must sleep or wake.',
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-os-4a', body: 'Uncontended lock acquisition requires zero kernel system calls via atomic userspace CAS operations', orderIndex: 0 },
+      { id: 'opt-os-4b', body: 'Futexes disable CPU hardware interrupts across all cores during critical sections', orderIndex: 1 },
+      { id: 'opt-os-4c', body: 'Futexes bypass the OS virtual memory page table entirely', orderIndex: 2 },
+      { id: 'opt-os-4d', body: 'They guarantee O(1) garbage collection latency for Java runtimes', orderIndex: 3 },
+    ],
+    correctOptionId: 'opt-os-4a',
   },
 
   // Topic: Computer Networks & Protocols
@@ -1405,6 +1615,36 @@ export const FALLBACK_TOPIC_QUESTIONS: RawTopicQuestion[] = [
     ],
     correctOptionId: 'opt-net-2a',
   },
+  {
+    id: 'pq-net-3',
+    topicId: 'topic-networks',
+    topicSlug: 'computer-networks-protocols',
+    body: 'In TCP Reno and Cubic congestion control, what event triggers Fast Retransmit and Fast Recovery without waiting for Retransmission Timeout (RTO)?',
+    explanation: 'Receiving three duplicate ACKs (3 dupACKs) triggers Fast Retransmit, because duplicate ACKs indicate packets arrived out of order at the receiver with likely single packet loss rather than total network path failure.',
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-net-3a', body: 'Receipt of three duplicate ACKs (3 dupACKs) from the receiving peer', orderIndex: 0 },
+      { id: 'opt-net-3b', body: 'Expiration of the socket keep-alive timer after 7200 seconds', orderIndex: 1 },
+      { id: 'opt-net-3c', body: 'Receiving an ICMP Destination Unreachable packet from the gateway', orderIndex: 2 },
+      { id: 'opt-net-3d', body: 'TCP window scaling option advertised with a value of 0', orderIndex: 3 },
+    ],
+    correctOptionId: 'opt-net-3a',
+  },
+  {
+    id: 'pq-net-4',
+    topicId: 'topic-networks',
+    topicSlug: 'computer-networks-protocols',
+    body: 'How does BGP Anycast routing enable globally distributed DNS root servers and CDNs to provide low-latency edge resolution?',
+    explanation: 'Multiple geographically distributed server points-of-presence (PoPs) announce the identical IP address prefix via BGP. Border routers automatically direct client requests to the topologically nearest PoP via standard BGP path selection.',
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-net-4a', body: 'Multiple global server nodes advertise the identical IP prefix via BGP, allowing routers to forward packets to the topologically closest node', orderIndex: 0 },
+      { id: 'opt-net-4b', body: 'Each client machine runs an internal BGP peering daemon to choose DNS endpoints', orderIndex: 1 },
+      { id: 'opt-net-4c', body: 'DNS servers establish permanent IPSec tunnels to every residential ISP router', orderIndex: 2 },
+      { id: 'opt-net-4d', body: 'By broadcasting UDP datagrams to the IPv4 broadcast address 255.255.255.255', orderIndex: 3 },
+    ],
+    correctOptionId: 'opt-net-4a',
+  },
 
   // Topic: Advanced Algorithms & Dynamic Programming
   {
@@ -1437,6 +1677,36 @@ export const FALLBACK_TOPIC_QUESTIONS: RawTopicQuestion[] = [
     ],
     correctOptionId: 'opt-algo-2a',
   },
+  {
+    id: 'pq-algo-3',
+    topicId: 'topic-adv-algo',
+    topicSlug: 'algorithms-dynamic-programming',
+    body: 'Why can Fractional Knapsack be solved greedily in O(N log N) time, whereas 0/1 Knapsack requires Dynamic Programming or branch-and-bound?',
+    explanation: 'Fractional Knapsack has the Greedy Choice Property: taking items with the highest value-to-weight ratio is always globally optimal. In 0/1 Knapsack, item discreteness can leave unfillable capacity where lower-ratio items combine to produce a higher overall value.',
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-algo-3a', body: 'Fractional Knapsack exhibits the greedy choice property where value density maximizes total yield, unlike discrete 0/1 Knapsack', orderIndex: 0 },
+      { id: 'opt-algo-3b', body: '0/1 Knapsack weights are always imaginary complex numbers', orderIndex: 1 },
+      { id: 'opt-algo-3c', body: 'Fractional Knapsack is unsolvable with non-integer weights', orderIndex: 2 },
+      { id: 'opt-algo-3d', body: 'Dynamic programming cannot handle floating point numbers', orderIndex: 3 },
+    ],
+    correctOptionId: 'opt-algo-3a',
+  },
+  {
+    id: 'pq-algo-4',
+    topicId: 'topic-adv-algo',
+    topicSlug: 'algorithms-dynamic-programming',
+    body: 'In the Knuth-Morris-Pratt (KMP) linear string matching algorithm, what does the Longest Prefix Suffix (LPS) table π enable?',
+    explanation: 'The π table records the length of the longest proper prefix of the pattern that matches a suffix of the pattern up to that index. When a mismatch occurs, the pattern pointer shifts to π[j-1] without ever backtracking the text pointer, guaranteeing O(N + M) runtime.',
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-algo-4a', body: 'Allows the text pointer to advance monotonically without backtracking by shifting the pattern pointer to π[j-1]', orderIndex: 0 },
+      { id: 'opt-algo-4b', body: 'Compresses the pattern using Huffman entropy coding before scanning', orderIndex: 1 },
+      { id: 'opt-algo-4c', body: 'Converts pattern characters into SHA-256 rolling hashes', orderIndex: 2 },
+      { id: 'opt-algo-4d', body: 'Sorts pattern characters in descending frequency order', orderIndex: 3 },
+    ],
+    correctOptionId: 'opt-algo-4a',
+  },
 
   // Topic: Distributed Systems Architecture
   {
@@ -1468,5 +1738,35 @@ export const FALLBACK_TOPIC_QUESTIONS: RawTopicQuestion[] = [
       { id: 'opt-dist-2d', body: 'It allows dirty reads by default under serializable isolation', orderIndex: 3 },
     ],
     correctOptionId: 'opt-dist-2a',
+  },
+  {
+    id: 'pq-dist-3',
+    topicId: 'topic-dist-sys',
+    topicSlug: 'distributed-systems-architecture',
+    body: 'In the Raft distributed consensus algorithm, how do randomized election timeouts prevent split-vote livelocks?',
+    explanation: 'Randomized election timeouts (e.g. 150ms-300ms) ensure follower nodes time out at staggered intervals, allowing one candidate to initiate an election and collect a majority quorum before competing candidates can divide the votes.',
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-dist-3a', body: 'Staggering timeouts ensures one node times out first, initiates an election, and gathers a majority quorum before competitors', orderIndex: 0 },
+      { id: 'opt-dist-3b', body: 'Candidate nodes are elected based on lowest hardware MAC address', orderIndex: 1 },
+      { id: 'opt-dist-3c', body: 'Followers forward all votes to a centralized third-party arbitrator', orderIndex: 2 },
+      { id: 'opt-dist-3d', body: 'Randomized intervals throttle client write traffic to zero during elections', orderIndex: 3 },
+    ],
+    correctOptionId: 'opt-dist-3a',
+  },
+  {
+    id: 'pq-dist-4',
+    topicId: 'topic-dist-sys',
+    topicSlug: 'distributed-systems-architecture',
+    body: 'Why do distributed hash rings in systems like Dynamo and Cassandra assign multiple Virtual Nodes (vnodes) to each physical server?',
+    explanation: 'Virtual nodes partition the hash ring into hundreds of small tokens per server. This ensures uniform key distribution across servers, accommodates heterogeneous hardware capacities, and spreads the load evenly across all surviving nodes when a node fails.',
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-dist-4a', body: 'Ensures uniform key distribution across the ring and spreads rebalancing load evenly across all remaining nodes during membership changes', orderIndex: 0 },
+      { id: 'opt-dist-4b', body: 'Enables physical servers to share a single CPU core without context switching', orderIndex: 1 },
+      { id: 'opt-dist-4c', body: 'Eliminates the need for network serialization by using shared physical memory', orderIndex: 2 },
+      { id: 'opt-dist-4d', body: 'Guarantees single-digit nanosecond ACID transaction locks across datacenter boundaries', orderIndex: 3 },
+    ],
+    correctOptionId: 'opt-dist-4a',
   },
 ];
