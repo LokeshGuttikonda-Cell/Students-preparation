@@ -299,7 +299,21 @@ export default function CourseDetailPage() {
                       )}
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex flex-wrap items-center gap-2 shrink-0">
+                      <Link
+                        href="/curriculum"
+                        className="text-xs font-semibold text-primary-700 hover:text-primary-900 px-2.5 py-1.5 rounded border border-primary-200 bg-primary-50/50 transition-colors"
+                        title="Read comprehensive theoretical guide in Knowledge Hub"
+                      >
+                        📖 Theory
+                      </Link>
+                      <Link
+                        href="/sandbox"
+                        className="text-xs font-semibold text-emerald-700 hover:text-emerald-900 px-2.5 py-1.5 rounded border border-emerald-200 bg-emerald-50/50 transition-colors"
+                        title="Experiment in Applied Engineering Labs"
+                      >
+                        🔬 Applied Lab
+                      </Link>
                       {mod.topicId ? (
                         <Link href={`/practice/${mod.topicId}`}>
                           <Button
@@ -319,6 +333,53 @@ export default function CourseDetailPage() {
                 </Card>
               );
             })}
+          </div>
+
+          {/* Full-Spectrum Learning Continuum Banner */}
+          <div className="bg-canvas-subtle border border-border rounded-xl p-5 sm:p-6 space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="text-sm">🎯</span>
+              <h3 className="text-sm font-bold text-text uppercase tracking-wider">
+                Full-Spectrum Learning Continuum
+              </h3>
+            </div>
+            <p className="text-xs text-text-muted leading-relaxed">
+              Achieve deep engineering competence by reinforcing this course pathway through three complementary learning tiers:
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+              <Link
+                href="/curriculum"
+                className="p-3 bg-canvas rounded-lg border border-border hover:border-primary-400 transition-all group"
+              >
+                <div className="text-xs font-bold text-primary-800 group-hover:text-primary-600 flex items-center justify-between">
+                  <span>1. Knowledge Hub</span>
+                  <span>&rarr;</span>
+                </div>
+                <p className="text-[11px] text-text-muted mt-1">
+                  Read 32 peer-reviewed deep dives covering architecture, anti-patterns, and mathematical foundations.
+                </p>
+              </Link>
+              <div className="p-3 bg-canvas rounded-lg border border-primary-300 bg-primary-50/20">
+                <div className="text-xs font-bold text-primary-900">
+                  2. Socratic Drills (Active)
+                </div>
+                <p className="text-[11px] text-text-muted mt-1">
+                  Calibrated practice questions with root-cause cognitive diagnostic remediation.
+                </p>
+              </div>
+              <Link
+                href="/sandbox"
+                className="p-3 bg-canvas rounded-lg border border-border hover:border-emerald-400 transition-all group"
+              >
+                <div className="text-xs font-bold text-emerald-800 group-hover:text-emerald-600 flex items-center justify-between">
+                  <span>3. Applied Engineering Labs</span>
+                  <span>&rarr;</span>
+                </div>
+                <p className="text-[11px] text-text-muted mt-1">
+                  7 interactive sandbox studios: SQL, algorithms, memory cache lines, and system design topology.
+                </p>
+              </Link>
+            </div>
           </div>
         </div>
 

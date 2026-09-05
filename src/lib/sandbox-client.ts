@@ -185,6 +185,192 @@ export function executeCodeLogicLocally(
   };
 }
 
+/**
+ * Safely executes algorithmic JavaScript logic using an isolated Web Worker with strict timeout
+ * protection (default 2000ms) to ensure infinite loops or runaway recursion never freeze the browser main thread.
+ * Falls back seamlessly to in-memory evaluation in environments where Web Workers are unavailable.
+ */
+export async function executeCodeLogicSafely(
+  code: string,
+  functionName: string,
+  testCases: CodeTestCase[],
+  timeoutMs = 2000,
+): Promise<CodeExecutionResult> {
+  const startTime = Date.now();
+
+  const hasWorkerSupport =
+    typeof globalThis !== 'undefined' &&
+    typeof globalThis.Worker !== 'undefined' &&
+    typeof globalThis.Blob !== 'undefined' &&
+    typeof globalThis.URL !== 'undefined' &&
+    typeof globalThis.URL.createObjectURL === 'function';
+
+  if (hasWorkerSupport) {
+    return new Promise<CodeExecutionResult>((resolve) => {
+      let worker: Worker | null = null;
+      let timer: ReturnType<typeof setTimeout> | null = null;
+      let objectUrl: string | null = null;
+
+      const cleanup = () => {
+        if (timer) clearTimeout(timer);
+        if (worker) {
+          worker.terminate();
+          worker = null;
+        }
+        if (objectUrl && typeof globalThis.URL?.revokeObjectURL === 'function') {
+          try {
+            globalThis.URL.revokeObjectURL(objectUrl);
+          } catch {
+            // ignore revocation errors
+          }
+          objectUrl = null;
+        }
+      };
+
+      try {
+        const workerScript = `
+          self.onmessage = function(e) {
+            var data = e.data;
+            var code = data.code;
+            var functionName = data.functionName;
+            var testCases = data.testCases;
+            var results = [];
+            var allPassed = true;
+            var runtimeError;
+
+            try {
+              var runner = new Function(
+                '"use strict";\\n' +
+                code +
+                '\\nif (typeof ' + functionName + ' !== "function") {' +
+                '  throw new Error("' + functionName + ' is not defined or not a function");' +
+                '}\\n' +
+                'return ' + functionName + '(...arguments[0]);'
+              );
+
+              for (var i = 0; i < testCases.length; i++) {
+                var tc = testCases[i];
+                var tcStart = Date.now();
+                try {
+                  var actualOutput = runner(tc.input);
+                  var passed = JSON.stringify(actualOutput) === JSON.stringify(tc.expectedOutput);
+                  if (!passed) allPassed = false;
+                  results.push({
+                    testCaseId: tc.id,
+                    description: tc.description,
+                    passed: passed,
+                    actualOutput: actualOutput,
+                    expectedOutput: tc.expectedOutput,
+                    executionTimeMs: Math.max(1, Date.now() - tcStart)
+                  });
+                } catch(tcErr) {
+                  allPassed = false;
+                  var msg = tcErr ? (tcErr.message || String(tcErr)) : 'Runtime error';
+                  runtimeError = msg;
+                  results.push({
+                    testCaseId: tc.id,
+                    description: tc.description,
+                    passed: false,
+                    error: msg,
+                    expectedOutput: tc.expectedOutput,
+                    executionTimeMs: Math.max(1, Date.now() - tcStart)
+                  });
+                }
+              }
+            } catch(err) {
+              allPassed = false;
+              runtimeError = err ? (err.message || String(err)) : 'Compilation error';
+              for (var j = 0; j < testCases.length; j++) {
+                results.push({
+                  testCaseId: testCases[j].id,
+                  description: testCases[j].description,
+                  passed: false,
+                  error: runtimeError,
+                  expectedOutput: testCases[j].expectedOutput,
+                  executionTimeMs: 1
+                });
+              }
+            }
+
+            self.postMessage({
+              success: true,
+              allPassed: allPassed,
+              totalTests: testCases.length,
+              passedTests: results.filter(function(r) { return r.passed; }).length,
+              results: results,
+              runtimeError: runtimeError
+            });
+          };
+        `;
+
+        const blob = new Blob([workerScript], { type: 'application/javascript' });
+        objectUrl = globalThis.URL.createObjectURL(blob);
+        worker = new Worker(objectUrl);
+
+        timer = setTimeout(() => {
+          cleanup();
+          const timeoutResults: CodeTestCaseResult[] = testCases.map((tc) => ({
+            testCaseId: tc.id,
+            description: tc.description,
+            passed: false,
+            error: `Execution timed out (${timeoutMs}ms limit exceeded). Infinite loop or deep recursion detected.`,
+            expectedOutput: tc.expectedOutput,
+            executionTimeMs: timeoutMs,
+          }));
+
+          resolve({
+            success: true,
+            allPassed: false,
+            totalTests: testCases.length,
+            passedTests: 0,
+            results: timeoutResults,
+            runtimeError: `Execution timed out (${timeoutMs}ms limit exceeded). Infinite loop or deep recursion detected.`,
+            executionTimeMs: Math.max(1, Date.now() - startTime),
+          });
+        }, timeoutMs);
+
+        worker.onmessage = (e: MessageEvent) => {
+          const payload = e.data as Omit<CodeExecutionResult, 'executionTimeMs'>;
+          cleanup();
+          resolve({
+            ...payload,
+            executionTimeMs: Math.max(1, Date.now() - startTime),
+          });
+        };
+
+        worker.onerror = (err: ErrorEvent) => {
+          const errMsg = err.message || 'Worker runtime error';
+          cleanup();
+          const errorResults: CodeTestCaseResult[] = testCases.map((tc) => ({
+            testCaseId: tc.id,
+            description: tc.description,
+            passed: false,
+            error: errMsg,
+            expectedOutput: tc.expectedOutput,
+            executionTimeMs: 1,
+          }));
+          resolve({
+            success: true,
+            allPassed: false,
+            totalTests: testCases.length,
+            passedTests: 0,
+            results: errorResults,
+            runtimeError: errMsg,
+            executionTimeMs: Math.max(1, Date.now() - startTime),
+          });
+        };
+
+        worker.postMessage({ code, functionName, testCases });
+      } catch {
+        cleanup();
+        resolve(executeCodeLogicLocally(code, functionName, testCases));
+      }
+    });
+  }
+
+  return Promise.resolve(executeCodeLogicLocally(code, functionName, testCases));
+}
+
 export async function runCodeLogic(
   code: string,
   functionName: string,
@@ -202,9 +388,10 @@ export async function runCodeLogic(
       return (await res.json()) as CodeExecutionResult;
     }
   } catch {
-    // Graceful offline fallback to in-browser sandboxed execution
+    // Graceful offline fallback to in-browser sandboxed execution with timeout protection
   }
 
-  return executeCodeLogicLocally(code, functionName, testCases);
+  return executeCodeLogicSafely(code, functionName, testCases);
 }
+
 

@@ -82,4 +82,16 @@ describe('CourseDetailPage', () => {
       expect(screen.getByText(/You have successfully enrolled in this course!/i)).toBeInTheDocument();
     });
   });
+
+  it('renders Full-Spectrum Learning Continuum banner and multi-modal links', async () => {
+    render(<CourseDetailPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Full-Spectrum Learning Continuum')).toBeInTheDocument();
+      expect(screen.getByText('1. Knowledge Hub')).toBeInTheDocument();
+      expect(screen.getByText('3. Applied Engineering Labs')).toBeInTheDocument();
+      expect(screen.getByText(/📖 Theory/i)).toBeInTheDocument();
+      expect(screen.getByText(/🔬 Applied Lab/i)).toBeInTheDocument();
+    });
+  });
 });

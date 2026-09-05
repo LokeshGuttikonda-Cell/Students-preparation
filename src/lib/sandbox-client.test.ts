@@ -4,6 +4,7 @@ import {
   validateSqlQuery,
   runCodeLogic,
   executeCodeLogicLocally,
+  executeCodeLogicSafely,
   type CodeTestCase,
 } from './sandbox-client';
 import { apiUrl } from './env';
@@ -134,4 +135,60 @@ describe('sandbox-client', () => {
     expect(res2.allPassed).toBe(true);
     expect(res2.passedTests).toBe(1);
   });
+
+  it('executeCodeLogicSafely executes logic asynchronously with accurate test results', async () => {
+    const code = `function isEven(n) { return n % 2 === 0; }`;
+    const testCases: CodeTestCase[] = [
+      { id: 'tc1', description: 'Even number', input: [4], expectedOutput: true },
+      { id: 'tc2', description: 'Odd number', input: [7], expectedOutput: false },
+    ];
+
+    const result = await executeCodeLogicSafely(code, 'isEven', testCases);
+    expect(result.success).toBe(true);
+    expect(result.allPassed).toBe(true);
+    expect(result.totalTests).toBe(2);
+    expect(result.passedTests).toBe(2);
+    expect(result.results[0].passed).toBe(true);
+  });
+
+  it('executeCodeLogicSafely handles simulated worker timeout cleanly', async () => {
+    // Stub global Worker with a mock that triggers the timeout branch
+    const originalWorker = globalThis.Worker;
+    const originalBlob = globalThis.Blob;
+    const originalUrl = globalThis.URL;
+
+    class MockHangingWorker {
+      onmessage: ((e: MessageEvent) => void) | null = null;
+      onerror: ((e: ErrorEvent) => void) | null = null;
+      postMessage() {
+        // Deliberately do not reply to trigger timeout
+      }
+      terminate = vi.fn();
+    }
+
+    try {
+      // @ts-expect-error Mocking Worker
+      globalThis.Worker = MockHangingWorker;
+      globalThis.Blob = class { constructor() {} } as unknown as typeof Blob;
+      globalThis.URL = {
+        createObjectURL: vi.fn().mockReturnValue('blob:mock-url'),
+        revokeObjectURL: vi.fn(),
+      } as unknown as typeof URL;
+
+      const testCases: CodeTestCase[] = [
+        { id: 'tc_hang', description: 'Hangs', input: [], expectedOutput: null },
+      ];
+
+      const res = await executeCodeLogicSafely('while(true){}', 'hang', testCases, 50);
+      expect(res.success).toBe(true);
+      expect(res.allPassed).toBe(false);
+      expect(res.runtimeError).toContain('Execution timed out');
+      expect(res.results[0].error).toContain('Execution timed out');
+    } finally {
+      globalThis.Worker = originalWorker;
+      globalThis.Blob = originalBlob;
+      globalThis.URL = originalUrl;
+    }
+  });
 });
+
