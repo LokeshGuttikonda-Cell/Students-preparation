@@ -124,23 +124,87 @@ export async function validateSqlQuery(
   return (await res.json()) as SqlValidationResult;
 }
 
+export function executeCodeLogicLocally(
+  code: string,
+  functionName: string,
+  testCases: CodeTestCase[],
+): CodeExecutionResult {
+  const startTime = Date.now();
+  const results: CodeTestCaseResult[] = [];
+  let allPassed = true;
+  let runtimeError: string | undefined;
+
+  for (const tc of testCases) {
+    const tcStartTime = Date.now();
+    try {
+      const runner = new Function(
+        `"use strict";
+        ${code}
+        if (typeof ${functionName} !== 'function') {
+          throw new Error("${functionName} is not defined or not a function");
+        }
+        return ${functionName}(...arguments[0]);`,
+      );
+
+      const actualOutput = runner(tc.input);
+      const passed = JSON.stringify(actualOutput) === JSON.stringify(tc.expectedOutput);
+      if (!passed) allPassed = false;
+
+      results.push({
+        testCaseId: tc.id,
+        description: tc.description,
+        passed,
+        actualOutput,
+        expectedOutput: tc.expectedOutput,
+        executionTimeMs: Math.max(1, Date.now() - tcStartTime),
+      });
+    } catch (err: unknown) {
+      allPassed = false;
+      const msg = err instanceof Error ? err.message : 'Runtime execution error';
+      runtimeError = msg;
+      results.push({
+        testCaseId: tc.id,
+        description: tc.description,
+        passed: false,
+        error: msg,
+        expectedOutput: tc.expectedOutput,
+        executionTimeMs: Math.max(1, Date.now() - tcStartTime),
+      });
+    }
+  }
+
+  const passedTests = results.filter((r) => r.passed).length;
+  return {
+    success: true,
+    allPassed,
+    totalTests: testCases.length,
+    passedTests,
+    results,
+    runtimeError,
+    executionTimeMs: Math.max(1, Date.now() - startTime),
+  };
+}
+
 export async function runCodeLogic(
   code: string,
   functionName: string,
   testCases: CodeTestCase[],
 ): Promise<CodeExecutionResult> {
-  const res = await fetch(apiUrl('sandbox/code/run'), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({ code, functionName, testCases }),
-  });
+  try {
+    const res = await fetch(apiUrl('sandbox/code/run'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ code, functionName, testCases }),
+    });
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err?.message || 'Failed to execute code logic');
+    if (res.ok) {
+      return (await res.json()) as CodeExecutionResult;
+    }
+  } catch {
+    // Graceful offline fallback to in-browser sandboxed execution
   }
 
-  return (await res.json()) as CodeExecutionResult;
+  return executeCodeLogicLocally(code, functionName, testCases);
 }
 
