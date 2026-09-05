@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { SqlQuerySandbox } from '../../../components/sandbox/SqlQuerySandbox';
 import { CodeLogicSandbox } from '../../../components/sandbox/CodeLogicSandbox';
+import { AlgorithmVisualizerSandbox } from '../../../components/sandbox/AlgorithmVisualizerSandbox';
 import { Button } from '../../../components/ui/Button';
 
 interface SqlChallenge {
@@ -404,7 +405,7 @@ const CODE_CHALLENGES: CodeChallenge[] = [
 ];
 
 export default function SandboxPage() {
-  const [activeTab, setActiveTab] = useState<'SQL' | 'CODE'>('SQL');
+  const [activeTab, setActiveTab] = useState<'SQL' | 'CODE' | 'VISUALIZER'>('SQL');
   const [selectedSqlIndex, setSelectedSqlIndex] = useState(0);
   const [selectedCodeIndex, setSelectedCodeIndex] = useState(0);
 
@@ -429,8 +430,8 @@ export default function SandboxPage() {
               SQL &amp; Code Logic Validation Sandbox
             </h1>
             <p className="text-sm text-text-muted max-w-2xl">
-              Real engineering screening tests your applied execution. Practice running SQL queries
-              and algorithmic code against live test scenarios with sub-millisecond in-memory verification.
+              Real engineering screening tests your applied execution. Practice running SQL queries,
+              evaluating algorithmic code logic, and stepping through memory visualizers frame-by-frame.
             </p>
           </div>
 
@@ -470,71 +471,92 @@ export default function SandboxPage() {
             <span>💻</span>
             <span>Algorithmic Code Logic Lab</span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('VISUALIZER')}
+            className={`min-h-[44px] px-5 py-2 text-sm font-semibold border-b-2 transition-colors cursor-pointer flex items-center gap-2 ${
+              activeTab === 'VISUALIZER'
+                ? 'border-primary-700 text-primary-800'
+                : 'border-transparent text-text-muted hover:text-text hover:border-border'
+            }`}
+          >
+            <span>👁️</span>
+            <span>Visual Algorithm Stepper</span>
+          </button>
         </div>
 
-        {/* Challenge Selection Pills */}
-        <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-text-muted">
-              Select Applied Challenge:
-            </span>
-            <span className="text-xs text-primary-700 font-medium">
-              {activeTab === 'SQL' ? `${SQL_CHALLENGES.length} Relational Exercises` : `${CODE_CHALLENGES.length} Algorithmic Exercises`}
-            </span>
-          </div>
+        {/* Challenge Selection Pills for SQL and CODE */}
+        {activeTab !== 'VISUALIZER' && (
+          <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-text-muted">
+                Select Applied Challenge:
+              </span>
+              <span className="text-xs text-primary-700 font-medium">
+                {activeTab === 'SQL'
+                  ? `${SQL_CHALLENGES.length} Relational Exercises`
+                  : `${CODE_CHALLENGES.length} Algorithmic Exercises`}
+              </span>
+            </div>
 
-          <div className="flex flex-wrap gap-2">
-            {activeTab === 'SQL'
-              ? SQL_CHALLENGES.map((ch, idx) => (
-                  <button
-                    key={ch.id}
-                    type="button"
-                    onClick={() => setSelectedSqlIndex(idx)}
-                    className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all cursor-pointer flex items-center gap-1.5 ${
-                      selectedSqlIndex === idx
-                        ? 'bg-primary-50 text-primary-900 border-primary-400 shadow-xs'
-                        : 'bg-canvas text-text-muted border-border hover:text-text hover:border-border-hover'
-                    }`}
-                  >
-                    <span>{idx + 1}.</span>
-                    <span>{ch.title}</span>
-                    <span className={`text-[10px] px-1.5 py-0.2 rounded font-mono ${
-                      ch.difficulty === 'EASY'
-                        ? 'bg-emerald-100 text-emerald-800'
-                        : ch.difficulty === 'MEDIUM'
-                        ? 'bg-amber-100 text-amber-800'
-                        : 'bg-rose-100 text-rose-800'
-                    }`}>
-                      {ch.difficulty}
-                    </span>
-                  </button>
-                ))
-              : CODE_CHALLENGES.map((ch, idx) => (
-                  <button
-                    key={ch.id}
-                    type="button"
-                    onClick={() => setSelectedCodeIndex(idx)}
-                    className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all cursor-pointer flex items-center gap-1.5 ${
-                      selectedCodeIndex === idx
-                        ? 'bg-primary-50 text-primary-900 border-primary-400 shadow-xs'
-                        : 'bg-canvas text-text-muted border-border hover:text-text hover:border-border-hover'
-                    }`}
-                  >
-                    <span>{idx + 1}.</span>
-                    <span>{ch.title}</span>
-                    <span className={`text-[10px] px-1.5 py-0.2 rounded font-mono ${
-                      ch.difficulty === 'EASY'
-                        ? 'bg-emerald-100 text-emerald-800'
-                        : ch.difficulty === 'MEDIUM'
-                        ? 'bg-amber-100 text-amber-800'
-                        : 'bg-rose-100 text-rose-800'
-                    }`}>
-                      {ch.difficulty}
-                    </span>
-                  </button>
-                ))}
+            <div className="flex flex-wrap gap-2">
+              {activeTab === 'SQL'
+                ? SQL_CHALLENGES.map((ch, idx) => (
+                    <button
+                      key={ch.id}
+                      type="button"
+                      onClick={() => setSelectedSqlIndex(idx)}
+                      className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all cursor-pointer flex items-center gap-1.5 ${
+                        selectedSqlIndex === idx
+                          ? 'bg-primary-50 text-primary-900 border-primary-400 shadow-xs'
+                          : 'bg-canvas text-text-muted border-border hover:text-text hover:border-border-hover'
+                      }`}
+                    >
+                      <span>{idx + 1}.</span>
+                      <span>{ch.title}</span>
+                      <span
+                        className={`text-[10px] px-1.5 py-0.2 rounded font-mono ${
+                          ch.difficulty === 'EASY'
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : ch.difficulty === 'MEDIUM'
+                            ? 'bg-amber-100 text-amber-800'
+                            : 'bg-rose-100 text-rose-800'
+                        }`}
+                      >
+                        {ch.difficulty}
+                      </span>
+                    </button>
+                  ))
+                : CODE_CHALLENGES.map((ch, idx) => (
+                    <button
+                      key={ch.id}
+                      type="button"
+                      onClick={() => setSelectedCodeIndex(idx)}
+                      className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all cursor-pointer flex items-center gap-1.5 ${
+                        selectedCodeIndex === idx
+                          ? 'bg-primary-50 text-primary-900 border-primary-400 shadow-xs'
+                          : 'bg-canvas text-text-muted border-border hover:text-text hover:border-border-hover'
+                      }`}
+                    >
+                      <span>{idx + 1}.</span>
+                      <span>{ch.title}</span>
+                      <span
+                        className={`text-[10px] px-1.5 py-0.2 rounded font-mono ${
+                          ch.difficulty === 'EASY'
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : ch.difficulty === 'MEDIUM'
+                            ? 'bg-amber-100 text-amber-800'
+                            : 'bg-rose-100 text-rose-800'
+                        }`}
+                      >
+                        {ch.difficulty}
+                      </span>
+                    </button>
+                  ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Active Sandbox Workspace */}
         {activeTab === 'SQL' ? (
@@ -546,7 +568,7 @@ export default function SandboxPage() {
               expectedQuery={currentSql.expectedQuery}
             />
           </div>
-        ) : (
+        ) : activeTab === 'CODE' ? (
           <div key={currentCode.id} className="space-y-6">
             <CodeLogicSandbox
               title={currentCode.title}
@@ -555,6 +577,10 @@ export default function SandboxPage() {
               initialCode={currentCode.initialCode}
               testCases={currentCode.testCases}
             />
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <AlgorithmVisualizerSandbox />
           </div>
         )}
       </div>

@@ -61,4 +61,26 @@ describe('SandboxPage', () => {
     expect(mockSandbox).toHaveTextContent('Minimum Coins for Change (Dynamic Programming)');
     expect(mockSandbox).toHaveTextContent('Find the minimum number of coins needed to make up a given amount');
   });
+
+  it('switches to Visual Algorithm Stepper tab and interacts with visual stepper controls', () => {
+    render(<SandboxPage />);
+
+    const visualizerTabBtn = screen.getByRole('button', { name: /Visual Algorithm Stepper/i });
+    fireEvent.click(visualizerTabBtn);
+
+    expect(screen.getByText('Interactive State Stepper & Memory Inspector')).toBeInTheDocument();
+    expect(screen.getByText('Binary Search (Logarithmic Range Elimination)')).toBeInTheDocument();
+
+    // Step forward
+    const nextBtn = screen.getByRole('button', { name: /Next Step/i });
+    fireEvent.click(nextBtn);
+
+    expect(screen.getByText('Eliminate Left Half: 47 < 68')).toBeInTheDocument();
+
+    // Switch to Two-Pointer algorithm
+    const twoPointerBtn = screen.getByRole('button', { name: /Two-Pointer Target Sum Traversal/i });
+    fireEvent.click(twoPointerBtn);
+
+    expect(screen.getByText('Initial Extremes: left = 0, right = 7')).toBeInTheDocument();
+  });
 });
