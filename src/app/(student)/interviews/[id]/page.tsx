@@ -15,11 +15,13 @@ import {
   createSpeechRecognizer,
   createMicrophoneSpectrumAnalyzer,
   isSpeechRecognitionSupported,
+  analyzeSpeechFluency,
   type AudioSpectrumAnalyzerController,
 } from '../../../../lib/speech';
 import { VoiceWaveform, type WaveformState } from '../../../../components/interview/VoiceWaveform';
 import { StageStepper } from '../../../../components/interview/StageStepper';
 import { Button } from '../../../../components/ui/Button';
+import { Badge } from '../../../../components/ui/Badge';
 
 export default function LiveInterviewRoomPage() {
   const params = useParams();
@@ -266,6 +268,13 @@ export default function LiveInterviewRoomPage() {
   const minutes = Math.floor(timeLeftSeconds / 60);
   const seconds = timeLeftSeconds % 60;
   const isTimeLow = timeLeftSeconds < 180 && timeLeftSeconds > 0;
+
+  // Real-time speech & articulation telemetry for candidate's active response
+  const liveFluency = React.useMemo(() => {
+    if (!inputText.trim()) return null;
+    const elapsedMinutes = Math.max(0.5, (20 * 60 - timeLeftSeconds) / 60);
+    return analyzeSpeechFluency(inputText, elapsedMinutes);
+  }, [inputText, timeLeftSeconds]);
 
   if (isLoading) {
     return (
@@ -548,6 +557,58 @@ export default function LiveInterviewRoomPage() {
                     </button>
                   ))}
                 </div>
+
+                {/* Real-Time Articulation Telemetry HUD */}
+                {liveFluency && (
+                  <div
+                    data-testid="live-articulation-telemetry-hud"
+                    className="p-2.5 rounded-xl bg-canvas border border-border flex flex-wrap items-center justify-between gap-2 text-xs transition-all"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1.5 font-semibold text-text">
+                        <span className="text-primary-600">🎙️</span>
+                        <span>{liveFluency.totalWords} words</span>
+                        <span className="text-text-muted">·</span>
+                        <span className="tabular-nums">{liveFluency.articulationPaceWpm} WPM</span>
+                        <span className="text-[11px] font-normal text-text-muted hidden md:inline">
+                          ({liveFluency.cadenceDescription})
+                        </span>
+                      </div>
+                      <Badge
+                        variant={
+                          liveFluency.fluencyGrade === 'EXEMPLARY'
+                            ? 'success'
+                            : liveFluency.fluencyGrade === 'PROFICIENT'
+                            ? 'primary'
+                            : liveFluency.fluencyGrade === 'CONVERSATIONAL'
+                            ? 'warning'
+                            : 'error'
+                        }
+                      >
+                        {liveFluency.fluencyGrade}
+                      </Badge>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {liveFluency.fillerCount > 0 ? (
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-accent-50 border border-accent-300 text-accent-900 font-medium text-[11px]">
+                          <span>⚠️</span>
+                          <span>
+                            {liveFluency.fillerCount} filler{liveFluency.fillerCount > 1 ? 's' : ''}:{' '}
+                            {Object.entries(liveFluency.fillerBreakdown)
+                              .map(([w, c]) => `“${w}” ×${c}`)
+                              .join(', ')}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-success-50 border border-success-500/30 text-success-700 font-medium text-[11px]">
+                          <span>✓</span>
+                          <span>0 Fillers Detected</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Textarea & Mic Action */}
                 <div className="flex items-end gap-2">

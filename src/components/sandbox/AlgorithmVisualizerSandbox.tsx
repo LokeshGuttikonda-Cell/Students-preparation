@@ -13,7 +13,8 @@ export type VisualizerAlgorithm =
   | 'GRAPH_BFS_TRAVERSAL'
   | 'GRAPH_DFS_TRAVERSAL'
   | 'BST_INSERTION_INORDER'
-  | 'AVL_TREE_ROTATIONS';
+  | 'AVL_TREE_ROTATIONS'
+  | 'RED_BLACK_TREE';
 
 export interface VisualizerGraphNode {
   id: string;
@@ -51,13 +52,16 @@ export interface VisualizerTreeNode {
   height?: number;
   isImbalanced?: boolean;
   isPivot?: boolean;
+  color?: 'RED' | 'BLACK';
+  blackHeight?: number;
+  recolorWarning?: boolean;
 }
 
 export interface VisualizerTreeRotationBanner {
-  type: 'LL' | 'RR' | 'LR' | 'RL';
+  type: 'LL' | 'RR' | 'LR' | 'RL' | 'RECOLOR' | 'ROTATION';
   title: string;
   description: string;
-  pivotVal: number;
+  pivotVal?: number;
 }
 
 export interface VisualizerTreeState {
@@ -1132,6 +1136,228 @@ const ALGORITHM_CONFIGS: AlgorithmConfig[] = [
       ];
     },
   },
+  {
+    id: 'RED_BLACK_TREE',
+    name: 'Red-Black Tree Invariants (Node Recoloring & Rotations)',
+    category: 'Self-Balancing Search Trees',
+    timeComplexity: 'Lookup/Insert/Delete: O(log N), Max Rotations: O(1)',
+    spaceComplexity: 'O(N) space, 1 bit per node color overhead',
+    description:
+      'Maintain the 5 canonical Red-Black tree invariants: (1) Every node is RED or BLACK, (2) Root is BLACK, (3) Leaves (NIL) are BLACK, (4) No two RED nodes can be adjacent (RED node cannot have RED child), and (5) Every simple path from any node to descendant leaves contains the exact same number of BLACK nodes (Black-Height invariant bh(x)). Violations are resolved in O(1) rotations and O(log N) recolorings.',
+    generateFrames: () => {
+      return [
+        {
+          stepIndex: 0,
+          title: 'Initial State: 5 Canonical Red-Black Invariants Satisfied',
+          explanation:
+            'A valid Red-Black Tree satisfies 5 invariants: 1. Nodes are RED or BLACK. 2. Root is BLACK (Node 20). 3. Leaves (NIL) are BLACK. 4. Red nodes cannot have Red children (No consecutive REDs). 5. All paths from root to leaves have equal Black-Height (bh = 2). Both 10 and 30 are BLACK.',
+          status: 'SUCCESS',
+          treeState: {
+            nodes: [
+              { id: 'n20', val: 20, x: 210, y: 40, left: 'n10', right: 'n30', color: 'BLACK', blackHeight: 2 },
+              { id: 'n10', val: 10, x: 120, y: 105, color: 'BLACK', blackHeight: 1 },
+              { id: 'n30', val: 30, x: 300, y: 105, color: 'BLACK', blackHeight: 1 },
+            ],
+            activeNodeId: 'n20',
+          },
+          metrics: { 'Tree State': 'Valid RB Tree', 'Black-Height (bh)': 2, 'Root Color': 'BLACK', Invariant: 'bh(x) Equal' },
+        },
+        {
+          stepIndex: 1,
+          title: 'Insert Key 5: Inserted as RED Leaf',
+          explanation:
+            'New keys always insert as RED to avoid violating Invariant 5 (Black-Height). Key 5 is inserted as 10.left. Parent 10 is BLACK, so Invariant 4 (no consecutive REDs) is satisfied without modification.',
+          status: 'IN_PROGRESS',
+          treeState: {
+            nodes: [
+              { id: 'n20', val: 20, x: 210, y: 40, left: 'n10', right: 'n30', color: 'BLACK', blackHeight: 2 },
+              { id: 'n10', val: 10, x: 120, y: 105, left: 'n5', color: 'BLACK', blackHeight: 1 },
+              { id: 'n5', val: 5, x: 70, y: 170, color: 'RED', isNew: true },
+              { id: 'n30', val: 30, x: 300, y: 105, color: 'BLACK', blackHeight: 1 },
+            ],
+            activeNodeId: 'n5',
+            targetVal: 5,
+          },
+          metrics: { 'Inserted Key': 5, Color: 'RED', 'Parent 10': 'BLACK', Status: 'Valid RB Tree' },
+        },
+        {
+          stepIndex: 2,
+          title: 'Insert Key 15: Inserted as RED Leaf',
+          explanation:
+            'Key 15 is inserted as 10.right with color RED. Because parent 10 is BLACK, no consecutive RED violation occurs. All simple paths to leaves still pass through exactly 2 BLACK nodes (20 and 10).',
+          status: 'IN_PROGRESS',
+          treeState: {
+            nodes: [
+              { id: 'n20', val: 20, x: 210, y: 40, left: 'n10', right: 'n30', color: 'BLACK', blackHeight: 2 },
+              { id: 'n10', val: 10, x: 120, y: 105, left: 'n5', right: 'n15', color: 'BLACK', blackHeight: 1 },
+              { id: 'n5', val: 5, x: 70, y: 170, color: 'RED' },
+              { id: 'n15', val: 15, x: 165, y: 170, color: 'RED', isNew: true },
+              { id: 'n30', val: 30, x: 300, y: 105, color: 'BLACK', blackHeight: 1 },
+            ],
+            activeNodeId: 'n15',
+            targetVal: 15,
+          },
+          metrics: { 'Inserted Key': 15, Color: 'RED', 'Parent 10': 'BLACK', Status: 'Valid RB Tree' },
+        },
+        {
+          stepIndex: 3,
+          title: 'Insert Key 2: Case 1 Triggered (Uncle 15 is RED)',
+          explanation:
+            'Key 2 is inserted as 5.left (RED). Violation: Node 2 is RED and parent 5 is RED (Consecutive RED nodes!). Uncle check: Grandparent 10 has right child 15, which is RED. Case 1 Rule: When uncle is RED, recolor parent (5) and uncle (15) to BLACK, and grandparent (10) to RED.',
+          status: 'MISMATCH',
+          treeState: {
+            nodes: [
+              { id: 'n20', val: 20, x: 210, y: 40, left: 'n10', right: 'n30', color: 'BLACK', blackHeight: 2 },
+              { id: 'n10', val: 10, x: 120, y: 105, left: 'n5', right: 'n15', color: 'BLACK', blackHeight: 1 },
+              { id: 'n5', val: 5, x: 70, y: 170, left: 'n2', color: 'RED', recolorWarning: true },
+              { id: 'n2', val: 2, x: 35, y: 225, color: 'RED', isNew: true, recolorWarning: true },
+              { id: 'n15', val: 15, x: 165, y: 170, color: 'RED' },
+              { id: 'n30', val: 30, x: 300, y: 105, color: 'BLACK', blackHeight: 1 },
+            ],
+            activeNodeId: 'n2',
+            comparedNodeId: 'n5',
+            targetVal: 2,
+            rotationBanner: {
+              type: 'RECOLOR',
+              title: 'Case 1: Uncle 15 is RED (Recolor)',
+              description: 'Uncle 15 is RED. Recolor Parent 5 and Uncle 15 to BLACK. Recolor Grandparent 10 to RED.',
+              pivotVal: 10,
+            },
+          },
+          metrics: { 'Violating Nodes': '5 & 2 (RED-RED)', 'Uncle 15': 'RED', Case: 'Case 1 (Recolor)', Action: 'Flip Colors' },
+        },
+        {
+          stepIndex: 4,
+          title: 'Case 1 Complete: Colors Updated Without Rotations',
+          explanation:
+            'Parent 5 and Uncle 15 are recolored BLACK. Grandparent 10 is recolored RED. Root 20 is BLACK, so consecutive RED check passes. Notice: Case 1 requires 0 rotations! Black-Height along all paths through 10 is preserved.',
+          status: 'SUCCESS',
+          treeState: {
+            nodes: [
+              { id: 'n20', val: 20, x: 210, y: 40, left: 'n10', right: 'n30', color: 'BLACK', blackHeight: 2 },
+              { id: 'n10', val: 10, x: 120, y: 105, left: 'n5', right: 'n15', color: 'RED', blackHeight: 1 },
+              { id: 'n5', val: 5, x: 70, y: 170, left: 'n2', color: 'BLACK', blackHeight: 1 },
+              { id: 'n2', val: 2, x: 35, y: 225, color: 'RED' },
+              { id: 'n15', val: 15, x: 165, y: 170, color: 'BLACK', blackHeight: 1 },
+              { id: 'n30', val: 30, x: 300, y: 105, color: 'BLACK', blackHeight: 1 },
+            ],
+            activeNodeId: 'n10',
+            rotationBanner: {
+              type: 'RECOLOR',
+              title: 'Case 1 Recolor Applied Successfully',
+              description: 'Nodes 5 & 15 recolored BLACK; Node 10 recolored RED. All invariants restored in O(1) time.',
+              pivotVal: 10,
+            },
+          },
+          metrics: { 'Parent 5': 'BLACK', 'Uncle 15': 'BLACK', 'Grandparent 10': 'RED', Rotations: 0 },
+        },
+        {
+          stepIndex: 5,
+          title: 'Insert Key 35 & 32: Case 2 Triggered (Uncle is NIL & RL Triangle)',
+          explanation:
+            'Key 35 is inserted as 30.right (RED). Then key 32 is inserted as 35.left (RED). Consecutive RED violation: 35 and 32 are both RED! Uncle check: Node 30.left is NIL (BLACK). Since 32 is an inner child (left child of right child), this is Case 2 (RL Triangle / Zig-Zag). Case 2 Rule: Right-rotate child 32 over parent 35 to straighten into a line.',
+          status: 'MISMATCH',
+          treeState: {
+            nodes: [
+              { id: 'n20', val: 20, x: 210, y: 35, left: 'n10', right: 'n30', color: 'BLACK', blackHeight: 2 },
+              { id: 'n10', val: 10, x: 115, y: 85, left: 'n5', right: 'n15', color: 'RED', blackHeight: 1 },
+              { id: 'n5', val: 5, x: 65, y: 140, left: 'n2', color: 'BLACK', blackHeight: 1 },
+              { id: 'n2', val: 2, x: 35, y: 195, color: 'RED' },
+              { id: 'n15', val: 15, x: 140, y: 140, color: 'BLACK', blackHeight: 1 },
+              { id: 'n30', val: 30, x: 305, y: 85, right: 'n35', color: 'BLACK', blackHeight: 1 },
+              { id: 'n35', val: 35, x: 355, y: 140, left: 'n32', color: 'RED', recolorWarning: true },
+              { id: 'n32', val: 32, x: 325, y: 195, color: 'RED', isNew: true, recolorWarning: true },
+            ],
+            activeNodeId: 'n32',
+            comparedNodeId: 'n35',
+            targetVal: 32,
+            rotationBanner: {
+              type: 'ROTATION',
+              title: 'Case 2: Uncle is NIL (BLACK) & RL Zig-Zag',
+              description: 'Uncle is NIL (BLACK). Inner child 32 forms an RL triangle. Right-rotate parent 35 around pivot 32.',
+              pivotVal: 35,
+            },
+          },
+          metrics: { 'Violating Nodes': '35 & 32 (RED-RED)', 'Uncle 30.left': 'NIL (BLACK)', Case: 'Case 2 (RL Triangle)', Action: 'Rotate Right' },
+        },
+        {
+          stepIndex: 6,
+          title: 'Case 2 Complete: Converted to Case 3 (RR Linear Chain)',
+          explanation:
+            'Right rotation on node 35 around pivot 32 elevates 32 as 30\'s right child. Node 35 becomes 32\'s right child. The zig-zag (30 → 35 → 32) is straightened into a linear chain (30 → 32 → 35). Both 32 and 35 are RED. This is now Case 3 (Line Case)!',
+          status: 'IN_PROGRESS',
+          treeState: {
+            nodes: [
+              { id: 'n20', val: 20, x: 210, y: 35, left: 'n10', right: 'n30', color: 'BLACK', blackHeight: 2 },
+              { id: 'n10', val: 10, x: 115, y: 85, left: 'n5', right: 'n15', color: 'RED', blackHeight: 1 },
+              { id: 'n5', val: 5, x: 65, y: 140, left: 'n2', color: 'BLACK', blackHeight: 1 },
+              { id: 'n2', val: 2, x: 35, y: 195, color: 'RED' },
+              { id: 'n15', val: 15, x: 140, y: 140, color: 'BLACK', blackHeight: 1 },
+              { id: 'n30', val: 30, x: 305, y: 85, right: 'n32', color: 'BLACK', blackHeight: 1 },
+              { id: 'n32', val: 32, x: 355, y: 140, right: 'n35', color: 'RED', isPivot: true, recolorWarning: true },
+              { id: 'n35', val: 35, x: 385, y: 195, color: 'RED', recolorWarning: true },
+            ],
+            activeNodeId: 'n32',
+            rotationBanner: {
+              type: 'ROTATION',
+              title: 'Case 2 Complete: Converted to Case 3 (RR Line)',
+              description: 'Elbow straightened into 30 → 32 → 35. Case 3 requires Left Rotation on Grandparent 30 and color swap.',
+              pivotVal: 32,
+            },
+          },
+          metrics: { 'Converted Case': 'Case 3 (RR Line)', 'Linear Chain': '30 → 32 → 35', Action: 'Left Rotate 30 & Swap Colors' },
+        },
+        {
+          stepIndex: 7,
+          title: 'Case 3 Applied: Left Rotate Grandparent 30 & Color Swap',
+          explanation:
+            'Left rotation on grandparent 30 around pivot 32 elevates 32 to replace 30. Color Swap: Elevating node 32 is recolored BLACK; former grandparent 30 is recolored RED. Node 35 remains RED. Both children of 32 (30 and 35) are RED, but parent 32 is BLACK. Invariant 4 satisfied!',
+          status: 'SUCCESS',
+          treeState: {
+            nodes: [
+              { id: 'n20', val: 20, x: 210, y: 35, left: 'n10', right: 'n32', color: 'BLACK', blackHeight: 2 },
+              { id: 'n10', val: 10, x: 115, y: 85, left: 'n5', right: 'n15', color: 'RED', blackHeight: 1 },
+              { id: 'n5', val: 5, x: 65, y: 140, left: 'n2', color: 'BLACK', blackHeight: 1 },
+              { id: 'n2', val: 2, x: 35, y: 195, color: 'RED' },
+              { id: 'n15', val: 15, x: 140, y: 140, color: 'BLACK', blackHeight: 1 },
+              { id: 'n32', val: 32, x: 305, y: 85, left: 'n30', right: 'n35', color: 'BLACK', isPivot: true, blackHeight: 1 },
+              { id: 'n30', val: 30, x: 265, y: 140, color: 'RED' },
+              { id: 'n35', val: 35, x: 355, y: 140, color: 'RED' },
+            ],
+            activeNodeId: 'n32',
+            rotationBanner: {
+              type: 'ROTATION',
+              title: 'Case 3 Complete: Balanced Red-Black Subtree',
+              description: 'Left rotation elevated 32 to BLACK. Node 30 swapped to RED. Invariants 4 and 5 fully satisfied!',
+              pivotVal: 32,
+            },
+          },
+          metrics: { 'Subtree Root': 32, 'Node 32 Color': 'BLACK', 'Left Child 30': 'RED', 'Right Child 35': 'RED' },
+        },
+        {
+          stepIndex: 8,
+          title: 'Global Verification: All 5 Red-Black Invariants Proven',
+          explanation:
+            'Final verification of the 5 canonical invariants: 1. Nodes are RED or BLACK (5 Black, 3 Red). 2. Root 20 is BLACK. 3. Leaves (NIL) are BLACK. 4. No consecutive RED nodes (all Red nodes 10, 2, 30, 35 have Black parents). 5. All paths from root 20 to any NIL leaf pass through exactly 2 BLACK nodes (e.g. 20→10→5→NIL has 20 and 5; 20→32→30→NIL has 20 and 32). Height is bounded by 2 log(N+1).',
+          status: 'COMPLETE',
+          treeState: {
+            nodes: [
+              { id: 'n20', val: 20, x: 210, y: 35, left: 'n10', right: 'n32', color: 'BLACK', blackHeight: 2 },
+              { id: 'n10', val: 10, x: 115, y: 85, left: 'n5', right: 'n15', color: 'RED', blackHeight: 1 },
+              { id: 'n5', val: 5, x: 65, y: 140, left: 'n2', color: 'BLACK', blackHeight: 1 },
+              { id: 'n2', val: 2, x: 35, y: 195, color: 'RED' },
+              { id: 'n15', val: 15, x: 140, y: 140, color: 'BLACK', blackHeight: 1 },
+              { id: 'n32', val: 32, x: 305, y: 85, left: 'n30', right: 'n35', color: 'BLACK', blackHeight: 1 },
+              { id: 'n30', val: 30, x: 265, y: 140, color: 'RED' },
+              { id: 'n35', val: 35, x: 355, y: 140, color: 'RED' },
+            ],
+            activeNodeId: 'n20',
+          },
+          metrics: { 'Total Nodes': 8, 'Black-Height (bh)': 2, 'Consecutive REDs': '0 (None)', Status: 'Globally Valid RB Tree' },
+        },
+      ];
+    },
+  },
 ];
 
 export function AlgorithmVisualizerSandbox() {
@@ -1549,6 +1775,8 @@ export function AlgorithmVisualizerSandbox() {
               <span className="font-semibold">
                 {selectedAlgoId === 'AVL_TREE_ROTATIONS'
                   ? 'Self-Balancing AVL Tree Topology (Balance Factors & Heights)'
+                  : selectedAlgoId === 'RED_BLACK_TREE'
+                  ? 'Red-Black Tree Topology (Color Invariants & Black-Height)'
                   : 'Binary Search Tree Layout'}
               </span>
               <span className="font-mono">Total Nodes: {currentFrame.treeState.nodes.length}</span>
@@ -1597,12 +1825,21 @@ export function AlgorithmVisualizerSandbox() {
                   const isNew = node.isNew;
                   const isImbalanced = node.isImbalanced;
                   const isPivot = node.isPivot;
+                  const isRecolorWarning = node.recolorWarning;
 
                   let fill = '#ffffff';
                   let stroke = '#cbd5e1';
                   let textFill = '#1e293b';
 
-                  if (isImbalanced) {
+                  if (node.color === 'RED') {
+                    fill = '#ef4444';
+                    stroke = '#b91c1c';
+                    textFill = '#ffffff';
+                  } else if (node.color === 'BLACK') {
+                    fill = '#1e293b';
+                    stroke = '#0f172a';
+                    textFill = '#ffffff';
+                  } else if (isImbalanced) {
                     fill = '#fee2e2';
                     stroke = '#ef4444';
                     textFill = '#b91c1c';
@@ -1653,8 +1890,22 @@ export function AlgorithmVisualizerSandbox() {
                         />
                       )}
 
+                      {/* Consecutive RED violation warning ring */}
+                      {isRecolorWarning && (
+                        <circle
+                          cx={node.x}
+                          cy={node.y}
+                          r="25"
+                          fill="none"
+                          stroke="#ef4444"
+                          strokeWidth="2.5"
+                          strokeDasharray="4 2"
+                          className="animate-pulse"
+                        />
+                      )}
+
                       {/* Pivot highlight ring */}
-                      {isPivot && !isImbalanced && (
+                      {isPivot && !isImbalanced && !isRecolorWarning && (
                         <circle
                           cx={node.x}
                           cy={node.y}
@@ -1717,6 +1968,28 @@ export function AlgorithmVisualizerSandbox() {
                         </g>
                       )}
 
+                      {/* Red-Black Tree Node Color & Black-Height Badge */}
+                      {node.color !== undefined && (
+                        <g>
+                          <rect
+                            x={node.x - 16}
+                            y={node.y - 30}
+                            width="32"
+                            height="13"
+                            rx="3"
+                            fill={node.color === 'RED' ? '#b91c1c' : '#0f172a'}
+                          />
+                          <text
+                            x={node.x}
+                            y={node.y - 20}
+                            textAnchor="middle"
+                            className="text-[9px] font-bold font-mono fill-white select-none"
+                          >
+                            {node.color === 'RED' ? 'RED' : 'BLK'}
+                          </text>
+                        </g>
+                      )}
+
                       {/* Node Height Indicator */}
                       {node.height !== undefined && (
                         <text
@@ -1725,6 +1998,17 @@ export function AlgorithmVisualizerSandbox() {
                           className="text-[9px] font-mono font-bold fill-slate-500 select-none"
                         >
                           h={node.height}
+                        </text>
+                      )}
+
+                      {/* Black-Height Indicator */}
+                      {node.blackHeight !== undefined && (
+                        <text
+                          x={node.x + 18}
+                          y={node.y + 13}
+                          className="text-[9px] font-mono font-bold fill-slate-500 select-none"
+                        >
+                          bh={node.blackHeight}
                         </text>
                       )}
                     </g>

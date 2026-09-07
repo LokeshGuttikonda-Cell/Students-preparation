@@ -23,6 +23,7 @@ describe('AlgorithmVisualizerSandbox', () => {
     expect(screen.getByRole('button', { name: 'Depth-First Search' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Binary Search Tree' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Self-Balancing AVL Tree Rotations' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Red-Black Tree Invariants' })).toBeInTheDocument();
   });
 
   it('renders AVL Tree Rotations with complete Socratic step-by-step frames', () => {
@@ -120,5 +121,77 @@ describe('AlgorithmVisualizerSandbox', () => {
     fireEvent.click(resetBtn);
     expect(screen.getByText('Step 1 of 11')).toBeInTheDocument();
     expect(screen.getByText('Initial Balanced State: AVL Invariant Satisfied')).toBeInTheDocument();
+  });
+
+  it('renders Red-Black Tree Invariants with Case 1 (Recoloring), Case 2 (Triangle), and Case 3 (Line) rotations', () => {
+    render(<AlgorithmVisualizerSandbox />);
+
+    // Select Red-Black Tree Invariants
+    const rbButton = screen.getByRole('button', { name: 'Red-Black Tree Invariants' });
+    fireEvent.click(rbButton);
+
+    // Verify Title & Complexity Badges
+    expect(
+      screen.getByRole('heading', {
+        name: 'Red-Black Tree Invariants (Node Recoloring & Rotations)',
+        level: 3,
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Time: Lookup/Insert/Delete: O(log N), Max Rotations: O(1)')).toBeInTheDocument();
+    expect(screen.getByText('Space: O(N) space, 1 bit per node color overhead')).toBeInTheDocument();
+
+    // Verify Initial Step 1 of 9
+    expect(screen.getByText('Step 1 of 9')).toBeInTheDocument();
+    expect(screen.getByText('Initial State: 5 Canonical Red-Black Invariants Satisfied')).toBeInTheDocument();
+    expect(screen.getByText('Valid RB Tree')).toBeInTheDocument();
+    expect(screen.getByText('Red-Black Tree Topology (Color Invariants & Black-Height)')).toBeInTheDocument();
+
+    const nextBtn = screen.getByRole('button', { name: /Next Step/i });
+
+    // Step 2: Insert Key 5 (RED Leaf)
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 2 of 9')).toBeInTheDocument();
+    expect(screen.getByText('Insert Key 5: Inserted as RED Leaf')).toBeInTheDocument();
+
+    // Step 3: Insert Key 15 (RED Leaf)
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 3 of 9')).toBeInTheDocument();
+    expect(screen.getByText('Insert Key 15: Inserted as RED Leaf')).toBeInTheDocument();
+
+    // Step 4: Insert Key 2 (Case 1 Triggered: Uncle 15 is RED)
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 4 of 9')).toBeInTheDocument();
+    expect(screen.getByText('Insert Key 2: Case 1 Triggered (Uncle 15 is RED)')).toBeInTheDocument();
+    expect(screen.getByText('RECOLOR ROTATION')).toBeInTheDocument();
+    expect(screen.getByText('Case 1: Uncle 15 is RED (Recolor)')).toBeInTheDocument();
+
+    // Step 5: Case 1 Complete
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 5 of 9')).toBeInTheDocument();
+    expect(screen.getByText('Case 1 Complete: Colors Updated Without Rotations')).toBeInTheDocument();
+
+    // Step 6: Case 2 Triggered (RL Triangle)
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 6 of 9')).toBeInTheDocument();
+    expect(screen.getByText('Insert Key 35 & 32: Case 2 Triggered (Uncle is NIL & RL Triangle)')).toBeInTheDocument();
+    expect(screen.getByText('ROTATION ROTATION')).toBeInTheDocument();
+    expect(screen.getByText('Case 2: Uncle is NIL (BLACK) & RL Zig-Zag')).toBeInTheDocument();
+
+    // Step 7: Case 2 Complete (Converted to Case 3 Line)
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 7 of 9')).toBeInTheDocument();
+    expect(screen.getByText('Case 2 Complete: Converted to Case 3 (RR Linear Chain)')).toBeInTheDocument();
+
+    // Step 8: Case 3 Complete (Grandparent Rotation + Color Swap)
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 8 of 9')).toBeInTheDocument();
+    expect(screen.getByText('Case 3 Applied: Left Rotate Grandparent 30 & Color Swap')).toBeInTheDocument();
+
+    // Step 9: Global Verification
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 9 of 9')).toBeInTheDocument();
+    expect(screen.getByText('Global Verification: All 5 Red-Black Invariants Proven')).toBeInTheDocument();
+    expect(screen.getByText('Globally Valid RB Tree')).toBeInTheDocument();
+    expect(nextBtn).toBeDisabled();
   });
 });

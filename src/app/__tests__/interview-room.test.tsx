@@ -19,17 +19,21 @@ const mockCreateMicrophoneSpectrumAnalyzer = vi.fn().mockResolvedValue({
   stop: vi.fn(),
 });
 
-vi.mock('../../lib/speech', () => ({
-  speakText: vi.fn(),
-  stopSpeaking: vi.fn(),
-  createSpeechRecognizer: vi.fn().mockImplementation((opts) => ({
-    start: mockStart.mockImplementation(() => opts?.onStart?.()),
-    stop: mockStop.mockImplementation(() => opts?.onEnd?.()),
-    abort: mockAbort,
-  })),
-  createMicrophoneSpectrumAnalyzer: () => mockCreateMicrophoneSpectrumAnalyzer(),
-  isSpeechRecognitionSupported: vi.fn().mockReturnValue(true),
-}));
+vi.mock('../../lib/speech', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../lib/speech')>();
+  return {
+    ...actual,
+    speakText: vi.fn(),
+    stopSpeaking: vi.fn(),
+    createSpeechRecognizer: vi.fn().mockImplementation((opts) => ({
+      start: mockStart.mockImplementation(() => opts?.onStart?.()),
+      stop: mockStop.mockImplementation(() => opts?.onEnd?.()),
+      abort: mockAbort,
+    })),
+    createMicrophoneSpectrumAnalyzer: () => mockCreateMicrophoneSpectrumAnalyzer(),
+    isSpeechRecognitionSupported: vi.fn().mockReturnValue(true),
+  };
+});
 
 const mockSessionData = {
   id: 'sess_123',
@@ -200,6 +204,43 @@ describe('LiveInterviewRoomPage', () => {
     fireEvent.click(micBtn);
     await waitFor(() => {
       expect(screen.getByText(/Voice Ready \(Standby\)/i)).toBeDefined();
+    });
+  });
+
+  it('renders live articulation telemetry HUD showing word count, cadence, and filler detection as candidate drafts response', async () => {
+    render(<LiveInterviewRoomPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Cloud & DevOps Engineer')).toBeDefined();
+    });
+
+    // Telemetry HUD should not be present initially
+    expect(screen.queryByTestId('live-articulation-telemetry-hud')).toBeNull();
+
+    const textarea = screen.getByPlaceholderText(/Type your technical response/i);
+
+    // 1. Enter clean response
+    fireEvent.change(textarea, {
+      target: { value: 'I implement idempotent distributed workers using message queues.' },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('live-articulation-telemetry-hud')).toBeDefined();
+      expect(screen.getByText('8 words')).toBeDefined();
+      expect(screen.getByText('0 Fillers Detected')).toBeDefined();
+      expect(screen.getByText('EXEMPLARY')).toBeDefined();
+    });
+
+    // 2. Enter response with filler words
+    fireEvent.change(textarea, {
+      target: { value: 'Basically I mean we sort of use event driven queues.' },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/3 fillers/i)).toBeDefined();
+      expect(screen.getByText(/“basically”/i)).toBeDefined();
+      expect(screen.getByText(/“i mean”/i)).toBeDefined();
+      expect(screen.getByText(/“sort of”/i)).toBeDefined();
     });
   });
 });
