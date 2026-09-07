@@ -7,7 +7,7 @@ describe('DistributedSystemsSandbox', () => {
   it('renders Consistent Hash Ring by default and allows scaling out Node D and changing VNodes', () => {
     render(<DistributedSystemsSandbox />);
 
-    expect(screen.getByText('Consistent Hashing, Rate Limiting & Circuit Breakers')).toBeInTheDocument();
+    expect(screen.getByText(/Consistent Hashing, Rate Limiting/i)).toBeInTheDocument();
     expect(screen.getByText(/Circular Hash Space/i)).toBeInTheDocument();
     expect(screen.getByText('Key Ownership & Relocation Table')).toBeInTheDocument();
     expect(screen.getAllByText('user:101').length).toBeGreaterThanOrEqual(1);
@@ -99,5 +99,39 @@ describe('DistributedSystemsSandbox', () => {
 
     fireEvent.click(successBtn);
     expect(screen.getByText('1. CLOSED')).toBeInTheDocument();
+  });
+
+  it('switches to Raft Consensus and verifies leader election, client writes, quorum commits, and partition resilience', () => {
+    render(<DistributedSystemsSandbox />);
+
+    const raftTab = screen.getByRole('button', { name: /Raft Consensus & Quorum/i });
+    fireEvent.click(raftTab);
+
+    expect(screen.getByText(/Raft Consensus & Log Replication Controls/i)).toBeInTheDocument();
+    expect(screen.getByText('Q = 3 / 5')).toBeInTheDocument();
+    expect(screen.getAllByText('Node 1').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('👑 LEADER').length).toBeGreaterThanOrEqual(1);
+
+    // Propose a client write
+    const proposeBtn = screen.getByRole('button', { name: /Propose Client Write/i });
+    fireEvent.click(proposeBtn);
+    expect(screen.getAllByText(/cache_ttl=3600/i).length).toBeGreaterThanOrEqual(1);
+
+    // Simulate leader failure & election
+    const crashBtn = screen.getByRole('button', { name: /Simulate Leader Crash & Election/i });
+    fireEvent.click(crashBtn);
+    expect(screen.getByText(/Leader Node 1 crashed/i)).toBeInTheDocument();
+
+    // Simulate network partition
+    const partitionBtn = screen.getByRole('button', { name: /Simulate Network Partition/i });
+    fireEvent.click(partitionBtn);
+    expect(screen.getByText(/Network partitioned!/i)).toBeInTheDocument();
+    expect(screen.getByText(/Group A \(Minority/i)).toBeInTheDocument();
+    expect(screen.getByText(/Group B \(Majority/i)).toBeInTheDocument();
+
+    // Heal partition
+    const healBtn = screen.getByRole('button', { name: /Heal Partition & Reconcile Logs/i });
+    fireEvent.click(healBtn);
+    expect(screen.getByText(/Network partition healed!/i)).toBeInTheDocument();
   });
 });
