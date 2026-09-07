@@ -14,7 +14,35 @@ export type VisualizerAlgorithm =
   | 'GRAPH_DFS_TRAVERSAL'
   | 'BST_INSERTION_INORDER'
   | 'AVL_TREE_ROTATIONS'
-  | 'RED_BLACK_TREE';
+  | 'RED_BLACK_TREE'
+  | 'B_TREE_SPLIT';
+
+export interface VisualizerBTreeNode {
+  id: string;
+  keys: number[];
+  x: number;
+  y: number;
+  children?: string[]; // IDs of child nodes
+  isFull?: boolean;
+  isOverflow?: boolean;
+  isElevating?: boolean;
+  activeKeyVal?: number;
+  highlightedKeys?: number[];
+}
+
+export interface VisualizerBTreeState {
+  order: number; // e.g. 4 (2-3-4 tree)
+  nodes: VisualizerBTreeNode[];
+  activeNodeId?: string;
+  targetKey?: number;
+  promotedKey?: number;
+  treeHeight: number;
+  splitBanner?: {
+    type: 'LEAF_SPLIT' | 'ROOT_SPLIT' | 'MEDIAN_ELEVATION';
+    title: string;
+    description: string;
+  };
+}
 
 export interface VisualizerGraphNode {
   id: string;
@@ -88,6 +116,7 @@ interface StepFrame {
   windowRange?: [number, number];
   graphState?: VisualizerGraphState;
   treeState?: VisualizerTreeState;
+  bTreeState?: VisualizerBTreeState;
   metrics?: Record<string, string | number | undefined>;
 }
 
@@ -1358,6 +1387,258 @@ const ALGORITHM_CONFIGS: AlgorithmConfig[] = [
       ];
     },
   },
+  {
+    id: 'B_TREE_SPLIT',
+    name: 'B-Tree / 2-3-4 Multi-Way Node Splitting & Elevation',
+    category: 'External Memory & Multi-Way Trees',
+    timeComplexity: 'Search/Insert/Delete: O(log_B N) disk block I/Os, Node split: O(B)',
+    spaceComplexity: 'O(N) keys, minimum 50% storage occupancy guarantee',
+    description:
+      'B-Trees and 2-3-4 trees (Order M=4) maintain perfect height balance for disk-oriented databases by allowing multi-key nodes. When an insertion exceeds node capacity (M-1 = 3 keys), a preemptive split promotes the median key upward. When the root splits, the tree height increases uniformly from the top down.',
+    generateFrames: () => {
+      return [
+        {
+          stepIndex: 0,
+          title: 'Initial State: Balanced 2-3-4 Multi-Way Tree (Order M=4)',
+          explanation:
+            'Tree order M = 4 (2-3-4 tree). Nodes contain between 1 and 3 keys (2-nodes, 3-nodes, or 4-nodes). Root node contains keys [20, 50] (a 3-node). Multi-way child intervals: Left [10] holds keys < 20; Middle [30, 40] holds keys in (20, 50); Right [60, 70, 80] holds keys > 50. Notice the Right child is already a full 4-node (3 keys). Tree height h = 1.',
+          status: 'IN_PROGRESS',
+          bTreeState: {
+            order: 4,
+            treeHeight: 1,
+            nodes: [
+              { id: 'n_root', keys: [20, 50], x: 230, y: 50, children: ['n_left', 'n_mid', 'n_right'] },
+              { id: 'n_left', keys: [10], x: 80, y: 170 },
+              { id: 'n_mid', keys: [30, 40], x: 210, y: 170 },
+              { id: 'n_right', keys: [60, 70, 80], x: 360, y: 170, isFull: true },
+            ],
+            activeNodeId: 'n_root',
+          },
+          metrics: { 'Tree Height (h)': 1, 'Order M': 4, 'Max Keys/Node': 3, Status: 'Balanced' },
+        },
+        {
+          stepIndex: 1,
+          title: 'Insertion Search: Traverse Multi-Way Range for Key 75',
+          explanation:
+            'Inserting key 75. Search starts at root [20, 50]. Compare 75 with root keys: 75 > 20 and 75 > 50. Following the right child pointer (keys > 50) leads to leaf node [60, 70, 80]. Active node selected: n_right.',
+          status: 'IN_PROGRESS',
+          bTreeState: {
+            order: 4,
+            treeHeight: 1,
+            targetKey: 75,
+            nodes: [
+              { id: 'n_root', keys: [20, 50], x: 230, y: 50, children: ['n_left', 'n_mid', 'n_right'] },
+              { id: 'n_left', keys: [10], x: 80, y: 170 },
+              { id: 'n_mid', keys: [30, 40], x: 210, y: 170 },
+              { id: 'n_right', keys: [60, 70, 80], x: 360, y: 170, isFull: true },
+            ],
+            activeNodeId: 'n_right',
+          },
+          metrics: { 'Target Key': 75, 'Active Child': 'Right [60, 70, 80]', 'Key Comparison': '75 > 50' },
+        },
+        {
+          stepIndex: 2,
+          title: 'Node Overflow Detected: 4-Node Capacity Exceeded (4 Keys)',
+          explanation:
+            'Attempting to insert key 75 into node [60, 70, 80]. The resulting key set would be [60, 70, 75, 80] (4 keys). In order M=4, a node can hold at most M - 1 = 3 keys! An overflow condition has occurred. The node must split preemptively before the insert can proceed.',
+          status: 'MISMATCH',
+          bTreeState: {
+            order: 4,
+            treeHeight: 1,
+            targetKey: 75,
+            nodes: [
+              { id: 'n_root', keys: [20, 50], x: 230, y: 50, children: ['n_left', 'n_mid', 'n_right'] },
+              { id: 'n_left', keys: [10], x: 80, y: 170 },
+              { id: 'n_mid', keys: [30, 40], x: 210, y: 170 },
+              { id: 'n_right', keys: [60, 70, 75, 80], x: 360, y: 170, isOverflow: true },
+            ],
+            activeNodeId: 'n_right',
+            splitBanner: {
+              type: 'LEAF_SPLIT',
+              title: 'Node Overflow in Leaf',
+              description: 'Node holds 4 keys [60, 70, 75, 80], exceeding max capacity of 3 keys.',
+            },
+          },
+          metrics: { 'Node Keys': 4, 'Max Allowed': 3, Violation: 'Capacity Overflow', 'Action Required': 'Split Node' },
+        },
+        {
+          stepIndex: 3,
+          title: 'Preemptive Node Split: Median Key 70 Chosen for Promotion',
+          explanation:
+            'To resolve the overflow, the 4 keys [60, 70, 75, 80] are partitioned around the median key (index 1 = key 70). Key 70 is selected to elevate to the parent root. Keys lower than 70 ([60]) form the left sibling. Keys higher than 70 ([75, 80]) form the right sibling.',
+          status: 'IN_PROGRESS',
+          bTreeState: {
+            order: 4,
+            treeHeight: 1,
+            promotedKey: 70,
+            nodes: [
+              { id: 'n_root', keys: [20, 50], x: 230, y: 50, children: ['n_left', 'n_mid', 'n_right'] },
+              { id: 'n_left', keys: [10], x: 80, y: 170 },
+              { id: 'n_mid', keys: [30, 40], x: 210, y: 170 },
+              { id: 'n_right', keys: [60, 70, 75, 80], x: 360, y: 170, isElevating: true, highlightedKeys: [70] },
+            ],
+            activeNodeId: 'n_right',
+            splitBanner: {
+              type: 'MEDIAN_ELEVATION',
+              title: 'Median Key 70 Selected',
+              description: 'Partitioning into Left [60], Promoted Key 70, and Right [75, 80].',
+            },
+          },
+          metrics: { 'Promoted Median': 70, 'Left Partition': '[60]', 'Right Partition': '[75, 80]' },
+        },
+        {
+          stepIndex: 4,
+          title: 'Elevation & Re-Hooking: Parent Absorbs 70, Siblings Created',
+          explanation:
+            'Median key 70 is inserted into parent root, which expands from [20, 50] to [20, 50, 70] (now a full 4-node). The overflowing leaf is replaced by two valid siblings: n_r1 [60] and n_r2 [75, 80]. All 4 leaves remain at exact depth 1! Perfect height balance maintained.',
+          status: 'SUCCESS',
+          bTreeState: {
+            order: 4,
+            treeHeight: 1,
+            promotedKey: 70,
+            nodes: [
+              { id: 'n_root', keys: [20, 50, 70], x: 230, y: 50, isFull: true, children: ['n_left', 'n_mid', 'n_r1', 'n_r2'] },
+              { id: 'n_left', keys: [10], x: 50, y: 170 },
+              { id: 'n_mid', keys: [30, 40], x: 160, y: 170 },
+              { id: 'n_r1', keys: [60], x: 280, y: 170 },
+              { id: 'n_r2', keys: [75, 80], x: 395, y: 170 },
+            ],
+            activeNodeId: 'n_root',
+            splitBanner: {
+              type: 'MEDIAN_ELEVATION',
+              title: 'Leaf Split Complete',
+              description: 'Root now holds [20, 50, 70]. Leaf nodes [60] and [75, 80] cleanly separated.',
+            },
+          },
+          metrics: { 'Root Keys': '[20, 50, 70]', 'Total Leaves': 4, 'Leaf Depth': 'Uniform (1)', Status: 'Balanced' },
+        },
+        {
+          stepIndex: 5,
+          title: 'Next Insertion Search: Key 35 Traversal',
+          explanation:
+            'Now inserting key 35. Comparing with root keys [20, 50, 70]: 20 < 35 < 50. Key 35 falls between key 20 and key 50. Following child pointer 1 brings us to middle node [30, 40].',
+          status: 'IN_PROGRESS',
+          bTreeState: {
+            order: 4,
+            treeHeight: 1,
+            targetKey: 35,
+            nodes: [
+              { id: 'n_root', keys: [20, 50, 70], x: 230, y: 50, isFull: true, children: ['n_left', 'n_mid', 'n_r1', 'n_r2'] },
+              { id: 'n_left', keys: [10], x: 50, y: 170 },
+              { id: 'n_mid', keys: [30, 40], x: 160, y: 170 },
+              { id: 'n_r1', keys: [60], x: 280, y: 170 },
+              { id: 'n_r2', keys: [75, 80], x: 395, y: 170 },
+            ],
+            activeNodeId: 'n_mid',
+          },
+          metrics: { 'Target Key': 35, 'Search Range': '20 < 35 < 50', 'Target Node': 'n_mid [30, 40]' },
+        },
+        {
+          stepIndex: 6,
+          title: 'Direct Leaf Insertion: Node [30, 40] Absorbs Key 35',
+          explanation:
+            'Node [30, 40] is a 3-node with capacity remaining (length 2 < 3). Key 35 is inserted in sorted sequence: [30, 35, 40]. The node is now a full 4-node. No split required! Insertion completes in O(1) leaf time.',
+          status: 'SUCCESS',
+          bTreeState: {
+            order: 4,
+            treeHeight: 1,
+            targetKey: 35,
+            nodes: [
+              { id: 'n_root', keys: [20, 50, 70], x: 230, y: 50, isFull: true, children: ['n_left', 'n_mid', 'n_r1', 'n_r2'] },
+              { id: 'n_left', keys: [10], x: 50, y: 170 },
+              { id: 'n_mid', keys: [30, 35, 40], x: 160, y: 170, isFull: true },
+              { id: 'n_r1', keys: [60], x: 280, y: 170 },
+              { id: 'n_r2', keys: [75, 80], x: 395, y: 170 },
+            ],
+            activeNodeId: 'n_mid',
+          },
+          metrics: { 'Inserted Key': 35, 'Node Status': '4-node (FULL)', 'Split Triggered': 'No (Within Capacity)' },
+        },
+        {
+          stepIndex: 7,
+          title: 'Third Insertion Search: Key 25 Traversal',
+          explanation:
+            'Next, inserting key 25. Compare with root [20, 50, 70]: 20 < 25 < 50. Traversal routes to node [30, 35, 40]. But node [30, 35, 40] is already full! Inserting 25 causes an overflow with 4 keys: [25, 30, 35, 40].',
+          status: 'MISMATCH',
+          bTreeState: {
+            order: 4,
+            treeHeight: 1,
+            targetKey: 25,
+            nodes: [
+              { id: 'n_root', keys: [20, 50, 70], x: 230, y: 50, isFull: true, children: ['n_left', 'n_mid', 'n_r1', 'n_r2'] },
+              { id: 'n_left', keys: [10], x: 50, y: 170 },
+              { id: 'n_mid', keys: [25, 30, 35, 40], x: 160, y: 170, isOverflow: true },
+              { id: 'n_r1', keys: [60], x: 280, y: 170 },
+              { id: 'n_r2', keys: [75, 80], x: 395, y: 170 },
+            ],
+            activeNodeId: 'n_mid',
+            splitBanner: {
+              type: 'LEAF_SPLIT',
+              title: 'Middle Leaf Overflow',
+              description: 'Keys [25, 30, 35, 40] exceed capacity. Median 35 must elevate.',
+            },
+          },
+          metrics: { 'Target Key': 25, 'Overflow Node': 'n_mid', 'Median Key': 35, Issue: 'Parent Root is Full!' },
+        },
+        {
+          stepIndex: 8,
+          title: 'Cascading Overflow: Parent Root [20, 50, 70] is Also Full!',
+          explanation:
+            'Middle leaf partition yields: Left [25, 30], Median key 35, Right [40]. However, when key 35 tries to elevate into the parent root [20, 50, 70], the root is ALREADY FULL (3 keys)! The root itself would overflow to [20, 35, 50, 70]. In top-down 2-3-4 trees, the root MUST split preemptively!',
+          status: 'IN_PROGRESS',
+          bTreeState: {
+            order: 4,
+            treeHeight: 1,
+            promotedKey: 35,
+            nodes: [
+              { id: 'n_root', keys: [20, 35, 50, 70], x: 230, y: 50, isOverflow: true, children: ['n_left', 'n_mid', 'n_mid2', 'n_r1', 'n_r2'] },
+              { id: 'n_left', keys: [10], x: 50, y: 170 },
+              { id: 'n_mid', keys: [25, 30], x: 140, y: 170 },
+              { id: 'n_mid2', keys: [40], x: 220, y: 170 },
+              { id: 'n_r1', keys: [60], x: 300, y: 170 },
+              { id: 'n_r2', keys: [75, 80], x: 400, y: 170 },
+            ],
+            activeNodeId: 'n_root',
+            splitBanner: {
+              type: 'ROOT_SPLIT',
+              title: 'Root Node Overflows!',
+              description: 'Root has 4 keys [20, 35, 50, 70]. Median 50 elevates to create a NEW root level.',
+            },
+          },
+          metrics: { 'Root Keys': 4, 'Split Type': 'Root Split', 'New Root Key': 50, 'Height Growth': '+1' },
+        },
+        {
+          stepIndex: 9,
+          title: 'Root Split Complete: Tree Height Grows by +1 From the Top',
+          explanation:
+            'The root splits! Median key 50 elevates to form the NEW root [50] at level 0. The old root keys partition into two internal children: Left [20, 35] and Right [70] at level 1. All 5 leaves ([10], [25, 30], [40], [60], [75, 80]) reside at level 2. Tree height grows from h = 1 to h = 2 from the root up, guaranteeing that every single leaf remains at the exact same depth! This external memory property guarantees O(log_B N) worst-case disk I/Os.',
+          status: 'COMPLETE',
+          bTreeState: {
+            order: 4,
+            treeHeight: 2,
+            promotedKey: 50,
+            nodes: [
+              { id: 'n_top_root', keys: [50], x: 230, y: 35, children: ['n_l1_left', 'n_l1_right'] },
+              { id: 'n_l1_left', keys: [20, 35], x: 130, y: 110, children: ['n_leaf1', 'n_leaf2', 'n_leaf3'] },
+              { id: 'n_l1_right', keys: [70], x: 330, y: 110, children: ['n_leaf4', 'n_leaf5'] },
+              { id: 'n_leaf1', keys: [10], x: 50, y: 195 },
+              { id: 'n_leaf2', keys: [25, 30], x: 135, y: 195 },
+              { id: 'n_leaf3', keys: [40], x: 220, y: 195 },
+              { id: 'n_leaf4', keys: [60], x: 300, y: 195 },
+              { id: 'n_leaf5', keys: [75, 80], x: 390, y: 195 },
+            ],
+            activeNodeId: 'n_top_root',
+            splitBanner: {
+              type: 'ROOT_SPLIT',
+              title: 'Global Balance Achieved: Height 2',
+              description: 'Tree grew uniformly at root. All 5 leaf nodes reside at uniform depth 2.',
+            },
+          },
+          metrics: { 'Tree Height (h)': 2, 'Root Key': '[50]', 'Total Leaves': 5, 'Leaf Depth': 'Uniform (Depth 2)', Status: 'Perfect Multi-Way Balance' },
+        },
+      ];
+    },
+  },
 ];
 
 export function AlgorithmVisualizerSandbox() {
@@ -2039,6 +2320,217 @@ export function AlgorithmVisualizerSandbox() {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Multi-Way B-Tree / 2-3-4 Tree Display */}
+        {currentFrame.bTreeState && (
+          <div className="space-y-4">
+            {/* Split / Elevation Alert Banner */}
+            {currentFrame.bTreeState.splitBanner && (
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-amber-900 dark:text-amber-300">
+                    {currentFrame.bTreeState.splitBanner.type === 'LEAF_SPLIT'
+                      ? '⚡ Node Split'
+                      : currentFrame.bTreeState.splitBanner.type === 'ROOT_SPLIT'
+                      ? '🌲 Root Split (Tree Height +1)'
+                      : '⬆️ Median Elevation'}:
+                  </span>
+                  <span className="font-semibold text-text">
+                    {currentFrame.bTreeState.splitBanner.title}
+                  </span>
+                </div>
+                <span className="text-text-muted text-[11px]">
+                  {currentFrame.bTreeState.splitBanner.description}
+                </span>
+              </div>
+            )}
+
+            {/* SVG Canvas for Multi-Way B-Tree */}
+            <div className="w-full flex justify-center bg-surface/50 border border-border rounded-xl p-3 overflow-x-auto">
+              <svg
+                viewBox="0 0 460 250"
+                className="w-full max-w-2xl h-64 select-none font-sans"
+              >
+                {/* Connection lines from parents to children */}
+                {currentFrame.bTreeState.nodes.map((node) => {
+                  if (!node.children || node.children.length === 0) return null;
+                  const nodeWidth = Math.max(60, node.keys.length * 36 + 16);
+                  const nodeHeight = 32;
+
+                  return (
+                    <g key={`links-${node.id}`}>
+                      {node.children.map((childId, childIdx) => {
+                        const childNode = currentFrame.bTreeState!.nodes.find((n) => n.id === childId);
+                        if (!childNode) return null;
+                        const totalSlots = node.children!.length;
+                        const startX = node.x - nodeWidth / 2 + (nodeWidth / (totalSlots + 1)) * (childIdx + 1);
+                        const startY = node.y + nodeHeight / 2;
+                        const endX = childNode.x;
+                        const endY = childNode.y - nodeHeight / 2;
+
+                        return (
+                          <line
+                            key={`link-${node.id}-${childId}`}
+                            x1={startX}
+                            y1={startY}
+                            x2={endX}
+                            y2={endY}
+                            stroke="#94a3b8"
+                            strokeWidth="2"
+                          />
+                        );
+                      })}
+                    </g>
+                  );
+                })}
+
+                {/* B-Tree Segmented Nodes */}
+                {currentFrame.bTreeState.nodes.map((node) => {
+                  const isActive = currentFrame.bTreeState!.activeNodeId === node.id;
+                  const isFull = node.isFull;
+                  const isOverflow = node.isOverflow;
+                  const isElevating = node.isElevating;
+                  const nodeWidth = Math.max(60, node.keys.length * 36 + 16);
+                  const nodeHeight = 32;
+
+                  let borderColor = '#cbd5e1';
+                  let bgColor = '#ffffff';
+
+                  if (isOverflow) {
+                    borderColor = '#ef4444';
+                    bgColor = '#fef2f2';
+                  } else if (isElevating) {
+                    borderColor = '#8b5cf6';
+                    bgColor = '#f5f3ff';
+                  } else if (isActive) {
+                    borderColor = '#3b82f6';
+                    bgColor = '#eff6ff';
+                  } else if (isFull) {
+                    borderColor = '#f59e0b';
+                    bgColor = '#fffbeb';
+                  }
+
+                  return (
+                    <g key={node.id} className="transition-all duration-200">
+                      {/* Pulse ring for active or overflowing nodes */}
+                      {isActive && (
+                        <rect
+                          x={node.x - nodeWidth / 2 - 4}
+                          y={node.y - nodeHeight / 2 - 4}
+                          width={nodeWidth + 8}
+                          height={nodeHeight + 8}
+                          rx="10"
+                          fill="none"
+                          stroke={isOverflow ? '#ef4444' : '#3b82f6'}
+                          strokeWidth="2"
+                          strokeDasharray={isOverflow ? '4 2' : undefined}
+                          className="animate-pulse"
+                        />
+                      )}
+
+                      {/* Main Node Box */}
+                      <rect
+                        x={node.x - nodeWidth / 2}
+                        y={node.y - nodeHeight / 2}
+                        width={nodeWidth}
+                        height={nodeHeight}
+                        rx="6"
+                        fill={bgColor}
+                        stroke={borderColor}
+                        strokeWidth="2"
+                      />
+
+                      {/* Internal Key Slots */}
+                      {node.keys.map((keyVal, keyIdx) => {
+                        const slotWidth = 32;
+                        const slotHeight = 24;
+                        const slotX =
+                          node.x - nodeWidth / 2 + 8 + keyIdx * 36;
+                        const slotY = node.y - slotHeight / 2;
+
+                        const isTarget = currentFrame.bTreeState!.targetKey === keyVal;
+                        const isPromoted = currentFrame.bTreeState!.promotedKey === keyVal;
+                        const isKeyHighlighted = node.highlightedKeys?.includes(keyVal);
+
+                        let keyBg = '#f1f5f9';
+                        let keyText = '#0f172a';
+                        let keyBorder = '#e2e8f0';
+
+                        if (isPromoted) {
+                          keyBg = '#8b5cf6';
+                          keyText = '#ffffff';
+                          keyBorder = '#7c3aed';
+                        } else if (isTarget) {
+                          keyBg = '#10b981';
+                          keyText = '#ffffff';
+                          keyBorder = '#059669';
+                        } else if (isKeyHighlighted) {
+                          keyBg = '#f59e0b';
+                          keyText = '#ffffff';
+                          keyBorder = '#d97706';
+                        }
+
+                        return (
+                          <g key={`key-${node.id}-${keyIdx}`}>
+                            <rect
+                              x={slotX}
+                              y={slotY}
+                              width={slotWidth}
+                              height={slotHeight}
+                              rx="4"
+                              fill={keyBg}
+                              stroke={keyBorder}
+                              strokeWidth="1.5"
+                            />
+                            <text
+                              x={slotX + slotWidth / 2}
+                              y={slotY + slotHeight / 2}
+                              textAnchor="middle"
+                              dy=".32em"
+                              fill={keyText}
+                              className="text-xs font-bold font-mono select-none"
+                            >
+                              {keyVal}
+                            </text>
+                          </g>
+                        );
+                      })}
+
+                      {/* Node Status Tag (Full / 2-node / 3-node / 4-node) */}
+                      <g>
+                        <text
+                          x={node.x}
+                          y={node.y + nodeHeight / 2 + 12}
+                          textAnchor="middle"
+                          className="text-[9px] font-mono font-semibold fill-slate-500 select-none"
+                        >
+                          {node.keys.length === 1
+                            ? '2-node'
+                            : node.keys.length === 2
+                            ? '3-node'
+                            : node.keys.length === 3
+                            ? '4-node (FULL)'
+                            : 'OVERFLOW'}
+                        </text>
+                      </g>
+                    </g>
+                  );
+                })}
+              </svg>
+            </div>
+
+            {/* Multi-Way Range Invariants Summary */}
+            <div className="bg-surface border border-border rounded-lg p-3 space-y-1 text-xs">
+              <div className="flex items-center justify-between text-[11px] font-bold text-text-muted">
+                <span className="uppercase tracking-wider">B-Tree / 2-3-4 Order M=4 Invariant Properties:</span>
+                <span>Max Capacity: 3 Keys, 4 Children</span>
+              </div>
+              <p className="text-text-muted text-[11px] leading-relaxed">
+                Internal nodes with <strong className="text-text">k</strong> keys have exactly <strong className="text-text">k + 1</strong> children. All leaf nodes reside at uniform tree height <strong className="text-primary-600 font-mono">h={currentFrame.bTreeState.treeHeight}</strong>. Overflow triggers preemptive median promotion, growing tree height from root down.
+              </p>
+            </div>
           </div>
         )}
 

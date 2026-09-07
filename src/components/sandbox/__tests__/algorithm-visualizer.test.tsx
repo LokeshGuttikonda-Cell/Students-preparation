@@ -24,6 +24,7 @@ describe('AlgorithmVisualizerSandbox', () => {
     expect(screen.getByRole('button', { name: 'Binary Search Tree' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Self-Balancing AVL Tree Rotations' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Red-Black Tree Invariants' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'B-Tree / 2-3-4 Multi-Way Node Splitting & Elevation' })).toBeInTheDocument();
   });
 
   it('renders AVL Tree Rotations with complete Socratic step-by-step frames', () => {
@@ -192,6 +193,65 @@ describe('AlgorithmVisualizerSandbox', () => {
     expect(screen.getByText('Step 9 of 9')).toBeInTheDocument();
     expect(screen.getByText('Global Verification: All 5 Red-Black Invariants Proven')).toBeInTheDocument();
     expect(screen.getByText('Globally Valid RB Tree')).toBeInTheDocument();
+    expect(nextBtn).toBeDisabled();
+  });
+
+  it('renders B-Tree / 2-3-4 Multi-Way Node Splitting & Elevation stepping through leaf overflow, median elevation, and root split', () => {
+    render(<AlgorithmVisualizerSandbox />);
+
+    // Select B-Tree / 2-3-4 Multi-Way Node Splitting
+    const btreeBtn = screen.getByRole('button', { name: 'B-Tree / 2-3-4 Multi-Way Node Splitting & Elevation' });
+    fireEvent.click(btreeBtn);
+
+    // Verify Title & Complexity Badges
+    expect(
+      screen.getByRole('heading', {
+        name: 'B-Tree / 2-3-4 Multi-Way Node Splitting & Elevation',
+        level: 3,
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/O\(log_B N\) disk block I\/Os/)).toBeInTheDocument();
+
+    // Verify Initial Step 1 of 10
+    expect(screen.getByText('Step 1 of 10')).toBeInTheDocument();
+    expect(screen.getByText('Initial State: Balanced 2-3-4 Multi-Way Tree (Order M=4)')).toBeInTheDocument();
+    expect(screen.getByText('B-Tree / 2-3-4 Order M=4 Invariant Properties:')).toBeInTheDocument();
+
+    const nextBtn = screen.getByRole('button', { name: /Next Step/i });
+
+    // Step 2: Insertion search for 75
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 2 of 10')).toBeInTheDocument();
+    expect(screen.getByText(/Traverse Multi-Way Range for Key 75/)).toBeInTheDocument();
+
+    // Step 3: Leaf Overflow detected
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 3 of 10')).toBeInTheDocument();
+    expect(screen.getByText(/Node Overflow in Leaf/)).toBeInTheDocument();
+
+    // Step 4: Median 70 chosen for promotion
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 4 of 10')).toBeInTheDocument();
+    expect(screen.getByText(/Median Key 70 Chosen for Promotion/)).toBeInTheDocument();
+
+    // Step 5: Elevation & Re-Hooking (Root holds 20, 50, 70)
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 5 of 10')).toBeInTheDocument();
+    expect(screen.getByText(/Elevation & Re-Hooking: Parent Absorbs 70/)).toBeInTheDocument();
+
+    // Fast forward to Step 9 (Root overflow)
+    fireEvent.click(nextBtn); // Step 6
+    fireEvent.click(nextBtn); // Step 7
+    fireEvent.click(nextBtn); // Step 8
+    fireEvent.click(nextBtn); // Step 9
+    expect(screen.getByText('Step 9 of 10')).toBeInTheDocument();
+    expect(screen.getByText(/Root Node Overflows!/)).toBeInTheDocument();
+
+    // Step 10: Root split complete (Height grows to 2)
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 10 of 10')).toBeInTheDocument();
+    expect(screen.getByText(/Root Split Complete: Tree Height Grows by \+1/)).toBeInTheDocument();
+    expect(screen.getByText('Global Balance Achieved: Height 2')).toBeInTheDocument();
     expect(nextBtn).toBeDisabled();
   });
 });

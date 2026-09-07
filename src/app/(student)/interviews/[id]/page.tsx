@@ -276,6 +276,91 @@ export default function LiveInterviewRoomPage() {
     return analyzeSpeechFluency(inputText, elapsedMinutes);
   }, [inputText, timeLeftSeconds]);
 
+  // Real-time Socratic articulation coaching tip
+  const liveCoachingTip = React.useMemo(() => {
+    if (!liveFluency) return null;
+
+    // 1. High-priority filler word remediation
+    if (liveFluency.fillerCount > 0) {
+      const topFiller = Object.entries(liveFluency.fillerBreakdown).sort(
+        (a, b) => b[1] - a[1],
+      )[0]?.[0];
+
+      if (topFiller === 'basically') {
+        return {
+          type: 'FILLER' as const,
+          message:
+            'Consider replacing “basically” with “Fundamentally” or “At the architectural core”.',
+        };
+      }
+      if (topFiller === 'like') {
+        return {
+          type: 'FILLER' as const,
+          message:
+            'Consider replacing “like” with “For instance”, “Specifically”, or a direct concrete metric.',
+        };
+      }
+      if (topFiller === 'you know' || topFiller === 'i mean') {
+        return {
+          type: 'FILLER' as const,
+          message:
+            'Replace conversational checks (“you know”, “i mean”) with authoritative affirmations like “To illustrate” or “More precisely”.',
+        };
+      }
+      if (topFiller === 'actually' || topFiller === 'literally') {
+        return {
+          type: 'FILLER' as const,
+          message:
+            `Consider replacing “${topFiller}” with “In production”, “Empirically”, or “By system design”.`,
+        };
+      }
+      if (topFiller === 'sort of' || topFiller === 'kind of') {
+        return {
+          type: 'FILLER' as const,
+          message:
+            `Consider replacing “${topFiller}” with “Approximately”, “Effectively”, or precise system metrics.`,
+        };
+      }
+      if (topFiller === 'um' || topFiller === 'uh') {
+        return {
+          type: 'FILLER' as const,
+          message:
+            'Substitute verbalized hesitations (“um”, “uh”) with a deliberate 1-second pause. Silence conveys executive poise.',
+        };
+      }
+      return {
+        type: 'FILLER' as const,
+        message:
+          `Detected verbal crutch “${topFiller}”. Try pruning it to heighten technical authority.`,
+      };
+    }
+
+    // 2. Articulation pacing coaching
+    if (liveFluency.totalWords >= 12) {
+      if (liveFluency.articulationPaceWpm < 100) {
+        return {
+          type: 'PACING' as const,
+          message:
+            'Deliberate delivery (<100 WPM). Strong composure; ensure you delve deeply into concurrency or fault domains before concluding.',
+        };
+      }
+      if (liveFluency.articulationPaceWpm > 165) {
+        return {
+          type: 'PACING' as const,
+          message:
+            'Rapid articulation (>165 WPM). Moderating your pace slightly gives the evaluator time to absorb key trade-offs.',
+        };
+      }
+      return {
+        type: 'EXCELLENCE' as const,
+        message:
+          'Optimal technical delivery (100–165 WPM) with 0 verbal fillers. Clear executive articulation!',
+      };
+    }
+
+    return null;
+  }, [liveFluency]);
+
   if (isLoading) {
     return (
       <div className="min-h-dvh flex items-center justify-center bg-canvas text-text">
@@ -607,6 +692,21 @@ export default function LiveInterviewRoomPage() {
                         </div>
                       )}
                     </div>
+
+                    {/* Socratic Articulation Coaching Tip */}
+                    {liveCoachingTip && (
+                      <div
+                        data-testid="live-articulation-coaching-tip"
+                        className="w-full mt-1 pt-2 border-t border-border flex items-start gap-2 text-[11px] text-text-muted"
+                      >
+                        <span className="text-primary-600 font-bold shrink-0">
+                          💡 Articulation Tip:
+                        </span>
+                        <span className="text-text font-medium leading-relaxed">
+                          {liveCoachingTip.message}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 )}
 
