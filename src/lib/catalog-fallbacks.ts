@@ -440,6 +440,36 @@ export function getFallbackCohortReadiness(roleTrackId: string): CohortReadiness
       topDecileBenchmark: 86,
       gapFromMedian: 22,
     },
+    percentileHistory: [
+      {
+        attemptId: 'milestone-1',
+        assessmentTitle: 'Diagnostic Baseline Screening',
+        date: '2026-08-05T10:00:00Z',
+        score: 62,
+        percentile: 48,
+      },
+      {
+        attemptId: 'milestone-2',
+        assessmentTitle: 'Core Engineering Evaluation',
+        date: '2026-08-18T14:30:00Z',
+        score: 74,
+        percentile: 64,
+      },
+      {
+        attemptId: 'milestone-3',
+        assessmentTitle: 'Intermediate Systems & Storage',
+        date: '2026-08-29T16:15:00Z',
+        score: 80,
+        percentile: 75,
+      },
+      {
+        attemptId: 'milestone-4',
+        assessmentTitle: 'High-Concurrency & Resilient Architecture',
+        date: '2026-09-06T11:00:00Z',
+        score: 84,
+        percentile: 86,
+      },
+    ],
   };
 }
 

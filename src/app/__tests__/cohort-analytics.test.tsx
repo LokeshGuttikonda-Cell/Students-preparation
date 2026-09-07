@@ -82,6 +82,36 @@ const mockDevopsReadiness = {
     topDecileBenchmark: 90,
     gapFromMedian: 18,
   },
+  percentileHistory: [
+    {
+      attemptId: 'm1',
+      assessmentTitle: 'Diagnostic Baseline Screening',
+      date: '2026-08-05T10:00:00Z',
+      score: 62,
+      percentile: 48,
+    },
+    {
+      attemptId: 'm2',
+      assessmentTitle: 'Core Engineering Evaluation',
+      date: '2026-08-18T14:30:00Z',
+      score: 74,
+      percentile: 64,
+    },
+    {
+      attemptId: 'm3',
+      assessmentTitle: 'Intermediate Systems & Storage',
+      date: '2026-08-29T16:15:00Z',
+      score: 80,
+      percentile: 75,
+    },
+    {
+      attemptId: 'm4',
+      assessmentTitle: 'High-Concurrency & Resilient Architecture',
+      date: '2026-09-06T11:00:00Z',
+      score: 88,
+      percentile: 88,
+    },
+  ],
 };
 
 const mockPythonReadiness = {
@@ -98,6 +128,7 @@ const mockPythonReadiness = {
   competencyBenchmarks: [],
   keyDeficit: null,
   keyStrength: null,
+  percentileHistory: [],
 };
 
 describe('CohortAnalyticsPage', () => {
@@ -145,6 +176,51 @@ describe('CohortAnalyticsPage', () => {
     );
   });
 
+  it('renders historical percentile velocity HUD and trajectory sparkline', async () => {
+    render(<CohortAnalyticsPage />);
+
+    await waitFor(
+      () => {
+        expect(screen.getByTestId('percentile-velocity-hud')).toBeInTheDocument();
+        expect(screen.getByText('Historical Milestone Ascent & Velocity')).toBeInTheDocument();
+        expect(screen.getByText(/RAPID ASCENT/i)).toBeInTheDocument();
+        expect(screen.getByText('+40 pts')).toBeInTheDocument();
+        expect(screen.getByText('Diagnostic Baseline Screening')).toBeInTheDocument();
+        expect(screen.getByText('High-Concurrency & Resilient Architecture')).toBeInTheDocument();
+      },
+      { timeout: 4000 },
+    );
+  });
+
+  it('interacts with What-If Competency ROI Simulator to project percentile boost and rank gains', async () => {
+    render(<CohortAnalyticsPage />);
+
+    await waitFor(
+      () => {
+        expect(screen.getByTestId('cohort-what-if-simulator')).toBeInTheDocument();
+        expect(screen.getByText('What-If Competency ROI Simulator')).toBeInTheDocument();
+        expect(screen.getByRole('combobox', { name: /Target Competency Domain/i })).toBeInTheDocument();
+      },
+      { timeout: 4000 },
+    );
+
+    // Initial state with default +15% boost
+    expect(screen.getByText('+15% Improvement')).toBeInTheDocument();
+    expect(screen.getByText('Simulated Topic Accuracy')).toBeInTheDocument();
+    expect(screen.getByText('Peers Overtaken')).toBeInTheDocument();
+
+    // Adjust boost slider to +25%
+    const boostSlider = screen.getByLabelText(/Target Accuracy Boost/i);
+    fireEvent.change(boostSlider, { target: { value: '25' } });
+
+    await waitFor(() => {
+      expect(screen.getByText('+25% Improvement')).toBeInTheDocument();
+      expect(screen.getByText('(+25%)')).toBeInTheDocument();
+      // Should show topic practice CTA with boost
+      expect(screen.getByRole('button', { name: /Unlock \+/i })).toBeInTheDocument();
+    });
+  });
+
   it('renders histogram bucket highlighting the student current bucket', async () => {
     render(<CohortAnalyticsPage />);
 
@@ -179,7 +255,7 @@ describe('CohortAnalyticsPage', () => {
         expect(
           screen.getByText(/Highest Priority Capability Deficit/i),
         ).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /Practice Topic/i })).toBeInTheDocument();
+        expect(screen.getAllByRole('button', { name: /Practice Topic/i }).length).toBeGreaterThanOrEqual(1);
       },
       { timeout: 4000 },
     );

@@ -4,6 +4,14 @@ export type ReadinessBand =
   | 'JOB_READY'
   | 'ELITE';
 
+export interface PercentileMilestoneSnapshot {
+  attemptId: string;
+  assessmentTitle: string;
+  date: string;
+  score: number;
+  percentile: number;
+}
+
 export interface CohortDistributionBucket {
   range: string;
   minScore: number;
@@ -36,6 +44,7 @@ export interface CohortReadinessResponse {
   competencyBenchmarks: CohortCompetencyBenchmark[];
   keyDeficit: CohortCompetencyBenchmark | null;
   keyStrength: CohortCompetencyBenchmark | null;
+  percentileHistory?: PercentileMilestoneSnapshot[];
 }
 
 export interface CohortSummaryItem {
