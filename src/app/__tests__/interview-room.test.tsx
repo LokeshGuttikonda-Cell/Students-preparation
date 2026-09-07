@@ -243,4 +243,34 @@ describe('LiveInterviewRoomPage', () => {
       expect(screen.getByText(/Consider replacing “sort of” with “Approximately”/i)).toBeDefined();
     });
   });
+
+  it('opens Architecture Whiteboard studio, selects archetype, and exports topology into candidate response input', async () => {
+    render(<LiveInterviewRoomPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Cloud & DevOps Engineer')).toBeDefined();
+    });
+
+    // Whiteboard modal is closed initially
+    expect(screen.queryByTestId('architecture-whiteboard-studio')).toBeNull();
+
+    // Click Architecture Whiteboard button
+    const openBtns = screen.getAllByRole('button', { name: /Architecture Whiteboard/i });
+    expect(openBtns.length).toBeGreaterThanOrEqual(1);
+    fireEvent.click(openBtns[0]);
+
+    // Modal is open
+    expect(screen.getByTestId('architecture-whiteboard-studio')).toBeDefined();
+    expect(screen.getByText('Architecture Whiteboard & Topology Canvas')).toBeDefined();
+
+    // Click Export Topology to Response
+    const exportBtn = screen.getByRole('button', { name: /Export Topology to Response/i });
+    fireEvent.click(exportBtn);
+
+    // Modal is closed and textarea contains exported topology text
+    expect(screen.queryByTestId('architecture-whiteboard-studio')).toBeNull();
+    const textarea = screen.getByPlaceholderText(/Type your technical response/i);
+    expect((textarea as HTMLTextAreaElement).value).toContain('Proposed Architecture Topology');
+    expect((textarea as HTMLTextAreaElement).value).toContain('Caching Strategy');
+  });
 });

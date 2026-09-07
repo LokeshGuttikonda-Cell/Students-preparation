@@ -22,6 +22,7 @@ import { VoiceWaveform, type WaveformState } from '../../../../components/interv
 import { StageStepper } from '../../../../components/interview/StageStepper';
 import { Button } from '../../../../components/ui/Button';
 import { Badge } from '../../../../components/ui/Badge';
+import { ArchitectureWhiteboard } from '../../../../components/interview/ArchitectureWhiteboard';
 
 export default function LiveInterviewRoomPage() {
   const params = useParams();
@@ -43,6 +44,14 @@ export default function LiveInterviewRoomPage() {
 
   // Countdown timer
   const [timeLeftSeconds, setTimeLeftSeconds] = useState<number>(20 * 60);
+
+  // Architecture Whiteboard Studio state
+  const [isWhiteboardOpen, setIsWhiteboardOpen] = useState(false);
+
+  const handleWhiteboardExport = (exportedText: string) => {
+    setInputText((prev) => (prev ? `${prev}\n\n${exportedText}` : exportedText));
+    setIsWhiteboardOpen(false);
+  };
 
   const transcriptEndRef = useRef<HTMLDivElement>(null);
   const speechRecognizerRef = useRef<ReturnType<typeof createSpeechRecognizer> | null>(null);
@@ -509,6 +518,15 @@ export default function LiveInterviewRoomPage() {
               >
                 ↺ Replay Last Question
               </button>
+
+              <button
+                type="button"
+                onClick={() => setIsWhiteboardOpen(true)}
+                className="w-full py-2 px-3 rounded-lg text-xs font-semibold text-primary-900 bg-primary-50 hover:bg-primary-100 border border-primary-200 text-center flex items-center justify-center gap-1.5 transition-all shadow-2xs cursor-pointer"
+              >
+                <span>📐</span>
+                <span>Architecture Whiteboard</span>
+              </button>
             </div>
           </div>
 
@@ -624,6 +642,14 @@ export default function LiveInterviewRoomPage() {
               <>
                 {/* Clarification Chips */}
                 <div className="hidden sm:flex items-center gap-2 overflow-x-auto pb-1 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setIsWhiteboardOpen(true)}
+                    className="px-2.5 py-1 rounded-full bg-primary-50 border border-primary-200 text-primary-900 hover:bg-primary-100 text-[11px] font-semibold whitespace-nowrap flex items-center gap-1 transition-colors shrink-0 cursor-pointer"
+                  >
+                    <span>📐</span>
+                    <span>Architecture Whiteboard</span>
+                  </button>
                   <span className="text-[11px] font-semibold text-text-muted shrink-0">
                     Quick Prompts:
                   </span>
@@ -764,6 +790,23 @@ export default function LiveInterviewRoomPage() {
           </div>
         </div>
       </main>
+
+      {/* Architecture Whiteboard Studio Modal */}
+      {isWhiteboardOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Architecture Whiteboard Studio Modal"
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/60 backdrop-blur-xs animate-fadeIn"
+        >
+          <div className="w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl">
+            <ArchitectureWhiteboard
+              onClose={() => setIsWhiteboardOpen(false)}
+              onExportToText={handleWhiteboardExport}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
