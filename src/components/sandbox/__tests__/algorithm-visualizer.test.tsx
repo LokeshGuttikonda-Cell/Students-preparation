@@ -27,6 +27,7 @@ describe('AlgorithmVisualizerSandbox', () => {
     expect(screen.getByRole('button', { name: 'B-Tree / 2-3-4 Multi-Way Node Splitting & Elevation' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'B+ Tree Range Scan & Leaf Sibling Pointers' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Bloom Filter Bit-Array Hashing & False Positive Invariants' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Trie Prefix Tree & Compressed Radix Tree Autocomplete Studio' })).toBeInTheDocument();
   });
 
   it('renders AVL Tree Rotations with complete Socratic step-by-step frames', () => {
@@ -419,6 +420,95 @@ describe('AlgorithmVisualizerSandbox', () => {
     expect(screen.getByText('Step 8 of 8')).toBeInTheDocument();
     expect(screen.getByText('Mathematical Invariants & Optimal Sizing Formula: k = (m/n) * ln(2)')).toBeInTheDocument();
     expect(screen.getByText('0.0% (Zero)')).toBeInTheDocument();
+    expect(nextBtn).toBeDisabled();
+  });
+
+  it('renders Trie Prefix Tree & Compressed Radix Tree stepping through insertion, search hit, miss short-circuit, autocomplete DFS, and Radix compression', () => {
+    render(<AlgorithmVisualizerSandbox />);
+
+    // Select Trie scenario
+    const trieBtn = screen.getByRole('button', { name: 'Trie Prefix Tree & Compressed Radix Tree Autocomplete Studio' });
+    fireEvent.click(trieBtn);
+
+    // Verify Heading and Complexity Badges
+    expect(
+      screen.getByRole('heading', {
+        name: 'Trie Prefix Tree & Compressed Radix Tree Autocomplete Studio',
+        level: 3,
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Time: Search/Insert: O(L), Autocomplete: O(L + K)')).toBeInTheDocument();
+    expect(screen.getByText('Space: Standard Trie: O(Σ · N · L) → Radix: O(N)')).toBeInTheDocument();
+
+    // Verify Step 1 of 9: Initial State
+    expect(screen.getByText('Step 1 of 9')).toBeInTheDocument();
+    expect(screen.getByText('Initial State: Empty Root & Character Alphabet (Σ = 26)')).toBeInTheDocument();
+    expect(screen.getByText('OP: INITIAL')).toBeInTheDocument();
+    expect(screen.getByText('🌲 Standard Prefix Trie')).toBeInTheDocument();
+    expect(screen.getByText('Empty Dictionary (Root Only)')).toBeInTheDocument();
+
+    const nextBtn = screen.getByRole('button', { name: /Next Step/i });
+
+    // Step 2: Insert "api" & "app"
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 2 of 9')).toBeInTheDocument();
+    expect(screen.getByText('Insert "api" & "app": Shared Prefix "ap" & Branching')).toBeInTheDocument();
+    expect(screen.getByText('OP: INSERT')).toBeInTheDocument();
+    expect(screen.getByText('✓ api')).toBeInTheDocument();
+    expect(screen.getByText('✓ app')).toBeInTheDocument();
+
+    // Step 3: Insert "apple" & "apply"
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 3 of 9')).toBeInTheDocument();
+    expect(screen.getByText('Insert "apple" & "apply": Suffix Extension from Terminal Node')).toBeInTheDocument();
+    expect(screen.getByText('✓ apple')).toBeInTheDocument();
+    expect(screen.getByText('✓ apply')).toBeInTheDocument();
+
+    // Step 4: Insert "auth" & "author"
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 4 of 9')).toBeInTheDocument();
+    expect(screen.getByText('Insert "auth" & "author": Independent Sibling Branch from Root')).toBeInTheDocument();
+    expect(screen.getByText('✓ auth')).toBeInTheDocument();
+    expect(screen.getByText('✓ author')).toBeInTheDocument();
+
+    // Step 5: Point Search Query "app" (Search Hit)
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 5 of 9')).toBeInTheDocument();
+    expect(screen.getByText('Point Search Query "app": Exact Match in O(L) Time')).toBeInTheDocument();
+    expect(screen.getByText('OP: SEARCH')).toBeInTheDocument();
+    expect(screen.getByText(/Search Hit: Word "app" Found/)).toBeInTheDocument();
+
+    // Step 6: Point Search Query "apt" (Search Miss Short-Circuit)
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 6 of 9')).toBeInTheDocument();
+    expect(screen.getByText('Point Search Query "apt": Early Mismatch Short-Circuit')).toBeInTheDocument();
+    expect(screen.getByText(/Search Miss: "apt" Missing/)).toBeInTheDocument();
+
+    // Step 7: Autocomplete Query "ap" (Subtree DFS)
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 7 of 9')).toBeInTheDocument();
+    expect(screen.getByText('Autocomplete Query "ap": Subtree DFS Collects 4 Suggestions')).toBeInTheDocument();
+    expect(screen.getByText('OP: AUTOCOMPLETE')).toBeInTheDocument();
+    expect(screen.getByText(/4 Autocomplete Matches for "ap"/)).toBeInTheDocument();
+    expect(screen.getByText('→ api')).toBeInTheDocument();
+    expect(screen.getByText('→ app')).toBeInTheDocument();
+    expect(screen.getByText('→ apple')).toBeInTheDocument();
+    expect(screen.getByText('→ apply')).toBeInTheDocument();
+
+    // Step 8: Radix Tree Compression
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 8 of 9')).toBeInTheDocument();
+    expect(screen.getByText('Radix Tree (Patricia Trie) Compression: Coalescing Linear Chains')).toBeInTheDocument();
+    expect(screen.getByText('OP: RADIX_COMPRESS')).toBeInTheDocument();
+    expect(screen.getByText('⚡ Compressed Radix Tree (Patricia)')).toBeInTheDocument();
+    expect(screen.getByText(/Radix Compression Applied: 12 → 7 Nodes/)).toBeInTheDocument();
+    expect(screen.getByText('41.7% Reduction')).toBeInTheDocument();
+
+    // Step 9: Mathematical Invariants & Verification Complete
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 9 of 9')).toBeInTheDocument();
+    expect(screen.getByText('Mathematical Invariants & Systems Engineering Applications')).toBeInTheDocument();
+    expect(screen.getByText(/Global Verification: Radix Invariants Proven/)).toBeInTheDocument();
     expect(nextBtn).toBeDisabled();
   });
 });
