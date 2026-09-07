@@ -16,7 +16,38 @@ export type VisualizerAlgorithm =
   | 'AVL_TREE_ROTATIONS'
   | 'RED_BLACK_TREE'
   | 'B_TREE_SPLIT'
-  | 'B_PLUS_TREE_RANGE_SCAN';
+  | 'B_PLUS_TREE_RANGE_SCAN'
+  | 'BLOOM_FILTER_HASHING';
+
+export interface VisualizerBloomFilterState {
+  bitArraySize: number;
+  bits: number[];
+  activeBits?: number[];
+  collidedBits?: number[];
+  operation: 'INITIAL' | 'INSERT' | 'QUERY';
+  targetKey?: string;
+  hashComputations?: Array<{
+    name: string;
+    formula: string;
+    bitIndex: number;
+    bitValue: number;
+  }>;
+  insertedKeys: Array<{
+    key: string;
+    indices: number[];
+  }>;
+  queryResult?: {
+    isPositive: boolean;
+    isFalsePositive?: boolean;
+    reason: string;
+  };
+  filterMetrics: {
+    bitsSet: number;
+    saturation: number;
+    theoreticalFpr: number;
+    elementsCount: number;
+  };
+}
 
 export interface VisualizerBTreeNode {
   id: string;
@@ -129,6 +160,7 @@ interface StepFrame {
   graphState?: VisualizerGraphState;
   treeState?: VisualizerTreeState;
   bTreeState?: VisualizerBTreeState;
+  bloomFilterState?: VisualizerBloomFilterState;
   metrics?: Record<string, string | number | undefined>;
 }
 
@@ -2009,6 +2041,214 @@ const ALGORITHM_CONFIGS: AlgorithmConfig[] = [
       ];
     },
   },
+  {
+    id: 'BLOOM_FILTER_HASHING',
+    name: 'Bloom Filter Bit-Array Hashing & False Positive Invariants',
+    category: 'Probabilistic Data Structures & Distributed Caching',
+    timeComplexity: 'Insert: O(k), Lookup: O(k) CPU ops',
+    spaceComplexity: 'O(m) bits, independent of element key size',
+    description:
+      'Bloom filters are space-efficient probabilistic bit arrays used in distributed storage systems (LSM-trees, Cassandra, RocksDB, web proxies) to test set membership. They guarantee 0% false negatives (if a bit is 0, the item is definitely absent, avoiding disk seeks), while tolerating a tunable false positive rate p ≈ (1 - e^(-kn/m))^k.',
+    generateFrames: () => {
+      const emptyBits = Array(18).fill(0);
+      const afterKey1 = [...emptyBits];
+      [3, 7, 14].forEach((i) => (afterKey1[i] = 1));
+
+      const afterKey2 = [...afterKey1];
+      [7, 11, 15].forEach((i) => (afterKey2[i] = 1));
+
+      const afterKey3 = [...afterKey2];
+      [1, 14, 17].forEach((i) => (afterKey3[i] = 1));
+
+      const registeredKeys = [
+        { key: 'user:101', indices: [3, 7, 14] },
+        { key: 'user:202', indices: [7, 11, 15] },
+        { key: 'user:303', indices: [1, 14, 17] },
+      ];
+
+      return [
+        {
+          stepIndex: 0,
+          title: 'Initial State: Empty Bit Array & 3 Independent Hash Functions',
+          explanation:
+            'A Bloom filter consists of an m-bit array initialized to all zeros and k independent, uniformly distributed hash functions. Here, m = 18 bits and k = 3 (h1: MurmurHash3, h2: FNV-1a, h3: Jenkins). At saturation S = 0%, no elements have been registered.',
+          status: 'IN_PROGRESS',
+          bloomFilterState: {
+            bitArraySize: 18,
+            bits: emptyBits,
+            operation: 'INITIAL',
+            insertedKeys: [],
+            filterMetrics: { bitsSet: 0, saturation: 0, theoreticalFpr: 0, elementsCount: 0 },
+          },
+          metrics: { 'Bit Array Size (m)': 18, 'Hash Count (k)': 3, 'Inserted Items (n)': 0, 'Bits Set': 0, 'Saturation': '0.0%', 'Theoretical FPR': '0.0%' },
+        },
+        {
+          stepIndex: 1,
+          title: 'Insert Key "user:101": Compute 3 Hashes & Flip Bits',
+          explanation:
+            'Inserting key "user:101". The engine computes 3 independent hash functions modulo 18: h1("user:101") = 3, h2("user:101") = 7, h3("user:101") = 14. Bits at indices 3, 7, and 14 are flipped from 0 to 1. Total bits set = 3.',
+          status: 'SUCCESS',
+          bloomFilterState: {
+            bitArraySize: 18,
+            bits: afterKey1,
+            activeBits: [3, 7, 14],
+            operation: 'INSERT',
+            targetKey: 'user:101',
+            hashComputations: [
+              { name: 'h1 (Murmur3)', formula: 'Murmur3("user:101") % 18', bitIndex: 3, bitValue: 1 },
+              { name: 'h2 (FNV-1a)', formula: 'FNV1a("user:101") % 18', bitIndex: 7, bitValue: 1 },
+              { name: 'h3 (Jenkins)', formula: 'Jenkins("user:101") % 18', bitIndex: 14, bitValue: 1 },
+            ],
+            insertedKeys: [registeredKeys[0]],
+            filterMetrics: { bitsSet: 3, saturation: 16.7, theoreticalFpr: 0.3, elementsCount: 1 },
+          },
+          metrics: { 'Inserted Key': '"user:101"', 'Flipped Bits': '[3, 7, 14]', 'Total Bits Set': 3, 'Saturation': '16.7%', 'Theoretical FPR': '0.3%' },
+        },
+        {
+          stepIndex: 2,
+          title: 'Insert Key "user:202": Shared Bit Collision on Index 7',
+          explanation:
+            'Inserting key "user:202". Hash outputs: h1("user:202") = 7, h2("user:202") = 11, h3("user:202") = 15. Notice that bit 7 was ALREADY set to 1 by "user:101"! In Bloom filters, bit collisions are expected and idempotent—bit 7 remains 1, while bits 11 and 15 are flipped to 1.',
+          status: 'SUCCESS',
+          bloomFilterState: {
+            bitArraySize: 18,
+            bits: afterKey2,
+            activeBits: [7, 11, 15],
+            collidedBits: [7],
+            operation: 'INSERT',
+            targetKey: 'user:202',
+            hashComputations: [
+              { name: 'h1 (Murmur3)', formula: 'Murmur3("user:202") % 18', bitIndex: 7, bitValue: 1 },
+              { name: 'h2 (FNV-1a)', formula: 'FNV1a("user:202") % 18', bitIndex: 11, bitValue: 1 },
+              { name: 'h3 (Jenkins)', formula: 'Jenkins("user:202") % 18', bitIndex: 15, bitValue: 1 },
+            ],
+            insertedKeys: registeredKeys.slice(0, 2),
+            filterMetrics: { bitsSet: 5, saturation: 27.8, theoreticalFpr: 1.8, elementsCount: 2 },
+          },
+          metrics: { 'Inserted Key': '"user:202"', 'Collided Bit': '7 (Shared with user:101)', 'New Bits Flipped': '[11, 15]', 'Total Bits Set': 5, 'Saturation': '27.8%', 'Theoretical FPR': '1.8%' },
+        },
+        {
+          stepIndex: 3,
+          title: 'Insert Key "user:303": Bit Array Saturation Increases',
+          explanation:
+            'Inserting key "user:303". Hashes: h1 = 1, h2 = 14, h3 = 17. Bit 14 was already 1 (set by "user:101"). Bits 1 and 17 are flipped to 1. The filter now holds 3 distinct elements across 7 set bits (saturation: 38.9%).',
+          status: 'SUCCESS',
+          bloomFilterState: {
+            bitArraySize: 18,
+            bits: afterKey3,
+            activeBits: [1, 14, 17],
+            collidedBits: [14],
+            operation: 'INSERT',
+            targetKey: 'user:303',
+            hashComputations: [
+              { name: 'h1 (Murmur3)', formula: 'Murmur3("user:303") % 18', bitIndex: 1, bitValue: 1 },
+              { name: 'h2 (FNV-1a)', formula: 'FNV1a("user:303") % 18', bitIndex: 14, bitValue: 1 },
+              { name: 'h3 (Jenkins)', formula: 'Jenkins("user:303") % 18', bitIndex: 17, bitValue: 1 },
+            ],
+            insertedKeys: registeredKeys,
+            filterMetrics: { bitsSet: 7, saturation: 38.9, theoreticalFpr: 4.5, elementsCount: 3 },
+          },
+          metrics: { 'Inserted Key': '"user:303"', 'Collided Bit': '14 (Shared with user:101)', 'Total Keys (n)': 3, 'Total Bits Set': 7, 'Saturation': '38.9%', 'Theoretical FPR': '4.5%' },
+        },
+        {
+          stepIndex: 4,
+          title: 'Query Key "user:101": All Bits True -> Member Detected',
+          explanation:
+            'Querying membership for "user:101". Hashes evaluated: h1 = 3, h2 = 7, h3 = 14. Probing bit array: B[3] = 1, B[7] = 1, B[14] = 1. Since ALL k bits are 1, the filter returns POSITIVE ("Probably in set"). The system proceeds to retrieve the user profile from cache/memory.',
+          status: 'SUCCESS',
+          bloomFilterState: {
+            bitArraySize: 18,
+            bits: afterKey3,
+            activeBits: [3, 7, 14],
+            operation: 'QUERY',
+            targetKey: 'user:101',
+            hashComputations: [
+              { name: 'h1 (Murmur3)', formula: 'Murmur3("user:101") % 18', bitIndex: 3, bitValue: 1 },
+              { name: 'h2 (FNV-1a)', formula: 'FNV1a("user:101") % 18', bitIndex: 7, bitValue: 1 },
+              { name: 'h3 (Jenkins)', formula: 'Jenkins("user:101") % 18', bitIndex: 14, bitValue: 1 },
+            ],
+            insertedKeys: registeredKeys,
+            queryResult: {
+              isPositive: true,
+              isFalsePositive: false,
+              reason: 'All 3 probed bits (B[3], B[7], B[14]) are 1. True member match confirmed.',
+            },
+            filterMetrics: { bitsSet: 7, saturation: 38.9, theoreticalFpr: 4.5, elementsCount: 3 },
+          },
+          metrics: { 'Query Key': '"user:101"', 'Probed Bits': 'B[3]=1, B[7]=1, B[14]=1', 'Query Result': 'POSITIVE (True Member)', 'Disk I/O Needed': 'Yes (Expected)' },
+        },
+        {
+          stepIndex: 5,
+          title: 'Query Key "user:999": Bit 4 is 0 -> Definite Non-Member (Zero False Negatives!)',
+          explanation:
+            'Querying non-existent key "user:999". Hashes: h1 = 4, h2 = 7, h3 = 12. Probing bit array: B[4] = 0! Because every member inserted MUST have its bits set to 1, finding even a SINGLE 0 bit mathematically GUARANTEES that "user:999" has NEVER been inserted! Result: NEGATIVE (100% confidence). The system short-circuits immediately, completely avoiding an expensive disk seek or database read!',
+          status: 'MISMATCH',
+          bloomFilterState: {
+            bitArraySize: 18,
+            bits: afterKey3,
+            activeBits: [4, 7, 12],
+            operation: 'QUERY',
+            targetKey: 'user:999',
+            hashComputations: [
+              { name: 'h1 (Murmur3)', formula: 'Murmur3("user:999") % 18', bitIndex: 4, bitValue: 0 },
+              { name: 'h2 (FNV-1a)', formula: 'FNV1a("user:999") % 18', bitIndex: 7, bitValue: 1 },
+              { name: 'h3 (Jenkins)', formula: 'Jenkins("user:999") % 18', bitIndex: 12, bitValue: 0 },
+            ],
+            insertedKeys: registeredKeys,
+            queryResult: {
+              isPositive: false,
+              isFalsePositive: false,
+              reason: 'Bit B[4] = 0 and B[12] = 0. Definite non-member: 0% false negative guarantee. Disk seek avoided!',
+            },
+            filterMetrics: { bitsSet: 7, saturation: 38.9, theoreticalFpr: 4.5, elementsCount: 3 },
+          },
+          metrics: { 'Query Key': '"user:999"', 'Probed Bits': 'B[4]=0, B[7]=1, B[12]=0', 'Zero Bit Found': 'Index 4 & 12', 'Query Result': 'DEFINITE NEGATIVE', 'Disk I/O Saved': '100% (Avoided)' },
+        },
+        {
+          stepIndex: 6,
+          title: 'Query Key "user:404": False Positive! Bits Overlap Across Distinct Keys',
+          explanation:
+            'Demonstrating the fundamental trade-off: Querying key "user:404" (which was NEVER inserted). Hashes: h1 = 3, h2 = 11, h3 = 17. Probing bit array: B[3] = 1 (set by user:101), B[11] = 1 (set by user:202), B[17] = 1 (set by user:303). Because all 3 bits happen to be 1 from OTHER keys, the filter falsely reports POSITIVE! The database performs an unnecessary disk seek only to discover "user:404" is missing. This is a False Positive with theoretical probability p ≈ 4.5%.',
+          status: 'MISMATCH',
+          bloomFilterState: {
+            bitArraySize: 18,
+            bits: afterKey3,
+            activeBits: [3, 11, 17],
+            operation: 'QUERY',
+            targetKey: 'user:404',
+            hashComputations: [
+              { name: 'h1 (Murmur3)', formula: 'Murmur3("user:404") % 18', bitIndex: 3, bitValue: 1 },
+              { name: 'h2 (FNV-1a)', formula: 'FNV1a("user:404") % 18', bitIndex: 11, bitValue: 1 },
+              { name: 'h3 (Jenkins)', formula: 'Jenkins("user:404") % 18', bitIndex: 17, bitValue: 1 },
+            ],
+            insertedKeys: registeredKeys,
+            queryResult: {
+              isPositive: true,
+              isFalsePositive: true,
+              reason: 'B[3], B[11], B[17] are all 1, but set by different keys! False positive collision triggered.',
+            },
+            filterMetrics: { bitsSet: 7, saturation: 38.9, theoreticalFpr: 4.5, elementsCount: 3 },
+          },
+          metrics: { 'Query Key': '"user:404"', 'Probed Bits': 'B[3]=1, B[11]=1, B[17]=1', 'All Bits 1?': 'Yes (Collision)', 'Query Result': 'FALSE POSITIVE', 'Root Cause': 'Inter-key overlap' },
+        },
+        {
+          stepIndex: 7,
+          title: 'Mathematical Invariants & Optimal Sizing Formula: k = (m/n) * ln(2)',
+          explanation:
+            'Bloom filter invariants summary: 1) False Negative Rate = 0.00% (Guaranteed). 2) False Positive Rate p ≈ (1 - e^(-kn/m))^k. 3) To achieve a 1% false positive rate (p = 0.01), approximately 9.6 bits per element (m/n ≈ 10) and k = 7 hash functions are required. In Cassandra, RocksDB, and Bigtable, Bloom filters reside in RAM (typically 10 bits/key = ~1.2 bytes/key) to eliminate >99% of pointless disk seeks for non-existent row keys.',
+          status: 'COMPLETE',
+          bloomFilterState: {
+            bitArraySize: 18,
+            bits: afterKey3,
+            operation: 'INITIAL',
+            insertedKeys: registeredKeys,
+            filterMetrics: { bitsSet: 7, saturation: 38.9, theoreticalFpr: 4.5, elementsCount: 3 },
+          },
+          metrics: { 'False Negative Rate': '0.0% (Zero)', 'Optimal k Formula': '(m/n) * ln(2)', 'Rule of Thumb': '10 bits/key for 1% FPR', 'Primary Use Case': 'LSM SSTable & Cache Filtering', 'Status': 'COMPLETE' },
+        },
+      ];
+    },
+  },
 ];
 
 export function AlgorithmVisualizerSandbox() {
@@ -3027,6 +3267,191 @@ export function AlgorithmVisualizerSandbox() {
                   ? 'All actual record keys reside strictly in leaf pages linked by horizontal sibling pointers. Internal index pages store only separator keys to guide point search down to the initial leaf. Once reached, sequential scans traverse sibling pointers directly with zero root re-traversals.'
                   : `Internal nodes with k keys have exactly k + 1 children. All leaf nodes reside at uniform tree height h=${currentFrame.bTreeState.treeHeight}. Overflow triggers preemptive median promotion, growing tree height from root down.`}
               </p>
+            </div>
+          </div>
+        )}
+
+        {/* Dynamic Bloom Filter Bit-Array Hashing Display */}
+        {currentFrame.bloomFilterState && (
+          <div className="space-y-4">
+            {/* Top Status & Probabilistic HUD */}
+            <div className="bg-surface border border-border rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span
+                  className={`font-mono font-bold px-2 py-0.5 rounded text-[11px] ${
+                    currentFrame.bloomFilterState.operation === 'INSERT'
+                      ? 'bg-primary-100 text-primary-900 border border-primary-300'
+                      : currentFrame.bloomFilterState.operation === 'QUERY'
+                      ? 'bg-indigo-100 text-indigo-900 border border-indigo-300'
+                      : 'bg-canvas text-text-muted border border-border'
+                  }`}
+                >
+                  OP: {currentFrame.bloomFilterState.operation}
+                </span>
+
+                {currentFrame.bloomFilterState.targetKey && (
+                  <span className="font-semibold text-text">
+                    Target: <code className="bg-canvas px-1.5 py-0.5 rounded border border-border text-primary-700 font-mono">{currentFrame.bloomFilterState.targetKey}</code>
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-3 flex-wrap text-[11px]">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-text-muted">Saturation:</span>
+                  <span className="font-mono font-bold text-text">
+                    {currentFrame.bloomFilterState.filterMetrics.bitsSet} / {currentFrame.bloomFilterState.bitArraySize} ({currentFrame.bloomFilterState.filterMetrics.saturation}%)
+                  </span>
+                </div>
+                <span className="text-border">|</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-text-muted">Theoretical FPR:</span>
+                  <span className="font-mono font-bold text-amber-700 dark:text-amber-400">
+                    p ≈ {currentFrame.bloomFilterState.filterMetrics.theoreticalFpr}%
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Query Result / False Positive Alert Banner */}
+            {currentFrame.bloomFilterState.queryResult && (
+              <div
+                className={`border rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs ${
+                  currentFrame.bloomFilterState.queryResult.isFalsePositive
+                    ? 'bg-amber-500/10 border-amber-500/30'
+                    : currentFrame.bloomFilterState.queryResult.isPositive
+                    ? 'bg-emerald-500/10 border-emerald-500/30'
+                    : 'bg-indigo-500/10 border-indigo-500/30'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`font-bold ${
+                      currentFrame.bloomFilterState.queryResult.isFalsePositive
+                        ? 'text-amber-900 dark:text-amber-300'
+                        : currentFrame.bloomFilterState.queryResult.isPositive
+                        ? 'text-emerald-900 dark:text-emerald-300'
+                        : 'text-indigo-900 dark:text-indigo-300'
+                    }`}
+                  >
+                    {currentFrame.bloomFilterState.queryResult.isFalsePositive
+                      ? '⚠️ False Positive Detected'
+                      : currentFrame.bloomFilterState.queryResult.isPositive
+                      ? '✓ Probable Member Match'
+                      : '🛡️ Definite Negative (Zero False Negatives!)'}:
+                  </span>
+                  <span className="text-text font-medium">
+                    {currentFrame.bloomFilterState.queryResult.reason}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Bloom Filter Bit Array Grid */}
+            <div className="bg-surface/50 border border-border rounded-xl p-4 space-y-2">
+              <div className="flex items-center justify-between text-[11px] font-semibold text-text-muted">
+                <span>Bit Array ($m = {currentFrame.bloomFilterState.bitArraySize}$ bits in RAM):</span>
+                <span>Active Probes Highlighted</span>
+              </div>
+
+              <div className="grid grid-cols-6 sm:grid-cols-9 md:grid-cols-18 gap-1.5 pt-1">
+                {currentFrame.bloomFilterState.bits.map((bitVal, bitIdx) => {
+                  const isActive = currentFrame.bloomFilterState!.activeBits?.includes(bitIdx);
+                  const isCollided = currentFrame.bloomFilterState!.collidedBits?.includes(bitIdx);
+
+                  let cellBg = 'bg-surface border-border text-slate-400';
+                  if (bitVal === 1) {
+                    cellBg = 'bg-emerald-50 border-emerald-400 text-emerald-900 font-bold';
+                  }
+
+                  return (
+                    <div
+                      key={bitIdx}
+                      className={`flex flex-col items-center justify-center p-1.5 rounded-lg border transition-all duration-200 ${cellBg} ${
+                        isActive
+                          ? isCollided
+                            ? 'ring-2 ring-purple-500 scale-105 shadow-xs'
+                            : 'ring-2 ring-cyan-500 scale-105 shadow-xs'
+                          : ''
+                      }`}
+                    >
+                      <span className="text-[9px] font-mono text-text-muted select-none">
+                        [{bitIdx}]
+                      </span>
+                      <span className="text-base font-mono font-extrabold select-none">
+                        {bitVal}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 3 Hash Function Pipelines */}
+            {currentFrame.bloomFilterState.hashComputations &&
+              currentFrame.bloomFilterState.hashComputations.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  {currentFrame.bloomFilterState.hashComputations.map((h, hIdx) => (
+                    <div
+                      key={hIdx}
+                      className="p-3 rounded-lg bg-surface border border-border space-y-1.5 text-xs shadow-2xs"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-text font-mono text-[11px]">
+                          {h.name}
+                        </span>
+                        <span
+                          className={`px-1.5 py-0.5 rounded font-mono font-bold text-[10px] ${
+                            h.bitValue === 1
+                              ? 'bg-emerald-100 text-emerald-900'
+                              : 'bg-slate-100 text-slate-700'
+                          }`}
+                        >
+                          B[{h.bitIndex}] = {h.bitValue}
+                        </span>
+                      </div>
+                      <p className="font-mono text-[10px] text-text-muted truncate">
+                        {h.formula}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+            {/* Registered Elements Registry & Math Invariants */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <div className="bg-surface border border-border rounded-lg p-3 space-y-1.5 text-xs">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
+                  Registered Keys in Filter ({currentFrame.bloomFilterState.insertedKeys.length}):
+                </span>
+                <div className="space-y-1 min-h-[40px]">
+                  {currentFrame.bloomFilterState.insertedKeys.length > 0 ? (
+                    currentFrame.bloomFilterState.insertedKeys.map((item, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between font-mono text-[11px] bg-canvas px-2 py-1 rounded border border-border"
+                      >
+                        <span className="font-semibold text-primary-700">{item.key}</span>
+                        <span className="text-text-muted text-[10px]">
+                          bits: [{item.indices.join(', ')}]
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <span className="text-xs text-text-muted italic">No keys inserted yet</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-surface border border-border rounded-lg p-3 space-y-1 text-xs">
+                <div className="flex items-center justify-between text-[11px] font-bold text-text-muted">
+                  <span className="uppercase tracking-wider">Bloom Filter Mathematical Invariants:</span>
+                  <span>k = (m/n) · ln(2)</span>
+                </div>
+                <p className="text-text-muted text-[11px] leading-relaxed">
+                  False Negative Rate is strictly <strong className="text-emerald-600">0.00%</strong>. If any hash bit is 0, the key was never inserted. False positive probability follows <code className="text-primary-600 font-mono">p ≈ (1 - e^(-kn/m))^k</code>. 10 bits/key achieves &lt;1% FPR in LSM storage engines (Cassandra, RocksDB).
+                </p>
+              </div>
             </div>
           </div>
         )}

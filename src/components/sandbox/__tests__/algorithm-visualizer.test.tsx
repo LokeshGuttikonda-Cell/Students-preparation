@@ -26,6 +26,7 @@ describe('AlgorithmVisualizerSandbox', () => {
     expect(screen.getByRole('button', { name: 'Red-Black Tree Invariants' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'B-Tree / 2-3-4 Multi-Way Node Splitting & Elevation' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'B+ Tree Range Scan & Leaf Sibling Pointers' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Bloom Filter Bit-Array Hashing & False Positive Invariants' })).toBeInTheDocument();
   });
 
   it('renders AVL Tree Rotations with complete Socratic step-by-step frames', () => {
@@ -346,6 +347,78 @@ describe('AlgorithmVisualizerSandbox', () => {
     expect(screen.getByText('Step 12 of 12')).toBeInTheDocument();
     expect(screen.getByText('Range Scan Complete: O(log_B N + K/B) I/O Invariant Proven')).toBeInTheDocument();
     expect(screen.getByText('50% Disk Reduction')).toBeInTheDocument();
+    expect(nextBtn).toBeDisabled();
+  });
+
+  it('renders Bloom Filter Bit-Array Hashing stepping through insertions, collisions, definite negative short-circuit, and false positive', () => {
+    render(<AlgorithmVisualizerSandbox />);
+
+    // Select Bloom Filter
+    const bloomBtn = screen.getByRole('button', { name: 'Bloom Filter Bit-Array Hashing & False Positive Invariants' });
+    fireEvent.click(bloomBtn);
+
+    // Verify Title & Complexity Badges
+    expect(
+      screen.getByRole('heading', {
+        name: 'Bloom Filter Bit-Array Hashing & False Positive Invariants',
+        level: 3,
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Time: Insert: O(k), Lookup: O(k) CPU ops')).toBeInTheDocument();
+
+    // Verify Step 1 of 8 (Initial Empty State)
+    expect(screen.getByText('Step 1 of 8')).toBeInTheDocument();
+    expect(screen.getByText('Initial State: Empty Bit Array & 3 Independent Hash Functions')).toBeInTheDocument();
+    expect(screen.getByText('OP: INITIAL')).toBeInTheDocument();
+    expect(screen.getAllByText('Saturation:').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/0 \/ 18/)).toBeInTheDocument();
+
+    const nextBtn = screen.getByRole('button', { name: /Next Step/i });
+
+    // Step 2: Insert "user:101"
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 2 of 8')).toBeInTheDocument();
+    expect(screen.getByText('Insert Key "user:101": Compute 3 Hashes & Flip Bits')).toBeInTheDocument();
+    expect(screen.getByText('OP: INSERT')).toBeInTheDocument();
+    expect(screen.getByText('h1 (Murmur3)')).toBeInTheDocument();
+    expect(screen.getByText(/3 \/ 18/)).toBeInTheDocument();
+
+    // Step 3: Insert "user:202" (Shared bit collision on 7)
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 3 of 8')).toBeInTheDocument();
+    expect(screen.getByText('Insert Key "user:202": Shared Bit Collision on Index 7')).toBeInTheDocument();
+    expect(screen.getByText(/5 \/ 18/)).toBeInTheDocument();
+
+    // Step 4: Insert "user:303"
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 4 of 8')).toBeInTheDocument();
+    expect(screen.getByText('Insert Key "user:303": Bit Array Saturation Increases')).toBeInTheDocument();
+    expect(screen.getByText(/7 \/ 18/)).toBeInTheDocument();
+
+    // Step 5: Query "user:101" (Member Match)
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 5 of 8')).toBeInTheDocument();
+    expect(screen.getByText('Query Key "user:101": All Bits True -> Member Detected')).toBeInTheDocument();
+    expect(screen.getByText('OP: QUERY')).toBeInTheDocument();
+    expect(screen.getByText(/Probable Member Match/)).toBeInTheDocument();
+
+    // Step 6: Query "user:999" (Definite Non-Member)
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 6 of 8')).toBeInTheDocument();
+    expect(screen.getByText('Query Key "user:999": Bit 4 is 0 -> Definite Non-Member (Zero False Negatives!)')).toBeInTheDocument();
+    expect(screen.getByText(/Definite Negative \(Zero False Negatives!\)/)).toBeInTheDocument();
+
+    // Step 7: Query "user:404" (False Positive Collision)
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 7 of 8')).toBeInTheDocument();
+    expect(screen.getByText('Query Key "user:404": False Positive! Bits Overlap Across Distinct Keys')).toBeInTheDocument();
+    expect(screen.getByText(/False Positive Detected/)).toBeInTheDocument();
+
+    // Step 8: Mathematical Invariants & Sizing Formula
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 8 of 8')).toBeInTheDocument();
+    expect(screen.getByText('Mathematical Invariants & Optimal Sizing Formula: k = (m/n) * ln(2)')).toBeInTheDocument();
+    expect(screen.getByText('0.0% (Zero)')).toBeInTheDocument();
     expect(nextBtn).toBeDisabled();
   });
 });
