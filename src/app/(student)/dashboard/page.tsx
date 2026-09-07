@@ -16,6 +16,7 @@ import {
 import { getRoles, type RoleTrackItem } from '../../../lib/roles-client';
 import { RoleReadinessWidget } from '../../../components/analytics/RoleReadinessWidget';
 import { CompetencyGapAnalyzer } from '../../../components/analytics/CompetencyGapAnalyzer';
+import { MultiRoleArchitecturalRadar } from '../../../components/analytics/MultiRoleArchitecturalRadar';
 import { WeakAreaCard } from '../../../components/analytics/WeakAreaCard';
 import { AttemptHistoryTable } from '../../../components/analytics/AttemptHistoryTable';
 import { StreakWidget } from '../../../components/dashboard/StreakWidget';
@@ -192,6 +193,11 @@ export default function StudentDashboardPage() {
             />
           </section>
         )}
+
+        {/* Multi-Role Architectural Competency Matrix (Session 42) */}
+        <section className="space-y-4">
+          <MultiRoleArchitecturalRadar />
+        </section>
 
         {/* Top KPI Cards */}
         {analytics && (
