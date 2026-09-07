@@ -25,6 +25,7 @@ describe('AlgorithmVisualizerSandbox', () => {
     expect(screen.getByRole('button', { name: 'Self-Balancing AVL Tree Rotations' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Red-Black Tree Invariants' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'B-Tree / 2-3-4 Multi-Way Node Splitting & Elevation' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'B+ Tree Range Scan & Leaf Sibling Pointers' })).toBeInTheDocument();
   });
 
   it('renders AVL Tree Rotations with complete Socratic step-by-step frames', () => {
@@ -252,6 +253,99 @@ describe('AlgorithmVisualizerSandbox', () => {
     expect(screen.getByText('Step 10 of 10')).toBeInTheDocument();
     expect(screen.getByText(/Root Split Complete: Tree Height Grows by \+1/)).toBeInTheDocument();
     expect(screen.getByText('Global Balance Achieved: Height 2')).toBeInTheDocument();
+    expect(nextBtn).toBeDisabled();
+  });
+
+  it('renders B+ Tree Range Scan stepping through root routing, leaf sibling hops, buffer emissions, and early termination guard', () => {
+    render(<AlgorithmVisualizerSandbox />);
+
+    // Select B+ Tree Range Scan
+    const bplusBtn = screen.getByRole('button', { name: 'B+ Tree Range Scan & Leaf Sibling Pointers' });
+    fireEvent.click(bplusBtn);
+
+    // Verify Heading and Complexity Badges
+    expect(
+      screen.getByRole('heading', {
+        name: 'B+ Tree Range Scan & Leaf Sibling Pointers',
+        level: 3,
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Time: Point: O(log_B N), Range: O(log_B N + K/B) I/Os')).toBeInTheDocument();
+
+    // Verify Step 1 of 12 (Initial B+ Tree Topology)
+    expect(screen.getByText('Step 1 of 12')).toBeInTheDocument();
+    expect(screen.getByText('Initial B+ Tree Topology: Internal Routers & Sibling Chains')).toBeInTheDocument();
+    expect(screen.getByText('SELECT records WHERE key >= 25 AND key <= 80')).toBeInTheDocument();
+    expect(screen.getByText('0 Disk Fetches')).toBeInTheDocument();
+
+    const nextBtn = screen.getByRole('button', { name: /Next Step/i });
+
+    // Step 2: Initiate Range Query
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 2 of 12')).toBeInTheDocument();
+    expect(screen.getByText('Initiate Range Query: Target Lower Bound 25')).toBeInTheDocument();
+    expect(screen.getByText('1 Disk Fetches')).toBeInTheDocument();
+
+    // Step 3: Root Routing Comparison
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 3 of 12')).toBeInTheDocument();
+    expect(screen.getByText('Root Routing Comparison: 25 < 35 Routes to Child 0')).toBeInTheDocument();
+
+    // Step 4: Fetch First Leaf Page L1 [10, 20]
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 4 of 12')).toBeInTheDocument();
+    expect(screen.getByText('Fetch First Leaf Page L1 [10, 20]: Search Lower Bound')).toBeInTheDocument();
+    expect(screen.getByText('2 Disk Fetches')).toBeInTheDocument();
+
+    // Step 5: Horizontal Leaf Sibling Hop: L1 -> L2
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 5 of 12')).toBeInTheDocument();
+    expect(screen.getByText('Horizontal Leaf Sibling Hop: L1 -> L2 (Zero Root Traversal!)')).toBeInTheDocument();
+    expect(screen.getByText('Horizontal Sibling Hop: L1 → L2')).toBeInTheDocument();
+    expect(screen.getByText('SIBLING HOP')).toBeInTheDocument();
+
+    // Step 6: Leaf L2 Match: Key 35
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 6 of 12')).toBeInTheDocument();
+    expect(screen.getByText('Leaf L2 Match: Key 35 Satisfies Predicate')).toBeInTheDocument();
+    expect(screen.getByText('key: 35')).toBeInTheDocument();
+
+    // Step 7: Leaf L2 Sequential Scan: Key 50
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 7 of 12')).toBeInTheDocument();
+    expect(screen.getByText('Leaf L2 Sequential Scan: Key 50 Satisfies Predicate')).toBeInTheDocument();
+    expect(screen.getByText('key: 50')).toBeInTheDocument();
+
+    // Step 8: Leaf L2 Sequential Scan: Key 60
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 8 of 12')).toBeInTheDocument();
+    expect(screen.getByText('Leaf L2 Sequential Scan: Key 60 Satisfies Predicate')).toBeInTheDocument();
+    expect(screen.getByText('key: 60')).toBeInTheDocument();
+
+    // Step 9: Horizontal Leaf Sibling Hop: L2 -> L3
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 9 of 12')).toBeInTheDocument();
+    expect(screen.getByText('Horizontal Leaf Sibling Hop: L2 -> L3')).toBeInTheDocument();
+    expect(screen.getByText('Horizontal Sibling Hop: L2 → L3')).toBeInTheDocument();
+
+    // Step 10: Leaf L3 Match: Key 70
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 10 of 12')).toBeInTheDocument();
+    expect(screen.getByText('Leaf L3 Match: Key 70 Satisfies Predicate')).toBeInTheDocument();
+    expect(screen.getByText('key: 70')).toBeInTheDocument();
+
+    // Step 11: Boundary Guard Exceeded (85 > 80)
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 11 of 12')).toBeInTheDocument();
+    expect(screen.getByText('Boundary Guard Exceeded: 85 > 80 Terminates Scan!')).toBeInTheDocument();
+    expect(screen.getByText('Boundary Guard Exceeded (85 > 80)')).toBeInTheDocument();
+    expect(screen.getByText('✓ Range Scan Halted')).toBeInTheDocument();
+
+    // Step 12: Range Scan Complete
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 12 of 12')).toBeInTheDocument();
+    expect(screen.getByText('Range Scan Complete: O(log_B N + K/B) I/O Invariant Proven')).toBeInTheDocument();
+    expect(screen.getByText('50% Disk Reduction')).toBeInTheDocument();
     expect(nextBtn).toBeDisabled();
   });
 });

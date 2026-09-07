@@ -15,7 +15,8 @@ export type VisualizerAlgorithm =
   | 'BST_INSERTION_INORDER'
   | 'AVL_TREE_ROTATIONS'
   | 'RED_BLACK_TREE'
-  | 'B_TREE_SPLIT';
+  | 'B_TREE_SPLIT'
+  | 'B_PLUS_TREE_RANGE_SCAN';
 
 export interface VisualizerBTreeNode {
   id: string;
@@ -23,6 +24,7 @@ export interface VisualizerBTreeNode {
   x: number;
   y: number;
   children?: string[]; // IDs of child nodes
+  nodeType?: 'ROUTER' | 'LEAF';
   isFull?: boolean;
   isOverflow?: boolean;
   isElevating?: boolean;
@@ -31,14 +33,24 @@ export interface VisualizerBTreeNode {
 }
 
 export interface VisualizerBTreeState {
-  order: number; // e.g. 4 (2-3-4 tree)
+  order: number; // e.g. 4 (2-3-4 tree or order-4 B+ tree)
+  isBPlusTree?: boolean;
   nodes: VisualizerBTreeNode[];
   activeNodeId?: string;
   targetKey?: number;
   promotedKey?: number;
   treeHeight: number;
+  siblingLinks?: Array<{ from: string; to: string; active?: boolean }>;
+  rangeQuery?: {
+    min: number;
+    max: number;
+    currentKey?: number;
+    results: number[];
+    isTerminated?: boolean;
+  };
+  pageReads?: number;
   splitBanner?: {
-    type: 'LEAF_SPLIT' | 'ROOT_SPLIT' | 'MEDIAN_ELEVATION';
+    type: 'LEAF_SPLIT' | 'ROOT_SPLIT' | 'MEDIAN_ELEVATION' | 'RANGE_HOP' | 'RANGE_MATCH';
     title: string;
     description: string;
   };
@@ -1639,6 +1651,364 @@ const ALGORITHM_CONFIGS: AlgorithmConfig[] = [
       ];
     },
   },
+  {
+    id: 'B_PLUS_TREE_RANGE_SCAN',
+    name: 'B+ Tree Range Scan & Leaf Sibling Pointers',
+    category: 'Database Indexing & External Memory',
+    timeComplexity: 'Point: O(log_B N), Range: O(log_B N + K/B) I/Os',
+    spaceComplexity: 'O(N) data in leaves, O(N/B) internal router keys',
+    description:
+      'In database storage engines, internal nodes store guidepost keys to route point lookups, while all records reside in leaves linked by horizontal sibling pointers. Range scans locate the starting leaf once via root traversal, then seamlessly hop along sibling pointers without repeatedly querying parent levels.',
+    generateFrames: () => {
+      const baseNodes: VisualizerBTreeNode[] = [
+        {
+          id: 'n_root',
+          keys: [35, 70],
+          x: 230,
+          y: 60,
+          nodeType: 'ROUTER',
+          children: ['leaf_1', 'leaf_2', 'leaf_3'],
+        },
+        {
+          id: 'leaf_1',
+          keys: [10, 20],
+          x: 75,
+          y: 175,
+          nodeType: 'LEAF',
+        },
+        {
+          id: 'leaf_2',
+          keys: [35, 50, 60],
+          x: 230,
+          y: 175,
+          nodeType: 'LEAF',
+        },
+        {
+          id: 'leaf_3',
+          keys: [70, 85, 95],
+          x: 385,
+          y: 175,
+          nodeType: 'LEAF',
+        },
+      ];
+
+      return [
+        {
+          stepIndex: 0,
+          title: 'Initial B+ Tree Topology: Internal Routers & Sibling Chains',
+          explanation:
+            'In a B+ Tree, internal nodes act purely as router keys (guideposts), while 100% of actual data records reside in the leaf level. Furthermore, leaf pages are chained together via bidirectional sibling pointers. This enables point lookups in O(log_B N) and sequential range queries in O(log_B N + K/B) disk I/Os without re-querying the tree root.',
+          status: 'IN_PROGRESS',
+          bTreeState: {
+            order: 4,
+            isBPlusTree: true,
+            treeHeight: 1,
+            nodes: baseNodes,
+            siblingLinks: [
+              { from: 'leaf_1', to: 'leaf_2', active: false },
+              { from: 'leaf_2', to: 'leaf_3', active: false },
+            ],
+            rangeQuery: { min: 25, max: 80, results: [] },
+            pageReads: 0,
+          },
+          metrics: { 'Query Range': '[25 .. 80]', 'Internal Index': '[35, 70]', 'Leaf Pages': 3, 'Page I/Os': 0 },
+        },
+        {
+          stepIndex: 1,
+          title: 'Initiate Range Query: Target Lower Bound 25',
+          explanation:
+            'Query requested: SELECT * WHERE key >= 25 AND key <= 80. To begin the range scan, the engine must perform ONE point lookup from the root to locate the starting leaf page containing keys >= 25.',
+          status: 'IN_PROGRESS',
+          bTreeState: {
+            order: 4,
+            isBPlusTree: true,
+            treeHeight: 1,
+            activeNodeId: 'n_root',
+            targetKey: 25,
+            nodes: baseNodes,
+            siblingLinks: [
+              { from: 'leaf_1', to: 'leaf_2', active: false },
+              { from: 'leaf_2', to: 'leaf_3', active: false },
+            ],
+            rangeQuery: { min: 25, max: 80, results: [] },
+            pageReads: 1,
+          },
+          metrics: { 'Query Range': '[25 .. 80]', 'Starting Key': 25, 'Active Node': 'Root [35, 70]', 'Page I/Os': 1 },
+        },
+        {
+          stepIndex: 2,
+          title: 'Root Routing Comparison: 25 < 35 Routes to Child 0',
+          explanation:
+            'Comparing target lower bound 25 with root separator keys [35, 70]. Since 25 < 35, the search engine follows left child pointer C0 down to leaf page L1. Only 1 disk I/O was consumed to route through the internal level.',
+          status: 'IN_PROGRESS',
+          bTreeState: {
+            order: 4,
+            isBPlusTree: true,
+            treeHeight: 1,
+            activeNodeId: 'n_root',
+            targetKey: 25,
+            nodes: baseNodes,
+            siblingLinks: [
+              { from: 'leaf_1', to: 'leaf_2', active: false },
+              { from: 'leaf_2', to: 'leaf_3', active: false },
+            ],
+            rangeQuery: { min: 25, max: 80, results: [] },
+            pageReads: 1,
+          },
+          metrics: { 'Separator Key': 35, Decision: '25 < 35 (Branch C0)', 'Next Hop': 'Leaf L1', 'Page I/Os': 1 },
+        },
+        {
+          stepIndex: 3,
+          title: 'Fetch First Leaf Page L1 [10, 20]: Search Lower Bound',
+          explanation:
+            'Leaf page L1 is fetched into the buffer pool (Page I/O: 2). Examining keys: 10 < 25 and 20 < 25. Neither key satisfies the range condition. The end of page L1 is reached without any matching keys.',
+          status: 'IN_PROGRESS',
+          bTreeState: {
+            order: 4,
+            isBPlusTree: true,
+            treeHeight: 1,
+            activeNodeId: 'leaf_1',
+            nodes: baseNodes,
+            siblingLinks: [
+              { from: 'leaf_1', to: 'leaf_2', active: false },
+              { from: 'leaf_2', to: 'leaf_3', active: false },
+            ],
+            rangeQuery: { min: 25, max: 80, currentKey: 20, results: [] },
+            pageReads: 2,
+          },
+          metrics: { 'Current Page': 'L1 [10, 20]', 'Keys Checked': '10, 20 (Both < 25)', 'Buffer Result': 'Empty', 'Page I/Os': 2 },
+        },
+        {
+          stepIndex: 4,
+          title: 'Horizontal Leaf Sibling Hop: L1 -> L2 (Zero Root Traversal!)',
+          explanation:
+            'Crucial B+ Tree Optimization: Instead of performing a costly new point search through the root for the next key, the iterator follows the horizontal sibling pointer directly from L1 to L2! This circumvents internal index navigation entirely.',
+          status: 'IN_PROGRESS',
+          bTreeState: {
+            order: 4,
+            isBPlusTree: true,
+            treeHeight: 1,
+            activeNodeId: 'leaf_2',
+            nodes: baseNodes,
+            siblingLinks: [
+              { from: 'leaf_1', to: 'leaf_2', active: true },
+              { from: 'leaf_2', to: 'leaf_3', active: false },
+            ],
+            splitBanner: {
+              type: 'RANGE_HOP',
+              title: 'Horizontal Sibling Hop: L1 → L2',
+              description: 'Followed leaf-level next pointer directly. Root index bypassed.',
+            },
+            rangeQuery: { min: 25, max: 80, results: [] },
+            pageReads: 3,
+          },
+          metrics: { Navigation: 'Leaf Sibling Link (L1 -> L2)', 'Traversed Root?': 'No (Bypassed)', 'Page I/Os': 3 },
+        },
+        {
+          stepIndex: 5,
+          title: 'Leaf L2 Match: Key 35 Satisfies Predicate',
+          explanation:
+            'Page L2 is loaded into cache (Page I/O: 3). First key 35 is evaluated: 25 <= 35 <= 80 is TRUE! Key 35 is emitted into the Range Query Result Buffer.',
+          status: 'SUCCESS',
+          bTreeState: {
+            order: 4,
+            isBPlusTree: true,
+            treeHeight: 1,
+            activeNodeId: 'leaf_2',
+            targetKey: 35,
+            nodes: baseNodes.map((n) =>
+              n.id === 'leaf_2' ? { ...n, highlightedKeys: [35] } : n
+            ),
+            siblingLinks: [
+              { from: 'leaf_1', to: 'leaf_2', active: false },
+              { from: 'leaf_2', to: 'leaf_3', active: false },
+            ],
+            splitBanner: {
+              type: 'RANGE_MATCH',
+              title: 'Record Match: Key 35',
+              description: '25 <= 35 <= 80: Emitted record 35 into Result Buffer.',
+            },
+            rangeQuery: { min: 25, max: 80, currentKey: 35, results: [35] },
+            pageReads: 3,
+          },
+          metrics: { 'Active Key': 35, Condition: '25 <= 35 <= 80 (MATCH)', 'Result Count': 1, 'Page I/Os': 3 },
+        },
+        {
+          stepIndex: 6,
+          title: 'Leaf L2 Sequential Scan: Key 50 Satisfies Predicate',
+          explanation:
+            'The iterator advances sequentially to the next slot inside page L2: key 50. Condition 25 <= 50 <= 80 is TRUE! Key 50 is appended to the Result Buffer without any additional disk I/O (already in CPU buffer).',
+          status: 'SUCCESS',
+          bTreeState: {
+            order: 4,
+            isBPlusTree: true,
+            treeHeight: 1,
+            activeNodeId: 'leaf_2',
+            targetKey: 50,
+            nodes: baseNodes.map((n) =>
+              n.id === 'leaf_2' ? { ...n, highlightedKeys: [35, 50] } : n
+            ),
+            siblingLinks: [
+              { from: 'leaf_1', to: 'leaf_2', active: false },
+              { from: 'leaf_2', to: 'leaf_3', active: false },
+            ],
+            splitBanner: {
+              type: 'RANGE_MATCH',
+              title: 'Record Match: Key 50',
+              description: 'Sequential intra-page read: Emitted record 50 into Result Buffer.',
+            },
+            rangeQuery: { min: 25, max: 80, currentKey: 50, results: [35, 50] },
+            pageReads: 3,
+          },
+          metrics: { 'Active Key': 50, Condition: '25 <= 50 <= 80 (MATCH)', 'Result Count': 2, 'Page I/Os': 3 },
+        },
+        {
+          stepIndex: 7,
+          title: 'Leaf L2 Sequential Scan: Key 60 Satisfies Predicate',
+          explanation:
+            'Iterator advances to the final slot of page L2: key 60. Condition 25 <= 60 <= 80 is TRUE! Key 60 is emitted. Leaf page L2 is now exhausted.',
+          status: 'SUCCESS',
+          bTreeState: {
+            order: 4,
+            isBPlusTree: true,
+            treeHeight: 1,
+            activeNodeId: 'leaf_2',
+            targetKey: 60,
+            nodes: baseNodes.map((n) =>
+              n.id === 'leaf_2' ? { ...n, highlightedKeys: [35, 50, 60] } : n
+            ),
+            siblingLinks: [
+              { from: 'leaf_1', to: 'leaf_2', active: false },
+              { from: 'leaf_2', to: 'leaf_3', active: false },
+            ],
+            splitBanner: {
+              type: 'RANGE_MATCH',
+              title: 'Record Match: Key 60',
+              description: 'End of page L2 reached: Emitted record 60 into Result Buffer.',
+            },
+            rangeQuery: { min: 25, max: 80, currentKey: 60, results: [35, 50, 60] },
+            pageReads: 3,
+          },
+          metrics: { 'Active Key': 60, Condition: '25 <= 60 <= 80 (MATCH)', 'Result Count': 3, 'Page L2 Status': 'Exhausted' },
+        },
+        {
+          stepIndex: 8,
+          title: 'Horizontal Leaf Sibling Hop: L2 -> L3',
+          explanation:
+            'To continue the scan, the iterator traverses the next sibling link L2 -> L3. Page L3 is fetched into the buffer pool (Page I/O: 4). Again, no root or parent node lookups are required!',
+          status: 'IN_PROGRESS',
+          bTreeState: {
+            order: 4,
+            isBPlusTree: true,
+            treeHeight: 1,
+            activeNodeId: 'leaf_3',
+            nodes: baseNodes,
+            siblingLinks: [
+              { from: 'leaf_1', to: 'leaf_2', active: false },
+              { from: 'leaf_2', to: 'leaf_3', active: true },
+            ],
+            splitBanner: {
+              type: 'RANGE_HOP',
+              title: 'Horizontal Sibling Hop: L2 → L3',
+              description: 'Fetched next sequential page via leaf sibling pointer.',
+            },
+            rangeQuery: { min: 25, max: 80, results: [35, 50, 60] },
+            pageReads: 4,
+          },
+          metrics: { Navigation: 'Leaf Sibling Link (L2 -> L3)', 'Active Page': 'L3 [70, 85, 95]', 'Page I/Os': 4 },
+        },
+        {
+          stepIndex: 9,
+          title: 'Leaf L3 Match: Key 70 Satisfies Predicate',
+          explanation:
+            'Inspecting first key of page L3: 70. Condition 25 <= 70 <= 80 is TRUE! Key 70 is emitted into the Result Buffer.',
+          status: 'SUCCESS',
+          bTreeState: {
+            order: 4,
+            isBPlusTree: true,
+            treeHeight: 1,
+            activeNodeId: 'leaf_3',
+            targetKey: 70,
+            nodes: baseNodes.map((n) =>
+              n.id === 'leaf_3' ? { ...n, highlightedKeys: [70] } : n
+            ),
+            siblingLinks: [
+              { from: 'leaf_1', to: 'leaf_2', active: false },
+              { from: 'leaf_2', to: 'leaf_3', active: false },
+            ],
+            splitBanner: {
+              type: 'RANGE_MATCH',
+              title: 'Record Match: Key 70',
+              description: '25 <= 70 <= 80: Emitted record 70 into Result Buffer.',
+            },
+            rangeQuery: { min: 25, max: 80, currentKey: 70, results: [35, 50, 60, 70] },
+            pageReads: 4,
+          },
+          metrics: { 'Active Key': 70, Condition: '25 <= 70 <= 80 (MATCH)', 'Result Count': 4, 'Page I/Os': 4 },
+        },
+        {
+          stepIndex: 10,
+          title: 'Boundary Guard Exceeded: 85 > 80 Terminates Scan!',
+          explanation:
+            'Iterator advances to next key in L3: 85. Checking predicate: 85 <= 80 is FALSE (85 > 80)! Because leaves are strictly sorted, ALL subsequent keys in the database are guaranteed to be > 80. The range scan halts immediately!',
+          status: 'MISMATCH',
+          bTreeState: {
+            order: 4,
+            isBPlusTree: true,
+            treeHeight: 1,
+            activeNodeId: 'leaf_3',
+            targetKey: 85,
+            nodes: baseNodes.map((n) =>
+              n.id === 'leaf_3' ? { ...n, highlightedKeys: [70] } : n
+            ),
+            siblingLinks: [
+              { from: 'leaf_1', to: 'leaf_2', active: false },
+              { from: 'leaf_2', to: 'leaf_3', active: false },
+            ],
+            splitBanner: {
+              type: 'RANGE_MATCH',
+              title: 'Boundary Guard Exceeded (85 > 80)',
+              description: 'Predicate violated: 85 exceeds upper bound 80. Iterator terminates immediately.',
+            },
+            rangeQuery: { min: 25, max: 80, currentKey: 85, results: [35, 50, 60, 70], isTerminated: true },
+            pageReads: 4,
+          },
+          metrics: { 'Key Evaluated': 85, 'Upper Bound': 80, Predicate: '85 > 80 (VIOLATED)', 'Scan Action': 'EARLY_HALT' },
+        },
+        {
+          stepIndex: 11,
+          title: 'Range Scan Complete: O(log_B N + K/B) I/O Invariant Proven',
+          explanation:
+            'Range scan complete! Emitted records: [35, 50, 60, 70]. Total disk pages fetched: 4 (1 root page + 3 leaf pages). Without leaf sibling links, a naive B-tree would require 4 independent point lookups (4 * 2 = 8 page I/Os). The B+ tree sibling chaining reduces I/O cost to O(log_B N + K/B), enabling massive high-throughput range scans in production storage engines.',
+          status: 'COMPLETE',
+          bTreeState: {
+            order: 4,
+            isBPlusTree: true,
+            treeHeight: 1,
+            nodes: baseNodes.map((n) =>
+              n.id === 'leaf_2'
+                ? { ...n, highlightedKeys: [35, 50, 60] }
+                : n.id === 'leaf_3'
+                ? { ...n, highlightedKeys: [70] }
+                : n
+            ),
+            siblingLinks: [
+              { from: 'leaf_1', to: 'leaf_2', active: false },
+              { from: 'leaf_2', to: 'leaf_3', active: false },
+            ],
+            splitBanner: {
+              type: 'RANGE_MATCH',
+              title: 'Range Scan Complete',
+              description: 'Emitted 4 records with only 4 page reads. Optimal external memory efficiency.',
+            },
+            rangeQuery: { min: 25, max: 80, results: [35, 50, 60, 70], isTerminated: true },
+            pageReads: 4,
+          },
+          metrics: { 'Total Emitted': 4, 'Total Page I/Os': 4, 'Naive B-Tree I/Os': 8, 'I/O Savings': '50% Disk Reduction', Status: 'COMPLETE' },
+        },
+      ];
+    },
+  },
 ];
 
 export function AlgorithmVisualizerSandbox() {
@@ -2328,13 +2698,33 @@ export function AlgorithmVisualizerSandbox() {
           <div className="space-y-4">
             {/* Split / Elevation Alert Banner */}
             {currentFrame.bTreeState.splitBanner && (
-              <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+              <div
+                className={`border rounded-lg p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs ${
+                  currentFrame.bTreeState.splitBanner.type === 'RANGE_MATCH'
+                    ? 'bg-emerald-500/10 border-emerald-500/30'
+                    : currentFrame.bTreeState.splitBanner.type === 'RANGE_HOP'
+                    ? 'bg-cyan-500/10 border-cyan-500/30'
+                    : 'bg-amber-500/10 border-amber-500/30'
+                }`}
+              >
                 <div className="flex items-center gap-2">
-                  <span className="font-bold text-amber-900 dark:text-amber-300">
+                  <span
+                    className={`font-bold ${
+                      currentFrame.bTreeState.splitBanner.type === 'RANGE_MATCH'
+                        ? 'text-emerald-900 dark:text-emerald-300'
+                        : currentFrame.bTreeState.splitBanner.type === 'RANGE_HOP'
+                        ? 'text-cyan-900 dark:text-cyan-300'
+                        : 'text-amber-900 dark:text-amber-300'
+                    }`}
+                  >
                     {currentFrame.bTreeState.splitBanner.type === 'LEAF_SPLIT'
                       ? '⚡ Node Split'
                       : currentFrame.bTreeState.splitBanner.type === 'ROOT_SPLIT'
                       ? '🌲 Root Split (Tree Height +1)'
+                      : currentFrame.bTreeState.splitBanner.type === 'RANGE_HOP'
+                      ? '➡️ Leaf Sibling Hop'
+                      : currentFrame.bTreeState.splitBanner.type === 'RANGE_MATCH'
+                      ? '🎯 Range Scan Match'
                       : '⬆️ Median Elevation'}:
                   </span>
                   <span className="font-semibold text-text">
@@ -2347,7 +2737,7 @@ export function AlgorithmVisualizerSandbox() {
               </div>
             )}
 
-            {/* SVG Canvas for Multi-Way B-Tree */}
+            {/* SVG Canvas for Multi-Way B-Tree & B+ Tree */}
             <div className="w-full flex justify-center bg-surface/50 border border-border rounded-xl p-3 overflow-x-auto">
               <svg
                 viewBox="0 0 460 250"
@@ -2386,7 +2776,50 @@ export function AlgorithmVisualizerSandbox() {
                   );
                 })}
 
-                {/* B-Tree Segmented Nodes */}
+                {/* Leaf Horizontal Sibling Pointer Chains (for B+ Tree) */}
+                {currentFrame.bTreeState.siblingLinks &&
+                  currentFrame.bTreeState.siblingLinks.map((link, lIdx) => {
+                    const fromNode = currentFrame.bTreeState!.nodes.find((n) => n.id === link.from);
+                    const toNode = currentFrame.bTreeState!.nodes.find((n) => n.id === link.to);
+                    if (!fromNode || !toNode) return null;
+                    const fromWidth = Math.max(60, fromNode.keys.length * 36 + 16);
+                    const toWidth = Math.max(60, toNode.keys.length * 36 + 16);
+                    const startX = fromNode.x + fromWidth / 2;
+                    const startY = fromNode.y;
+                    const endX = toNode.x - toWidth / 2;
+                    const endY = toNode.y;
+
+                    return (
+                      <g key={`sibling-${lIdx}`}>
+                        <line
+                          x1={startX + 3}
+                          y1={startY}
+                          x2={endX - 8}
+                          y2={endY}
+                          stroke={link.active ? '#06b6d4' : '#64748b'}
+                          strokeWidth={link.active ? 3 : 1.5}
+                          strokeDasharray={link.active ? '4 2' : '2 2'}
+                        />
+                        {/* Traversal Arrowhead */}
+                        <polygon
+                          points={`${endX - 3},${endY} ${endX - 9},${endY - 4} ${endX - 9},${endY + 4}`}
+                          fill={link.active ? '#06b6d4' : '#64748b'}
+                        />
+                        {link.active && (
+                          <text
+                            x={(startX + endX) / 2}
+                            y={startY - 9}
+                            textAnchor="middle"
+                            className="text-[9px] font-mono font-bold fill-cyan-600 select-none"
+                          >
+                            SIBLING HOP
+                          </text>
+                        )}
+                      </g>
+                    );
+                  })}
+
+                {/* B-Tree / B+ Tree Segmented Nodes */}
                 {currentFrame.bTreeState.nodes.map((node) => {
                   const isActive = currentFrame.bTreeState!.activeNodeId === node.id;
                   const isFull = node.isFull;
@@ -2410,6 +2843,9 @@ export function AlgorithmVisualizerSandbox() {
                   } else if (isFull) {
                     borderColor = '#f59e0b';
                     bgColor = '#fffbeb';
+                  } else if (node.nodeType === 'ROUTER') {
+                    borderColor = '#6366f1';
+                    bgColor = '#f8fafc';
                   }
 
                   return (
@@ -2498,7 +2934,7 @@ export function AlgorithmVisualizerSandbox() {
                         );
                       })}
 
-                      {/* Node Status Tag (Full / 2-node / 3-node / 4-node) */}
+                      {/* Node Status Tag (Full / 2-node / 3-node / 4-node / Router / Leaf) */}
                       <g>
                         <text
                           x={node.x}
@@ -2506,7 +2942,11 @@ export function AlgorithmVisualizerSandbox() {
                           textAnchor="middle"
                           className="text-[9px] font-mono font-semibold fill-slate-500 select-none"
                         >
-                          {node.keys.length === 1
+                          {node.nodeType === 'ROUTER'
+                            ? 'ROUTER (INDEX)'
+                            : node.nodeType === 'LEAF'
+                            ? 'DATA LEAF PAGE'
+                            : node.keys.length === 1
                             ? '2-node'
                             : node.keys.length === 2
                             ? '3-node'
@@ -2521,14 +2961,71 @@ export function AlgorithmVisualizerSandbox() {
               </svg>
             </div>
 
-            {/* Multi-Way Range Invariants Summary */}
+            {/* Range Query Buffer & Disk Page I/O HUD (for B+ Tree) */}
+            {currentFrame.bTreeState.rangeQuery && (
+              <div className="bg-surface border border-border rounded-lg p-3 space-y-2 text-xs">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border pb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
+                      Query Filter:
+                    </span>
+                    <span className="font-mono font-bold text-primary-700 bg-primary-50 border border-primary-200 px-2 py-0.5 rounded text-xs">
+                      SELECT records WHERE key &gt;= {currentFrame.bTreeState.rangeQuery.min} AND key &lt;= {currentFrame.bTreeState.rangeQuery.max}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-[11px]">
+                    <span className="font-semibold text-text-muted">Page I/Os:</span>
+                    <span className="font-mono font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded">
+                      {currentFrame.bTreeState.pageReads ?? 0} Disk Fetches
+                    </span>
+                    {currentFrame.bTreeState.rangeQuery.isTerminated && (
+                      <span className="font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
+                        ✓ Range Scan Halted
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
+                    Range Query Result Stream:
+                  </span>
+                  <div className="flex items-center gap-1.5 flex-wrap min-h-[28px]">
+                    {currentFrame.bTreeState.rangeQuery.results.length > 0 ? (
+                      currentFrame.bTreeState.rangeQuery.results.map((keyVal, idx) => (
+                        <span
+                          key={idx}
+                          className="text-xs font-mono font-bold px-2.5 py-0.5 rounded bg-emerald-100 text-emerald-900 border border-emerald-300 shadow-2xs"
+                        >
+                          key: {keyVal}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-xs text-text-muted italic">Result buffer empty (locating start leaf...)</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Invariant Properties Summary */}
             <div className="bg-surface border border-border rounded-lg p-3 space-y-1 text-xs">
               <div className="flex items-center justify-between text-[11px] font-bold text-text-muted">
-                <span className="uppercase tracking-wider">B-Tree / 2-3-4 Order M=4 Invariant Properties:</span>
-                <span>Max Capacity: 3 Keys, 4 Children</span>
+                <span className="uppercase tracking-wider">
+                  {currentFrame.bTreeState.isBPlusTree
+                    ? 'B+ Tree Indexing & External Memory Invariant Properties:'
+                    : 'B-Tree / 2-3-4 Order M=4 Invariant Properties:'}
+                </span>
+                <span>
+                  {currentFrame.bTreeState.isBPlusTree
+                    ? 'O(log_B N + K/B) Range I/Os'
+                    : 'Max Capacity: 3 Keys, 4 Children'}
+                </span>
               </div>
               <p className="text-text-muted text-[11px] leading-relaxed">
-                Internal nodes with <strong className="text-text">k</strong> keys have exactly <strong className="text-text">k + 1</strong> children. All leaf nodes reside at uniform tree height <strong className="text-primary-600 font-mono">h={currentFrame.bTreeState.treeHeight}</strong>. Overflow triggers preemptive median promotion, growing tree height from root down.
+                {currentFrame.bTreeState.isBPlusTree
+                  ? 'All actual record keys reside strictly in leaf pages linked by horizontal sibling pointers. Internal index pages store only separator keys to guide point search down to the initial leaf. Once reached, sequential scans traverse sibling pointers directly with zero root re-traversals.'
+                  : `Internal nodes with k keys have exactly k + 1 children. All leaf nodes reside at uniform tree height h=${currentFrame.bTreeState.treeHeight}. Overflow triggers preemptive median promotion, growing tree height from root down.`}
               </p>
             </div>
           </div>

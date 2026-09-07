@@ -1,6 +1,6 @@
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import InterviewResultsPage from '../(student)/interviews/[id]/results/page';
 
 vi.mock('next/navigation', () => ({
@@ -192,5 +192,87 @@ describe('InterviewResultsPage', () => {
         screen.getByText('Interview session does not exist'),
       ).toBeDefined();
     });
+  });
+
+  it('renders turn-by-turn articulation progression telemetry with multi-turn filler trajectory and terminology metrics', async () => {
+    const multiTurnSession = {
+      ...mockCompletedSession,
+      messages: [
+        {
+          id: 'm1',
+          sender: 'AI_INTERVIEWER' as const,
+          content: 'How do you handle distributed state replication?',
+          stage: 'TECHNICAL_DRILL' as const,
+          turnNumber: 1,
+          technicalFeedback: null,
+          suggestedBetterAnswer: null,
+          createdAt: '2026-09-02T10:00:00.000Z',
+        },
+        {
+          id: 'm2',
+          sender: 'CANDIDATE' as const,
+          content:
+            'Basically I would like use a quorum protocol and replicate the write-ahead log.',
+          stage: 'TECHNICAL_DRILL' as const,
+          turnNumber: 2,
+          technicalFeedback: 'Identified quorum and WAL.',
+          suggestedBetterAnswer: 'Name Raft or Paxos explicitly.',
+          createdAt: '2026-09-02T10:02:00.000Z',
+        },
+        {
+          id: 'm3',
+          sender: 'AI_INTERVIEWER' as const,
+          content: 'What happens when network partitions isolate the leader node?',
+          stage: 'SCENARIO_DESIGN' as const,
+          turnNumber: 3,
+          technicalFeedback: null,
+          suggestedBetterAnswer: null,
+          createdAt: '2026-09-02T10:04:00.000Z',
+        },
+        {
+          id: 'm4',
+          sender: 'CANDIDATE' as const,
+          content:
+            'Under network partition, Raft consensus guarantees safety through leader leases and term numbers. The isolated minority partition steps down, preserving strong consistency and strict idempotency.',
+          stage: 'SCENARIO_DESIGN' as const,
+          turnNumber: 4,
+          technicalFeedback: 'Exceptional clarity on Raft partition safety.',
+          suggestedBetterAnswer: null,
+          createdAt: '2026-09-02T10:06:00.000Z',
+        },
+      ],
+    };
+
+    mockGetInterviewSession.mockResolvedValueOnce(multiTurnSession);
+
+    render(<InterviewResultsPage />);
+
+    let hud: HTMLElement;
+    await waitFor(() => {
+      hud = screen.getByTestId('turn-articulation-progression-hud');
+      expect(hud).toBeDefined();
+    });
+
+    // Verify Progression HUD Title & Header Telemetry
+    expect(
+      screen.getByText('Turn-by-Turn Articulation & Cadence Progression'),
+    ).toBeDefined();
+    expect(screen.getByText('Turns Evaluated:')).toBeDefined();
+    expect(screen.getByText('Filler Trajectory:')).toBeDefined();
+    expect(screen.getByText(/Turn 1 \(2\) → Turn 2 \(0\)/)).toBeDefined();
+
+    // Verify SVG Chart and Turn Labels
+    expect(
+      screen.getByText(/Candidate Verbal Output \(Bars = Words, Points = Filler Count\)/),
+    ).toBeDefined();
+    expect(screen.getByText('T2')).toBeDefined();
+    expect(screen.getByText('T4')).toBeDefined();
+
+    // Verify Turn Breakdown Cards scoped to HUD
+    expect(within(hud!).getByText('Turn #2')).toBeDefined();
+    expect(within(hud!).getByText('Turn #4')).toBeDefined();
+    expect(within(hud!).getByText(/2 fillers/i)).toBeDefined();
+    expect(within(hud!).getByText(/✓ 0 fillers/i)).toBeDefined();
+    expect(within(hud!).getByText(/exemplary technical eloquence/i)).toBeDefined();
   });
 });

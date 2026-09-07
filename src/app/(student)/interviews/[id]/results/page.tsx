@@ -190,6 +190,74 @@ export default function InterviewResultsPage() {
     fluencyBadgeColor = 'text-error-800 bg-error-50 border-error-200';
   }
 
+  interface TurnArticulationTelemetry {
+    turnNumber: number;
+    turnId: string;
+    stage: string;
+    wordCount: number;
+    fillerCount: number;
+    fillerWords: string[];
+    keywords: string[];
+    turnSummaryTip: string;
+  }
+
+  const turnTelemetryList: TurnArticulationTelemetry[] = candidateTurns.map((turn, idx) => {
+    const textLower = turn.content.toLowerCase();
+    const words = turn.content.trim().split(/\s+/).filter(Boolean);
+    const wordCount = words.length;
+
+    // Detect fillers in this specific turn
+    const detectedFillers: string[] = [];
+    const fillerPatterns = [
+      /\b(basically)\b/gi,
+      /\b(actually)\b/gi,
+      /\b(literally)\b/gi,
+      /\b(like)\b/gi,
+      /\b(you know)\b/gi,
+      /\b(i mean)\b/gi,
+      /\b(sort of)\b/gi,
+      /\b(kind of)\b/gi,
+      /\b(um+)\b/gi,
+      /\b(uh+)\b/gi,
+    ];
+    for (const pat of fillerPatterns) {
+      const matches = turn.content.match(pat);
+      if (matches) {
+        for (const m of matches) {
+          detectedFillers.push(m.toLowerCase());
+        }
+      }
+    }
+
+    // Detect keywords in this specific turn
+    const turnKeywords = SYSTEMS_ENGINEERING_KEYWORDS.filter((kw) => {
+      const escaped = kw.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+      return new RegExp(`(?:^|\\W)${escaped}(?:$|\\W)`, 'i').test(textLower);
+    });
+
+    let tip = 'Optimal concise technical delivery';
+    if (detectedFillers.length > 2) {
+      tip = 'High filler concentration: recommend deliberate pauses before answering';
+    } else if (detectedFillers.length > 0) {
+      tip = `Minor filler usage (${detectedFillers.length}): replace conversational filler with concrete facts`;
+    } else if (turnKeywords.length >= 2) {
+      tip = 'High-density systems terminology with zero fillers: exemplary technical eloquence';
+    } else if (wordCount < 15) {
+      tip = 'Concise answer: consider elaborating on production edge cases or trade-offs';
+    }
+
+    return {
+      turnNumber: turn.turnNumber || idx + 1,
+      turnId: turn.id,
+      stage: turn.stage,
+      wordCount,
+      fillerCount: detectedFillers.length,
+      fillerWords: detectedFillers,
+      keywords: turnKeywords,
+      turnSummaryTip: tip,
+    };
+  });
+
   return (
     <div className="min-h-dvh flex flex-col bg-canvas text-text">
       {/* Top Header */}
@@ -480,6 +548,206 @@ export default function InterviewResultsPage() {
               </p>
             )}
           </div>
+
+          {/* Turn-by-Turn Articulation & Cadence Progression Telemetry */}
+          {turnTelemetryList.length > 0 && (
+            <div
+              data-testid="turn-articulation-progression-hud"
+              className="p-4 rounded-xl bg-canvas border border-border space-y-4"
+            >
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border pb-3">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-indigo-600" />
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-text">
+                    Turn-by-Turn Articulation &amp; Cadence Progression
+                  </h4>
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="font-semibold text-text-muted">Turns Evaluated:</span>
+                  <span className="font-bold text-text tabular-nums">{turnTelemetryList.length}</span>
+                  <span className="text-border">|</span>
+                  <span className="text-text-muted">Filler Trajectory:</span>
+                  <span className="font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded text-[11px]">
+                    Turn 1 ({turnTelemetryList[0].fillerCount}) → Turn {turnTelemetryList.length} ({turnTelemetryList[turnTelemetryList.length - 1].fillerCount})
+                  </span>
+                </div>
+              </div>
+
+              {/* Visual SVG Turn Cadence & Filler Progression Spark-Chart */}
+              <div className="w-full bg-surface border border-border rounded-lg p-3 overflow-x-auto">
+                <div className="text-[11px] font-semibold text-text-muted mb-2 flex items-center justify-between">
+                  <span>Candidate Verbal Output (Bars = Words, Points = Filler Count)</span>
+                  <div className="flex items-center gap-3">
+                    <span className="flex items-center gap-1">
+                      <span className="w-2.5 h-2.5 rounded bg-primary-600" /> Words / Turn
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <span className="w-2.5 h-2.5 rounded-full bg-amber-500" /> Fillers
+                    </span>
+                  </div>
+                </div>
+
+                <svg viewBox="0 0 500 120" className="w-full min-w-[360px] h-28 select-none font-sans">
+                  {/* Horizontal Grid lines */}
+                  <line x1="30" y1="20" x2="480" y2="20" stroke="#f1f5f9" strokeWidth="1" />
+                  <line x1="30" y1="55" x2="480" y2="55" stroke="#f1f5f9" strokeWidth="1" />
+                  <line x1="30" y1="90" x2="480" y2="90" stroke="#cbd5e1" strokeWidth="1" />
+
+                  {/* Draw each turn */}
+                  {(() => {
+                    const maxWords = Math.max(1, ...turnTelemetryList.map((t) => t.wordCount));
+                    const maxFillers = Math.max(1, ...turnTelemetryList.map((t) => t.fillerCount));
+                    const chartWidth = 430;
+                    const stepX = chartWidth / Math.max(1, turnTelemetryList.length);
+
+                    return (
+                      <g>
+                        {/* Connecting line for filler count progression */}
+                        {turnTelemetryList.length > 1 && (
+                          <polyline
+                            fill="none"
+                            stroke="#f59e0b"
+                            strokeWidth="2"
+                            strokeDasharray="3 2"
+                            points={turnTelemetryList
+                              .map((t, idx) => {
+                                const cx = 45 + idx * stepX + 10;
+                                const cy = 90 - (t.fillerCount / maxFillers) * 65;
+                                return `${cx},${cy}`;
+                              })
+                              .join(' ')}
+                          />
+                        )}
+
+                        {turnTelemetryList.map((t, idx) => {
+                          const barX = 35 + idx * stepX;
+                          const barWidth = Math.max(16, Math.min(36, stepX - 16));
+                          const barHeight = Math.max(8, (t.wordCount / maxWords) * 70);
+                          const barY = 90 - barHeight;
+
+                          const fillerCy = 90 - (t.fillerCount / maxFillers) * 65;
+                          const fillerCx = barX + barWidth / 2;
+
+                          return (
+                            <g key={t.turnId}>
+                              {/* Word volume bar */}
+                              <rect
+                                x={barX}
+                                y={barY}
+                                width={barWidth}
+                                height={barHeight}
+                                rx="3"
+                                fill="#3b82f6"
+                                opacity="0.85"
+                              />
+                              <text
+                                x={barX + barWidth / 2}
+                                y={barY - 4}
+                                textAnchor="middle"
+                                className="text-[9px] font-mono font-bold fill-slate-700 select-none"
+                              >
+                                {t.wordCount}w
+                              </text>
+
+                              {/* Filler count dot */}
+                              <circle
+                                cx={fillerCx}
+                                cy={fillerCy}
+                                r={t.fillerCount > 0 ? '5' : '3'}
+                                fill={t.fillerCount > 0 ? '#f59e0b' : '#10b981'}
+                                stroke="#ffffff"
+                                strokeWidth="1.5"
+                              />
+                              {t.fillerCount > 0 && (
+                                <text
+                                  x={fillerCx}
+                                  y={fillerCy - 7}
+                                  textAnchor="middle"
+                                  className="text-[8px] font-bold fill-amber-700 select-none"
+                                >
+                                  {t.fillerCount}f
+                                </text>
+                              )}
+
+                              {/* Turn label on x-axis */}
+                              <text
+                                x={barX + barWidth / 2}
+                                y="105"
+                                textAnchor="middle"
+                                className="text-[9px] font-mono font-semibold fill-slate-500 select-none"
+                              >
+                                T{t.turnNumber}
+                              </text>
+                            </g>
+                          );
+                        })}
+                      </g>
+                    );
+                  })()}
+                </svg>
+              </div>
+
+              {/* Turn-by-Turn Detailed Telemetry Breakdown Cards */}
+              <div className="space-y-2">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
+                  Dialogue Turn Telemetry Breakdown:
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {turnTelemetryList.map((t) => (
+                    <div
+                      key={t.turnId}
+                      className="p-2.5 rounded-lg bg-surface border border-border space-y-1.5 text-xs shadow-2xs"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-mono font-bold text-primary-700 bg-primary-50 px-1.5 py-0.5 rounded text-[11px]">
+                            Turn #{t.turnNumber}
+                          </span>
+                          <span className="text-[10px] font-semibold text-text-muted">
+                            {t.stage.replace('_', ' ')}
+                          </span>
+                        </div>
+                        <span className="text-[11px] font-bold text-text tabular-nums">
+                          {t.wordCount} words
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2 flex-wrap text-[11px]">
+                        <span
+                          className={`px-1.5 py-0.5 rounded font-medium border ${
+                            t.fillerCount === 0
+                              ? 'bg-emerald-50 text-emerald-800 border-emerald-200 font-bold'
+                              : 'bg-amber-50 text-amber-800 border-amber-200'
+                          }`}
+                        >
+                          {t.fillerCount === 0 ? '✓ 0 fillers' : `${t.fillerCount} filler${t.fillerCount > 1 ? 's' : ''}`}
+                        </span>
+
+                        {t.keywords.length > 0 && (
+                          <span className="bg-indigo-50 text-indigo-800 border border-indigo-200 px-1.5 py-0.5 rounded font-medium">
+                            {t.keywords.length} systems term{t.keywords.length > 1 ? 's' : ''}
+                          </span>
+                        )}
+                      </div>
+
+                      {t.fillerWords.length > 0 && (
+                        <div className="text-[10px] text-amber-800 flex items-center gap-1 flex-wrap">
+                          <span>Fillers:</span>
+                          {t.fillerWords.map((fw, fwIdx) => (
+                            <span key={fwIdx} className="font-semibold italic">&ldquo;{fw}&rdquo;</span>
+                          ))}
+                        </div>
+                      )}
+
+                      <p className="text-[10px] text-text-muted italic leading-relaxed pt-0.5">
+                        {t.turnSummaryTip}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </section>
 
         {/* Strengths & Targeted Growth Areas */}
