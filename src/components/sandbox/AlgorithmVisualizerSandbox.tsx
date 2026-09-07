@@ -12,7 +12,8 @@ export type VisualizerAlgorithm =
   | 'BUBBLE_SORT'
   | 'GRAPH_BFS_TRAVERSAL'
   | 'GRAPH_DFS_TRAVERSAL'
-  | 'BST_INSERTION_INORDER';
+  | 'BST_INSERTION_INORDER'
+  | 'AVL_TREE_ROTATIONS';
 
 export interface VisualizerGraphNode {
   id: string;
@@ -46,6 +47,17 @@ export interface VisualizerTreeNode {
   left?: string;
   right?: string;
   isNew?: boolean;
+  balanceFactor?: number;
+  height?: number;
+  isImbalanced?: boolean;
+  isPivot?: boolean;
+}
+
+export interface VisualizerTreeRotationBanner {
+  type: 'LL' | 'RR' | 'LR' | 'RL';
+  title: string;
+  description: string;
+  pivotVal: number;
 }
 
 export interface VisualizerTreeState {
@@ -55,6 +67,7 @@ export interface VisualizerTreeState {
   targetVal?: number;
   traversalOrder?: number[];
   traversalLabel?: string;
+  rotationBanner?: VisualizerTreeRotationBanner;
 }
 
 interface StepFrame {
@@ -840,6 +853,285 @@ const ALGORITHM_CONFIGS: AlgorithmConfig[] = [
       ];
     },
   },
+  {
+    id: 'AVL_TREE_ROTATIONS',
+    name: 'Self-Balancing AVL Tree Rotations (Balance Factor Maintenance)',
+    category: 'Self-Balancing Search Trees',
+    timeComplexity: 'Lookup/Insert/Delete: O(log N), Rotation: O(1)',
+    spaceComplexity: 'O(N) storage, O(log N) stack recursion',
+    description:
+      'Maintain the strict AVL balance invariant: for every node, the balance factor BF = height(left) - height(right) must satisfy BF ∈ {-1, 0, +1}. When an insertion causes |BF| ≥ 2, tree balance is restored in O(1) time using Single Right (LL), Single Left (RR), or Double (LR / RL) Rotations while preserving the BST ordering invariant.',
+    generateFrames: () => {
+      return [
+        {
+          stepIndex: 0,
+          title: 'Initial Balanced State: AVL Invariant Satisfied',
+          explanation:
+            'Every node in an AVL tree satisfies the strict height-balance invariant: Balance Factor BF = height(left) - height(right) ∈ {-1, 0, +1}. Root 50 has BF = 1 - 1 = 0. Children 25 and 75 have BF = 0. Tree height is 2, guaranteeing O(log N) worst-case search and mutation.',
+          status: 'SUCCESS',
+          treeState: {
+            nodes: [
+              { id: 'n50', val: 50, x: 210, y: 40, left: 'n25', right: 'n75', balanceFactor: 0, height: 2 },
+              { id: 'n25', val: 25, x: 120, y: 105, balanceFactor: 0, height: 1 },
+              { id: 'n75', val: 75, x: 300, y: 105, balanceFactor: 0, height: 1 },
+            ],
+            activeNodeId: 'n50',
+          },
+          metrics: { 'Tree State': 'Balanced AVL', 'Tree Height': 2, 'Root BF': 0, Invariant: '|BF| ≤ 1' },
+        },
+        {
+          stepIndex: 1,
+          title: 'Insert Key 15: Single Left Descent',
+          explanation:
+            'Key 15 is smaller than 50 and smaller than 25, inserted as 25\'s left child. Post-insertion backtracking updates node heights: node 15 (h=1, BF=0), node 25 (h=2, BF=+1), root 50 (h=3, left h=2, right h=1 → BF=+1). All balance factors remain within {-1, 0, +1}. No rotation needed.',
+          status: 'IN_PROGRESS',
+          treeState: {
+            nodes: [
+              { id: 'n50', val: 50, x: 210, y: 40, left: 'n25', right: 'n75', balanceFactor: 1, height: 3 },
+              { id: 'n25', val: 25, x: 120, y: 105, left: 'n15', balanceFactor: 1, height: 2 },
+              { id: 'n15', val: 15, x: 70, y: 170, isNew: true, balanceFactor: 0, height: 1 },
+              { id: 'n75', val: 75, x: 300, y: 105, balanceFactor: 0, height: 1 },
+            ],
+            activeNodeId: 'n15',
+            targetVal: 15,
+          },
+          metrics: { 'Inserted Key': 15, 'Node 25 BF': '+1', 'Root 50 BF': '+1', Status: 'Balanced' },
+        },
+        {
+          stepIndex: 2,
+          title: 'Insert Key 10: Left-Left (LL) Heavy Imbalance Triggered!',
+          explanation:
+            'Key 10 is inserted as 15\'s left child. Recalculating heights: node 10 has h=1, BF=0. Node 15 has h=2, BF=+1. At node 25, left height is 2, right height is 0 → BF(25) = 2 - 0 = +2! Invariant violated (|BF| ≥ 2). Since BF(25) = +2 and BF(15) = +1 (both positive), this is a classic Left-Left (LL) case requiring a Single Right Rotation.',
+          status: 'MISMATCH',
+          treeState: {
+            nodes: [
+              { id: 'n50', val: 50, x: 210, y: 40, left: 'n25', right: 'n75', balanceFactor: 2, height: 4 },
+              { id: 'n25', val: 25, x: 120, y: 105, left: 'n15', isImbalanced: true, isPivot: true, balanceFactor: 2, height: 3 },
+              { id: 'n15', val: 15, x: 70, y: 170, left: 'n10', balanceFactor: 1, height: 2 },
+              { id: 'n10', val: 10, x: 35, y: 225, isNew: true, balanceFactor: 0, height: 1 },
+              { id: 'n75', val: 75, x: 300, y: 105, balanceFactor: 0, height: 1 },
+            ],
+            activeNodeId: 'n25',
+            comparedNodeId: 'n15',
+            targetVal: 10,
+            rotationBanner: {
+              type: 'LL',
+              title: 'Single Right Rotation Required',
+              description: 'BF(25) = +2 and BF(15) = +1 (LL pattern). Rotate node 15 to the right over pivot 25.',
+              pivotVal: 25,
+            },
+          },
+          metrics: { 'Violating Node': 25, 'Node 25 BF': '+2 (VIOLATION)', 'Case': 'Left-Left (LL)', Action: 'Rotate Right' },
+        },
+        {
+          stepIndex: 3,
+          title: 'Single Right Rotation Complete: Node 15 Elevated',
+          explanation:
+            'Right rotation around pivot 25 rebalances the subtree in O(1) pointer operations. Node 15 elevates to become root 50\'s left child. Node 25 becomes 15\'s right child, and node 10 remains 15\'s left child. Balance factors are restored: BF(10)=0, BF(25)=0, BF(15)=0. Root 50 BF drops from +2 to +1. In-order key ordering (10 < 15 < 25 < 50 < 75) is strictly preserved.',
+          status: 'SUCCESS',
+          treeState: {
+            nodes: [
+              { id: 'n50', val: 50, x: 210, y: 40, left: 'n15', right: 'n75', balanceFactor: 1, height: 3 },
+              { id: 'n15', val: 15, x: 120, y: 105, left: 'n10', right: 'n25', isPivot: true, balanceFactor: 0, height: 2 },
+              { id: 'n10', val: 10, x: 70, y: 170, balanceFactor: 0, height: 1 },
+              { id: 'n25', val: 25, x: 170, y: 170, balanceFactor: 0, height: 1 },
+              { id: 'n75', val: 75, x: 300, y: 105, balanceFactor: 0, height: 1 },
+            ],
+            activeNodeId: 'n15',
+            rotationBanner: {
+              type: 'LL',
+              title: 'Single Right Rotation Completed',
+              description: 'Node 15 is new subtree root. BST invariant 10 < 15 < 25 < 50 < 75 preserved.',
+              pivotVal: 15,
+            },
+          },
+          metrics: { 'Subtree Root': 15, 'Node 15 BF': 0, 'Subtree Height': 2, 'Time Complexity': 'O(1)' },
+        },
+        {
+          stepIndex: 4,
+          title: 'Insert Key 85: Right Subtree Growth',
+          explanation:
+            'Key 85 is inserted as node 75\'s right child. Updating heights along the search path: node 85 (h=1, BF=0), node 75 (h=2, BF=-1). Root 50 now has left subtree height 2 (rooted at 15) and right subtree height 2 (rooted at 75) → BF(50) = 2 - 2 = 0. The entire tree is balanced.',
+          status: 'IN_PROGRESS',
+          treeState: {
+            nodes: [
+              { id: 'n50', val: 50, x: 210, y: 40, left: 'n15', right: 'n75', balanceFactor: 0, height: 3 },
+              { id: 'n15', val: 15, x: 120, y: 105, left: 'n10', right: 'n25', balanceFactor: 0, height: 2 },
+              { id: 'n10', val: 10, x: 70, y: 170, balanceFactor: 0, height: 1 },
+              { id: 'n25', val: 25, x: 170, y: 170, balanceFactor: 0, height: 1 },
+              { id: 'n75', val: 75, x: 300, y: 105, right: 'n85', balanceFactor: -1, height: 2 },
+              { id: 'n85', val: 85, x: 350, y: 170, isNew: true, balanceFactor: 0, height: 1 },
+            ],
+            activeNodeId: 'n85',
+            targetVal: 85,
+          },
+          metrics: { 'Inserted Key': 85, 'Node 75 BF': '-1', 'Root 50 BF': 0, Status: 'Balanced' },
+        },
+        {
+          stepIndex: 5,
+          title: 'Insert Key 95: Right-Right (RR) Heavy Imbalance Triggered!',
+          explanation:
+            'Key 95 is inserted as 85\'s right child. At node 75, left height is 0 and right height is 2, yielding BF(75) = 0 - 2 = -2! Balance invariant violated. Since BF(75) = -2 and child BF(85) = -1 (both negative), this is a classic Right-Right (RR) case requiring a Single Left Rotation.',
+          status: 'MISMATCH',
+          treeState: {
+            nodes: [
+              { id: 'n50', val: 50, x: 210, y: 40, left: 'n15', right: 'n75', balanceFactor: -1, height: 4 },
+              { id: 'n15', val: 15, x: 120, y: 105, left: 'n10', right: 'n25', balanceFactor: 0, height: 2 },
+              { id: 'n10', val: 10, x: 70, y: 170, balanceFactor: 0, height: 1 },
+              { id: 'n25', val: 25, x: 170, y: 170, balanceFactor: 0, height: 1 },
+              { id: 'n75', val: 75, x: 300, y: 105, right: 'n85', isImbalanced: true, isPivot: true, balanceFactor: -2, height: 3 },
+              { id: 'n85', val: 85, x: 350, y: 165, right: 'n95', balanceFactor: -1, height: 2 },
+              { id: 'n95', val: 95, x: 385, y: 220, isNew: true, balanceFactor: 0, height: 1 },
+            ],
+            activeNodeId: 'n75',
+            comparedNodeId: 'n85',
+            targetVal: 95,
+            rotationBanner: {
+              type: 'RR',
+              title: 'Single Left Rotation Required',
+              description: 'BF(75) = -2 and BF(85) = -1 (RR pattern). Rotate node 85 to the left over pivot 75.',
+              pivotVal: 75,
+            },
+          },
+          metrics: { 'Violating Node': 75, 'Node 75 BF': '-2 (VIOLATION)', 'Case': 'Right-Right (RR)', Action: 'Rotate Left' },
+        },
+        {
+          stepIndex: 6,
+          title: 'Single Left Rotation Complete: Node 85 Elevated',
+          explanation:
+            'Left rotation around pivot 75 rebalances the subtree in O(1) time. Node 85 elevates to become root 50\'s right child. Node 75 becomes 85\'s left child, and node 95 remains 85\'s right child. Recalculated balance factors: BF(75)=0, BF(95)=0, BF(85)=0. Root 50 has left height 2, right height 2 → BF(50) = 0.',
+          status: 'SUCCESS',
+          treeState: {
+            nodes: [
+              { id: 'n50', val: 50, x: 210, y: 40, left: 'n15', right: 'n85', balanceFactor: 0, height: 3 },
+              { id: 'n15', val: 15, x: 120, y: 105, left: 'n10', right: 'n25', balanceFactor: 0, height: 2 },
+              { id: 'n10', val: 10, x: 70, y: 170, balanceFactor: 0, height: 1 },
+              { id: 'n25', val: 25, x: 170, y: 170, balanceFactor: 0, height: 1 },
+              { id: 'n85', val: 85, x: 300, y: 105, left: 'n75', right: 'n95', isPivot: true, balanceFactor: 0, height: 2 },
+              { id: 'n75', val: 75, x: 250, y: 170, balanceFactor: 0, height: 1 },
+              { id: 'n95', val: 95, x: 350, y: 170, balanceFactor: 0, height: 1 },
+            ],
+            activeNodeId: 'n85',
+            rotationBanner: {
+              type: 'RR',
+              title: 'Single Left Rotation Completed',
+              description: 'Node 85 is new subtree root. BST order 50 < 75 < 85 < 95 preserved.',
+              pivotVal: 85,
+            },
+          },
+          metrics: { 'Subtree Root': 85, 'Node 85 BF': 0, 'Subtree Height': 2, 'Time Complexity': 'O(1)' },
+        },
+        {
+          stepIndex: 7,
+          title: 'Insert Key 18: Inner Subtree Growth',
+          explanation:
+            'Target key 18 is inserted: 15 < 18 < 25, placing 18 as node 25\'s left child. Heights update: node 18 (h=1, BF=0), node 25 (h=2, BF=+1). Node 15 has left child 10 (h=1) and right child 25 (h=2) → BF(15) = 1 - 2 = -1. Tree remains balanced.',
+          status: 'IN_PROGRESS',
+          treeState: {
+            nodes: [
+              { id: 'n50', val: 50, x: 210, y: 35, left: 'n15', right: 'n85', balanceFactor: 0, height: 4 },
+              { id: 'n15', val: 15, x: 115, y: 85, left: 'n10', right: 'n25', balanceFactor: -1, height: 3 },
+              { id: 'n10', val: 10, x: 65, y: 140, balanceFactor: 0, height: 1 },
+              { id: 'n25', val: 25, x: 165, y: 140, left: 'n18', balanceFactor: 1, height: 2 },
+              { id: 'n18', val: 18, x: 140, y: 190, isNew: true, balanceFactor: 0, height: 1 },
+              { id: 'n85', val: 85, x: 305, y: 85, left: 'n75', right: 'n95', balanceFactor: 0, height: 2 },
+              { id: 'n75', val: 75, x: 260, y: 140, balanceFactor: 0, height: 1 },
+              { id: 'n95', val: 95, x: 350, y: 140, balanceFactor: 0, height: 1 },
+            ],
+            activeNodeId: 'n18',
+            targetVal: 18,
+          },
+          metrics: { 'Inserted Key': 18, 'Node 25 BF': '+1', 'Node 15 BF': '-1', Status: 'Balanced' },
+        },
+        {
+          stepIndex: 8,
+          title: 'Insert Key 19: Left-Right (LR) Opposite-Sign Imbalance!',
+          explanation:
+            'Key 19 is inserted as 18\'s right child (18 < 19 < 25). Height updates: node 18 has h=2, right=19 → BF(18) = 0 - 1 = -1. At node 25, left height is 2, right height is 0 → BF(25) = +2! Because BF(25) = +2 (positive) and child BF(18) = -1 (negative), signs conflict: this is a Left-Right (LR) "elbow" case! A single right rotation would fail; a Double Rotation is required.',
+          status: 'MISMATCH',
+          treeState: {
+            nodes: [
+              { id: 'n50', val: 50, x: 210, y: 35, left: 'n15', right: 'n85', balanceFactor: 0, height: 5 },
+              { id: 'n15', val: 15, x: 115, y: 85, left: 'n10', right: 'n25', balanceFactor: -2, height: 4 },
+              { id: 'n10', val: 10, x: 65, y: 140, balanceFactor: 0, height: 1 },
+              { id: 'n25', val: 25, x: 165, y: 140, left: 'n18', isImbalanced: true, isPivot: true, balanceFactor: 2, height: 3 },
+              { id: 'n18', val: 18, x: 140, y: 185, right: 'n19', balanceFactor: -1, height: 2 },
+              { id: 'n19', val: 19, x: 175, y: 225, isNew: true, balanceFactor: 0, height: 1 },
+              { id: 'n85', val: 85, x: 305, y: 85, left: 'n75', right: 'n95', balanceFactor: 0, height: 2 },
+              { id: 'n75', val: 75, x: 260, y: 140, balanceFactor: 0, height: 1 },
+              { id: 'n95', val: 95, x: 350, y: 140, balanceFactor: 0, height: 1 },
+            ],
+            activeNodeId: 'n25',
+            comparedNodeId: 'n18',
+            targetVal: 19,
+            rotationBanner: {
+              type: 'LR',
+              title: 'Double Rotation (LR Case) Required',
+              description: 'BF(25) = +2 and child BF(18) = -1. Opposite signs require Phase 1 (Left Rotation on 18) then Phase 2 (Right Rotation on 25).',
+              pivotVal: 25,
+            },
+          },
+          metrics: { 'Violating Node': 25, 'Node 25 BF': '+2', 'Child 18 BF': '-1', Case: 'Left-Right (LR)' },
+        },
+        {
+          stepIndex: 9,
+          title: 'LR Phase 1: Left Rotate Child 18 (Straighten the Elbow)',
+          explanation:
+            'Phase 1 of Double Rotation: Perform a Left Rotation on child node 18. Node 19 rotates upward to become node 25\'s direct left child, while node 18 becomes node 19\'s left child. The zig-zag shape (25 → 18 → 19) is straightened into a linear left-heavy chain (25 → 19 → 18). Now BF(25) = +2 and BF(19) = +1: the LR case is transformed into an LL case!',
+          status: 'IN_PROGRESS',
+          treeState: {
+            nodes: [
+              { id: 'n50', val: 50, x: 210, y: 35, left: 'n15', right: 'n85', balanceFactor: 0, height: 5 },
+              { id: 'n15', val: 15, x: 115, y: 85, left: 'n10', right: 'n25', balanceFactor: -2, height: 4 },
+              { id: 'n10', val: 10, x: 65, y: 140, balanceFactor: 0, height: 1 },
+              { id: 'n25', val: 25, x: 165, y: 140, left: 'n19', isImbalanced: true, isPivot: true, balanceFactor: 2, height: 3 },
+              { id: 'n19', val: 19, x: 140, y: 185, left: 'n18', isPivot: true, balanceFactor: 1, height: 2 },
+              { id: 'n18', val: 18, x: 115, y: 225, balanceFactor: 0, height: 1 },
+              { id: 'n85', val: 85, x: 305, y: 85, left: 'n75', right: 'n95', balanceFactor: 0, height: 2 },
+              { id: 'n75', val: 75, x: 260, y: 140, balanceFactor: 0, height: 1 },
+              { id: 'n95', val: 95, x: 350, y: 140, balanceFactor: 0, height: 1 },
+            ],
+            activeNodeId: 'n19',
+            rotationBanner: {
+              type: 'LR',
+              title: 'Phase 1 Complete: Left Rotation on Node 18',
+              description: 'Zig-zag straightened to linear chain 25 → 19 → 18. Case converted to LL.',
+              pivotVal: 18,
+            },
+          },
+          metrics: { 'Phase': '1 of 2 Complete', 'Transformed Case': 'Left-Left (LL)', 'Node 19 BF': '+1', 'Node 25 BF': '+2' },
+        },
+        {
+          stepIndex: 10,
+          title: 'LR Phase 2: Right Rotate Parent 25 (Balance Restored)',
+          explanation:
+            'Phase 2 of Double Rotation: Perform a Single Right Rotation on node 25 around pivot 19. Node 19 elevates to become node 15\'s right child. Node 18 remains 19\'s left child, and node 25 becomes 19\'s right child. Balance factors: BF(18)=0, BF(25)=0, BF(19)=0! Root 50 and node 15 heights and balance factors are perfectly restored. Total operations: O(1) pointer updates.',
+          status: 'COMPLETE',
+          treeState: {
+            nodes: [
+              { id: 'n50', val: 50, x: 210, y: 40, left: 'n15', right: 'n85', balanceFactor: 0, height: 3 },
+              { id: 'n15', val: 15, x: 115, y: 95, left: 'n10', right: 'n19', balanceFactor: 0, height: 2 },
+              { id: 'n10', val: 10, x: 65, y: 150, balanceFactor: 0, height: 1 },
+              { id: 'n19', val: 19, x: 165, y: 150, left: 'n18', right: 'n25', isPivot: true, balanceFactor: 0, height: 2 },
+              { id: 'n18', val: 18, x: 135, y: 205, balanceFactor: 0, height: 1 },
+              { id: 'n25', val: 25, x: 195, y: 205, balanceFactor: 0, height: 1 },
+              { id: 'n85', val: 85, x: 305, y: 95, left: 'n75', right: 'n95', balanceFactor: 0, height: 2 },
+              { id: 'n75', val: 75, x: 260, y: 150, balanceFactor: 0, height: 1 },
+              { id: 'n95', val: 95, x: 350, y: 150, balanceFactor: 0, height: 1 },
+            ],
+            activeNodeId: 'n19',
+            rotationBanner: {
+              type: 'LR',
+              title: 'Double Rotation Complete: Balance Restored',
+              description: 'Node 19 is now root of balanced subtree. All nodes satisfy |BF| ≤ 1.',
+              pivotVal: 19,
+            },
+          },
+          metrics: { 'Subtree Root': 19, 'Node 19 BF': 0, 'Subtree Height': 2, Status: 'Globally Balanced AVL' },
+        },
+      ];
+    },
+  },
 ];
 
 export function AlgorithmVisualizerSandbox() {
@@ -1233,18 +1525,39 @@ export function AlgorithmVisualizerSandbox() {
           </div>
         )}
 
-        {/* Tree Display (for BST_INSERTION_INORDER) */}
+        {/* Tree Display (for BST_INSERTION_INORDER & AVL_TREE_ROTATIONS) */}
         {currentFrame.treeState && (
           <div className="space-y-4">
+            {/* AVL Rotation Alert Banner */}
+            {currentFrame.treeState.rotationBanner && (
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold px-2 py-0.5 rounded bg-amber-600 text-white text-[11px] font-mono shrink-0">
+                    {currentFrame.treeState.rotationBanner.type} ROTATION
+                  </span>
+                  <span className="font-bold text-text">
+                    {currentFrame.treeState.rotationBanner.title}
+                  </span>
+                </div>
+                <span className="text-text-muted text-xs">
+                  {currentFrame.treeState.rotationBanner.description}
+                </span>
+              </div>
+            )}
+
             <div className="flex items-center justify-between text-xs text-text-muted">
-              <span className="font-semibold">Binary Search Tree Layout</span>
+              <span className="font-semibold">
+                {selectedAlgoId === 'AVL_TREE_ROTATIONS'
+                  ? 'Self-Balancing AVL Tree Topology (Balance Factors & Heights)'
+                  : 'Binary Search Tree Layout'}
+              </span>
               <span className="font-mono">Total Nodes: {currentFrame.treeState.nodes.length}</span>
             </div>
 
             <div className="w-full flex justify-center overflow-x-auto py-2">
               <svg
-                viewBox="0 0 400 220"
-                className="w-full max-w-[480px] h-52 bg-surface rounded-lg border border-border shadow-2xs"
+                viewBox="0 0 420 255"
+                className="w-full max-w-[520px] h-60 bg-surface rounded-lg border border-border shadow-2xs"
               >
                 {/* Tree Edges */}
                 {currentFrame.treeState.nodes.map((node) => {
@@ -1282,12 +1595,22 @@ export function AlgorithmVisualizerSandbox() {
                   const isActive = currentFrame.treeState!.activeNodeId === node.id;
                   const isCompared = currentFrame.treeState!.comparedNodeId === node.id;
                   const isNew = node.isNew;
+                  const isImbalanced = node.isImbalanced;
+                  const isPivot = node.isPivot;
 
                   let fill = '#ffffff';
                   let stroke = '#cbd5e1';
                   let textFill = '#1e293b';
 
-                  if (isNew) {
+                  if (isImbalanced) {
+                    fill = '#fee2e2';
+                    stroke = '#ef4444';
+                    textFill = '#b91c1c';
+                  } else if (isPivot) {
+                    fill = '#ede9fe';
+                    stroke = '#8b5cf6';
+                    textFill = '#6d28d9';
+                  } else if (isNew) {
                     fill = '#10b981';
                     stroke = '#059669';
                     textFill = '#ffffff';
@@ -1303,6 +1626,7 @@ export function AlgorithmVisualizerSandbox() {
 
                   return (
                     <g key={node.id} className="transition-all duration-200">
+                      {/* Pulse ring for active nodes */}
                       {isActive && (
                         <circle
                           cx={node.x}
@@ -1315,6 +1639,35 @@ export function AlgorithmVisualizerSandbox() {
                           className="animate-pulse"
                         />
                       )}
+
+                      {/* Imbalance warning ring */}
+                      {isImbalanced && (
+                        <circle
+                          cx={node.x}
+                          cy={node.y}
+                          r="24"
+                          fill="none"
+                          stroke="#ef4444"
+                          strokeWidth="2"
+                          strokeDasharray="4 2"
+                        />
+                      )}
+
+                      {/* Pivot highlight ring */}
+                      {isPivot && !isImbalanced && (
+                        <circle
+                          cx={node.x}
+                          cy={node.y}
+                          r="23"
+                          fill="none"
+                          stroke="#8b5cf6"
+                          strokeWidth="2"
+                          opacity="0.7"
+                          className="animate-pulse"
+                        />
+                      )}
+
+                      {/* Main Node Circle */}
                       <circle
                         cx={node.x}
                         cy={node.y}
@@ -1323,6 +1676,8 @@ export function AlgorithmVisualizerSandbox() {
                         stroke={stroke}
                         strokeWidth="2.5"
                       />
+
+                      {/* Node Value Text */}
                       <text
                         x={node.x}
                         y={node.y}
@@ -1333,6 +1688,45 @@ export function AlgorithmVisualizerSandbox() {
                       >
                         {node.val}
                       </text>
+
+                      {/* Balance Factor Pill Badge */}
+                      {node.balanceFactor !== undefined && (
+                        <g>
+                          <rect
+                            x={node.x - 18}
+                            y={node.y - 30}
+                            width="36"
+                            height="13"
+                            rx="3"
+                            fill={
+                              isImbalanced
+                                ? '#ef4444'
+                                : Math.abs(node.balanceFactor) > 0
+                                ? '#d97706'
+                                : '#10b981'
+                            }
+                          />
+                          <text
+                            x={node.x}
+                            y={node.y - 20}
+                            textAnchor="middle"
+                            className="text-[9px] font-bold font-mono fill-white select-none"
+                          >
+                            BF:{node.balanceFactor > 0 ? `+${node.balanceFactor}` : node.balanceFactor}
+                          </text>
+                        </g>
+                      )}
+
+                      {/* Node Height Indicator */}
+                      {node.height !== undefined && (
+                        <text
+                          x={node.x + 18}
+                          y={node.y + 13}
+                          className="text-[9px] font-mono font-bold fill-slate-500 select-none"
+                        >
+                          h={node.height}
+                        </text>
+                      )}
                     </g>
                   );
                 })}

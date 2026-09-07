@@ -240,3 +240,134 @@ export async function createMicrophoneSpectrumAnalyzer(): Promise<AudioSpectrumA
   }
 }
 
+export interface SpeechFluencyAnalysis {
+  totalWords: number;
+  fillerCount: number;
+  fillerDensityPer100: number;
+  fillerBreakdown: Record<string, number>;
+  fluencyScore: number;
+  fluencyGrade: 'EXEMPLARY' | 'PROFICIENT' | 'CONVERSATIONAL' | 'NEEDS_REVISION';
+  hesitationPauses: number;
+  articulationPaceWpm: number;
+  cadenceDescription: string;
+}
+
+export const FILLER_WORDS: readonly string[] = [
+  'you know',
+  'sort of',
+  'kind of',
+  'i mean',
+  'um',
+  'uh',
+  'like',
+  'basically',
+  'actually',
+  'literally',
+  'right',
+];
+
+/**
+ * Analyzes conversational transcripts for verbal crutches, filler words, hesitation pauses,
+ * and delivery cadence, computing a calibrated technical articulation fluency score (0 - 100).
+ */
+export function analyzeSpeechFluency(
+  transcript: string,
+  durationMinutes = 1,
+  hesitationPauses = 0,
+): SpeechFluencyAnalysis {
+  if (!transcript || !transcript.trim()) {
+    return {
+      totalWords: 0,
+      fillerCount: 0,
+      fillerDensityPer100: 0,
+      fillerBreakdown: {},
+      fluencyScore: 100,
+      fluencyGrade: 'EXEMPLARY',
+      hesitationPauses,
+      articulationPaceWpm: 0,
+      cadenceDescription: 'Zero Verbal Output',
+    };
+  }
+
+  let workingText = transcript.toLowerCase();
+  const fillerBreakdown: Record<string, number> = {};
+  let totalFillerOccurrences = 0;
+
+  // 1. Detect multi-word phrases first
+  for (const phrase of FILLER_WORDS) {
+    if (phrase.includes(' ')) {
+      const regex = new RegExp(`\\b${phrase}\\b`, 'gi');
+      const matches = workingText.match(regex);
+      if (matches && matches.length > 0) {
+        fillerBreakdown[phrase] = matches.length;
+        totalFillerOccurrences += matches.length;
+        workingText = workingText.replace(regex, ' ');
+      }
+    }
+  }
+
+  // 2. Tokenize words for single-word analysis
+  const words = workingText
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean);
+
+  const originalWordTokens = transcript
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  const totalWords = originalWordTokens.length;
+
+  for (const word of words) {
+    if (FILLER_WORDS.includes(word)) {
+      fillerBreakdown[word] = (fillerBreakdown[word] || 0) + 1;
+      totalFillerOccurrences += 1;
+    }
+  }
+
+  const fillerDensityPer100 =
+    totalWords > 0 ? Number(((totalFillerOccurrences / totalWords) * 100).toFixed(1)) : 0;
+
+  const validMinutes = Math.max(0.5, durationMinutes);
+  const articulationPaceWpm = Math.round(totalWords / validMinutes);
+
+  let cadenceDescription = 'Optimal Technical Cadence';
+  if (articulationPaceWpm < 100) {
+    cadenceDescription = 'Deliberate Cadence';
+  } else if (articulationPaceWpm > 165) {
+    cadenceDescription = 'Rapid Articulation';
+  }
+
+  let score = 100;
+  if (fillerDensityPer100 > 1.0) {
+    score -= Math.round((fillerDensityPer100 - 1.0) * 5);
+  }
+  if (hesitationPauses > 2) {
+    score -= (hesitationPauses - 2) * 2;
+  }
+  const fluencyScore = Math.max(40, Math.min(100, score));
+
+  let fluencyGrade: 'EXEMPLARY' | 'PROFICIENT' | 'CONVERSATIONAL' | 'NEEDS_REVISION' = 'EXEMPLARY';
+  if (fluencyScore >= 90) {
+    fluencyGrade = 'EXEMPLARY';
+  } else if (fluencyScore >= 75) {
+    fluencyGrade = 'PROFICIENT';
+  } else if (fluencyScore >= 60) {
+    fluencyGrade = 'CONVERSATIONAL';
+  } else {
+    fluencyGrade = 'NEEDS_REVISION';
+  }
+
+  return {
+    totalWords,
+    fillerCount: totalFillerOccurrences,
+    fillerDensityPer100,
+    fillerBreakdown,
+    fluencyScore,
+    fluencyGrade,
+    hesitationPauses,
+    articulationPaceWpm,
+    cadenceDescription,
+  };
+}
+

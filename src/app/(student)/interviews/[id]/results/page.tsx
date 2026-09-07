@@ -8,7 +8,11 @@ import {
   type InterviewSessionData,
 } from '../../../../../lib/interview-client';
 import { Button } from '../../../../../components/ui/Button';
-import { speakText, isSpeechSynthesisSupported } from '../../../../../lib/speech';
+import {
+  speakText,
+  isSpeechSynthesisSupported,
+  analyzeSpeechFluency,
+} from '../../../../../lib/speech';
 import { VoiceWaveform } from '../../../../../components/interview/VoiceWaveform';
 
 const SYSTEMS_ENGINEERING_KEYWORDS = [
@@ -174,6 +178,17 @@ export default function InterviewResultsPage() {
     const escaped = kw.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
     return new RegExp(`(?:^|\\W)${escaped}(?:$|\\W)`, 'i').test(candidateFullText);
   });
+
+  const fluencyAnalysis = analyzeSpeechFluency(candidateFullText, elapsedMinutes);
+
+  let fluencyBadgeColor = 'text-emerald-800 bg-emerald-50 border-emerald-200';
+  if (fluencyAnalysis.fluencyGrade === 'PROFICIENT') {
+    fluencyBadgeColor = 'text-primary-800 bg-primary-50 border-primary-200';
+  } else if (fluencyAnalysis.fluencyGrade === 'CONVERSATIONAL') {
+    fluencyBadgeColor = 'text-amber-800 bg-amber-50 border-amber-200';
+  } else if (fluencyAnalysis.fluencyGrade === 'NEEDS_REVISION') {
+    fluencyBadgeColor = 'text-error-800 bg-error-50 border-error-200';
+  }
 
   return (
     <div className="min-h-dvh flex flex-col bg-canvas text-text">
@@ -377,7 +392,7 @@ export default function InterviewResultsPage() {
         </section>
 
         {/* Verbal Articulation & Systems Vocabulary Telemetry */}
-        <section className="bg-surface border border-border rounded-2xl p-6 shadow-xs space-y-4">
+        <section className="bg-surface border border-border rounded-2xl p-6 shadow-xs space-y-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-primary-600" />
@@ -393,6 +408,54 @@ export default function InterviewResultsPage() {
                 {candidateWordCount} Total Words
               </span>
             </div>
+          </div>
+
+          {/* Articulation Fluency & Filler-Word Diagnostic Subcard */}
+          <div className="p-4 rounded-xl bg-canvas border border-border space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-text-muted">
+                  Articulation Fluency Score:
+                </span>
+                <span className="text-sm font-bold text-text tabular-nums">
+                  {fluencyAnalysis.fluencyScore}%
+                </span>
+                <span className={`text-[11px] font-bold px-2 py-0.5 rounded border ${fluencyBadgeColor}`}>
+                  {fluencyAnalysis.fluencyGrade}
+                </span>
+              </div>
+              <div className="text-xs text-text-muted">
+                Filler Density:{' '}
+                <strong className="text-text">
+                  {fluencyAnalysis.fillerDensityPer100} per 100 words
+                </strong>{' '}
+                ({fluencyAnalysis.fillerCount} total)
+              </div>
+            </div>
+
+            {Object.keys(fluencyAnalysis.fillerBreakdown).length > 0 ? (
+              <div className="space-y-1.5 pt-1">
+                <span className="text-[11px] font-semibold text-text-muted">
+                  Detected Conversational Filler Phrases:
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {Object.entries(fluencyAnalysis.fillerBreakdown).map(([phrase, count]) => (
+                    <span
+                      key={phrase}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-amber-50 text-amber-900 border border-amber-200"
+                    >
+                      <span>&ldquo;{phrase}&rdquo;</span>
+                      <span className="font-bold tabular-nums">×{count}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="text-xs text-success-800 font-medium flex items-center gap-1.5 pt-1">
+                <span>✓</span>
+                <span>Zero conversational fillers detected. Excellent technical eloquence!</span>
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">

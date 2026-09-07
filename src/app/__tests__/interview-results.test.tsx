@@ -102,6 +102,8 @@ describe('InterviewResultsPage', () => {
     expect(screen.getByText('Articulation Clarity')).toBeDefined();
     expect(screen.getByText('Speech Cadence')).toBeDefined();
     expect(screen.getByText(/Verbal Articulation & Systems Vocabulary Telemetry/i)).toBeDefined();
+    expect(screen.getByText(/Articulation Fluency Score:/i)).toBeDefined();
+    expect(screen.getByText(/Zero conversational fillers detected/i)).toBeDefined();
 
     // Strengths
     expect(
