@@ -273,4 +273,37 @@ describe('LiveInterviewRoomPage', () => {
     expect((textarea as HTMLTextAreaElement).value).toContain('Proposed Architecture Topology');
     expect((textarea as HTMLTextAreaElement).value).toContain('Caching Strategy');
   });
+
+  it('renders Architectural Concept Density HUD, updates CDI in real time, and injects precision tokens', async () => {
+    render(<LiveInterviewRoomPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Cloud & DevOps Engineer')).toBeDefined();
+    });
+
+    expect(screen.getByTestId('concept-density-hud')).toBeDefined();
+    expect(screen.getByText('Architectural Concept Density')).toBeDefined();
+    expect(screen.getByText('Foundational Developer')).toBeDefined();
+
+    // Type technical systems concepts into textarea
+    const textarea = screen.getByPlaceholderText(/Type your technical response/i);
+    fireEvent.change(textarea, {
+      target: {
+        value: 'We deploy a Raft consensus cluster with a quorum of 3 nodes to ensure idempotency and prevent split-brain.',
+      },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/CDI:/i)).toBeDefined();
+      expect(screen.getAllByText(/raft/i).length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText(/quorum/i).length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText(/idempotency/i).length).toBeGreaterThanOrEqual(1);
+    });
+
+    // Click precision recommendation token
+    const recTokens = screen.getAllByRole('button', { name: /\+ /i });
+    expect(recTokens.length).toBeGreaterThan(0);
+    fireEvent.click(recTokens[0]);
+    expect((textarea as HTMLTextAreaElement).value.length).toBeGreaterThan(100);
+  });
 });

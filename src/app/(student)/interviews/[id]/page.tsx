@@ -23,6 +23,7 @@ import { StageStepper } from '../../../../components/interview/StageStepper';
 import { Button } from '../../../../components/ui/Button';
 import { Badge } from '../../../../components/ui/Badge';
 import { ArchitectureWhiteboard } from '../../../../components/interview/ArchitectureWhiteboard';
+import { ConceptDensityHUD } from '../../../../components/interview/ConceptDensityHUD';
 
 export default function LiveInterviewRoomPage() {
   const params = useParams();
@@ -735,6 +736,15 @@ export default function LiveInterviewRoomPage() {
                     )}
                   </div>
                 )}
+
+                {/* Real-Time Architectural Concept Density & Socratic Vocabulary HUD */}
+                <ConceptDensityHUD
+                  inputText={inputText}
+                  isListening={isListening}
+                  onInjectRecommendation={(term) => {
+                    setInputText((prev) => (prev ? `${prev} ${term}` : term));
+                  }}
+                />
 
                 {/* Textarea & Mic Action */}
                 <div className="flex items-end gap-2">

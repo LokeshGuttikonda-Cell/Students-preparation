@@ -371,3 +371,286 @@ export function analyzeSpeechFluency(
   };
 }
 
+// ==========================================
+// Architectural Concept Density Intelligence
+// ==========================================
+
+export type SystemsDomain =
+  | 'DISTRIBUTED_SYSTEMS'
+  | 'RESILIENCE'
+  | 'CONCURRENCY'
+  | 'DATABASE_STORAGE'
+  | 'NETWORKING'
+  | 'OBSERVABILITY';
+
+export interface DetectedConcept {
+  term: string;
+  domain: SystemsDomain;
+  count: number;
+}
+
+export type ArticulationTier =
+  | 'STAFF_ARCHITECT'
+  | 'SENIOR_ENGINEER'
+  | 'INTERMEDIATE_ENGINEER'
+  | 'FOUNDATIONAL_DEVELOPER';
+
+export interface ConceptDensityAnalysis {
+  totalWords: number;
+  uniqueConceptsCount: number;
+  totalConceptHits: number;
+  densityIndex: number; // 0 - 100
+  tier: ArticulationTier;
+  tierLabel: string;
+  detectedConcepts: DetectedConcept[];
+  domainCoverage: Record<SystemsDomain, number>;
+  coveredDomainCount: number;
+  recommendations: string[];
+}
+
+export const SYSTEMS_CONCEPT_DICTIONARY: readonly { term: string; domain: SystemsDomain }[] = [
+  // DISTRIBUTED_SYSTEMS
+  { term: 'raft', domain: 'DISTRIBUTED_SYSTEMS' },
+  { term: 'paxos', domain: 'DISTRIBUTED_SYSTEMS' },
+  { term: 'quorum', domain: 'DISTRIBUTED_SYSTEMS' },
+  { term: 'consensus', domain: 'DISTRIBUTED_SYSTEMS' },
+  { term: 'leader election', domain: 'DISTRIBUTED_SYSTEMS' },
+  { term: 'split brain', domain: 'DISTRIBUTED_SYSTEMS' },
+  { term: 'split-brain', domain: 'DISTRIBUTED_SYSTEMS' },
+  { term: 'vector clock', domain: 'DISTRIBUTED_SYSTEMS' },
+  { term: 'cap theorem', domain: 'DISTRIBUTED_SYSTEMS' },
+  { term: 'eventual consistency', domain: 'DISTRIBUTED_SYSTEMS' },
+  { term: 'strong consistency', domain: 'DISTRIBUTED_SYSTEMS' },
+  { term: 'linearizability', domain: 'DISTRIBUTED_SYSTEMS' },
+  { term: 'two-phase commit', domain: 'DISTRIBUTED_SYSTEMS' },
+  { term: 'two phase commit', domain: 'DISTRIBUTED_SYSTEMS' },
+  { term: '2pc', domain: 'DISTRIBUTED_SYSTEMS' },
+  { term: 'gossip protocol', domain: 'DISTRIBUTED_SYSTEMS' },
+  { term: 'consistent hashing', domain: 'DISTRIBUTED_SYSTEMS' },
+  { term: 'replication factor', domain: 'DISTRIBUTED_SYSTEMS' },
+
+  // RESILIENCE
+  { term: 'circuit breaker', domain: 'RESILIENCE' },
+  { term: 'backpressure', domain: 'RESILIENCE' },
+  { term: 'rate limiting', domain: 'RESILIENCE' },
+  { term: 'rate limiter', domain: 'RESILIENCE' },
+  { term: 'token bucket', domain: 'RESILIENCE' },
+  { term: 'leaky bucket', domain: 'RESILIENCE' },
+  { term: 'exponential backoff', domain: 'RESILIENCE' },
+  { term: 'jitter', domain: 'RESILIENCE' },
+  { term: 'bulkhead', domain: 'RESILIENCE' },
+  { term: 'failover', domain: 'RESILIENCE' },
+  { term: 'idempotency', domain: 'RESILIENCE' },
+  { term: 'idempotent', domain: 'RESILIENCE' },
+  { term: 'retry storm', domain: 'RESILIENCE' },
+  { term: 'graceful degradation', domain: 'RESILIENCE' },
+  { term: 'health check', domain: 'RESILIENCE' },
+  { term: 'dead letter queue', domain: 'RESILIENCE' },
+  { term: 'fallback', domain: 'RESILIENCE' },
+
+  // CONCURRENCY
+  { term: 'race condition', domain: 'CONCURRENCY' },
+  { term: 'mutex', domain: 'CONCURRENCY' },
+  { term: 'semaphore', domain: 'CONCURRENCY' },
+  { term: 'lock contention', domain: 'CONCURRENCY' },
+  { term: 'atomicity', domain: 'CONCURRENCY' },
+  { term: 'atomic', domain: 'CONCURRENCY' },
+  { term: 'thread starvation', domain: 'CONCURRENCY' },
+  { term: 'deadlock', domain: 'CONCURRENCY' },
+  { term: 'livelock', domain: 'CONCURRENCY' },
+  { term: 'optimistic locking', domain: 'CONCURRENCY' },
+  { term: 'pessimistic locking', domain: 'CONCURRENCY' },
+  { term: 'compare and swap', domain: 'CONCURRENCY' },
+  { term: 'cas', domain: 'CONCURRENCY' },
+  { term: 'thread pool', domain: 'CONCURRENCY' },
+  { term: 'goroutine', domain: 'CONCURRENCY' },
+  { term: 'memory barrier', domain: 'CONCURRENCY' },
+
+  // DATABASE_STORAGE
+  { term: 'write ahead log', domain: 'DATABASE_STORAGE' },
+  { term: 'write-ahead log', domain: 'DATABASE_STORAGE' },
+  { term: 'wal', domain: 'DATABASE_STORAGE' },
+  { term: 'lsm tree', domain: 'DATABASE_STORAGE' },
+  { term: 'lsm-tree', domain: 'DATABASE_STORAGE' },
+  { term: 'b-tree', domain: 'DATABASE_STORAGE' },
+  { term: 'b+ tree', domain: 'DATABASE_STORAGE' },
+  { term: 'connection pool', domain: 'DATABASE_STORAGE' },
+  { term: 'read replica', domain: 'DATABASE_STORAGE' },
+  { term: 'sharding', domain: 'DATABASE_STORAGE' },
+  { term: 'query planner', domain: 'DATABASE_STORAGE' },
+  { term: 'acid', domain: 'DATABASE_STORAGE' },
+  { term: 'isolation level', domain: 'DATABASE_STORAGE' },
+  { term: 'write amplification', domain: 'DATABASE_STORAGE' },
+  { term: 'compaction', domain: 'DATABASE_STORAGE' },
+  { term: 'bloom filter', domain: 'DATABASE_STORAGE' },
+  { term: 'cache aside', domain: 'DATABASE_STORAGE' },
+  { term: 'cache-aside', domain: 'DATABASE_STORAGE' },
+  { term: 'denormalization', domain: 'DATABASE_STORAGE' },
+
+  // NETWORKING
+  { term: 'tcp handshake', domain: 'NETWORKING' },
+  { term: 'tail latency', domain: 'NETWORKING' },
+  { term: 'p99', domain: 'NETWORKING' },
+  { term: 'p95', domain: 'NETWORKING' },
+  { term: 'multiplexing', domain: 'NETWORKING' },
+  { term: 'grpc', domain: 'NETWORKING' },
+  { term: 'tls', domain: 'NETWORKING' },
+  { term: 'reverse proxy', domain: 'NETWORKING' },
+  { term: 'load balancing', domain: 'NETWORKING' },
+  { term: 'load balancer', domain: 'NETWORKING' },
+  { term: 'head of line blocking', domain: 'NETWORKING' },
+  { term: 'head-of-line blocking', domain: 'NETWORKING' },
+  { term: 'keep alive', domain: 'NETWORKING' },
+  { term: 'keep-alive', domain: 'NETWORKING' },
+  { term: 'zero copy', domain: 'NETWORKING' },
+  { term: 'zero-copy', domain: 'NETWORKING' },
+  { term: 'http/2', domain: 'NETWORKING' },
+  { term: 'http/3', domain: 'NETWORKING' },
+  { term: 'quic', domain: 'NETWORKING' },
+
+  // OBSERVABILITY
+  { term: 'distributed tracing', domain: 'OBSERVABILITY' },
+  { term: 'structured logging', domain: 'OBSERVABILITY' },
+  { term: 'red method', domain: 'OBSERVABILITY' },
+  { term: 'use method', domain: 'OBSERVABILITY' },
+  { term: 'slo', domain: 'OBSERVABILITY' },
+  { term: 'sli', domain: 'OBSERVABILITY' },
+  { term: 'sla', domain: 'OBSERVABILITY' },
+  { term: 'cardinality', domain: 'OBSERVABILITY' },
+  { term: 'golden signals', domain: 'OBSERVABILITY' },
+  { term: 'opentelemetry', domain: 'OBSERVABILITY' },
+  { term: 'metrics', domain: 'OBSERVABILITY' },
+  { term: 'telemetry', domain: 'OBSERVABILITY' },
+];
+
+const DOMAIN_RECOMMENDATIONS: Record<SystemsDomain, string[]> = {
+  DISTRIBUTED_SYSTEMS: ['Quorum Consensus', 'Leader Election', 'Linearizability', 'Two-Phase Commit'],
+  RESILIENCE: ['Idempotency', 'Circuit Breaker', 'Backpressure', 'Exponential Backoff'],
+  CONCURRENCY: ['Lock Contention', 'Atomic CAS', 'Optimistic Locking', 'Thread Starvation'],
+  DATABASE_STORAGE: ['Write-Ahead Log', 'LSM-Tree Compaction', 'Read Replicas', 'Sharding'],
+  NETWORKING: ['Tail Latency (p99)', 'HTTP/2 Multiplexing', 'Reverse Proxy', 'Zero-Copy'],
+  OBSERVABILITY: ['Distributed Tracing', 'RED Method', 'SLO / SLI Thresholds', 'Structured Logging'],
+};
+
+/**
+ * Evaluates architectural and systems engineering concept density from verbal transcripts
+ * or written candidate responses, computing real-time domain coverage and precision vocabulary recommendations.
+ */
+export function analyzeConceptDensity(text: string): ConceptDensityAnalysis {
+  const initialDomainCoverage: Record<SystemsDomain, number> = {
+    DISTRIBUTED_SYSTEMS: 0,
+    RESILIENCE: 0,
+    CONCURRENCY: 0,
+    DATABASE_STORAGE: 0,
+    NETWORKING: 0,
+    OBSERVABILITY: 0,
+  };
+
+  if (!text || !text.trim()) {
+    return {
+      totalWords: 0,
+      uniqueConceptsCount: 0,
+      totalConceptHits: 0,
+      densityIndex: 0,
+      tier: 'FOUNDATIONAL_DEVELOPER',
+      tierLabel: 'Foundational Developer',
+      detectedConcepts: [],
+      domainCoverage: initialDomainCoverage,
+      coveredDomainCount: 0,
+      recommendations: ['Idempotency', 'Quorum Consensus', 'Circuit Breaker', 'Tail Latency (p99)'],
+    };
+  }
+
+  const words = text
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  const totalWords = words.length;
+
+  const lowerText = text.toLowerCase();
+  const detectedMap = new Map<string, { term: string; domain: SystemsDomain; count: number }>();
+  const domainCoverage: Record<SystemsDomain, number> = { ...initialDomainCoverage };
+
+  // Sort dictionary by term length descending so longer phrases match first
+  const sortedDict = [...SYSTEMS_CONCEPT_DICTIONARY].sort((a, b) => b.term.length - a.term.length);
+
+  for (const item of sortedDict) {
+    // Escape regex characters (e.g. +, /)
+    const escaped = item.term.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+    const regex = new RegExp(`\\b${escaped}\\b`, 'gi');
+    const matches = lowerText.match(regex);
+    if (matches && matches.length > 0) {
+      if (!detectedMap.has(item.term)) {
+        detectedMap.set(item.term, {
+          term: item.term,
+          domain: item.domain,
+          count: matches.length,
+        });
+        domainCoverage[item.domain] = (domainCoverage[item.domain] || 0) + matches.length;
+      }
+    }
+  }
+
+  const detectedConcepts = Array.from(detectedMap.values());
+  const uniqueConceptsCount = detectedConcepts.length;
+  const totalConceptHits = detectedConcepts.reduce((acc, c) => acc + c.count, 0);
+
+  const coveredDomainCount = Object.values(domainCoverage).filter((count) => count > 0).length;
+
+  // Concept Density Index calculation
+  const baseRatio = uniqueConceptsCount / (totalWords + 12);
+  const rawScore = Math.round(baseRatio * 380 + coveredDomainCount * 8 + Math.min(20, totalConceptHits * 3));
+  const densityIndex = Math.max(0, Math.min(100, rawScore));
+
+  let tier: ArticulationTier = 'FOUNDATIONAL_DEVELOPER';
+  let tierLabel = 'Foundational Developer';
+
+  if (densityIndex >= 75) {
+    tier = 'STAFF_ARCHITECT';
+    tierLabel = 'Staff Systems Architect';
+  } else if (densityIndex >= 50) {
+    tier = 'SENIOR_ENGINEER';
+    tierLabel = 'Senior Systems Engineer';
+  } else if (densityIndex >= 25) {
+    tier = 'INTERMEDIATE_ENGINEER';
+    tierLabel = 'Intermediate Engineer';
+  }
+
+  // Generate recommendations from unrepresented domains
+  const recommendations: string[] = [];
+  const domains: SystemsDomain[] = [
+    'DISTRIBUTED_SYSTEMS',
+    'RESILIENCE',
+    'CONCURRENCY',
+    'DATABASE_STORAGE',
+    'NETWORKING',
+    'OBSERVABILITY',
+  ];
+
+  for (const d of domains) {
+    if (domainCoverage[d] === 0) {
+      const candidates = DOMAIN_RECOMMENDATIONS[d];
+      if (candidates && candidates.length > 0) {
+        recommendations.push(candidates[0]);
+      }
+    }
+  }
+
+  // Default recommendations if all covered
+  if (recommendations.length === 0) {
+    recommendations.push('Zero-Copy Buffering', 'Memory Barrier', 'Graceful Degradation');
+  }
+
+  return {
+    totalWords,
+    uniqueConceptsCount,
+    totalConceptHits,
+    densityIndex,
+    tier,
+    tierLabel,
+    detectedConcepts,
+    domainCoverage,
+    coveredDomainCount,
+    recommendations: recommendations.slice(0, 4),
+  };
+}

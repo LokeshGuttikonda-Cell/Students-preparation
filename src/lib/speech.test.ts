@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import {
   analyzeSpeechFluency,
+  analyzeConceptDensity,
   isSpeechRecognitionSupported,
   isSpeechSynthesisSupported,
   speakText,
@@ -106,6 +107,57 @@ describe('Speech Utilities', () => {
 
       expect(result.articulationPaceWpm).toBe(180);
       expect(result.cadenceDescription).toBe('Rapid Articulation');
+    });
+  });
+
+  describe('analyzeConceptDensity', () => {
+    it('returns zero density and foundational tier for empty input', () => {
+      const result = analyzeConceptDensity('');
+      expect(result.totalWords).toBe(0);
+      expect(result.uniqueConceptsCount).toBe(0);
+      expect(result.densityIndex).toBe(0);
+      expect(result.tier).toBe('FOUNDATIONAL_DEVELOPER');
+      expect(result.coveredDomainCount).toBe(0);
+      expect(result.recommendations.length).toBeGreaterThan(0);
+    });
+
+    it('returns foundational tier for colloquial answers lacking architectural keywords', () => {
+      const result = analyzeConceptDensity('I wrote the application code, connected it to the database, and ran it.');
+      expect(result.uniqueConceptsCount).toBe(0);
+      expect(result.densityIndex).toBe(0);
+      expect(result.tier).toBe('FOUNDATIONAL_DEVELOPER');
+      expect(result.recommendations.length).toBeGreaterThan(0);
+    });
+
+    it('extracts multi-domain systems concepts and computes high CDI and Staff/Senior tier', () => {
+      const staffResponse =
+        'We configure a Raft consensus cluster with 5 nodes, requiring a quorum of 3 nodes to ensure idempotency, prevent split-brain, and maintain a write-ahead log with p99 tail latency guarantees.';
+      const result = analyzeConceptDensity(staffResponse);
+
+      expect(result.uniqueConceptsCount).toBeGreaterThanOrEqual(6);
+      expect(result.coveredDomainCount).toBeGreaterThanOrEqual(3);
+      expect(result.densityIndex).toBeGreaterThanOrEqual(60);
+      expect(['STAFF_ARCHITECT', 'SENIOR_ENGINEER']).toContain(result.tier);
+
+      // Verify detected concepts include specific extracted terms
+      const termNames = result.detectedConcepts.map((c) => c.term);
+      expect(termNames).toContain('raft');
+      expect(termNames).toContain('quorum');
+      expect(termNames).toContain('idempotency');
+      expect(termNames).toContain('split-brain');
+      expect(termNames).toContain('write-ahead log');
+      expect(termNames).toContain('tail latency');
+    });
+
+    it('generates precision vocabulary recommendations for unrepresented domains', () => {
+      // Input only mentions networking terms
+      const networkOnly = 'We analyze TCP handshake latency, TLS handshake, reverse proxy, and p99 metrics.';
+      const result = analyzeConceptDensity(networkOnly);
+
+      expect(result.domainCoverage.NETWORKING).toBeGreaterThan(0);
+      // Recommendations should target other domains (e.g. Distributed, Resilience, Storage)
+      expect(result.recommendations.length).toBeGreaterThan(0);
+      expect(result.recommendations.some((r) => r.includes('Quorum') || r.includes('Idempotency') || r.includes('Write-Ahead'))).toBe(true);
     });
   });
 });
