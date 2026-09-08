@@ -17,6 +17,7 @@ import { getRoles, type RoleTrackItem } from '../../../lib/roles-client';
 import { RoleReadinessWidget } from '../../../components/analytics/RoleReadinessWidget';
 import { CompetencyGapAnalyzer } from '../../../components/analytics/CompetencyGapAnalyzer';
 import { MultiRoleArchitecturalRadar } from '../../../components/analytics/MultiRoleArchitecturalRadar';
+import { LongitudinalGrowthTracker } from '../../../components/analytics/LongitudinalGrowthTracker';
 import { WeakAreaCard } from '../../../components/analytics/WeakAreaCard';
 import { AttemptHistoryTable } from '../../../components/analytics/AttemptHistoryTable';
 import { StreakWidget } from '../../../components/dashboard/StreakWidget';
@@ -197,6 +198,11 @@ export default function StudentDashboardPage() {
         {/* Multi-Role Architectural Competency Matrix (Session 42) */}
         <section className="space-y-4">
           <MultiRoleArchitecturalRadar />
+        </section>
+
+        {/* Longitudinal Vocabulary Growth & Architectural Drift (Session 54) */}
+        <section className="space-y-4">
+          <LongitudinalGrowthTracker />
         </section>
 
         {/* Top KPI Cards */}

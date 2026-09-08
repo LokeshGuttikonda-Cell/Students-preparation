@@ -189,5 +189,12 @@ describe('StudentDashboardPage Integration', () => {
     // Toggle off secondary role overlay
     fireEvent.click(secondaryToggle);
     expect(secondaryToggle).not.toBeChecked();
+
+    // Check Longitudinal Vocabulary Growth & Architectural Drift (Session 54)
+    const longitudinalTracker = screen.getByTestId('longitudinal-growth-tracker');
+    expect(longitudinalTracker).toBeInTheDocument();
+    expect(screen.getByText('Longitudinal Articulation Radar')).toBeInTheDocument();
+    expect(screen.getByText('Technical Vocabulary Growth & Architectural Drift')).toBeInTheDocument();
+    expect(screen.getByText('Net Concept Density Gain')).toBeInTheDocument();
   });
 });
