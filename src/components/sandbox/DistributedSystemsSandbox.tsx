@@ -8,7 +8,64 @@ export type DistributedMode =
   | 'RATE_LIMITER'
   | 'CIRCUIT_BREAKER'
   | 'RAFT_CONSENSUS'
-  | 'VECTOR_CLOCKS';
+  | 'VECTOR_CLOCKS'
+  | 'TWO_PHASE_COMMIT_SAGA';
+
+export type TxArchitecture = 'TWO_PHASE_COMMIT' | 'DISTRIBUTED_SAGA';
+
+export type TwoPhaseCoordinatorState =
+  | 'IDLE'
+  | 'PREPARING'
+  | 'ALL_PREPARED'
+  | 'COMMITTING'
+  | 'COMMITTED'
+  | 'ABORTING'
+  | 'ABORTED'
+  | 'CRASHED_BLOCKING';
+
+export type TwoPhaseParticipantStatus =
+  | 'IDLE'
+  | 'PREPARED'
+  | 'COMMITTED'
+  | 'ABORTED';
+
+export interface TwoPhaseParticipant {
+  id: 'order' | 'payment' | 'inventory';
+  name: string;
+  resource: string;
+  status: TwoPhaseParticipantStatus;
+  locked: boolean;
+  vote: 'COMMIT' | 'ABORT' | null;
+  dbState: string;
+}
+
+export type SagaOrchestratorState =
+  | 'IDLE'
+  | 'EXECUTING_T1'
+  | 'EXECUTING_T2'
+  | 'EXECUTING_T3'
+  | 'COMPLETED'
+  | 'COMPENSATING_C2'
+  | 'COMPENSATING_C1'
+  | 'COMPENSATED_ABORT';
+
+export interface SagaStep {
+  id: 'order' | 'payment' | 'inventory';
+  serviceName: string;
+  stepNumber: number;
+  forwardTx: string;
+  compensatingTx: string;
+  status: 'IDLE' | 'PENDING' | 'COMMITTED' | 'FAILED' | 'COMPENSATED';
+  dbState: string;
+}
+
+export interface TxAuditEvent {
+  id: number;
+  time: string;
+  badge: string;
+  badgeClass: string;
+  message: string;
+}
 
 export type VectorClockTriple = [number, number, number]; // [A, B, C]
 
@@ -939,6 +996,396 @@ export function DistributedSystemsSandbox() {
     ]);
   };
 
+  // --- Module 6: 2PC vs Distributed Saga State ---
+  const [txArchitecture, setTxArchitecture] = useState<TxArchitecture>('TWO_PHASE_COMMIT');
+
+  // 2PC State
+  const [twoPhaseCoordState, setTwoPhaseCoordState] = useState<TwoPhaseCoordinatorState>('IDLE');
+  const [twoPhaseParticipants, setTwoPhaseParticipants] = useState<TwoPhaseParticipant[]>([
+    {
+      id: 'order',
+      name: 'Order Service',
+      resource: 'Postgres (orders table)',
+      status: 'IDLE',
+      locked: false,
+      vote: null,
+      dbState: 'orders: empty',
+    },
+    {
+      id: 'payment',
+      name: 'Payment Service',
+      resource: 'Ledger DB (balances table)',
+      status: 'IDLE',
+      locked: false,
+      vote: null,
+      dbState: 'balance: $500 available',
+    },
+    {
+      id: 'inventory',
+      name: 'Inventory Service',
+      resource: 'Warehouse DB (stock table)',
+      status: 'IDLE',
+      locked: false,
+      vote: null,
+      dbState: 'sku_SRV_X: 12 units in stock',
+    },
+  ]);
+  const [twoPhaseWal, setTwoPhaseWal] = useState<string>('WAL: INIT');
+
+  // Saga State
+  const [sagaOrchestratorState, setSagaOrchestratorState] = useState<SagaOrchestratorState>('IDLE');
+  const [sagaSteps, setSagaSteps] = useState<SagaStep[]>([
+    {
+      id: 'order',
+      serviceName: 'Order Service',
+      stepNumber: 1,
+      forwardTx: 'T1: CreateOrder(PENDING)',
+      compensatingTx: 'C1: CancelOrder(CANCELLED)',
+      status: 'IDLE',
+      dbState: 'orders: empty',
+    },
+    {
+      id: 'payment',
+      serviceName: 'Payment Service',
+      stepNumber: 2,
+      forwardTx: 'T2: ChargeCustomer($120)',
+      compensatingTx: 'C2: RefundCustomer($120)',
+      status: 'IDLE',
+      dbState: 'balance: $500',
+    },
+    {
+      id: 'inventory',
+      serviceName: 'Inventory Service',
+      stepNumber: 3,
+      forwardTx: 'T3: ReserveItem(sku=SRV-X)',
+      compensatingTx: 'C3: RestockItem(sku=SRV-X)',
+      status: 'IDLE',
+      dbState: 'stock: 12 units',
+    },
+  ]);
+
+  const [txAuditLog, setTxAuditLog] = useState<TxAuditEvent[]>([
+    {
+      id: 1,
+      time: '12:00:00',
+      badge: 'INIT',
+      badgeClass: 'bg-slate-100 text-slate-800 border-slate-300',
+      message: 'Transaction studio ready. Select 2PC (ACID) or Saga (BASE).',
+    },
+  ]);
+
+  // 2PC Handlers
+  const handle2pcCommitSuccess = () => {
+    setTwoPhaseCoordState('COMMITTED');
+    setTwoPhaseWal('WAL: TX_101 GLOBAL_COMMIT (Appended to Disk)');
+    setTwoPhaseParticipants([
+      {
+        id: 'order',
+        name: 'Order Service',
+        resource: 'Postgres (orders table)',
+        status: 'COMMITTED',
+        locked: false,
+        vote: 'COMMIT',
+        dbState: 'orders: #101 COMMITTED (Row lock released)',
+      },
+      {
+        id: 'payment',
+        name: 'Payment Service',
+        resource: 'Ledger DB (balances table)',
+        status: 'COMMITTED',
+        locked: false,
+        vote: 'COMMIT',
+        dbState: 'balance: $380 ($120 debited, Lock released)',
+      },
+      {
+        id: 'inventory',
+        name: 'Inventory Service',
+        resource: 'Warehouse DB (stock table)',
+        status: 'COMMITTED',
+        locked: false,
+        vote: 'COMMIT',
+        dbState: 'sku_SRV_X: 11 units (-1 deducted, Lock released)',
+      },
+    ]);
+
+    setTxAuditLog((prev) => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        badge: '2PC_COMMIT',
+        badgeClass: 'bg-emerald-100 text-emerald-900 border-emerald-300',
+        message: 'Phase 1: All 3 participants voted COMMIT_READY and held row locks. Phase 2: Coordinator appended GLOBAL_COMMIT to WAL and broadcasted commit. All row locks released successfully.',
+      },
+      ...prev.slice(0, 7),
+    ]);
+  };
+
+  const handle2pcParticipantFailure = () => {
+    setTwoPhaseCoordState('ABORTED');
+    setTwoPhaseWal('WAL: TX_102 GLOBAL_ROLLBACK (Inventory Out-of-Stock)');
+    setTwoPhaseParticipants([
+      {
+        id: 'order',
+        name: 'Order Service',
+        resource: 'Postgres (orders table)',
+        status: 'ABORTED',
+        locked: false,
+        vote: 'COMMIT',
+        dbState: 'orders: #102 ROLLED_BACK (No partial record)',
+      },
+      {
+        id: 'payment',
+        name: 'Payment Service',
+        resource: 'Ledger DB (balances table)',
+        status: 'ABORTED',
+        locked: false,
+        vote: 'COMMIT',
+        dbState: 'balance: $500 (Pre-auth rolled back)',
+      },
+      {
+        id: 'inventory',
+        name: 'Inventory Service',
+        resource: 'Warehouse DB (stock table)',
+        status: 'ABORTED',
+        locked: false,
+        vote: 'ABORT',
+        dbState: 'sku_SRV_X: 0 units available (VOTED ABORT)',
+      },
+    ]);
+
+    setTxAuditLog((prev) => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        badge: '2PC_ABORT',
+        badgeClass: 'bg-rose-100 text-rose-900 border-rose-300',
+        message: 'Phase 1: Inventory Service detected stockout and voted ABORT. Phase 2: Coordinator forced GLOBAL_ROLLBACK. All participants rolled back local state and released locks. Zero data corruption.',
+      },
+      ...prev.slice(0, 7),
+    ]);
+  };
+
+  const handle2pcCoordinatorCrash = () => {
+    setTwoPhaseCoordState('CRASHED_BLOCKING');
+    setTwoPhaseWal('WAL: TX_103 PREPARE_BROADCAST (COORDINATOR CRASHED BEFORE COMMIT DECISION!)');
+    setTwoPhaseParticipants([
+      {
+        id: 'order',
+        name: 'Order Service',
+        resource: 'Postgres (orders table)',
+        status: 'PREPARED',
+        locked: true,
+        vote: 'COMMIT',
+        dbState: 'orders: #103 PREPARED 🔒 (EXCLUSIVE ROW LOCK HELD - BLOCKED)',
+      },
+      {
+        id: 'payment',
+        name: 'Payment Service',
+        resource: 'Ledger DB (balances table)',
+        status: 'PREPARED',
+        locked: true,
+        vote: 'COMMIT',
+        dbState: 'balance: $380 PREPARED 🔒 (EXCLUSIVE LEDGER LOCK HELD - BLOCKED)',
+      },
+      {
+        id: 'inventory',
+        name: 'Inventory Service',
+        resource: 'Warehouse DB (stock table)',
+        status: 'PREPARED',
+        locked: true,
+        vote: 'COMMIT',
+        dbState: 'sku_SRV_X: 11 PREPARED 🔒 (EXCLUSIVE WAREHOUSE LOCK HELD - BLOCKED)',
+      },
+    ]);
+
+    setTxAuditLog((prev) => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        badge: '2PC_CRASH_BLOCK',
+        badgeClass: 'bg-amber-100 text-amber-900 border-amber-300',
+        message: 'CRITICAL FAILURE: Coordinator sent PREPARE and crashed before deciding! All 3 participants are INDEFINITELY BLOCKED holding exclusive database row locks! Neither unilateral commit nor unilateral abort is allowed under 2PC.',
+      },
+      ...prev.slice(0, 7),
+    ]);
+  };
+
+  const handle2pcReset = () => {
+    setTwoPhaseCoordState('IDLE');
+    setTwoPhaseWal('WAL: IDLE');
+    setTwoPhaseParticipants([
+      {
+        id: 'order',
+        name: 'Order Service',
+        resource: 'Postgres (orders table)',
+        status: 'IDLE',
+        locked: false,
+        vote: null,
+        dbState: 'orders: empty',
+      },
+      {
+        id: 'payment',
+        name: 'Payment Service',
+        resource: 'Ledger DB (balances table)',
+        status: 'IDLE',
+        locked: false,
+        vote: null,
+        dbState: 'balance: $500 available',
+      },
+      {
+        id: 'inventory',
+        name: 'Inventory Service',
+        resource: 'Warehouse DB (stock table)',
+        status: 'IDLE',
+        locked: false,
+        vote: null,
+        dbState: 'sku_SRV_X: 12 units in stock',
+      },
+    ]);
+    setTxAuditLog((prev) => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        badge: 'RESET',
+        badgeClass: 'bg-slate-100 text-slate-800 border-slate-300',
+        message: '2PC cluster state reset to initial idle state.',
+      },
+      ...prev.slice(0, 7),
+    ]);
+  };
+
+  // Saga Handlers
+  const handleSagaRunSuccess = () => {
+    setSagaOrchestratorState('COMPLETED');
+    setSagaSteps([
+      {
+        id: 'order',
+        serviceName: 'Order Service',
+        stepNumber: 1,
+        forwardTx: 'T1: CreateOrder(status=PENDING)',
+        compensatingTx: 'C1: CancelOrder(status=CANCELLED)',
+        status: 'COMMITTED',
+        dbState: 'orders: #201 [CONFIRMED] (Committed locally, 0 locks held)',
+      },
+      {
+        id: 'payment',
+        serviceName: 'Payment Service',
+        stepNumber: 2,
+        forwardTx: 'T2: ChargeCustomer($120)',
+        compensatingTx: 'C2: RefundCustomer($120)',
+        status: 'COMMITTED',
+        dbState: 'balance: $380 ($120 captured, 0 locks held)',
+      },
+      {
+        id: 'inventory',
+        serviceName: 'Inventory Service',
+        stepNumber: 3,
+        forwardTx: 'T3: ReserveItem(sku=SRV-X)',
+        compensatingTx: 'C3: RestockItem(sku=SRV-X)',
+        status: 'COMMITTED',
+        dbState: 'stock: 11 units (-1 reserved, 0 locks held)',
+      },
+    ]);
+
+    setTxAuditLog((prev) => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        badge: 'SAGA_SUCCESS',
+        badgeClass: 'bg-emerald-100 text-emerald-900 border-emerald-300',
+        message: 'Saga Forward Execution Completed! T1 committed -> T2 committed -> T3 committed. Each transaction committed immediately in its local database with ZERO global locks held.',
+      },
+      ...prev.slice(0, 7),
+    ]);
+  };
+
+  const handleSagaRunFailureCompensate = () => {
+    setSagaOrchestratorState('COMPENSATED_ABORT');
+    setSagaSteps([
+      {
+        id: 'order',
+        serviceName: 'Order Service',
+        stepNumber: 1,
+        forwardTx: 'T1: CreateOrder(status=PENDING)',
+        compensatingTx: 'C1: CancelOrder(status=CANCELLED)',
+        status: 'COMPENSATED',
+        dbState: 'orders: #202 [CANCELLED] (Compensated via C1)',
+      },
+      {
+        id: 'payment',
+        serviceName: 'Payment Service',
+        stepNumber: 2,
+        forwardTx: 'T2: ChargeCustomer($120)',
+        compensatingTx: 'C2: RefundCustomer($120)',
+        status: 'COMPENSATED',
+        dbState: 'balance: $500 ($120 refunded via C2)',
+      },
+      {
+        id: 'inventory',
+        serviceName: 'Inventory Service',
+        stepNumber: 3,
+        forwardTx: 'T3: ReserveItem(sku=SRV-X)',
+        compensatingTx: 'C3: RestockItem(sku=SRV-X)',
+        status: 'FAILED',
+        dbState: 'stock: 0 units (Out of stock! T3 FAILED)',
+      },
+    ]);
+
+    setTxAuditLog((prev) => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        badge: 'SAGA_COMPENSATE',
+        badgeClass: 'bg-purple-100 text-purple-900 border-purple-300',
+        message: 'Backward Recovery Triggered: T3 failed at Inventory. Saga Orchestrator initiated compensating transactions in reverse order: C2 refunded $120 to customer, then C1 marked Order #202 as CANCELLED. System reached eventual consistency without holding locks!',
+      },
+      ...prev.slice(0, 7),
+    ]);
+  };
+
+  const handleSagaReset = () => {
+    setSagaOrchestratorState('IDLE');
+    setSagaSteps([
+      {
+        id: 'order',
+        serviceName: 'Order Service',
+        stepNumber: 1,
+        forwardTx: 'T1: CreateOrder(PENDING)',
+        compensatingTx: 'C1: CancelOrder(CANCELLED)',
+        status: 'IDLE',
+        dbState: 'orders: empty',
+      },
+      {
+        id: 'payment',
+        serviceName: 'Payment Service',
+        stepNumber: 2,
+        forwardTx: 'T2: ChargeCustomer($120)',
+        compensatingTx: 'C2: RefundCustomer($120)',
+        status: 'IDLE',
+        dbState: 'balance: $500',
+      },
+      {
+        id: 'inventory',
+        serviceName: 'Inventory Service',
+        stepNumber: 3,
+        forwardTx: 'T3: ReserveItem(sku=SRV-X)',
+        compensatingTx: 'C3: RestockItem(sku=SRV-X)',
+        status: 'IDLE',
+        dbState: 'stock: 12 units',
+      },
+    ]);
+    setTxAuditLog((prev) => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        badge: 'RESET',
+        badgeClass: 'bg-slate-100 text-slate-800 border-slate-300',
+        message: 'Saga orchestrator state reset to initial idle state.',
+      },
+      ...prev.slice(0, 7),
+    ]);
+  };
+
   return (
     <div className="bg-surface border border-border rounded-xl shadow-xs overflow-hidden space-y-6">
       {/* Sub-Header Tabs */}
@@ -1012,6 +1459,17 @@ export function DistributedSystemsSandbox() {
             }`}
           >
             Vector Clocks &amp; Causality
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('TWO_PHASE_COMMIT_SAGA')}
+            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+              activeTab === 'TWO_PHASE_COMMIT_SAGA'
+                ? 'bg-primary-700 text-white shadow-xs'
+                : 'text-text-muted hover:text-text'
+            }`}
+          >
+            2PC vs Saga Coordinator
           </button>
         </div>
       </div>
@@ -2502,6 +2960,396 @@ export function DistributedSystemsSandbox() {
               </span>
               <p className="text-[11px] text-text-muted leading-relaxed">
                 Vector clocks grow linearly with active nodes ($O(N)$). Production systems prune oldest actor timestamps after predetermined thresholds.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODULE 6: TWO-PHASE COMMIT (2PC) VS DISTRIBUTED SAGA COORDINATOR */}
+      {activeTab === 'TWO_PHASE_COMMIT_SAGA' && (
+        <div className="p-6 space-y-6">
+          {/* Module Header */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-border pb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-accent-700 font-mono">
+                  Module 6: Distributed Transactions
+                </span>
+                <span className="text-[11px] font-semibold bg-primary-50 text-primary-800 px-2 py-0.5 rounded-full border border-primary-200">
+                  Consistency vs Availability
+                </span>
+              </div>
+              <h3 className="text-lg font-bold text-text mt-1">
+                Two-Phase Commit (2PC) vs Distributed Saga Coordinator Studio
+              </h3>
+              <p className="text-xs text-text-muted mt-0.5 max-w-3xl leading-relaxed">
+                Contrast the strongly-consistent, synchronous locking of <strong>Two-Phase Commit (2PC)</strong> against the lock-free, eventually-consistent <strong>Distributed Saga Orchestration</strong> pattern. Simulate the classic 2PC coordinator crash blocking dilemma and observe Saga backward recovery with compensating transactions.
+              </p>
+            </div>
+
+            {/* Architecture Toggle */}
+            <div className="flex items-center gap-1.5 bg-canvas p-1 rounded-lg border border-border shrink-0 self-start md:self-auto">
+              <button
+                type="button"
+                onClick={() => setTxArchitecture('TWO_PHASE_COMMIT')}
+                className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+                  txArchitecture === 'TWO_PHASE_COMMIT'
+                    ? 'bg-primary-700 text-white shadow-xs'
+                    : 'text-text-muted hover:text-text'
+                }`}
+              >
+                Two-Phase Commit (2PC)
+              </button>
+              <button
+                type="button"
+                onClick={() => setTxArchitecture('DISTRIBUTED_SAGA')}
+                className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+                  txArchitecture === 'DISTRIBUTED_SAGA'
+                    ? 'bg-primary-700 text-white shadow-xs'
+                    : 'text-text-muted hover:text-text'
+                }`}
+              >
+                Distributed Saga (Orchestrated)
+              </button>
+            </div>
+          </div>
+
+          {/* Architecture Comparison Top Banner */}
+          <div className="bg-surface/60 border border-border rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-text font-mono">
+                {txArchitecture === 'TWO_PHASE_COMMIT' ? '2PC Model:' : 'Saga Model:'}
+              </span>
+              <span className="text-text-muted">
+                {txArchitecture === 'TWO_PHASE_COMMIT'
+                  ? 'Strict ACID Isolation | Global Locks Held | CP System | Blocking Vulnerability'
+                  : 'BASE Eventual Consistency | Zero Global Locks | AP System | Backward Compensation'}
+              </span>
+            </div>
+            <div className="flex items-center gap-3 font-mono text-[11px]">
+              <span className="bg-canvas border border-border px-2 py-0.5 rounded">
+                Lock State: <strong className={txArchitecture === 'TWO_PHASE_COMMIT' && twoPhaseParticipants.some(p => p.locked) ? 'text-rose-600' : 'text-emerald-600'}>
+                  {txArchitecture === 'TWO_PHASE_COMMIT' && twoPhaseParticipants.some(p => p.locked) ? 'LOCKED 🔒' : 'LOCK-FREE 🔓'}
+                </strong>
+              </span>
+            </div>
+          </div>
+
+          {/* TWO-PHASE COMMIT STUDIO */}
+          {txArchitecture === 'TWO_PHASE_COMMIT' && (
+            <div className="space-y-6">
+              {/* Coordinator Node */}
+              <div className={`p-4 rounded-xl border transition-all space-y-2 ${
+                twoPhaseCoordState === 'CRASHED_BLOCKING'
+                  ? 'bg-rose-500/10 border-rose-500 ring-2 ring-rose-500/50'
+                  : twoPhaseCoordState === 'COMMITTED'
+                  ? 'bg-emerald-500/10 border-emerald-500'
+                  : twoPhaseCoordState === 'ABORTED'
+                  ? 'bg-amber-500/10 border-amber-500'
+                  : 'bg-surface border-border'
+              }`}>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-xs bg-canvas px-2 py-0.5 rounded border border-border">
+                      Coordinator (C)
+                    </span>
+                    <span className="font-bold text-text text-sm">
+                      Central 2PC Transaction Coordinator
+                    </span>
+                  </div>
+                  <span className={`text-xs font-mono font-bold px-2.5 py-0.5 rounded border ${
+                    twoPhaseCoordState === 'CRASHED_BLOCKING'
+                      ? 'bg-rose-100 text-rose-900 border-rose-300 animate-pulse'
+                      : twoPhaseCoordState === 'COMMITTED'
+                      ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                      : twoPhaseCoordState === 'ABORTED'
+                      ? 'bg-amber-100 text-amber-900 border-amber-300'
+                      : 'bg-canvas text-text-muted border-border'
+                  }`}>
+                    STATE: {twoPhaseCoordState}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between text-xs pt-1 border-t border-border/50">
+                  <span className="font-mono text-text-muted text-[11px]">
+                    Disk Write-Ahead Log: <code className="text-primary-700 font-bold">{twoPhaseWal}</code>
+                  </span>
+                  {twoPhaseCoordState === 'CRASHED_BLOCKING' && (
+                    <span className="text-rose-600 font-bold text-[11px] animate-pulse">
+                      ⚠️ COORDINATOR OFFLINE — PARTICIPANTS LOCKED INDEFINITELY
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* 3 Participants (Microservice Resource Managers) */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {twoPhaseParticipants.map((p) => (
+                  <div
+                    key={p.id}
+                    className={`p-4 rounded-xl border space-y-3 transition-all ${
+                      p.locked
+                        ? 'bg-rose-50/70 dark:bg-rose-950/20 border-rose-400 ring-1 ring-rose-400'
+                        : p.status === 'COMMITTED'
+                        ? 'bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-400'
+                        : p.status === 'ABORTED'
+                        ? 'bg-amber-50/40 dark:bg-amber-950/20 border-amber-400'
+                        : 'bg-surface border-border'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-text text-xs">{p.name}</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border ${
+                          p.status === 'COMMITTED'
+                            ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                            : p.status === 'ABORTED'
+                            ? 'bg-amber-100 text-amber-900 border-amber-300'
+                            : p.status === 'PREPARED'
+                            ? 'bg-purple-100 text-purple-900 border-purple-300'
+                            : 'bg-slate-100 text-slate-800 border-slate-300'
+                        }`}>
+                          {p.status}
+                        </span>
+                        <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border ${
+                          p.locked
+                            ? 'bg-rose-100 text-rose-900 border-rose-300 animate-pulse'
+                            : 'bg-slate-100 text-slate-800 border-slate-300'
+                        }`}>
+                          {p.locked ? 'LOCKED 🔒' : 'UNLOCKED 🔓'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1 text-xs">
+                      <span className="text-text-muted text-[11px] block">Resource: {p.resource}</span>
+                      <div className="flex items-center gap-2 pt-0.5">
+                        <span className="text-[11px] text-text-muted">Vote:</span>
+                        <span className={`font-mono font-bold text-[11px] ${
+                          p.vote === 'COMMIT' ? 'text-emerald-700' : p.vote === 'ABORT' ? 'text-rose-700' : 'text-text-muted'
+                        }`}>
+                          {p.vote ? `VOTE_${p.vote}` : 'NONE'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="bg-canvas border border-border rounded-lg p-2 font-mono text-[11px] text-text-muted space-y-0.5">
+                      <span className="text-[10px] uppercase font-bold text-text-muted block">Local DB State:</span>
+                      <p className="text-text font-semibold">{p.dbState}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* 2PC Action Buttons */}
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <Button
+                  onClick={handle2pcCommitSuccess}
+                  className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs px-3.5 py-2 cursor-pointer"
+                >
+                  ✓ Run 2PC Success (All 3 Vote Commit)
+                </Button>
+                <Button
+                  onClick={handle2pcParticipantFailure}
+                  className="bg-amber-700 hover:bg-amber-800 text-white text-xs px-3.5 py-2 cursor-pointer"
+                >
+                  ⚠️ Run 2PC Failure (Inventory Votes Abort)
+                </Button>
+                <Button
+                  onClick={handle2pcCoordinatorCrash}
+                  className="bg-rose-700 hover:bg-rose-800 text-white text-xs px-3.5 py-2 cursor-pointer"
+                >
+                  💥 Simulate Coordinator Crash (Indefinite Blocking)
+                </Button>
+                <Button
+                  onClick={handle2pcReset}
+                  variant="secondary"
+                  className="text-xs px-3.5 py-2 cursor-pointer"
+                >
+                  ↺ Reset 2PC State
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* DISTRIBUTED SAGA STUDIO */}
+          {txArchitecture === 'DISTRIBUTED_SAGA' && (
+            <div className="space-y-6">
+              {/* Saga Orchestrator Card */}
+              <div className={`p-4 rounded-xl border transition-all space-y-2 ${
+                sagaOrchestratorState === 'COMPLETED'
+                  ? 'bg-emerald-500/10 border-emerald-500'
+                  : sagaOrchestratorState === 'COMPENSATED_ABORT'
+                  ? 'bg-purple-500/10 border-purple-500'
+                  : 'bg-surface border-border'
+              }`}>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-xs bg-canvas px-2 py-0.5 rounded border border-border">
+                      Saga Orchestrator
+                    </span>
+                    <span className="font-bold text-text text-sm">
+                      Stateful Workflow Coordinator (Event-Driven)
+                    </span>
+                  </div>
+                  <span className={`text-xs font-mono font-bold px-2.5 py-0.5 rounded border ${
+                    sagaOrchestratorState === 'COMPLETED'
+                      ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                      : sagaOrchestratorState === 'COMPENSATED_ABORT'
+                      ? 'bg-purple-100 text-purple-900 border-purple-300'
+                      : 'bg-canvas text-text-muted border-border'
+                  }`}>
+                    ORCHESTRATOR: {sagaOrchestratorState}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between text-xs pt-1 border-t border-border/50">
+                  <span className="text-text-muted text-[11px]">
+                    Lock Policy: <strong className="text-emerald-600 font-mono">0 Distributed Locks Held (Immediate Local DB Commits)</strong>
+                  </span>
+                  <span className="text-[11px] text-text-muted font-mono">
+                    Recovery Strategy: Backward Compensation (C2 → C1)
+                  </span>
+                </div>
+              </div>
+
+              {/* Saga Steps (Microservices) */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {sagaSteps.map((step) => (
+                  <div
+                    key={step.id}
+                    className={`p-4 rounded-xl border space-y-3 transition-all ${
+                      step.status === 'COMMITTED'
+                        ? 'bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-400'
+                        : step.status === 'COMPENSATED'
+                        ? 'bg-purple-50/40 dark:bg-purple-950/20 border-purple-400'
+                        : step.status === 'FAILED'
+                        ? 'bg-rose-50/40 dark:bg-rose-950/20 border-rose-400 ring-1 ring-rose-400'
+                        : 'bg-surface border-border'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-text text-xs">
+                        Step {step.stepNumber}: {step.serviceName}
+                      </span>
+                      <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
+                        step.status === 'COMMITTED'
+                          ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                          : step.status === 'COMPENSATED'
+                          ? 'bg-purple-100 text-purple-900 border-purple-300'
+                          : step.status === 'FAILED'
+                          ? 'bg-rose-100 text-rose-900 border-rose-300'
+                          : 'bg-slate-100 text-slate-800 border-slate-300'
+                      }`}>
+                        {step.status}
+                      </span>
+                    </div>
+
+                    <div className="space-y-1 text-xs font-mono text-[11px]">
+                      <div className="bg-canvas border border-border p-1.5 rounded">
+                        <span className="text-emerald-700 font-bold block">{step.forwardTx}</span>
+                        <span className="text-purple-700 block mt-0.5">{step.compensatingTx}</span>
+                      </div>
+                    </div>
+
+                    <div className="bg-canvas border border-border rounded-lg p-2 font-mono text-[11px] space-y-0.5">
+                      <span className="text-[10px] uppercase font-bold text-text-muted block">Local DB State:</span>
+                      <p className="text-text font-semibold">{step.dbState}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Saga Action Buttons */}
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <Button
+                  onClick={handleSagaRunSuccess}
+                  className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs px-3.5 py-2 cursor-pointer"
+                >
+                  ✓ Run Saga Forward (T1 → T2 → T3 Commit)
+                </Button>
+                <Button
+                  onClick={handleSagaRunFailureCompensate}
+                  className="bg-purple-700 hover:bg-purple-800 text-white text-xs px-3.5 py-2 cursor-pointer"
+                >
+                  ↩ Simulate Failure &amp; Backward Recovery (T3 Fails → C2, C1)
+                </Button>
+                <Button
+                  onClick={handleSagaReset}
+                  variant="secondary"
+                  className="text-xs px-3.5 py-2 cursor-pointer"
+                >
+                  ↺ Reset Saga State
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Real-Time Transaction Audit Log */}
+          <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-bold text-text uppercase tracking-wider">
+                Transaction Event Audit Log &amp; State Transitions:
+              </span>
+              <span className="text-text-muted font-mono text-[11px]">
+                {txAuditLog.length} Recorded Events
+              </span>
+            </div>
+
+            <div className="space-y-2">
+              {txAuditLog.map((ev) => (
+                <div
+                  key={ev.id}
+                  className="p-2.5 rounded-lg bg-canvas border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-text-muted text-[11px]">{ev.time}</span>
+                    <span className={`font-mono font-bold text-[10px] px-2 py-0.5 rounded border ${ev.badgeClass}`}>
+                      {ev.badge}
+                    </span>
+                    <span className="text-text font-medium">{ev.message}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Socratic Mathematical Invariant Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                1. 2PC Blocking &amp; FLP
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                2PC is a blocking protocol. If the coordinator fails after participants enter <code className="text-primary-600 font-mono">PREPARED</code>, participants cannot unilaterally commit or abort, locking resources indefinitely.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                2. Saga Lock-Free BASE
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                Sagas abandon strict Isolation to achieve high Availability. Transactions commit immediately in local databases. If step T_i fails, backward compensations (C_prev ... C_1) restore semantic consistency.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                3. Idempotent Compensations
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                In unreliable networks, compensating requests may be retried repeatedly. Compensating actions ($C_i$) must be strictly idempotent ($f(f(x)) = f(x)$) and never fail.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                4. The Pivot Transaction
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                A Saga has a distinct Pivot Step: transactions before the pivot can be compensated; once the pivot commits, the Saga guarantees forward completion and cannot be rolled back.
               </p>
             </div>
           </div>

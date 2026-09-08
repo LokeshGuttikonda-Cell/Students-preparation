@@ -178,4 +178,74 @@ describe('DistributedSystemsSandbox', () => {
     fireEvent.click(resetBtn);
     expect(screen.getAllByText('A: 0').length).toBe(3);
   });
+  it('switches to 2PC vs Saga Coordinator and tests two-phase commit, coordinator crash blocking, and saga backward compensation', () => {
+    render(<DistributedSystemsSandbox />);
+
+    const txTab = screen.getByRole('button', { name: /2PC vs Saga Coordinator/i });
+    fireEvent.click(txTab);
+
+    // Verify Title & Initial State
+    expect(
+      screen.getByRole('heading', {
+        name: 'Two-Phase Commit (2PC) vs Distributed Saga Coordinator Studio',
+        level: 3,
+      })
+    ).toBeInTheDocument();
+    expect(screen.getByText('Central 2PC Transaction Coordinator')).toBeInTheDocument();
+    expect(screen.getByText('STATE: IDLE')).toBeInTheDocument();
+    expect(screen.getByText('Order Service')).toBeInTheDocument();
+    expect(screen.getByText('Payment Service')).toBeInTheDocument();
+    expect(screen.getByText('Inventory Service')).toBeInTheDocument();
+    expect(screen.getAllByText('UNLOCKED 🔓').length).toBe(3);
+
+    // 1. Run 2PC Success
+    const success2pcBtn = screen.getByRole('button', { name: /Run 2PC Success/i });
+    fireEvent.click(success2pcBtn);
+    expect(screen.getByText('STATE: COMMITTED')).toBeInTheDocument();
+    expect(screen.getByText(/TX_101 GLOBAL_COMMIT/i)).toBeInTheDocument();
+    expect(screen.getAllByText('COMMITTED').length).toBe(3);
+    expect(screen.getAllByText('UNLOCKED 🔓').length).toBe(3);
+
+    // 2. Run 2PC Failure (Inventory Aborts)
+    const fail2pcBtn = screen.getByRole('button', { name: /Run 2PC Failure/i });
+    fireEvent.click(fail2pcBtn);
+    expect(screen.getByText('STATE: ABORTED')).toBeInTheDocument();
+    expect(screen.getByText(/TX_102 GLOBAL_ROLLBACK/i)).toBeInTheDocument();
+    expect(screen.getAllByText('ABORTED').length).toBe(3);
+
+    // 3. Simulate Coordinator Crash (Indefinite Blocking)
+    const crashBtn = screen.getByRole('button', { name: /Simulate Coordinator Crash/i });
+    fireEvent.click(crashBtn);
+    expect(screen.getByText('STATE: CRASHED_BLOCKING')).toBeInTheDocument();
+    expect(screen.getByText(/COORDINATOR OFFLINE — PARTICIPANTS LOCKED INDEFINITELY/i)).toBeInTheDocument();
+    expect(screen.getAllByText('LOCKED 🔒').length).toBe(4); // 1 in top banner + 3 in participant cards
+
+    // 4. Switch to Distributed Saga Mode
+    const sagaTabBtn = screen.getByRole('button', { name: 'Distributed Saga (Orchestrated)' });
+    fireEvent.click(sagaTabBtn);
+    expect(screen.getByText('Stateful Workflow Coordinator (Event-Driven)')).toBeInTheDocument();
+    expect(screen.getByText('ORCHESTRATOR: IDLE')).toBeInTheDocument();
+    expect(screen.getByText(/0 Distributed Locks Held/i)).toBeInTheDocument();
+    expect(screen.getByText('Step 1: Order Service')).toBeInTheDocument();
+    expect(screen.getByText('Step 2: Payment Service')).toBeInTheDocument();
+    expect(screen.getByText('Step 3: Inventory Service')).toBeInTheDocument();
+
+    // 5. Run Saga Forward Success
+    const sagaSuccessBtn = screen.getByRole('button', { name: /Run Saga Forward/i });
+    fireEvent.click(sagaSuccessBtn);
+    expect(screen.getByText('ORCHESTRATOR: COMPLETED')).toBeInTheDocument();
+    expect(screen.getAllByText('COMMITTED').length).toBe(3);
+
+    // 6. Simulate Failure & Backward Recovery
+    const sagaCompensateBtn = screen.getByRole('button', { name: /Simulate Failure & Backward Recovery/i });
+    fireEvent.click(sagaCompensateBtn);
+    expect(screen.getByText('ORCHESTRATOR: COMPENSATED_ABORT')).toBeInTheDocument();
+    expect(screen.getByText('FAILED')).toBeInTheDocument();
+    expect(screen.getAllByText('COMPENSATED').length).toBe(2);
+
+    // 7. Reset Saga
+    const sagaResetBtn = screen.getByRole('button', { name: /Reset Saga State/i });
+    fireEvent.click(sagaResetBtn);
+    expect(screen.getByText('ORCHESTRATOR: IDLE')).toBeInTheDocument();
+  });
 });
