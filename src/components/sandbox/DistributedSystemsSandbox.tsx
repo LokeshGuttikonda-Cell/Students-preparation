@@ -7,7 +7,34 @@ export type DistributedMode =
   | 'CONSISTENT_HASHING'
   | 'RATE_LIMITER'
   | 'CIRCUIT_BREAKER'
-  | 'RAFT_CONSENSUS';
+  | 'RAFT_CONSENSUS'
+  | 'VECTOR_CLOCKS';
+
+export type VectorClockTriple = [number, number, number]; // [A, B, C]
+
+export interface VectorClockNode {
+  id: 'node-a' | 'node-b' | 'node-c';
+  name: string;
+  region: string;
+  color: string;
+  borderClass: string;
+  bgClass: string;
+  textClass: string;
+  vclock: VectorClockTriple;
+  lamportTime: number;
+  value: string;
+  siblings?: Array<{ value: string; vclock: VectorClockTriple; originNode: string }>;
+}
+
+export interface VectorClockEvent {
+  id: number;
+  time: string;
+  nodeId: 'node-a' | 'node-b' | 'node-c';
+  type: 'LOCAL_WRITE' | 'REPLICATION' | 'CONCURRENT_SPLIT' | 'RECONCILE';
+  summary: string;
+  vclock: VectorClockTriple;
+  lamportTime: number;
+}
 
 interface HashNode {
   id: string;
@@ -149,6 +176,331 @@ const INITIAL_RAFT_NODES: RaftNode[] = [
 
 export function DistributedSystemsSandbox() {
   const [activeTab, setActiveTab] = useState<DistributedMode>('CONSISTENT_HASHING');
+
+  // --- Vector Clocks & Causality State ---
+  const initialVcNodes: VectorClockNode[] = [
+    {
+      id: 'node-a',
+      name: 'Node A',
+      region: 'us-east-1 (N. Virginia)',
+      color: '#10b981',
+      borderClass: 'border-emerald-400',
+      bgClass: 'bg-emerald-50 dark:bg-emerald-950/30',
+      textClass: 'text-emerald-900 dark:text-emerald-200',
+      vclock: [0, 0, 0],
+      lamportTime: 0,
+      value: 'cart=[]',
+    },
+    {
+      id: 'node-b',
+      name: 'Node B',
+      region: 'eu-west-1 (Ireland)',
+      color: '#0284c7',
+      borderClass: 'border-sky-400',
+      bgClass: 'bg-sky-50 dark:bg-sky-950/30',
+      textClass: 'text-sky-900 dark:text-sky-200',
+      vclock: [0, 0, 0],
+      lamportTime: 0,
+      value: 'cart=[]',
+    },
+    {
+      id: 'node-c',
+      name: 'Node C',
+      region: 'ap-southeast-1 (Singapore)',
+      color: '#d97706',
+      borderClass: 'border-amber-400',
+      bgClass: 'bg-amber-50 dark:bg-amber-950/30',
+      textClass: 'text-amber-900 dark:text-amber-200',
+      vclock: [0, 0, 0],
+      lamportTime: 0,
+      value: 'cart=[]',
+    },
+  ];
+
+  const [vcNodes, setVcNodes] = useState<VectorClockNode[]>(initialVcNodes);
+  const [vcPartitionActive, setVcPartitionActive] = useState<boolean>(false);
+  const [vcConflictNotice, setVcConflictNotice] = useState<string | null>(null);
+  const [vcLwwWarning, setVcLwwWarning] = useState<string | null>(null);
+  const [vcEvents, setVcEvents] = useState<VectorClockEvent[]>([
+    {
+      id: 1,
+      time: '00:00:00',
+      nodeId: 'node-a',
+      type: 'LOCAL_WRITE',
+      summary: 'Cluster initialized. All vector clocks [A:0, B:0, C:0], Lamport L=0.',
+      vclock: [0, 0, 0],
+      lamportTime: 0,
+    },
+  ]);
+
+  // Vector Clock comparison helper
+  const compareVectors = (v1: VectorClockTriple, v2: VectorClockTriple): 'V1_DOMINATES' | 'V2_DOMINATES' | 'EQUAL' | 'CONCURRENT' => {
+    let v1GreaterOrEqual = true;
+    let v2GreaterOrEqual = true;
+    let equal = true;
+
+    for (let i = 0; i < 3; i++) {
+      if (v1[i] < v2[i]) v1GreaterOrEqual = false;
+      if (v2[i] < v1[i]) v2GreaterOrEqual = false;
+      if (v1[i] !== v2[i]) equal = false;
+    }
+
+    if (equal) return 'EQUAL';
+    if (v1GreaterOrEqual) return 'V1_DOMINATES';
+    if (v2GreaterOrEqual) return 'V2_DOMINATES';
+    return 'CONCURRENT';
+  };
+
+  const handleVcLocalWrite = (nodeIndex: 0 | 1 | 2, item: string) => {
+    setVcLwwWarning(null);
+    setVcNodes((prev) =>
+      prev.map((n, idx) => {
+        if (idx === nodeIndex) {
+          const nextVclock: VectorClockTriple = [...n.vclock] as VectorClockTriple;
+          nextVclock[nodeIndex] += 1;
+          const nextLamport = n.lamportTime + 1;
+          const nextVal = `cart=[${item}]`;
+
+          setVcEvents((evs) => [
+            {
+              id: Date.now(),
+              time: new Date().toLocaleTimeString(),
+              nodeId: n.id,
+              type: 'LOCAL_WRITE',
+              summary: `Local write on ${n.name}: ${nextVal}. Incremented local clock component ${['A', 'B', 'C'][nodeIndex]} -> ${nextVclock[nodeIndex]}.`,
+              vclock: nextVclock,
+              lamportTime: nextLamport,
+            },
+            ...evs.slice(0, 10),
+          ]);
+
+          return {
+            ...n,
+            vclock: nextVclock,
+            lamportTime: nextLamport,
+            value: nextVal,
+            siblings: undefined,
+          };
+        }
+        return n;
+      })
+    );
+  };
+
+  const handleVcReplicate = (fromIdx: 0 | 1 | 2, toIdx: 0 | 1 | 2) => {
+    if (fromIdx === toIdx) return;
+    const source = vcNodes[fromIdx];
+    const target = vcNodes[toIdx];
+
+    // Check if network partition isolates A and B
+    if (vcPartitionActive && ((fromIdx === 0 && toIdx === 1) || (fromIdx === 1 && toIdx === 0))) {
+      setVcConflictNotice(`Replication blocked! Network partition severed direct communication between ${source.name} and ${target.name}.`);
+      return;
+    }
+
+    const rel = compareVectors(source.vclock, target.vclock);
+    const nextLamport = Math.max(source.lamportTime, target.lamportTime) + 1;
+    const nextVclock: VectorClockTriple = [
+      Math.max(source.vclock[0], target.vclock[0]),
+      Math.max(source.vclock[1], target.vclock[1]),
+      Math.max(source.vclock[2], target.vclock[2]),
+    ];
+    // Increment receiver's own clock on receipt
+    nextVclock[toIdx] += 1;
+
+    if (rel === 'CONCURRENT') {
+      // Sibling generation!
+      const siblingList = [
+        { value: target.value, vclock: target.vclock, originNode: target.name },
+        { value: source.value, vclock: source.vclock, originNode: source.name },
+      ];
+
+      setVcNodes((prev) =>
+        prev.map((n, idx) =>
+          idx === toIdx
+            ? {
+                ...n,
+                vclock: nextVclock,
+                lamportTime: nextLamport,
+                siblings: siblingList,
+              }
+            : n
+        )
+      );
+
+      setVcConflictNotice(
+        `Concurrent Conflict on ${target.name}! Incoming vector [${source.vclock.join(', ')}] and local vector [${target.vclock.join(', ')}] are non-dominating (${source.name} ‖ ${target.name}). Dynamo-style sibling values preserved for application resolution!`
+      );
+
+      setVcEvents((evs) => [
+        {
+          id: Date.now(),
+          time: new Date().toLocaleTimeString(),
+          nodeId: target.id,
+          type: 'CONCURRENT_SPLIT',
+          summary: `Conflict detected on ${target.name}: ${source.name} [${source.vclock.join(', ')}] ‖ ${target.name} [${target.vclock.join(', ')}]. Retained 2 concurrent siblings.`,
+          vclock: nextVclock,
+          lamportTime: nextLamport,
+        },
+        ...evs.slice(0, 10),
+      ]);
+    } else {
+      // One dominates or equal: take the dominant value
+      const dominantValue = rel === 'V1_DOMINATES' ? source.value : target.value;
+      setVcNodes((prev) =>
+        prev.map((n, idx) =>
+          idx === toIdx
+            ? {
+                ...n,
+                vclock: nextVclock,
+                lamportTime: nextLamport,
+                value: dominantValue,
+                siblings: undefined,
+              }
+            : n
+        )
+      );
+
+      setVcEvents((evs) => [
+        {
+          id: Date.now(),
+          time: new Date().toLocaleTimeString(),
+          nodeId: target.id,
+          type: 'REPLICATION',
+          summary: `Replication from ${source.name} to ${target.name}. Clock updated to [${nextVclock.join(', ')}], Lamport L=${nextLamport}.`,
+          vclock: nextVclock,
+          lamportTime: nextLamport,
+        },
+        ...evs.slice(0, 10),
+      ]);
+    }
+  };
+
+  const handleVcSimulateConcurrentSplit = () => {
+    setVcLwwWarning(null);
+    setVcPartitionActive(true);
+
+    // Node A writes 'laptop'
+    const vA: VectorClockTriple = [1, 0, 0];
+    // Node B writes 'phone'
+    const vB: VectorClockTriple = [0, 1, 0];
+
+    // Node C receives both concurrent writes
+    const vC: VectorClockTriple = [1, 1, 2];
+    const siblings = [
+      { value: 'cart=[laptop]', vclock: vA, originNode: 'Node A' },
+      { value: 'cart=[phone]', vclock: vB, originNode: 'Node B' },
+    ];
+
+    setVcNodes([
+      { ...initialVcNodes[0], vclock: vA, lamportTime: 1, value: 'cart=[laptop]', siblings: undefined },
+      { ...initialVcNodes[1], vclock: vB, lamportTime: 1, value: 'cart=[phone]', siblings: undefined },
+      { ...initialVcNodes[2], vclock: vC, lamportTime: 2, value: 'cart=[laptop, phone] (conflicted)', siblings },
+    ]);
+
+    setVcConflictNotice(
+      'Partition & Concurrent Split Writes Activated: Node A wrote "cart=[laptop]" [1, 0, 0] while Node B wrote "cart=[phone]" [0, 1, 0]. Node C received both non-dominating vectors ([1, 0, 0] ‖ [0, 1, 0]) and generated Dynamo-style siblings!'
+    );
+
+    setVcEvents((evs) => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        nodeId: 'node-c',
+        type: 'CONCURRENT_SPLIT',
+        summary: 'Concurrent split writes replicated to Node C! Created 2 conflicting siblings: "cart=[laptop]" [1, 0, 0] vs "cart=[phone]" [0, 1, 0].',
+        vclock: vC,
+        lamportTime: 2,
+      },
+      ...evs.slice(0, 10),
+    ]);
+  };
+
+  const handleVcReconcile = (strategy: 'CRDT_UNION' | 'LWW_CLOCK') => {
+    if (strategy === 'CRDT_UNION') {
+      const mergedVal = 'cart=[laptop, phone]';
+      const mergedClock: VectorClockTriple = [2, 2, 3];
+      const mergedLamport = 4;
+
+      setVcNodes((prev) =>
+        prev.map((n) => ({
+          ...n,
+          vclock: mergedClock,
+          lamportTime: mergedLamport,
+          value: mergedVal,
+          siblings: undefined,
+        }))
+      );
+
+      setVcPartitionActive(false);
+      setVcConflictNotice(null);
+      setVcLwwWarning(null);
+
+      setVcEvents((evs) => [
+        {
+          id: Date.now(),
+          time: new Date().toLocaleTimeString(),
+          nodeId: 'node-c',
+          type: 'RECONCILE',
+          summary: 'Resolved conflict via CRDT 3-way Set Union. Merged cart=[laptop, phone], took supremum clock [2, 2, 3]. Zero data loss!',
+          vclock: mergedClock,
+          lamportTime: mergedLamport,
+        },
+        ...evs.slice(0, 10),
+      ]);
+    } else {
+      // LWW: Node B's clock was arbitrarily 1 ms higher, dropping Node A's laptop
+      const lwwVal = 'cart=[phone]';
+      const lwwClock: VectorClockTriple = [1, 2, 2];
+
+      setVcNodes((prev) =>
+        prev.map((n) => ({
+          ...n,
+          vclock: lwwClock,
+          lamportTime: 3,
+          value: lwwVal,
+          siblings: undefined,
+        }))
+      );
+
+      setVcPartitionActive(false);
+      setVcConflictNotice(null);
+      setVcLwwWarning(
+        '⚠️ CRITICAL DATA LOSS DETECTED: Last-Write-Wins (LWW) with physical wall clock silently discarded Node A\'s write ("laptop")! The customer\'s shopping cart lost an item due to minor NTP clock skew.'
+      );
+
+      setVcEvents((evs) => [
+        {
+          id: Date.now(),
+          time: new Date().toLocaleTimeString(),
+          nodeId: 'node-c',
+          type: 'RECONCILE',
+          summary: 'Resolved via Last-Write-Wins (LWW). Overwrote Node A\'s cart item due to NTP timestamp bias. Data loss occurred!',
+          vclock: lwwClock,
+          lamportTime: 3,
+        },
+        ...evs.slice(0, 10),
+      ]);
+    }
+  };
+
+  const handleVcReset = () => {
+    setVcNodes(initialVcNodes);
+    setVcPartitionActive(false);
+    setVcConflictNotice(null);
+    setVcLwwWarning(null);
+    setVcEvents([
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        nodeId: 'node-a',
+        type: 'LOCAL_WRITE',
+        summary: 'Cluster reset to clean initial state. All vector clocks [A:0, B:0, C:0].',
+        vclock: [0, 0, 0],
+        lamportTime: 0,
+      },
+    ]);
+  };
 
   // --- Module 1: Consistent Hashing State ---
   const [includeNodeD, setIncludeNodeD] = useState(false);
@@ -649,6 +1001,17 @@ export function DistributedSystemsSandbox() {
             }`}
           >
             Raft Consensus &amp; Quorum
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('VECTOR_CLOCKS')}
+            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+              activeTab === 'VECTOR_CLOCKS'
+                ? 'bg-primary-700 text-white shadow-xs'
+                : 'text-text-muted hover:text-text'
+            }`}
+          >
+            Vector Clocks &amp; Causality
           </button>
         </div>
       </div>
@@ -1769,6 +2132,376 @@ export function DistributedSystemsSandbox() {
               </span>
               <p className="text-[11px] text-text-muted leading-relaxed">
                 When network partitions occur, the minority partition cannot attain quorum ($2 &lt; 3$). Writes are blocked, preserving total linearizability.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODULE 5: VECTOR CLOCKS & DISTRIBUTED CAUSALITY */}
+      {activeTab === 'VECTOR_CLOCKS' && (
+        <div className="p-6 space-y-6">
+          {/* Controls & Action Toolbar */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-canvas border border-border p-4 rounded-xl">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-xs font-bold text-primary-700 bg-primary-100 dark:bg-primary-950/40 px-2 py-0.5 rounded">
+                  MODULE 5
+                </span>
+                <h3 className="text-sm font-bold text-text">
+                  Vector Clocks, Lamport Timestamps &amp; Sibling Conflict Inspector
+                </h3>
+              </div>
+              <p className="text-xs text-text-muted">
+                Explore partial ordering, the happens-before relation ($a \to b$), concurrent writes ($a \parallel b$), and Dynamo-style multi-version siblings.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => handleVcLocalWrite(0, 'laptop')}
+              >
+                + Write on Node A
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => handleVcLocalWrite(1, 'phone')}
+              >
+                + Write on Node B
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => handleVcLocalWrite(2, 'tablet')}
+              >
+                + Write on Node C
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleVcSimulateConcurrentSplit}
+              >
+                ⚡ Simulate Split Writes (A ‖ B)
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleVcReset}
+              >
+                ↺ Reset Clocks
+              </Button>
+            </div>
+          </div>
+
+          {/* Conflict Alert Banner */}
+          {vcConflictNotice && (
+            <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded-xl space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-base">⚠️</span>
+                  <span className="text-xs font-bold text-amber-900 dark:text-amber-200">
+                    Causality Violation &amp; Concurrent Sibling Detected
+                  </span>
+                </div>
+                <span className="text-[10px] font-mono bg-amber-200 dark:bg-amber-900/50 text-amber-900 dark:text-amber-200 px-2 py-0.5 rounded font-bold">
+                  NON-DOMINATING VECTORS
+                </span>
+              </div>
+              <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
+                {vcConflictNotice}
+              </p>
+              <div className="flex items-center gap-3 pt-1">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => handleVcReconcile('CRDT_UNION')}
+                >
+                  ✓ Reconcile via CRDT Set Union (Zero Data Loss)
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => handleVcReconcile('LWW_CLOCK')}
+                >
+                  ⚠️ Last-Write-Wins (Simulate LWW Clock Loss)
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* LWW Warning Banner */}
+          {vcLwwWarning && (
+            <div className="bg-rose-500/10 border border-rose-500/30 p-4 rounded-xl space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-base">🚨</span>
+                <span className="text-xs font-bold text-rose-900 dark:text-rose-200">
+                  Data Loss Warning: Anti-Pattern Demonstrated
+                </span>
+              </div>
+              <p className="text-xs text-rose-800 dark:text-rose-300 leading-relaxed">
+                {vcLwwWarning}
+              </p>
+            </div>
+          )}
+
+          {/* 3-Node Interactive Cluster Topology Canvas */}
+          <div className="bg-surface/50 border border-border rounded-xl p-5 space-y-4">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-bold text-text">
+                Multi-Region Replica Cluster &amp; Live Vector Clocks
+              </span>
+              <span className="font-mono text-[11px] text-text-muted">
+                Clock Format: [Node A, Node B, Node C]
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {vcNodes.map((node, nodeIdx) => (
+                <div
+                  key={node.id}
+                  className={`border-2 rounded-xl p-4 space-y-3 ${node.bgClass} ${node.borderClass} transition-all shadow-xs`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-3.5 h-3.5 rounded-full ring-2 ring-white shadow-xs"
+                        style={{ backgroundColor: node.color }}
+                      />
+                      <span className="font-bold text-sm text-text">
+                        {node.name}
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-mono bg-canvas px-2 py-0.5 rounded border border-border text-text-muted">
+                      L = {node.lamportTime}
+                    </span>
+                  </div>
+
+                  <p className="text-[11px] text-text-muted">
+                    {node.region}
+                  </p>
+
+                  {/* Vector Clock Component Pills */}
+                  <div className="bg-canvas border border-border rounded-lg p-2.5 space-y-1.5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted block">
+                      Vector Clock ($V_{['A', 'B', 'C'][nodeIdx]}$):
+                    </span>
+                    <div className="grid grid-cols-3 gap-1.5 font-mono text-center">
+                      <div className="bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-300 text-emerald-900 dark:text-emerald-200 rounded py-1 text-xs font-bold">
+                        A: {node.vclock[0]}
+                      </div>
+                      <div className="bg-sky-100 dark:bg-sky-950/60 border border-sky-300 text-sky-900 dark:text-sky-200 rounded py-1 text-xs font-bold">
+                        B: {node.vclock[1]}
+                      </div>
+                      <div className="bg-amber-100 dark:bg-amber-950/60 border border-amber-300 text-amber-900 dark:text-amber-200 rounded py-1 text-xs font-bold">
+                        C: {node.vclock[2]}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Current State Store */}
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted block">
+                      Key-Value State:
+                    </span>
+                    <div className="bg-canvas border border-border rounded p-2 font-mono text-xs text-primary-700 font-semibold truncate">
+                      {node.value}
+                    </div>
+                  </div>
+
+                  {/* Sibling Values If Present */}
+                  {node.siblings && node.siblings.length > 0 && (
+                    <div className="space-y-1.5 bg-amber-100/50 dark:bg-amber-950/40 border border-amber-300 rounded p-2">
+                      <span className="text-[10px] font-bold text-amber-900 dark:text-amber-200 uppercase tracking-wider block">
+                        Conflicting Siblings ({node.siblings.length}):
+                      </span>
+                      {node.siblings.map((sib, sIdx) => (
+                        <div
+                          key={sIdx}
+                          className="bg-canvas border border-amber-300/60 rounded px-2 py-1 text-[11px] font-mono flex items-center justify-between"
+                        >
+                          <span className="font-bold text-amber-800 dark:text-amber-300">
+                            {sib.value}
+                          </span>
+                          <span className="text-text-muted text-[10px]">
+                            [{sib.vclock.join(', ')}]
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Replication Trigger Buttons */}
+                  <div className="pt-1 flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[10px] text-text-muted font-semibold">Replicate to:</span>
+                    {([0, 1, 2] as const)
+                      .filter((targetIdx) => targetIdx !== nodeIdx)
+                      .map((targetIdx) => (
+                        <button
+                          key={targetIdx}
+                          type="button"
+                          onClick={() => handleVcReplicate(nodeIdx as 0 | 1 | 2, targetIdx)}
+                          className="text-[10px] font-bold px-2 py-0.5 rounded bg-surface border border-border hover:bg-canvas transition-colors cursor-pointer text-text"
+                        >
+                          Node {['A', 'B', 'C'][targetIdx]} →
+                        </button>
+                      ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Causality Comparison HUD & Space-Time Timeline */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            {/* Real-Time Event Audit Log */}
+            <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-bold text-text">
+                  Vector Clock &amp; Causality Event History ({vcEvents.length})
+                </span>
+                <span className="text-[11px] text-text-muted font-mono">Most Recent First</span>
+              </div>
+
+              <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1">
+                {vcEvents.map((ev) => (
+                  <div
+                    key={ev.id}
+                    className="p-2.5 rounded-lg bg-canvas border border-border space-y-1 text-xs"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`px-1.5 py-0.5 rounded font-mono font-bold text-[10px] ${
+                            ev.type === 'LOCAL_WRITE'
+                              ? 'bg-primary-100 text-primary-900 border border-primary-300'
+                              : ev.type === 'CONCURRENT_SPLIT'
+                              ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                              : ev.type === 'RECONCILE'
+                              ? 'bg-purple-100 text-purple-900 border border-purple-300'
+                              : 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                          }`}
+                        >
+                          {ev.type}
+                        </span>
+                        <span className="font-bold text-text">
+                          {ev.nodeId.toUpperCase().replace('-', ' ')}
+                        </span>
+                      </div>
+                      <span className="font-mono text-[10px] text-text-muted">
+                        V=[{ev.vclock.join(', ')}] | L={ev.lamportTime}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-text-muted leading-relaxed">
+                      {ev.summary}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Causality Pairwise Analysis Table */}
+            <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-bold text-text">
+                  Pairwise Causality Relation Matrix
+                </span>
+                <span className="text-[11px] font-mono text-primary-700 font-bold">
+                  $V(a) \le V(b) \iff a \to b$
+                </span>
+              </div>
+
+              <div className="space-y-2 text-xs">
+                {[
+                  { n1: 0, n2: 1, label: 'Node A vs Node B' },
+                  { n1: 0, n2: 2, label: 'Node A vs Node C' },
+                  { n1: 1, n2: 2, label: 'Node B vs Node C' },
+                ].map(({ n1, n2, label }) => {
+                  const node1 = vcNodes[n1];
+                  const node2 = vcNodes[n2];
+                  const rel = compareVectors(node1.vclock, node2.vclock);
+
+                  let relText = 'Concurrent (a ‖ b)';
+                  let relBadge = 'bg-amber-100 text-amber-900 border-amber-300';
+
+                  if (rel === 'EQUAL') {
+                    relText = 'Identical Clocks (=)';
+                    relBadge = 'bg-slate-100 text-slate-800 border-slate-300';
+                  } else if (rel === 'V1_DOMINATES') {
+                    relText = `${node2.name} happened before ${node1.name} (b → a)`;
+                    relBadge = 'bg-emerald-100 text-emerald-900 border-emerald-300';
+                  } else if (rel === 'V2_DOMINATES') {
+                    relText = `${node1.name} happened before ${node2.name} (a → b)`;
+                    relBadge = 'bg-indigo-100 text-indigo-900 border-indigo-300';
+                  }
+
+                  return (
+                    <div
+                      key={label}
+                      className="p-3 rounded-lg bg-canvas border border-border space-y-1.5"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-text font-mono text-[11px]">
+                          {label}
+                        </span>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${relBadge}`}>
+                          {rel}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between text-[11px] font-mono text-text-muted">
+                        <span>{node1.name}: [{node1.vclock.join(', ')}]</span>
+                        <span className="text-primary-600 font-bold">{rel === 'CONCURRENT' ? '‖' : rel === 'V1_DOMINATES' ? '≻' : rel === 'V2_DOMINATES' ? '≺' : '='}</span>
+                        <span>{node2.name}: [{node2.vclock.join(', ')}]</span>
+                      </div>
+
+                      <p className="text-[11px] text-text-muted">
+                        {relText}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Socratic Mathematical Invariant Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                1. Vector Dominance Theorem
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                $V(a) \le V(b) \iff \forall k: V(a)[k] \le V(b)[k]$. Event $a$ causally precedes $b$ if and only if $V(a)$ is strictly dominated by $V(b)$.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                2. Lamport Clock Flaw
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                While $a \to b \implies L(a) &lt; L(b)$, the converse is false ($L(a) &lt; L(b) \centernot\implies a \to b$). Scalar Lamport clocks cannot detect concurrent independence!
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                3. Dynamo Sibling Resolution
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                When $V(a) \parallel V(b)$, distributed stores (Dynamo, Riak) retain both values as siblings, allowing CRDT merges rather than silent data loss.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                4. Clock Pruning &amp; Truncation
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                Vector clocks grow linearly with active nodes ($O(N)$). Production systems prune oldest actor timestamps after predetermined thresholds.
               </p>
             </div>
           </div>

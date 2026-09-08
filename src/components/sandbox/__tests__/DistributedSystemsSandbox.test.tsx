@@ -134,4 +134,48 @@ describe('DistributedSystemsSandbox', () => {
     fireEvent.click(healBtn);
     expect(screen.getByText(/Network partition healed!/i)).toBeInTheDocument();
   });
+
+  it('switches to Vector Clocks & Causality and verifies local writes, replication, concurrent conflict detection, and reconciliation', () => {
+    render(<DistributedSystemsSandbox />);
+
+    const vcTab = screen.getByRole('button', { name: /Vector Clocks & Causality/i });
+    fireEvent.click(vcTab);
+
+    // Verify Title & Initial State
+    expect(screen.getByText(/Vector Clocks, Lamport Timestamps & Sibling Conflict Inspector/i)).toBeInTheDocument();
+    expect(screen.getByText(/us-east-1 \(N. Virginia\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/eu-west-1 \(Ireland\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/ap-southeast-1 \(Singapore\)/i)).toBeInTheDocument();
+
+    // Verify Initial Clocks (all 0)
+    expect(screen.getAllByText('A: 0').length).toBe(3);
+    expect(screen.getAllByText('B: 0').length).toBe(3);
+    expect(screen.getAllByText('C: 0').length).toBe(3);
+
+    // Write on Node A
+    const writeNodeABtn = screen.getByRole('button', { name: /\+ Write on Node A/i });
+    fireEvent.click(writeNodeABtn);
+    expect(screen.getAllByText('A: 1').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/cart=\[laptop\]/i).length).toBeGreaterThanOrEqual(1);
+
+    // Simulate Concurrent Split Writes
+    const splitBtn = screen.getByRole('button', { name: /Simulate Split Writes \(A ‖ B\)/i });
+    fireEvent.click(splitBtn);
+
+    expect(screen.getByText(/Causality Violation & Concurrent Sibling Detected/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/NON-DOMINATING VECTORS/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/Conflicting Siblings \(2\)/i)).toBeInTheDocument();
+
+    // Reconcile via CRDT Set Union
+    const reconcileBtn = screen.getByRole('button', { name: /Reconcile via CRDT Set Union/i });
+    fireEvent.click(reconcileBtn);
+
+    expect(screen.queryByText(/Causality Violation & Concurrent Sibling Detected/i)).not.toBeInTheDocument();
+    expect(screen.getAllByText(/cart=\[laptop, phone\]/i).length).toBeGreaterThanOrEqual(1);
+
+    // Test Reset
+    const resetBtn = screen.getByRole('button', { name: /Reset Clocks/i });
+    fireEvent.click(resetBtn);
+    expect(screen.getAllByText('A: 0').length).toBe(3);
+  });
 });
