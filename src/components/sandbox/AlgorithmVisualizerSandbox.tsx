@@ -21,7 +21,8 @@ export type VisualizerAlgorithm =
   | 'TRIE_PREFIX_TREE'
   | 'INVERTED_INDEX_BM25'
   | 'POSTING_SKIP_LIST_ELIAS_FANO'
-  | 'COLUMNAR_VECTORIZED_ENGINE';
+  | 'COLUMNAR_VECTORIZED_ENGINE'
+  | 'QUERY_COST_OPTIMIZER_CBO';
 
 export type StorageLayoutMode = 'ROW_ORIENTED_NSM' | 'COLUMN_ORIENTED_DSM';
 export type ExecutionEngineMode = 'VOLCANO_ITERATOR' | 'VECTORIZED_SIMD';
@@ -78,6 +79,90 @@ export interface SelectionVectorBit {
   bit: 0 | 1;
   status: string;
   isInspected?: boolean;
+}
+
+
+export type QueryPlanId = 'PLAN_A_NAIVE_NLJ' | 'PLAN_B_FILTER_HASH' | 'PLAN_C_SYSTEM_R_DP_MERGE';
+
+export interface PlanOperatorNode {
+  id: string;
+  name: string;
+  type: 'SCAN' | 'FILTER' | 'HASH_JOIN' | 'NESTED_LOOP' | 'SORT_MERGE' | 'PROJECT';
+  relation?: string;
+  predicate?: string;
+  outputCardinality: number;
+  inputCardinality?: number;
+  cost: number;
+  ioCost: number;
+  cpuCost: number;
+  operatorCost: number;
+  memoryMb: number;
+  pipelined: boolean;
+  interestingOrder?: string;
+  depth: number;
+}
+
+export interface CandidateQueryPlan {
+  id: QueryPlanId;
+  name: string;
+  strategy: string;
+  totalCost: number;
+  totalPageIo: number;
+  totalTuplesProcessed: number;
+  totalOperatorCalls: number;
+  estimatedRuntimeMs: number;
+  memoryFootprintMb: number;
+  joinTreeShape: 'LEFT_DEEP' | 'CARTESIAN_CROSS' | 'INTERESTING_ORDER_PIPELINED';
+  operatorNodes: PlanOperatorNode[];
+  advantages: string[];
+  disadvantages: string[];
+}
+
+export interface SystemRSearchStage {
+  level: number;
+  title: string;
+  subsetsEvaluated: string[];
+  optimalSubplan: string;
+  prunedSubplans: string[];
+  cost: number;
+  cardinality: number;
+  order: string;
+}
+
+export interface TargetRelationCatalog {
+  name: string;
+  alias: string;
+  cardinality: number;
+  pages: number;
+  filterPredicate?: string;
+  filterSelectivity?: number;
+  indexes: string[];
+}
+
+export interface VisualizerOptimizerState {
+  activePlanId: QueryPlanId;
+  sqlQuery: string;
+  targetRelations: TargetRelationCatalog[];
+  activePlan: CandidateQueryPlan;
+  allPlans: CandidateQueryPlan[];
+  systemRStages?: SystemRSearchStage[];
+  costFormulaWeights: {
+    wIo: number;
+    wCpu: number;
+    wOp: number;
+  };
+  banner?: {
+    type: 'SETUP' | 'NAIVE_WARNING' | 'PUSHDOWN_IMPACT' | 'OPERATOR_SELECT' | 'DP_PRUNING' | 'INTERESTING_ORDER' | 'SUMMARY';
+    title: string;
+    description: string;
+  };
+  metrics?: {
+    estimatedTotalCost: string;
+    speedupVsNaive: string;
+    pageIoTransferred: string;
+    memoryRequired: string;
+    joinAlgorithm: string;
+  };
 }
 
 export interface VisualizerColumnarState {
@@ -395,6 +480,7 @@ interface StepFrame {
   invertedIndexState?: VisualizerInvertedIndexState;
   postingSkipState?: VisualizerPostingSkipState;
   columnarState?: VisualizerColumnarState;
+  optimizerState?: VisualizerOptimizerState;
   metrics?: Record<string, string | number | undefined>;
 }
 
@@ -407,6 +493,464 @@ interface AlgorithmConfig {
   description: string;
   generateFrames: () => StepFrame[];
 }
+
+
+// ==========================================
+// SESSION 68: QUERY OPTIMIZATION CBO DATA MODELS
+// ==========================================
+
+const TARGET_RELATION_CATALOG: TargetRelationCatalog[] = [
+  {
+    name: 'Customers',
+    alias: 'c',
+    cardinality: 100000,
+    pages: 2000,
+    filterPredicate: "c.tier = 'VIP'",
+    filterSelectivity: 0.01,
+    indexes: ['PRIMARY KEY (id)', 'INDEX (tier)'],
+  },
+  {
+    name: 'Orders',
+    alias: 'o',
+    cardinality: 1000000,
+    pages: 25000,
+    filterPredicate: "o.total_amount > 500",
+    filterSelectivity: 0.05,
+    indexes: ['PRIMARY KEY (customer_id, id)', 'INDEX (total_amount)'],
+  },
+  {
+    name: 'LineItems',
+    alias: 'l',
+    cardinality: 5000000,
+    pages: 125000,
+    indexes: ['PRIMARY KEY (order_id, item_id)'],
+  },
+];
+
+const PLAN_A_NAIVE_NLJ: CandidateQueryPlan = {
+  id: 'PLAN_A_NAIVE_NLJ',
+  name: 'Plan A: Naive Unoptimized (Cartesian / Late Filter Nested Loop Join)',
+  strategy: 'Late Filter + Cartesian Nested Loop Join (Full Table Scans)',
+  totalCost: 20400000,
+  totalPageIo: 20152000,
+  totalTuplesProcessed: 605100000,
+  totalOperatorCalls: 20000000,
+  estimatedRuntimeMs: 180000, // ~3 minutes
+  memoryFootprintMb: 12.0,
+  joinTreeShape: 'CARTESIAN_CROSS',
+  advantages: ['Zero compilation overhead', 'No catalog statistics needed'],
+  disadvantages: [
+    '20,152,000 Page I/Os completely thrashes buffer pool',
+    'Cartesian product generates 100,000,000 intermediate pairs before filtering',
+    'Runs for ~3 minutes on a simple 3-table analytical query',
+  ],
+  operatorNodes: [
+    {
+      id: 'n1',
+      name: 'Physical Plan Root: Project [c.name, o.order_date, l.product, l.quantity, l.price]',
+      type: 'PROJECT',
+      outputCardinality: 2500,
+      inputCardinality: 2500,
+      cost: 20400000,
+      ioCost: 20152000,
+      cpuCost: 248000,
+      operatorCost: 0,
+      memoryMb: 1.0,
+      pipelined: true,
+      depth: 0,
+    },
+    {
+      id: 'n2',
+      name: "Late Filter: WHERE c.tier = 'VIP' AND o.total_amount > 500",
+      type: 'FILTER',
+      predicate: "c.tier = 'VIP' AND o.total_amount > 500",
+      outputCardinality: 2500,
+      inputCardinality: 500000000,
+      cost: 20380000,
+      ioCost: 20152000,
+      cpuCost: 228000,
+      operatorCost: 0,
+      memoryMb: 2.0,
+      pipelined: true,
+      depth: 1,
+    },
+    {
+      id: 'n3',
+      name: 'Nested Loop Join: LineItems ON o.id = l.order_id',
+      type: 'NESTED_LOOP',
+      predicate: 'o.id = l.order_id',
+      outputCardinality: 500000000,
+      inputCardinality: 100000000,
+      cost: 20160000,
+      ioCost: 20027000,
+      cpuCost: 133000,
+      operatorCost: 0,
+      memoryMb: 4.0,
+      pipelined: false,
+      depth: 2,
+    },
+    {
+      id: 'n4',
+      name: 'Cartesian Nested Loop Join: Customers CROSS JOIN Orders',
+      type: 'NESTED_LOOP',
+      predicate: 'c.id = o.customer_id',
+      outputCardinality: 100000000,
+      inputCardinality: 100000,
+      cost: 20025000,
+      ioCost: 20025000,
+      cpuCost: 0,
+      operatorCost: 0,
+      memoryMb: 8.0,
+      pipelined: false,
+      depth: 3,
+    },
+    {
+      id: 'n5',
+      name: 'Seq Scan Customers (Full Table Scan)',
+      type: 'SCAN',
+      relation: 'Customers',
+      outputCardinality: 100000,
+      cost: 2000,
+      ioCost: 2000,
+      cpuCost: 100,
+      operatorCost: 0,
+      memoryMb: 1.0,
+      pipelined: true,
+      depth: 4,
+    },
+    {
+      id: 'n6',
+      name: 'Seq Scan Orders (Repeated Inner Scan 100,000 times)',
+      type: 'SCAN',
+      relation: 'Orders',
+      outputCardinality: 1000000,
+      cost: 20000000,
+      ioCost: 20000000,
+      cpuCost: 1000,
+      operatorCost: 0,
+      memoryMb: 4.0,
+      pipelined: true,
+      depth: 4,
+    },
+    {
+      id: 'n7',
+      name: 'Seq Scan LineItems (Repeated Inner Scan for Joined Tuples)',
+      type: 'SCAN',
+      relation: 'LineItems',
+      outputCardinality: 5000000,
+      cost: 125000,
+      ioCost: 125000,
+      cpuCost: 5000,
+      operatorCost: 0,
+      memoryMb: 4.0,
+      pipelined: true,
+      depth: 3,
+    },
+  ],
+};
+
+const PLAN_B_FILTER_HASH: CandidateQueryPlan = {
+  id: 'PLAN_B_FILTER_HASH',
+  name: 'Plan B: Predicate Pushdown + In-Memory Grace Hash Join',
+  strategy: 'Filter Pushdown to Scans + Hash Join on Filtered Relations',
+  totalCost: 12400,
+  totalPageIo: 152000,
+  totalTuplesProcessed: 5051000,
+  totalOperatorCalls: 51500,
+  estimatedRuntimeMs: 110,
+  memoryFootprintMb: 4.8,
+  joinTreeShape: 'LEFT_DEEP',
+  advantages: [
+    'Pushes filters below joins, slashing Customers by 99% and Orders by 95%',
+    'In-memory hash table on 1,000 VIP customers takes only 64 KB RAM',
+    '1,650x faster than Naive Plan A (110ms vs 180s)',
+  ],
+  disadvantages: [
+    'Requires full sequential scan of LineItems (125,000 pages)',
+    'Hash tables require dynamic memory allocation and hash collision management',
+    'Cannot exploit physical index sort orders',
+  ],
+  operatorNodes: [
+    {
+      id: 'nb1',
+      name: 'Physical Plan Root: Project [c.name, o.order_date, l.product, l.quantity, l.price]',
+      type: 'PROJECT',
+      outputCardinality: 2500,
+      inputCardinality: 2500,
+      cost: 12400,
+      ioCost: 152000,
+      cpuCost: 5100,
+      operatorCost: 7300,
+      memoryMb: 1.0,
+      pipelined: true,
+      depth: 0,
+    },
+    {
+      id: 'nb2',
+      name: 'Hash Join: Probe LineItems ON o.id = l.order_id',
+      type: 'HASH_JOIN',
+      predicate: 'o.id = l.order_id',
+      outputCardinality: 2500,
+      inputCardinality: 5000000,
+      cost: 12150,
+      ioCost: 152000,
+      cpuCost: 5000,
+      operatorCost: 7150,
+      memoryMb: 3.5,
+      pipelined: false,
+      depth: 1,
+    },
+    {
+      id: 'nb3',
+      name: 'Hash Join: Build Customers (VIP), Probe Orders ON c.id = o.customer_id',
+      type: 'HASH_JOIN',
+      predicate: 'c.id = o.customer_id',
+      outputCardinality: 500,
+      inputCardinality: 50000,
+      cost: 2200,
+      ioCost: 27000,
+      cpuCost: 100,
+      operatorCost: 2100,
+      memoryMb: 1.3,
+      pipelined: false,
+      depth: 2,
+    },
+    {
+      id: 'nb4',
+      name: "Filter Predicate: c.tier = 'VIP' (Selectivity 0.01 -> 1,000 rows)",
+      type: 'FILTER',
+      relation: 'Customers',
+      predicate: "c.tier = 'VIP'",
+      outputCardinality: 1000,
+      inputCardinality: 100000,
+      cost: 2100,
+      ioCost: 2000,
+      cpuCost: 100,
+      operatorCost: 0,
+      memoryMb: 0.1,
+      pipelined: true,
+      depth: 3,
+    },
+    {
+      id: 'nb5',
+      name: 'Seq Scan Customers (2,000 Pages)',
+      type: 'SCAN',
+      relation: 'Customers',
+      outputCardinality: 100000,
+      cost: 2000,
+      ioCost: 2000,
+      cpuCost: 0,
+      operatorCost: 0,
+      memoryMb: 0.5,
+      pipelined: true,
+      depth: 4,
+    },
+    {
+      id: 'nb6',
+      name: 'Filter Predicate: o.total_amount > 500 (Selectivity 0.05 -> 50,000 rows)',
+      type: 'FILTER',
+      relation: 'Orders',
+      predicate: 'o.total_amount > 500',
+      outputCardinality: 50000,
+      inputCardinality: 1000000,
+      cost: 26000,
+      ioCost: 25000,
+      cpuCost: 1000,
+      operatorCost: 0,
+      memoryMb: 0.2,
+      pipelined: true,
+      depth: 3,
+    },
+    {
+      id: 'nb7',
+      name: 'Seq Scan Orders (25,000 Pages)',
+      type: 'SCAN',
+      relation: 'Orders',
+      outputCardinality: 1000000,
+      cost: 25000,
+      ioCost: 25000,
+      cpuCost: 0,
+      operatorCost: 0,
+      memoryMb: 1.0,
+      pipelined: true,
+      depth: 4,
+    },
+    {
+      id: 'nb8',
+      name: 'Seq Scan LineItems (125,000 Pages)',
+      type: 'SCAN',
+      relation: 'LineItems',
+      outputCardinality: 5000000,
+      cost: 125000,
+      ioCost: 125000,
+      cpuCost: 0,
+      operatorCost: 0,
+      memoryMb: 2.0,
+      pipelined: true,
+      depth: 2,
+    },
+  ],
+};
+
+const PLAN_C_SYSTEM_R_DP_MERGE: CandidateQueryPlan = {
+  id: 'PLAN_C_SYSTEM_R_DP_MERGE',
+  name: 'Plan C: System R Dynamic Programming Optimal (Sort-Merge + Clustered Index Pipelining)',
+  strategy: 'System R Left-Deep DP Tree + Clustered Index Sort-Merge Join (Interesting Orders)',
+  totalCost: 3880,
+  totalPageIo: 1790,
+  totalTuplesProcessed: 4000,
+  totalOperatorCalls: 4000,
+  estimatedRuntimeMs: 12,
+  memoryFootprintMb: 0.4,
+  joinTreeShape: 'INTERESTING_ORDER_PIPELINED',
+  advantages: [
+    'Zero intermediate materialization or hash tables - pure Volcano streaming pipeline',
+    'Exploits Clustered B+Tree index order (Interesting Order on join keys) for Sort-Merge Join',
+    'Index seeks prune LineItems from 125,000 pages to only 500 pages (99.6% I/O reduction)',
+    '5,250x faster than Naive Plan A, 9.2x faster than Plan B',
+  ],
+  disadvantages: [
+    'Requires clustered composite B+Tree indexes on join keys',
+    'Dynamic programming optimizer search space evaluation overhead (1.2 ms compilation)',
+  ],
+  operatorNodes: [
+    {
+      id: 'nc1',
+      name: 'Physical Plan Root: Project [c.name, o.order_date, l.product, l.quantity, l.price]',
+      type: 'PROJECT',
+      outputCardinality: 2500,
+      inputCardinality: 2500,
+      cost: 3880,
+      ioCost: 1790,
+      cpuCost: 40,
+      operatorCost: 2050,
+      memoryMb: 0.1,
+      pipelined: true,
+      interestingOrder: 'c.id, o.id ASC',
+      depth: 0,
+    },
+    {
+      id: 'nc2',
+      name: 'Merge Join: Pipelined Stream ON o.id = l.order_id (Zero-Sort Merge)',
+      type: 'SORT_MERGE',
+      predicate: 'o.id = l.order_id',
+      outputCardinality: 2500,
+      inputCardinality: 3000,
+      cost: 3820,
+      ioCost: 1790,
+      cpuCost: 30,
+      operatorCost: 2000,
+      memoryMb: 0.1,
+      pipelined: true,
+      interestingOrder: 'o.id ASC',
+      depth: 1,
+    },
+    {
+      id: 'nc3',
+      name: 'Merge Join: Clustered Stream ON c.id = o.customer_id (Zero-Sort Merge)',
+      type: 'SORT_MERGE',
+      predicate: 'c.id = o.customer_id',
+      outputCardinality: 500,
+      inputCardinality: 1500,
+      cost: 3250,
+      ioCost: 1290,
+      cpuCost: 10,
+      operatorCost: 1950,
+      memoryMb: 0.1,
+      pipelined: true,
+      interestingOrder: 'c.id ASC',
+      depth: 2,
+    },
+    {
+      id: 'nc4',
+      name: "Index Range Scan: Customers (PK id, filter tier = 'VIP')",
+      type: 'SCAN',
+      relation: 'Customers',
+      predicate: "c.tier = 'VIP'",
+      outputCardinality: 1000,
+      cost: 45,
+      ioCost: 40,
+      cpuCost: 5,
+      operatorCost: 0,
+      memoryMb: 0.1,
+      pipelined: true,
+      interestingOrder: 'c.id ASC',
+      depth: 3,
+    },
+    {
+      id: 'nc5',
+      name: 'Clustered Index Seek: Orders (customer_id, id; filter total_amount > 500)',
+      type: 'SCAN',
+      relation: 'Orders',
+      predicate: 'o.total_amount > 500',
+      outputCardinality: 500,
+      cost: 1450,
+      ioCost: 1250,
+      cpuCost: 20,
+      operatorCost: 180,
+      memoryMb: 0.1,
+      pipelined: true,
+      interestingOrder: 'customer_id, id ASC',
+      depth: 3,
+    },
+    {
+      id: 'nc6',
+      name: 'Clustered Index Seek: LineItems (order_id, item_id)',
+      type: 'SCAN',
+      relation: 'LineItems',
+      predicate: 'l.order_id = o.id',
+      outputCardinality: 2500,
+      cost: 550,
+      ioCost: 500,
+      cpuCost: 10,
+      operatorCost: 40,
+      memoryMb: 0.1,
+      pipelined: true,
+      interestingOrder: 'order_id ASC',
+      depth: 2,
+    },
+  ],
+};
+
+const SYSTEM_R_STAGES: SystemRSearchStage[] = [
+  {
+    level: 1,
+    title: 'Stage 1: Single-Relation Access Path Selection (k = 1)',
+    subsetsEvaluated: ['{Customers}', '{Orders}', '{LineItems}'],
+    optimalSubplan: 'Customers: IndexScan(tier) [40 I/Os], Orders: ClusteredIndex(customer_id) [1,250 I/Os], LineItems: ClusteredIndex(order_id) [500 I/Os]',
+    prunedSubplans: ['Full Table Scan Customers (2,000 I/Os)', 'Full Table Scan Orders (25,000 I/Os)', 'Full Table Scan LineItems (125,000 I/Os)'],
+    cost: 1790,
+    cardinality: 4000,
+    order: 'c.id ASC, o.id ASC, l.order_id ASC',
+  },
+  {
+    level: 2,
+    title: 'Stage 2: Two-Relation Subsets Join Enumeration (k = 2)',
+    subsetsEvaluated: ['{Customers, Orders}', '{Orders, LineItems}', '{Customers, LineItems}'],
+    optimalSubplan: '{Customers} ⋈ {Orders} via Sort-Merge Join on c.id = o.customer_id (Interesting Order preserved)',
+    prunedSubplans: [
+      '{Customers, LineItems} pruned (Cartesian cross-product, no join predicate)',
+      '{Customers} ⋈ {Orders} via Nested Loops (cost 20.0M pruned)',
+      '{Customers} ⋈ {Orders} via Grace Hash Join (cost 2.2K with materialization pruned in favor of pipelined merge)',
+    ],
+    cost: 3250,
+    cardinality: 500,
+    order: 'c.id, o.id ASC (Interesting Order)',
+  },
+  {
+    level: 3,
+    title: 'Stage 3: Optimal Left-Deep Tree Formulation (k = 3)',
+    subsetsEvaluated: ['({Customers, Orders}) ⋈ LineItems', '({Orders, LineItems}) ⋈ Customers'],
+    optimalSubplan: '({Customers ⋈ Orders}) ⋈ LineItems via Pipelined Zero-Sort Merge Join',
+    prunedSubplans: [
+      'Bushy Tree (Customers ⋈ Orders) ⋈ (LineItems ⋈ ...) - pruned to enforce left-deep pipelining',
+      'Hash Join probing 5M unindexed LineItems - pruned (cost 12.4K vs 3.8K)',
+    ],
+    cost: 3880,
+    cardinality: 2500,
+    order: 'c.id, o.id, l.order_id ASC',
+  },
+];
 
 const ALGORITHM_CONFIGS: AlgorithmConfig[] = [
   {
@@ -3731,6 +4275,314 @@ const ALGORITHM_CONFIGS: AlgorithmConfig[] = [
       ];
     },
   },
+  {
+    id: 'QUERY_COST_OPTIMIZER_CBO',
+    name: 'Query Optimization Internals: Cost-Based Optimizer (CBO) & System R Dynamic Programming',
+    category: 'Database Storage & Query Processing Internals',
+    timeComplexity: 'Naive NLJ: O(N · M · L), System R DP: O(3^N) search, Pipelined Merge: O(N + M + L)',
+    spaceComplexity: 'Grace Hash: O(M) memory, Pipelined Merge: O(1) streaming (0 temp files)',
+    description:
+      'Relational databases transform declarative SQL into optimal physical execution trees. Using System R dynamic programming join enumeration, predicate pushdown, catalog selectivity estimation, and interesting orders, the Cost-Based Optimizer (CBO) prunes catastrophic Cartesian explosions and slashes query latency by 5,250x.',
+    generateFrames: () => {
+      const sqlText = "SELECT c.name, o.order_date, l.product, l.quantity, l.price\nFROM Customers c\nJOIN Orders o ON c.id = o.customer_id\nJOIN LineItems l ON o.id = l.order_id\nWHERE c.tier = 'VIP' AND o.total_amount > 500;";
+      const allPlans = [PLAN_A_NAIVE_NLJ, PLAN_B_FILTER_HASH, PLAN_C_SYSTEM_R_DP_MERGE];
+      const baseWeights = { wIo: 1.0, wCpu: 0.001, wOp: 0.005 };
+
+      return [
+        // Frame 1: Declarative Query Setup
+        {
+          stepIndex: 1,
+          title: 'Declarative SQL Query & Relational Calculus Model',
+          explanation:
+            'Relational database engines receive declarative SQL queries specifying *what* data to retrieve, not *how* to retrieve it. The optimizer must choose among equivalent relational algebra trees and physical operators (Scan, Hash Join, Nested Loop, Sort-Merge) across three relations: Customers (100K rows), Orders (1M rows), and LineItems (5M rows).',
+          status: 'IN_PROGRESS',
+          optimizerState: {
+            activePlanId: 'PLAN_A_NAIVE_NLJ',
+            sqlQuery: sqlText,
+            targetRelations: TARGET_RELATION_CATALOG,
+            activePlan: PLAN_A_NAIVE_NLJ,
+            allPlans,
+            costFormulaWeights: baseWeights,
+            banner: {
+              type: 'SETUP',
+              title: 'Declarative Query Analysis: 3-Way Join Across 6.1M Total Tuples',
+              description:
+                'Targeting Customers (100,000 rows / 2,000 pages), Orders (1,000,000 rows / 25,000 pages), and LineItems (5,000,000 rows / 125,000 pages). The search space contains dozens of candidate physical execution trees.',
+            },
+            metrics: {
+              estimatedTotalCost: '20,400,000 units',
+              speedupVsNaive: '1.0x (Baseline)',
+              pageIoTransferred: '20,152,000 Pages',
+              memoryRequired: '12.0 MB (Buffer Pool)',
+              joinAlgorithm: 'Nested Loop Join (Cartesian)',
+            },
+          },
+          metrics: {
+            'Search Space': '3! = 6 Permutations x Operators',
+            'Relations Target': '3 Tables (6.1M Rows)',
+            'Filter Predicates': '2 (VIP tier, Amount > 500)',
+            'Optimizer Phase': 'Parsing & AST Formulation',
+          },
+        },
+
+        // Frame 2: Plan A - Naive Cartesian / Nested Loop Disaster
+        {
+          stepIndex: 2,
+          title: 'Plan A: Naive Cartesian & Nested Loop Disaster (20,000,000 Page I/Os)',
+          explanation:
+            'Without optimization, a naive engine performs late filtering: cross-joining Customers (100K) with Orders (1M) and LineItems (5M) via unindexed nested loop joins. Every outer tuple rescans the inner table. The Cartesian product attempts 100,000,000 intermediate pairs before filtering, causing 20,152,000 page I/Os, thrashing the buffer pool for 180 seconds (~3 minutes).',
+          status: 'MISMATCH',
+          optimizerState: {
+            activePlanId: 'PLAN_A_NAIVE_NLJ',
+            sqlQuery: sqlText,
+            targetRelations: TARGET_RELATION_CATALOG,
+            activePlan: PLAN_A_NAIVE_NLJ,
+            allPlans,
+            costFormulaWeights: baseWeights,
+            banner: {
+              type: 'NAIVE_WARNING',
+              title: '⚠️ Critical Performance Failure: 20,152,000 Page I/Os & Cartesian Explosion',
+              description:
+                'Evaluating filters at the top of the tree forces 500,000,000 unindexed comparisons. Nested loops repeatedly rescan 25,000 Orders pages 100,000 times, drowning the memory bus.',
+            },
+            metrics: {
+              estimatedTotalCost: '20,400,000 units',
+              speedupVsNaive: '1.0x (Disaster)',
+              pageIoTransferred: '20,152,000 Pages',
+              memoryRequired: '12.0 MB',
+              joinAlgorithm: 'Cartesian Nested Loops',
+            },
+          },
+          metrics: {
+            'Cartesian Tuples': '100,000,000 Intermediate',
+            'Disk Page Scans': '20,152,000 Pages',
+            'Estimated Runtime': '180,000 ms (~3 min)',
+            'Buffer Pool Hit Rate': '< 4.2% (Severe Thrashing)',
+          },
+        },
+
+        // Frame 3: Relational Algebra Equivalence & Predicate Pushdown
+        {
+          stepIndex: 3,
+          title: 'Relational Algebra Equivalence & Predicate Pushdown (99% Reduction)',
+          explanation:
+            'By applying the relational algebraic rewrite rule σ_P(R ⋈ S) ≡ σ_P(R) ⋈ S, selection filters are pushed down directly to the physical table scan operators. Pushing c.tier = "VIP" filters Customers from 100,000 to only 1,000 tuples (99% reduction). Pushing o.total_amount > 500 filters Orders from 1,000,000 to 50,000 tuples (95% reduction) *before* any join operator executes.',
+          status: 'IN_PROGRESS',
+          optimizerState: {
+            activePlanId: 'PLAN_B_FILTER_HASH',
+            sqlQuery: sqlText,
+            targetRelations: TARGET_RELATION_CATALOG,
+            activePlan: PLAN_B_FILTER_HASH,
+            allPlans,
+            costFormulaWeights: baseWeights,
+            banner: {
+              type: 'PUSHDOWN_IMPACT',
+              title: 'Predicate Pushdown: 99% of Unqualified Tuples Filtered at Scan Layer',
+              description:
+                'Customers cardinality slashes from 100,000 to 1,000. Orders cardinality slashes from 1,000,000 to 50,000. Only 50,000 inner tuples enter the join engine instead of 100,000,000,000 Cartesian comparisons.',
+            },
+            metrics: {
+              estimatedTotalCost: '12,400 units',
+              speedupVsNaive: '1,650x Faster',
+              pageIoTransferred: '152,000 Pages',
+              memoryRequired: '4.8 MB (Hash Table)',
+              joinAlgorithm: 'Predicate Pushdown + Hash Join',
+            },
+          },
+          metrics: {
+            'Customers Pruned': '100,000 -> 1,000 (99.0%)',
+            'Orders Pruned': '1,000,000 -> 50,000 (95.0%)',
+            'Algebraic Invariant': 'σ_P(R ⋈ S) ≡ σ_P(R) ⋈ S',
+            'Data Bus Saved': '98.5% Tuples Pruned Early',
+          },
+        },
+
+        // Frame 4: Physical Operator Selection: Nested Loops vs Grace Hash vs Sort-Merge
+        {
+          stepIndex: 4,
+          title: 'Physical Operator Selection: Nested Loops vs Grace Hash vs Sort-Merge',
+          explanation:
+            'The optimizer maps logical joins to physical algorithms based on data scale: (1) Nested Loop Join: O(M · N) I/Os, optimal only when inner relation has an index; (2) Grace Hash Join: O(M + N) I/Os, builds in-memory hash table on smaller outer relation and probes inner tuples; (3) Sort-Merge Join: O(M log M + N log N) if unsorted, but O(M + N) linear scan if inputs are already sorted by clustered indexes.',
+          status: 'IN_PROGRESS',
+          optimizerState: {
+            activePlanId: 'PLAN_B_FILTER_HASH',
+            sqlQuery: sqlText,
+            targetRelations: TARGET_RELATION_CATALOG,
+            activePlan: PLAN_B_FILTER_HASH,
+            allPlans,
+            costFormulaWeights: baseWeights,
+            banner: {
+              type: 'OPERATOR_SELECT',
+              title: 'Operator Mapping: Evaluating Memory Footprint & Asymptotic Bounds',
+              description:
+                'With 1,000 VIP customers, the hash table occupies only 64 KB RAM, easily fitting in L2/L3 cache. Grace Hash Join slashes execution time from 180 seconds to 110 milliseconds.',
+            },
+            metrics: {
+              estimatedTotalCost: '12,400 units',
+              speedupVsNaive: '1,650x Faster',
+              pageIoTransferred: '152,000 Pages',
+              memoryRequired: '4.8 MB (Hash Table)',
+              joinAlgorithm: 'Grace Hash Join (In-Memory)',
+            },
+          },
+          metrics: {
+            'Hash Table Size': '1,000 keys x 64B = 64 KB',
+            'Probe Complexity': 'O(1) per inner tuple',
+            'Spill-to-Disk': 'None (Fits in L3 Cache)',
+            'Latency Target': '110 ms (1,650x vs Naive)',
+          },
+        },
+
+        // Frame 5: System R Dynamic Programming Join Tree Enumeration
+        {
+          stepIndex: 5,
+          title: 'System R Dynamic Programming Join Tree Enumeration (Pruning Cartesian & Bushy)',
+          explanation:
+            'Pat Selinger’s System R algorithm constructs the search space bottom-up using dynamic programming: Stage 1 (k=1) evaluates all single-table access paths (Scans vs Indexes). Stage 2 (k=2) evaluates 2-table subsets, immediately pruning Cartesian products like {Customers, LineItems}. Stage 3 (k=3) evaluates optimal left-deep combinations, pruning suboptimal plans with identical interesting orders. The search space shrinks from N! factorial trees to O(3^N) evaluated subplans.',
+          status: 'IN_PROGRESS',
+          optimizerState: {
+            activePlanId: 'PLAN_C_SYSTEM_R_DP_MERGE',
+            sqlQuery: sqlText,
+            targetRelations: TARGET_RELATION_CATALOG,
+            activePlan: PLAN_C_SYSTEM_R_DP_MERGE,
+            allPlans,
+            systemRStages: SYSTEM_R_STAGES,
+            costFormulaWeights: baseWeights,
+            banner: {
+              type: 'DP_PRUNING',
+              title: 'System R DP Engine: Subproblems Pruned at Level k=2 and k=3',
+              description:
+                'Cartesian cross-products and high-cost nested loops are pruned at stage boundaries. The optimal left-deep tree (Customers ⋈ Orders) ⋈ LineItems emerges as the cost-optimal winner.',
+            },
+            metrics: {
+              estimatedTotalCost: '3,880 units',
+              speedupVsNaive: '5,250x Faster',
+              pageIoTransferred: '1,790 Pages',
+              memoryRequired: '0.4 MB (Pipelined Stream)',
+              joinAlgorithm: 'Left-Deep Sort-Merge Join',
+            },
+          },
+          metrics: {
+            'DP Search Space': 'Pruned from N! to O(3^N)',
+            'Cartesian Pruned': '{Customers, LineItems} eliminated',
+            'Intermediate Buffers': 'Zero (Left-Deep Pipelined)',
+            'Optimal Join Order': '(Customers ⋈ Orders) ⋈ LineItems',
+          },
+        },
+
+        // Frame 6: Cost-Based Evaluation & Statistical Catalog Selectivity Estimation
+        {
+          stepIndex: 6,
+          title: 'Cost-Based Optimizer (CBO) & Statistical Catalog Selectivity Estimation',
+          explanation:
+            'The CBO computes total cost using catalog statistics (cardinality, page count, distinct values, histograms): Cost = N_page_io · W_IO + N_tuples · W_CPU + N_ops · W_Op. Equality selectivity sel(tier = "VIP") = 1 / Distinct(tier) = 0.01. Range selectivity sel(total_amount > 500) = (Max - 500) / (Max - Min) = 0.05. Using these statistical estimates, Plan C achieves an estimated cost of 3,880 vs Plan A’s 20,400,000.',
+          status: 'IN_PROGRESS',
+          optimizerState: {
+            activePlanId: 'PLAN_C_SYSTEM_R_DP_MERGE',
+            sqlQuery: sqlText,
+            targetRelations: TARGET_RELATION_CATALOG,
+            activePlan: PLAN_C_SYSTEM_R_DP_MERGE,
+            allPlans,
+            systemRStages: SYSTEM_R_STAGES,
+            costFormulaWeights: baseWeights,
+            banner: {
+              type: 'SETUP',
+              title: 'Selinger Cost Formulation: Arithmetic Breakdown & Weights',
+              description:
+                'Cost = (1,790 Pages · 1.0) + (4,000 Tuples · 0.001) + (4,000 Operators · 0.005) = 1,790 + 4 + 20 = 1,814 base + seek overhead = 3,880 Selinger cost units.',
+            },
+            metrics: {
+              estimatedTotalCost: '3,880 units',
+              speedupVsNaive: '5,250x Faster',
+              pageIoTransferred: '1,790 Pages',
+              memoryRequired: '0.4 MB',
+              joinAlgorithm: 'System R DP Cost Winner',
+            },
+          },
+          metrics: {
+            'Cost Formula': 'N_io · 1.0 + N_cpu · 0.001 + N_op · 0.005',
+            'VIP Selectivity': '0.01 (1,000 / 100,000)',
+            'Amount Selectivity': '0.05 (50,000 / 1,000,000)',
+            'Cost Accuracy': 'Calibrated against B+Tree Depth',
+          },
+        },
+
+        // Frame 7: Pipelined Execution & The Power of "Interesting Orders"
+        {
+          stepIndex: 7,
+          title: 'Pipelined Execution & The Power of "Interesting Orders"',
+          explanation:
+            'A central breakthrough of the System R optimizer is "Interesting Orders": physical clustered B+Tree indexes naturally output tuples pre-sorted on primary keys (c.id, o.customer_id, l.order_id). Even though an index scan might have a slightly higher individual cost than a raw sequential scan, preserving sort order allows the Sort-Merge Join to execute in pure streaming pipelined fashion with zero sorting passes and zero in-memory hash tables.',
+          status: 'IN_PROGRESS',
+          optimizerState: {
+            activePlanId: 'PLAN_C_SYSTEM_R_DP_MERGE',
+            sqlQuery: sqlText,
+            targetRelations: TARGET_RELATION_CATALOG,
+            activePlan: PLAN_C_SYSTEM_R_DP_MERGE,
+            allPlans,
+            systemRStages: SYSTEM_R_STAGES,
+            costFormulaWeights: baseWeights,
+            banner: {
+              type: 'INTERESTING_ORDER',
+              title: 'Interesting Order Exploit: Zero-Materialization Sort-Merge Pipeline',
+              description:
+                'Customers PK (id) matches Orders composite index (customer_id, id). LineItems clustered index (order_id) matches upstream output stream. Zero temporary files or hash buckets required.',
+            },
+            metrics: {
+              estimatedTotalCost: '3,880 units',
+              speedupVsNaive: '5,250x Faster',
+              pageIoTransferred: '1,790 Pages',
+              memoryRequired: '0.4 MB (Pipelined)',
+              joinAlgorithm: 'Sort-Merge (Interesting Orders)',
+            },
+          },
+          metrics: {
+            'Order Match': 'c.id == o.customer_id',
+            'Sort Passes': '0 (Eliminated by B+Tree)',
+            'Pipeline Depth': '3 Streaming Iterators',
+            'Temp File Spills': '0 Bytes to Disk',
+          },
+        },
+
+        // Frame 8: Quantitative Optimizer Benchmark & Physical Plan Diff
+        {
+          stepIndex: 8,
+          title: 'Quantitative Optimizer Benchmark: 5,250x CBO Speedup & Invariants',
+          explanation:
+            'The Cost-Based Optimizer achieves a 5,250x reduction in query cost: from 20,400,000 units (180s runtime, 20.1M page I/Os) down to 3,880 units (12ms runtime, 1,790 page I/Os). Intermediate materialization is reduced by 99.9%, and buffer pool thrashing is completely eliminated through left-deep pipelining and interesting orders.',
+          status: 'COMPLETE',
+          optimizerState: {
+            activePlanId: 'PLAN_C_SYSTEM_R_DP_MERGE',
+            sqlQuery: sqlText,
+            targetRelations: TARGET_RELATION_CATALOG,
+            activePlan: PLAN_C_SYSTEM_R_DP_MERGE,
+            allPlans,
+            systemRStages: SYSTEM_R_STAGES,
+            costFormulaWeights: baseWeights,
+            banner: {
+              type: 'SUMMARY',
+              title: '✓ Cost-Based Query Optimizer Verified: 5,250x End-to-End Speedup',
+              description:
+                'Plan C (System R Dynamic Programming Sort-Merge Join) decisively wins: 1,790 Page I/Os vs 20,152,000 Page I/Os, 12 ms latency vs 180,000 ms, with 0 bytes spilled to temporary disk.',
+            },
+            metrics: {
+              estimatedTotalCost: '3,880 units (5,250x)',
+              speedupVsNaive: '5,250x Faster',
+              pageIoTransferred: '1,790 Pages (99.99% Cut)',
+              memoryRequired: '0.4 MB vs 12.0 MB',
+              joinAlgorithm: 'System R DP Pipelined Merge',
+            },
+          },
+          metrics: {
+            'Speedup Factor': '5,250x vs Naive NLJ',
+            'Page I/O Reduction': '99.99% (1,790 vs 20.1M)',
+            'Latency Drop': '180,000 ms -> 12 ms',
+            'Physical Invariants': 'All 4 Formulations Proven',
+          },
+        },
+      ];
+    },
+  },
 ];
 
 export function AlgorithmVisualizerSandbox() {
@@ -3738,6 +4590,7 @@ export function AlgorithmVisualizerSandbox() {
   const [currentFrameIndex, setCurrentFrameIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(1200); // ms per step
+  const [activePlanTabOverride, setActivePlanTabOverride] = useState<QueryPlanId | null>(null);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -3771,6 +4624,7 @@ export function AlgorithmVisualizerSandbox() {
     setIsPlaying(false);
     setSelectedAlgoId(id);
     setCurrentFrameIndex(0);
+    setActivePlanTabOverride(null);
   };
 
   const handleStepForward = () => {
@@ -3788,6 +4642,7 @@ export function AlgorithmVisualizerSandbox() {
   const handleReset = () => {
     setIsPlaying(false);
     setCurrentFrameIndex(0);
+    setActivePlanTabOverride(null);
   };
 
   return (
@@ -4123,6 +4978,583 @@ export function AlgorithmVisualizerSandbox() {
             </div>
           </div>
         )}
+
+        {/* ======================================================== */}
+        {/* SESSION 68: QUERY OPTIMIZER (CBO & SYSTEM R) VISUALIZER */}
+        {/* ======================================================== */}
+        {currentFrame.optimizerState && (() => {
+          const opt = currentFrame.optimizerState;
+          const currentPlan =
+            opt.allPlans.find((p) => p.id === (activePlanTabOverride || opt.activePlanId)) ||
+            opt.activePlan;
+
+          return (
+            <div className="space-y-6">
+              {/* Informational Banner */}
+              {opt.banner && (
+                <div
+                  className={`p-4 rounded-xl border flex items-start gap-3.5 ${
+                    opt.banner.type === 'SUMMARY'
+                      ? 'bg-emerald-50/80 border-emerald-300 text-emerald-950'
+                      : opt.banner.type === 'NAIVE_WARNING'
+                      ? 'bg-red-50/80 border-red-300 text-red-950'
+                      : opt.banner.type === 'PUSHDOWN_IMPACT'
+                      ? 'bg-amber-50/80 border-amber-300 text-amber-950'
+                      : opt.banner.type === 'INTERESTING_ORDER'
+                      ? 'bg-sky-50/80 border-sky-300 text-sky-950'
+                      : 'bg-primary-50/80 border-primary-300 text-primary-950'
+                  }`}
+                >
+                  <div className="text-lg">
+                    {opt.banner.type === 'SUMMARY'
+                      ? '✓'
+                      : opt.banner.type === 'NAIVE_WARNING'
+                      ? '⚠️'
+                      : opt.banner.type === 'PUSHDOWN_IMPACT'
+                      ? '⚡'
+                      : opt.banner.type === 'INTERESTING_ORDER'
+                      ? '🔄'
+                      : 'ℹ️'}
+                  </div>
+                  <div className="space-y-0.5">
+                    <div className="text-sm font-bold">{opt.banner.title}</div>
+                    <div className="text-xs text-text-muted leading-relaxed">
+                      {opt.banner.description}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Target SQL Query Bar & Relation Catalog Cards */}
+              <div className="bg-canvas border border-border rounded-xl p-4 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border pb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold uppercase tracking-wider text-primary-800">
+                      Target Declarative SQL Query
+                    </span>
+                    <span className="text-[10px] bg-primary-100 text-primary-800 font-semibold px-2 py-0.5 rounded">
+                      Relational Calculus Input
+                    </span>
+                  </div>
+                  <span className="text-xs font-mono text-text-muted">
+                    Catalog: 3 Relations | 6,100,000 Total Tuples
+                  </span>
+                </div>
+
+                {/* Syntax-styled Query Box */}
+                <div className="bg-surface border border-border rounded-lg p-3 font-mono text-xs text-text overflow-x-auto shadow-inner">
+                  <pre className="text-text-muted leading-relaxed">
+                    <span className="text-primary-700 font-bold">SELECT</span> <span className="text-text">c.name, o.order_date, l.product, l.quantity, l.price</span>{"\n"}
+                    <span className="text-primary-700 font-bold">FROM</span> <span className="text-amber-700 font-semibold">Customers c</span>{"\n"}
+                    <span className="text-primary-700 font-bold">JOIN</span> <span className="text-sky-700 font-semibold">Orders o</span> <span className="text-primary-700 font-bold">ON</span> <span className="text-text">c.id = o.customer_id</span>{"\n"}
+                    <span className="text-primary-700 font-bold">JOIN</span> <span className="text-purple-700 font-semibold">LineItems l</span> <span className="text-primary-700 font-bold">ON</span> <span className="text-text">o.id = l.order_id</span>{"\n"}
+                    <span className="text-primary-700 font-bold">WHERE</span> <span className="text-emerald-700 font-semibold">c.tier = &apos;VIP&apos;</span> <span className="text-primary-700 font-bold">AND</span> <span className="text-emerald-700 font-semibold">o.total_amount &gt; 500;</span>
+                  </pre>
+                </div>
+
+                {/* Target Catalog Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {opt.targetRelations.map((rel) => (
+                    <div
+                      key={rel.name}
+                      className="bg-surface border border-border rounded-lg p-3 space-y-2 text-xs"
+                    >
+                      <div className="flex items-center justify-between border-b border-border pb-1.5">
+                        <span className="font-bold text-text font-mono">
+                          {rel.name} ({rel.alias})
+                        </span>
+                        <span className="text-[10px] font-mono text-text-muted">
+                          {rel.pages.toLocaleString()} Pages (4KB)
+                        </span>
+                      </div>
+                      <div className="space-y-1 text-[11px]">
+                        <div className="flex justify-between">
+                          <span className="text-text-muted">Cardinality:</span>
+                          <span className="font-mono font-bold text-text">
+                            {rel.cardinality.toLocaleString()} rows
+                          </span>
+                        </div>
+                        {rel.filterPredicate && (
+                          <div className="flex justify-between">
+                            <span className="text-text-muted">Predicate Filter:</span>
+                            <span className="font-mono text-emerald-700 font-bold">
+                              {rel.filterPredicate}
+                            </span>
+                          </div>
+                        )}
+                        {rel.filterSelectivity !== undefined && (
+                          <div className="flex justify-between">
+                            <span className="text-text-muted">Selectivity (sel):</span>
+                            <span className="font-mono text-primary-700 font-semibold">
+                              {(rel.filterSelectivity * 100).toFixed(1)}% ({Math.round(rel.cardinality * rel.filterSelectivity).toLocaleString()} rows)
+                            </span>
+                          </div>
+                        )}
+                        <div className="pt-1 text-[10px] text-text-muted">
+                          <span className="font-semibold">Indexes: </span>
+                          {rel.indexes.join(', ')}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Physical Execution Plan Candidates Selector */}
+              <div className="space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-text-muted">
+                    Physical Execution Plan Candidates (Cost-Based Comparison):
+                  </span>
+                  <span className="text-xs font-mono text-text-muted">
+                    Click plan tabs below to inspect execution tree &amp; cost breakdown
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {opt.allPlans.map((plan) => {
+                    const isSelected = plan.id === currentPlan.id;
+                    const isOptimal = plan.id === 'PLAN_C_SYSTEM_R_DP_MERGE';
+
+                    return (
+                      <button
+                        key={plan.id}
+                        type="button"
+                        onClick={() => setActivePlanTabOverride(plan.id)}
+                        className={`text-left rounded-xl border p-3.5 space-y-2.5 transition-all cursor-pointer ${
+                          isSelected
+                            ? isOptimal
+                              ? 'bg-emerald-50/80 border-emerald-400 ring-2 ring-emerald-500/20 shadow-xs'
+                              : plan.id === 'PLAN_A_NAIVE_NLJ'
+                              ? 'bg-red-50/80 border-red-400 ring-2 ring-red-500/20 shadow-xs'
+                              : 'bg-primary-50/80 border-primary-400 ring-2 ring-primary-500/20 shadow-xs'
+                            : 'bg-surface border-border hover:bg-canvas'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-xs text-text">
+                            {plan.id === 'PLAN_A_NAIVE_NLJ'
+                              ? 'Plan A (Naive NLJ)'
+                              : plan.id === 'PLAN_B_FILTER_HASH'
+                              ? 'Plan B (Predicate Hash)'
+                              : 'Plan C (System R Merge)'}
+                          </span>
+                          {isOptimal && (
+                            <span className="text-[10px] font-bold bg-emerald-600 text-white px-2 py-0.5 rounded-full">
+                              5,250x OPTIMAL
+                            </span>
+                          )}
+                          {plan.id === 'PLAN_A_NAIVE_NLJ' && (
+                            <span className="text-[10px] font-bold bg-red-600 text-white px-2 py-0.5 rounded-full">
+                              CARTESIAN
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="text-[11px] text-text-muted line-clamp-1">
+                          {plan.strategy}
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 pt-1 border-t border-border/60 text-[11px] font-mono">
+                          <div>
+                            <span className="text-text-muted block text-[10px]">Total Cost:</span>
+                            <span
+                              className={`font-bold ${
+                                isOptimal
+                                  ? 'text-emerald-700'
+                                  : plan.id === 'PLAN_A_NAIVE_NLJ'
+                                  ? 'text-red-700'
+                                  : 'text-primary-700'
+                              }`}
+                            >
+                              {plan.totalCost.toLocaleString()} units
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-text-muted block text-[10px]">Page I/O:</span>
+                            <span className="font-bold text-text">
+                              {plan.totalPageIo.toLocaleString()} pages
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-text-muted block text-[10px]">Est. Runtime:</span>
+                            <span className="font-bold text-text">
+                              {plan.estimatedRuntimeMs >= 1000
+                                ? `${(plan.estimatedRuntimeMs / 1000).toFixed(0)}s`
+                                : `${plan.estimatedRuntimeMs}ms`}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-text-muted block text-[10px]">Memory RAM:</span>
+                            <span className="font-bold text-text">{plan.memoryFootprintMb} MB</span>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Selected Plan AST Physical Operator Tree */}
+              <div className="bg-surface border border-border rounded-xl p-4 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border pb-3">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-sm font-bold text-text">{currentPlan.name}</h4>
+                      <span className="text-[10px] font-mono bg-canvas border border-border px-2 py-0.5 rounded text-text-muted">
+                        Shape: {currentPlan.joinTreeShape}
+                      </span>
+                    </div>
+                    <p className="text-xs text-text-muted">{currentPlan.strategy}</p>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs font-mono">
+                    <span className="bg-primary-50 text-primary-800 border border-primary-200 px-2 py-1 rounded">
+                      Cost: {currentPlan.totalCost.toLocaleString()}
+                    </span>
+                    <span className="bg-canvas border border-border text-text-muted px-2 py-1 rounded">
+                      I/O: {currentPlan.totalPageIo.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Operator Tree Diagram */}
+                <div className="space-y-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-text-muted">
+                    Volcano Iterator Physical Operator Tree:
+                  </span>
+                  <div className="space-y-2 pt-1 font-mono text-xs">
+                    {currentPlan.operatorNodes.map((node) => {
+                      const depthIndent =
+                        node.depth === 0
+                          ? ''
+                          : node.depth === 1
+                          ? 'ml-4 sm:ml-6'
+                          : node.depth === 2
+                          ? 'ml-8 sm:ml-12'
+                          : node.depth === 3
+                          ? 'ml-12 sm:ml-18'
+                          : 'ml-16 sm:ml-24';
+
+                      return (
+                        <div
+                          key={node.id}
+                          className={`${depthIndent} border rounded-lg p-3 bg-canvas/60 space-y-2 transition-all ${
+                            node.type === 'SORT_MERGE'
+                              ? 'border-emerald-300 bg-emerald-50/30'
+                              : node.type === 'HASH_JOIN'
+                              ? 'border-purple-300 bg-purple-50/30'
+                              : node.type === 'NESTED_LOOP'
+                              ? 'border-red-300 bg-red-50/30'
+                              : node.type === 'FILTER'
+                              ? 'border-amber-300 bg-amber-50/30'
+                              : 'border-border'
+                          }`}
+                        >
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`text-[10px] font-bold px-2 py-0.5 rounded font-sans uppercase ${
+                                  node.type === 'SORT_MERGE'
+                                    ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                                    : node.type === 'HASH_JOIN'
+                                    ? 'bg-purple-100 text-purple-900 border border-purple-300'
+                                    : node.type === 'NESTED_LOOP'
+                                    ? 'bg-red-100 text-red-900 border border-red-300'
+                                    : node.type === 'FILTER'
+                                    ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                                    : node.type === 'PROJECT'
+                                    ? 'bg-indigo-100 text-indigo-900 border border-indigo-300'
+                                    : 'bg-sky-100 text-sky-900 border border-sky-300'
+                                }`}
+                              >
+                                {node.type}
+                              </span>
+                              <span className="font-bold text-text text-xs">{node.name}</span>
+                            </div>
+
+                            <div className="flex items-center gap-2 self-start sm:self-center">
+                              {node.interestingOrder && (
+                                <span className="text-[10px] bg-sky-50 text-sky-800 border border-sky-200 px-2 py-0.5 rounded font-semibold">
+                                  Order: {node.interestingOrder}
+                                </span>
+                              )}
+                              <span
+                                className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${
+                                  node.pipelined
+                                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                    : 'bg-red-50 text-red-800 border-red-200'
+                                }`}
+                              >
+                                {node.pipelined ? 'Streaming' : 'Materialized'}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-border/50 text-[11px] text-text-muted font-sans">
+                            <div className="flex items-center gap-3">
+                              {node.inputCardinality !== undefined && (
+                                <span>
+                                  In: <strong className="text-text font-mono">{node.inputCardinality.toLocaleString()}</strong>
+                                </span>
+                              )}
+                              <span>
+                                Out: <strong className="text-text font-mono">{node.outputCardinality.toLocaleString()} rows</strong>
+                              </span>
+                              <span>
+                                RAM: <strong className="text-text font-mono">{node.memoryMb} MB</strong>
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-3 font-mono text-[10px]">
+                              <span>I/O: {node.ioCost.toLocaleString()}</span>
+                              <span>CPU: {node.cpuCost.toLocaleString()}</span>
+                              <span>Cost: <strong className="text-text">{node.cost.toLocaleString()}</strong></span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Plan Tradeoffs Card */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 text-xs">
+                  <div className="bg-emerald-50/50 border border-emerald-200 rounded-lg p-3 space-y-1.5">
+                    <span className="font-bold text-emerald-900 block text-[11px]">
+                      Architectural Advantages:
+                    </span>
+                    <ul className="space-y-1 text-emerald-950 text-[11px]">
+                      {currentPlan.advantages.map((adv, aIdx) => (
+                        <li key={aIdx} className="flex items-start gap-1.5">
+                          <span className="text-emerald-600 font-bold">✓</span>
+                          <span>{adv}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="bg-amber-50/50 border border-amber-200 rounded-lg p-3 space-y-1.5">
+                    <span className="font-bold text-amber-900 block text-[11px]">
+                      Cost &amp; Complexity Trade-offs:
+                    </span>
+                    <ul className="space-y-1 text-amber-950 text-[11px]">
+                      {currentPlan.disadvantages.map((dis, dIdx) => (
+                        <li key={dIdx} className="flex items-start gap-1.5">
+                          <span className="text-amber-600 font-bold">⚠</span>
+                          <span>{dis}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* System R Dynamic Programming Search Stage Card */}
+              {opt.systemRStages && (
+                <div className="bg-canvas border border-border rounded-xl p-4 space-y-3">
+                  <div className="flex items-center justify-between border-b border-border pb-2">
+                    <span className="text-xs font-bold uppercase tracking-wider text-primary-800">
+                      System R Dynamic Programming Join Tree Enumeration (Selinger Algorithm)
+                    </span>
+                    <span className="text-xs font-mono text-text-muted">
+                      Search Space: O(3^N) Left-Deep DP
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {opt.systemRStages.map((stg) => (
+                      <div
+                        key={stg.level}
+                        className="bg-surface border border-border rounded-lg p-3 space-y-2 text-xs"
+                      >
+                        <div className="flex items-center justify-between border-b border-border pb-1">
+                          <span className="font-bold text-text">{stg.title}</span>
+                          <span className="text-[10px] font-mono text-primary-700 bg-primary-50 px-1.5 py-0.5 rounded font-bold">
+                            Stage {stg.level}
+                          </span>
+                        </div>
+
+                        <div className="space-y-1.5 text-[11px]">
+                          <div>
+                            <span className="text-text-muted block text-[10px]">Optimal Subplan:</span>
+                            <span className="font-semibold text-emerald-800 font-mono text-[10.5px]">
+                              {stg.optimalSubplan}
+                            </span>
+                          </div>
+
+                          <div>
+                            <span className="text-text-muted block text-[10px]">Subplans Pruned (Discarded):</span>
+                            <div className="space-y-0.5">
+                              {stg.prunedSubplans.map((prune, pIdx) => (
+                                <div
+                                  key={pIdx}
+                                  className="text-[10px] text-red-700/90 font-mono line-through"
+                                >
+                                  ✕ {prune}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="flex justify-between pt-1 border-t border-border font-mono text-[10px]">
+                            <span>Cost: <strong>{stg.cost.toLocaleString()}</strong></span>
+                            <span>Order: <strong className="text-sky-700">{stg.order}</strong></span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Selinger Cost Model & Selectivity Mathematical Breakdown */}
+              <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between border-b border-border pb-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-text">
+                    Selinger Cost Formulation &amp; Selectivity Calculus
+                  </span>
+                  <span className="text-xs font-mono text-text-muted">
+                    W_IO = 1.0, W_CPU = 0.001, W_Op = 0.005
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono">
+                  <div className="p-3 bg-canvas border border-border rounded-lg space-y-1.5">
+                    <span className="font-bold text-primary-800 font-sans block text-[11px]">
+                      General Cost Model Formula:
+                    </span>
+                    <div className="text-text text-[11px]">
+                      Cost = (N_page_io · W_IO) + (N_tuples · W_CPU) + (N_ops · W_Op)
+                    </div>
+                    <div className="text-text-muted text-[10px] pt-1">
+                      Where N_page_io accounts for buffer cache misses, N_tuples represents iterator projection steps, and N_ops represents hash lookups and key comparisons.
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-canvas border border-border rounded-lg space-y-1.5">
+                    <span className="font-bold text-primary-800 font-sans block text-[11px]">
+                      Catalog Selectivity Formulations:
+                    </span>
+                    <div className="text-emerald-800 text-[11px]">
+                      sel(tier = &apos;VIP&apos;) = 1 / Distinct(tier) = 1 / 100 = 0.01 (1,000 rows)
+                    </div>
+                    <div className="text-emerald-800 text-[11px]">
+                      sel(amount &gt; 500) = (Max - 500) / (Max - Min) = 500 / 10000 = 0.05 (50,000 rows)
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quantitative Benchmark Comparison Table */}
+              <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-wider text-text">
+                    Quantitative Architectural Optimizer Benchmark
+                  </span>
+                  <span className="text-xs font-mono text-emerald-700 font-bold">
+                    Plan C Speedup: 5,250x Faster
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs text-left">
+                    <thead>
+                      <tr className="border-b border-border text-text-muted">
+                        <th className="py-1.5 pr-4 font-semibold">Optimization Metric</th>
+                        <th className="py-1.5 px-4 font-semibold">Plan A: Naive Cartesian NLJ</th>
+                        <th className="py-1.5 px-4 font-semibold">Plan B: Predicate Pushdown Hash</th>
+                        <th className="py-1.5 px-4 font-semibold">Plan C: System R DP Merge</th>
+                        <th className="py-1.5 pl-4 font-semibold text-right">Optimizer Delta</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border font-mono text-[11px]">
+                      <tr>
+                        <td className="py-2 pr-4 font-sans font-medium text-text">Total Selinger Cost</td>
+                        <td className="py-2 px-4 text-red-700">20,400,000 units</td>
+                        <td className="py-2 px-4 text-primary-700">12,400 units</td>
+                        <td className="py-2 px-4 text-emerald-700 font-bold">3,880 units</td>
+                        <td className="py-2 pl-4 text-right text-emerald-700 font-bold">5,250x Lower Cost</td>
+                      </tr>
+                      <tr>
+                        <td className="py-2 pr-4 font-sans font-medium text-text">Page I/O Loaded</td>
+                        <td className="py-2 px-4 text-red-700">20,152,000 pages</td>
+                        <td className="py-2 px-4 text-primary-700">152,000 pages</td>
+                        <td className="py-2 px-4 text-emerald-700 font-bold">1,790 pages</td>
+                        <td className="py-2 pl-4 text-right text-emerald-700 font-bold">99.99% I/O Saved</td>
+                      </tr>
+                      <tr>
+                        <td className="py-2 pr-4 font-sans font-medium text-text">Intermediate Tuples</td>
+                        <td className="py-2 px-4 text-red-700">100,000,000 (Cartesian)</td>
+                        <td className="py-2 px-4 text-primary-700">50,000 tuples</td>
+                        <td className="py-2 px-4 text-emerald-700 font-bold">0 (Pure Stream)</td>
+                        <td className="py-2 pl-4 text-right text-emerald-700 font-bold">100% Cartesian Cut</td>
+                      </tr>
+                      <tr>
+                        <td className="py-2 pr-4 font-sans font-medium text-text">Memory Footprint (RAM)</td>
+                        <td className="py-2 px-4 text-red-700">12.0 MB (Buffer Pool)</td>
+                        <td className="py-2 px-4 text-primary-700">4.8 MB (Hash Table)</td>
+                        <td className="py-2 px-4 text-emerald-700 font-bold">0.4 MB</td>
+                        <td className="py-2 pl-4 text-right text-emerald-700 font-bold">96.7% Memory Cut</td>
+                      </tr>
+                      <tr>
+                        <td className="py-2 pr-4 font-sans font-medium text-text">Temp File Sort Spills</td>
+                        <td className="py-2 px-4 text-red-700">Buffer Thrashing</td>
+                        <td className="py-2 px-4 text-primary-700">Zero (Fits in RAM)</td>
+                        <td className="py-2 px-4 text-emerald-700 font-bold">Zero (B+Tree Clustered)</td>
+                        <td className="py-2 pl-4 text-right text-emerald-700 font-bold">Zero Disk Spills</td>
+                      </tr>
+                      <tr>
+                        <td className="py-2 pr-4 font-sans font-medium text-text">Estimated Query Latency</td>
+                        <td className="py-2 px-4 text-red-700">~180,000 ms (3 min)</td>
+                        <td className="py-2 px-4 text-primary-700">110 ms</td>
+                        <td className="py-2 px-4 text-emerald-700 font-bold">12 ms</td>
+                        <td className="py-2 pl-4 text-right text-emerald-700 font-bold">15,000x Speedup</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* 4 Socratic Invariant Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+                <div className="p-3.5 rounded-lg bg-surface border border-border space-y-1 text-xs">
+                  <span className="font-bold text-text block text-[11px]">
+                    1. Relational Algebra Equivalence
+                  </span>
+                  <p className="text-[11px] text-text-muted leading-relaxed">
+                    Logical equivalence guarantees that rewriting query topologies preserves identical mathematical result sets while granting freedom to commute, associate, and push filters below joins.
+                  </p>
+                </div>
+
+                <div className="p-3.5 rounded-lg bg-surface border border-border space-y-1 text-xs">
+                  <span className="font-bold text-text block text-[11px]">
+                    2. Predicate Pushdown Invariant
+                  </span>
+                  <p className="text-[11px] text-text-muted leading-relaxed">
+                    Filtering at the physical scan layer eliminates 99% of tuples before they reach join operators, preserving memory bandwidth and preventing combinatorial tuple explosion.
+                  </p>
+                </div>
+
+                <div className="p-3.5 rounded-lg bg-surface border border-border space-y-1 text-xs">
+                  <span className="font-bold text-text block text-[11px]">
+                    3. Left-Deep Tree vs Bushy Trees
+                  </span>
+                  <p className="text-[11px] text-text-muted leading-relaxed">
+                    System R restricts the search space to left-deep join trees, bounding optimization complexity to O(3^N) while ensuring inner relations are indexed and intermediate materialization is minimized.
+                  </p>
+                </div>
+
+                <div className="p-3.5 rounded-lg bg-surface border border-border space-y-1 text-xs">
+                  <span className="font-bold text-text block text-[11px]">
+                    4. Interesting Orders &amp; Clustered Layout
+                  </span>
+                  <p className="text-[11px] text-text-muted leading-relaxed">
+                    A scan that produces tuples sorted on join keys eliminates downstream sort operations. Sort-Merge Join runs in pure streaming pipelined fashion with zero temporary files.
+                  </p>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
 
         {/* Tree Display (for BST_INSERTION_INORDER & AVL_TREE_ROTATIONS) */}
         {currentFrame.treeState && (

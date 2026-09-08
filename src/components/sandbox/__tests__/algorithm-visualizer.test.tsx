@@ -30,6 +30,7 @@ describe('AlgorithmVisualizerSandbox', () => {
     expect(screen.getByRole('button', { name: 'Trie Prefix Tree & Compressed Radix Tree Autocomplete Studio' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Inverted Index & Okapi BM25 Search Relevance Scoring Studio' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Database Columnar Storage & Vectorized SIMD Execution Engine' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Query Optimization Internals: Cost-Based Optimizer' })).toBeInTheDocument();
   });
 
   it('renders AVL Tree Rotations with complete Socratic step-by-step frames', () => {
@@ -771,4 +772,91 @@ describe('AlgorithmVisualizerSandbox', () => {
     expect(screen.getByText('Step 1 of 8')).toBeInTheDocument();
     expect(screen.getByText('Analytical Query Target & Relational Table Model')).toBeInTheDocument();
   });
+
+  it('renders Query Optimization CBO studio with System R Dynamic Programming and 8 Socratic steps', () => {
+    render(<AlgorithmVisualizerSandbox />);
+
+    // Select Query Optimization CBO
+    const algoBtn = screen.getByRole('button', {
+      name: /Query Optimization Internals: Cost-Based Optimizer/i,
+    });
+    fireEvent.click(algoBtn);
+
+    // Verify Title & Complexity
+    expect(
+      screen.getByRole('heading', {
+        name: 'Query Optimization Internals: Cost-Based Optimizer (CBO) & System R Dynamic Programming',
+        level: 3,
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText(/System R DP/i).length).toBeGreaterThanOrEqual(1);
+
+    // Verify Initial Step 1 of 8
+    expect(screen.getByText('Step 1 of 8')).toBeInTheDocument();
+    expect(screen.getAllByText(/c\.name, o\.order_date, l\.product/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/Target Declarative SQL Query/i)).toBeInTheDocument();
+    expect(screen.getByText(/Customers \(c\)/i)).toBeInTheDocument();
+
+    const nextBtn = screen.getByRole('button', { name: /Next Step/i });
+    const resetBtn = screen.getByRole('button', { name: /Reset Stepper/i });
+
+    // Step 2: Plan A Naive Cartesian & Nested Loop Disaster
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 2 of 8')).toBeInTheDocument();
+    expect(screen.getByText(/Plan A: Naive Cartesian & Nested Loop Disaster \(20,000,000 Page I\/Os\)/)).toBeInTheDocument();
+    expect(screen.getAllByText(/20,152,000 Page I\/Os/i).length).toBeGreaterThanOrEqual(1);
+
+    // Step 3: Relational Algebra Equivalence & Predicate Pushdown
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 3 of 8')).toBeInTheDocument();
+    expect(screen.getByText(/Relational Algebra Equivalence & Predicate Pushdown \(99% Reduction\)/)).toBeInTheDocument();
+    expect(screen.getByText(/99% of Unqualified Tuples Filtered at Scan Layer/i)).toBeInTheDocument();
+
+    // Step 4: Physical Operator Selection
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 4 of 8')).toBeInTheDocument();
+    expect(screen.getByText(/Physical Operator Selection: Nested Loops vs Grace Hash vs Sort-Merge/)).toBeInTheDocument();
+    expect(screen.getByText(/Evaluating Memory Footprint & Asymptotic Bounds/i)).toBeInTheDocument();
+
+    // Step 5: System R Dynamic Programming
+    fireEvent.click(nextBtn);
+    expect(screen.getAllByText(/System R Dynamic Programming Join Tree Enumeration/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/Stage 1: Single-Relation Access Path Selection/i)).toBeInTheDocument();
+    expect(screen.getByText(/Stage 2: Two-Relation Subsets Join Enumeration/i)).toBeInTheDocument();
+    expect(screen.getByText(/Stage 3: Optimal Left-Deep Tree Formulation/i)).toBeInTheDocument();
+
+    // Step 6: Cost-Based Evaluation & Statistical Selectivity
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 6 of 8')).toBeInTheDocument();
+    expect(screen.getByText(/Cost-Based Optimizer \(CBO\) & Statistical Catalog Selectivity Estimation/)).toBeInTheDocument();
+    expect(screen.getByText(/Selinger Cost Formulation & Selectivity Calculus/i)).toBeInTheDocument();
+
+    // Step 7: Pipelined Execution & Interesting Orders
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 7 of 8')).toBeInTheDocument();
+    expect(screen.getByText(/Pipelined Execution & The Power of "Interesting Orders"/)).toBeInTheDocument();
+    expect(screen.getByText(/Interesting Order Exploit: Zero-Materialization Sort-Merge Pipeline/i)).toBeInTheDocument();
+
+    // Step 8: Full Benchmark Verification & Invariants
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 8 of 8')).toBeInTheDocument();
+    expect(screen.getByText(/Quantitative Optimizer Benchmark: 5,250x CBO Speedup & Invariants/)).toBeInTheDocument();
+    expect(screen.getByText(/✓ Cost-Based Query Optimizer Verified: 5,250x End-to-End Speedup/)).toBeInTheDocument();
+    expect(screen.getByText('1. Relational Algebra Equivalence')).toBeInTheDocument();
+    expect(screen.getByText('2. Predicate Pushdown Invariant')).toBeInTheDocument();
+    expect(screen.getByText('3. Left-Deep Tree vs Bushy Trees')).toBeInTheDocument();
+    expect(screen.getByText('4. Interesting Orders & Clustered Layout')).toBeInTheDocument();
+    expect(nextBtn).toBeDisabled();
+
+    // Test switching to Plan A tab interactively
+    const planABtn = screen.getByRole('button', { name: /Plan A \(Naive NLJ\)/i });
+    fireEvent.click(planABtn);
+    expect(screen.getAllByText(/Cartesian Nested Loop Join/i).length).toBeGreaterThanOrEqual(1);
+
+    // Test Reset Stepper
+    fireEvent.click(resetBtn);
+    expect(screen.getByText('Step 1 of 8')).toBeInTheDocument();
+    expect(screen.getByText('Declarative SQL Query & Relational Calculus Model')).toBeInTheDocument();
+  });
 });
+
