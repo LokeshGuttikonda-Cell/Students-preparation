@@ -8,7 +8,50 @@ export type InspectorMode =
   | 'CACHE_LINE'
   | 'HASH_TABLE'
   | 'LSM_TREE_SSTABLE'
-  | 'ARIES_RECOVERY';
+  | 'ARIES_RECOVERY'
+  | 'CACHE_STAMPEDE_XFETCH';
+
+export type CacheStampedeStrategy = 'NAIVE_TTL' | 'MUTEX_LOCK' | 'XFETCH_PROBABILISTIC';
+
+export interface StampedeCacheKey {
+  key: string;
+  title: string;
+  value: string;
+  version: number;
+  createdAtSec: number;
+  ttlSec: number;
+  elapsedSec: number;
+  remainingTtlSec: number;
+  deltaComputeMs: number;
+  isExpired: boolean;
+  isLocked: boolean;
+  lockedBy?: string;
+  isBackgroundRefreshing: boolean;
+}
+
+export interface StampedeTrafficResult {
+  timestamp: string;
+  strategy: CacheStampedeStrategy;
+  concurrency: number;
+  cacheHits: number;
+  cacheMisses: number;
+  dbQueriesDispatched: number;
+  dbPoolPeak: number;
+  dbPoolCapacity: number;
+  failedRequests: number;
+  p50LatencyMs: number;
+  p99LatencyMs: number;
+  summary: string;
+}
+
+export interface StampedeAuditEvent {
+  id: number;
+  time: string;
+  strategy: string;
+  badge: string;
+  badgeClass: string;
+  message: string;
+}
 
 export type AriesLogType =
   | 'BEGIN'
@@ -733,6 +776,410 @@ export function MemoryCacheInspectorSandbox() {
     ]);
   };
 
+  // --- Module 6: Cache Stampede & XFetch State ---
+  const INITIAL_STAMPEDE_KEY: StampedeCacheKey = {
+    key: 'leaderboard:realtime:top100',
+    title: 'Global High-Score Leaderboard (Aggregated Partition Table)',
+    value: '{"topUser": "alex_99", "score": 98450, "totalRanked": 142000}',
+    version: 1,
+    createdAtSec: 0,
+    ttlSec: 10,
+    elapsedSec: 8.5,
+    remainingTtlSec: 1.5,
+    deltaComputeMs: 120,
+    isExpired: false,
+    isLocked: false,
+    isBackgroundRefreshing: false,
+  };
+
+  const [stampedeStrategy, setStampedeStrategy] = useState<CacheStampedeStrategy>('XFETCH_PROBABILISTIC');
+  const [stampedeKey, setStampedeKey] = useState<StampedeCacheKey>(INITIAL_STAMPEDE_KEY);
+  const [xfetchBeta, setXfetchBeta] = useState<number>(1.0);
+  const [xfetchDeltaMs, setXfetchDeltaMs] = useState<number>(120);
+  const [lastBurstResult, setLastBurstResult] = useState<StampedeTrafficResult | null>(null);
+  const [lastRandomU, setLastRandomU] = useState<number>(0.38);
+  const [isMutexDeadlocked, setIsMutexDeadlocked] = useState<boolean>(false);
+  const [stampedeAuditLog, setStampedeAuditLog] = useState<StampedeAuditEvent[]>([
+    {
+      id: 1,
+      time: new Date().toLocaleTimeString(),
+      strategy: 'XFETCH_PROBABILISTIC',
+      badge: 'TOPOLOGY_ONLINE',
+      badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+      message: '3-Tier Cache Topology online. L1 In-Process (0.1ms), L2 Distributed Cache (1.5ms, TTL 10s), L3 Relational DB (120ms compute, pool capacity 10).',
+    },
+    {
+      id: 2,
+      time: new Date().toLocaleTimeString(),
+      strategy: 'XFETCH_PROBABILISTIC',
+      badge: 'STEADY_STATE',
+      badgeClass: 'bg-blue-100 text-blue-800 border-blue-300',
+      message: 'Key "leaderboard:realtime:top100" active with remaining TTL = 1.5s. XFetch probabilistic sampling active (β=1.0, δ=120ms).',
+    },
+  ]);
+
+  const stampedeRemainingMs = Math.max(0, Math.round(stampedeKey.remainingTtlSec * 1000));
+  const stampedeDenominator = Math.max(1, xfetchBeta * xfetchDeltaMs);
+  const xfetchProb = stampedeKey.isExpired
+    ? 1.0
+    : Math.min(1.0, Math.exp(-stampedeRemainingMs / stampedeDenominator));
+  const calculatedExpTerm = Math.round(-xfetchBeta * xfetchDeltaMs * Math.log(Math.max(0.0001, lastRandomU)));
+  const xfetchConditionMet = calculatedExpTerm > stampedeRemainingMs || stampedeKey.isExpired;
+
+  const handleAdvanceStampedeTime = (seconds: number) => {
+    setStampedeKey(prev => {
+      const newElapsed = Number((prev.elapsedSec + seconds).toFixed(1));
+      const newRemaining = Number(Math.max(0, prev.ttlSec - newElapsed).toFixed(1));
+      const expired = newRemaining <= 0;
+      return {
+        ...prev,
+        elapsedSec: newElapsed,
+        remainingTtlSec: newRemaining,
+        isExpired: expired,
+      };
+    });
+    setStampedeAuditLog(prev => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        strategy: stampedeStrategy,
+        badge: 'TIME_STEP',
+        badgeClass: 'bg-slate-100 text-slate-800 border-slate-300',
+        message: `Advanced virtual clock by +${seconds}s. Elapsed: ${(stampedeKey.elapsedSec + seconds).toFixed(1)}s / ${stampedeKey.ttlSec}s.`,
+      },
+      ...prev.slice(0, 8),
+    ]);
+  };
+
+  const handleJumpNearExpiry = () => {
+    setStampedeKey(prev => ({
+      ...prev,
+      elapsedSec: 9.8,
+      remainingTtlSec: 0.2,
+      isExpired: false,
+    }));
+    setStampedeAuditLog(prev => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        strategy: stampedeStrategy,
+        badge: 'NEAR_EXPIRY_JUMP',
+        badgeClass: 'bg-amber-100 text-amber-800 border-amber-300',
+        message: 'Clock jumped to near-expiry: 9.8s elapsed, 200ms remaining TTL. XFetch probability accelerates.',
+      },
+      ...prev.slice(0, 8),
+    ]);
+  };
+
+  const handleForceExpireStampedeKey = () => {
+    setStampedeKey(prev => ({
+      ...prev,
+      elapsedSec: prev.ttlSec,
+      remainingTtlSec: 0,
+      isExpired: true,
+    }));
+    setStampedeAuditLog(prev => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        strategy: stampedeStrategy,
+        badge: 'TTL_EXPIRED',
+        badgeClass: 'bg-red-100 text-red-800 border-red-300',
+        message: 'TTL reached 0s. Key is stale and expired across L1 and L2 caches.',
+      },
+      ...prev.slice(0, 8),
+    ]);
+  };
+
+  const handleDispatchTrafficBurst = (concurrency: number) => {
+    const timestamp = new Date().toLocaleTimeString();
+    const DB_POOL_CAPACITY = 10;
+    const computeMs = xfetchDeltaMs;
+
+    if (stampedeStrategy === 'NAIVE_TTL') {
+      if (!stampedeKey.isExpired) {
+        const result: StampedeTrafficResult = {
+          timestamp,
+          strategy: 'NAIVE_TTL',
+          concurrency,
+          cacheHits: concurrency,
+          cacheMisses: 0,
+          dbQueriesDispatched: 0,
+          dbPoolPeak: 0,
+          dbPoolCapacity: DB_POOL_CAPACITY,
+          failedRequests: 0,
+          p50LatencyMs: 0.1,
+          p99LatencyMs: 0.8,
+          summary: `Clean Hit: All ${concurrency} requests served from L1/L2 cache before expiration. 0 DB load.`,
+        };
+        setLastBurstResult(result);
+        setStampedeAuditLog(prev => [
+          {
+            id: Date.now(),
+            time: timestamp,
+            strategy: 'NAIVE_TTL',
+            badge: 'CACHE_HIT_BURST',
+            badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+            message: `Burst of ${concurrency} requests served from cache in 0.1ms. 0 DB connections requested.`,
+          },
+          ...prev.slice(0, 8),
+        ]);
+      } else {
+        const poolActive = Math.min(concurrency, DB_POOL_CAPACITY);
+        const failed = Math.max(0, concurrency - DB_POOL_CAPACITY);
+        const result: StampedeTrafficResult = {
+          timestamp,
+          strategy: 'NAIVE_TTL',
+          concurrency,
+          cacheHits: 0,
+          cacheMisses: concurrency,
+          dbQueriesDispatched: concurrency,
+          dbPoolPeak: poolActive,
+          dbPoolCapacity: DB_POOL_CAPACITY,
+          failedRequests: failed,
+          p50LatencyMs: computeMs,
+          p99LatencyMs: failed > 0 ? 2500 : computeMs + 15,
+          summary: `CATASTROPHIC STAMPEDE: ${concurrency} simultaneous cache misses. DB connection pool exhausted (${poolActive}/${DB_POOL_CAPACITY}). ${failed} requests dropped with 503 Pool Exhaustion!`,
+        };
+        setLastBurstResult(result);
+        setStampedeKey(prev => ({
+          ...prev,
+          elapsedSec: 0,
+          remainingTtlSec: prev.ttlSec,
+          isExpired: false,
+          version: prev.version + 1,
+        }));
+        setStampedeAuditLog(prev => [
+          {
+            id: Date.now(),
+            time: timestamp,
+            strategy: 'NAIVE_TTL',
+            badge: 'STAMPEDE_OUTAGE',
+            badgeClass: 'bg-red-100 text-red-800 border-red-300',
+            message: `CRITICAL: ${concurrency} concurrent misses overwhelmed database. Connection pool saturated (10/10). ${failed} requests dropped with 503 Pool Exhaustion.`,
+          },
+          ...prev.slice(0, 8),
+        ]);
+      }
+    } else if (stampedeStrategy === 'MUTEX_LOCK') {
+      if (isMutexDeadlocked) {
+        const result: StampedeTrafficResult = {
+          timestamp,
+          strategy: 'MUTEX_LOCK',
+          concurrency,
+          cacheHits: 0,
+          cacheMisses: concurrency,
+          dbQueriesDispatched: 0,
+          dbPoolPeak: 0,
+          dbPoolCapacity: DB_POOL_CAPACITY,
+          failedRequests: concurrency,
+          p50LatencyMs: 5000,
+          p99LatencyMs: 5000,
+          summary: `DEADLOCK COLLAPSE: Worker holding mutex crashed abruptly. All ${concurrency} requests blocked until 5000ms timeout!`,
+        };
+        setLastBurstResult(result);
+        setStampedeAuditLog(prev => [
+          {
+            id: Date.now(),
+            time: timestamp,
+            strategy: 'MUTEX_LOCK',
+            badge: 'MUTEX_DEADLOCK',
+            badgeClass: 'bg-red-100 text-red-800 border-red-300',
+            message: `FATAL: Mutex owner terminated. ${concurrency} client threads starved waiting on mutex until 5000ms timeout.`,
+          },
+          ...prev.slice(0, 8),
+        ]);
+        return;
+      }
+
+      if (!stampedeKey.isExpired) {
+        const result: StampedeTrafficResult = {
+          timestamp,
+          strategy: 'MUTEX_LOCK',
+          concurrency,
+          cacheHits: concurrency,
+          cacheMisses: 0,
+          dbQueriesDispatched: 0,
+          dbPoolPeak: 0,
+          dbPoolCapacity: DB_POOL_CAPACITY,
+          failedRequests: 0,
+          p50LatencyMs: 0.1,
+          p99LatencyMs: 0.8,
+          summary: `All ${concurrency} requests served from valid cache. 0 mutex contention.`,
+        };
+        setLastBurstResult(result);
+        setStampedeAuditLog(prev => [
+          {
+            id: Date.now(),
+            time: timestamp,
+            strategy: 'MUTEX_LOCK',
+            badge: 'CACHE_HIT_BURST',
+            badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+            message: `Burst of ${concurrency} requests served from cache in 0.1ms.`,
+          },
+          ...prev.slice(0, 8),
+        ]);
+      } else {
+        const result: StampedeTrafficResult = {
+          timestamp,
+          strategy: 'MUTEX_LOCK',
+          concurrency,
+          cacheHits: 0,
+          cacheMisses: concurrency,
+          dbQueriesDispatched: 1,
+          dbPoolPeak: 1,
+          dbPoolCapacity: DB_POOL_CAPACITY,
+          failedRequests: 0,
+          p50LatencyMs: computeMs,
+          p99LatencyMs: computeMs + 25,
+          summary: `MUTEX SINGLEFLIGHT: Worker 1 acquired lock and dispatched 1 DB query (1/10 pool). ${concurrency - 1} threads blocked waiting for lock release. p99 latency spiked to ${computeMs + 25}ms.`,
+        };
+        setLastBurstResult(result);
+        setStampedeKey(prev => ({
+          ...prev,
+          elapsedSec: 0,
+          remainingTtlSec: prev.ttlSec,
+          isExpired: false,
+          version: prev.version + 1,
+        }));
+        setStampedeAuditLog(prev => [
+          {
+            id: Date.now(),
+            time: timestamp,
+            strategy: 'MUTEX_LOCK',
+            badge: 'SINGLEFLIGHT_PROTECT',
+            badgeClass: 'bg-amber-100 text-amber-800 border-amber-300',
+            message: `Database protected: 1 query sent to DB (1/10 pool). But ${concurrency - 1} threads stalled for ${computeMs}ms awaiting mutex release.`,
+          },
+          ...prev.slice(0, 8),
+        ]);
+      }
+    } else {
+      // XFETCH_PROBABILISTIC (VLDB 2015)
+      const remMs = Math.max(0, Math.round(stampedeKey.remainingTtlSec * 1000));
+      let shouldTrigger = stampedeKey.isExpired;
+      let winningU = 0.5;
+      let winningExpTerm = 0;
+
+      for (let i = 0; i < concurrency; i++) {
+        const u = Number((0.001 + Math.random() * 0.998).toFixed(4));
+        const exp = Math.round(-xfetchBeta * xfetchDeltaMs * Math.log(u));
+        if (exp > remMs) {
+          shouldTrigger = true;
+          winningU = u;
+          winningExpTerm = exp;
+          break;
+        }
+      }
+
+      if (!shouldTrigger) {
+        winningU = Number((0.05 + Math.random() * 0.9).toFixed(3));
+        winningExpTerm = Math.round(-xfetchBeta * xfetchDeltaMs * Math.log(winningU));
+      }
+      setLastRandomU(winningU);
+      const expTerm = winningExpTerm;
+
+      if (shouldTrigger) {
+        const result: StampedeTrafficResult = {
+          timestamp,
+          strategy: 'XFETCH_PROBABILISTIC',
+          concurrency,
+          cacheHits: concurrency,
+          cacheMisses: 0,
+          dbQueriesDispatched: 1,
+          dbPoolPeak: 1,
+          dbPoolCapacity: DB_POOL_CAPACITY,
+          failedRequests: 0,
+          p50LatencyMs: 0.1,
+          p99LatencyMs: 0.8,
+          summary: `OPTIMAL PROBABILISTIC REFRESH: Condition [-βδ ln u (${expTerm}ms) > TTL_rem (${remMs}ms)] met. Background recomputation refreshed key. All ${concurrency} clients received cached value in 0.1ms with 0 wait!`,
+        };
+        setLastBurstResult(result);
+        setStampedeKey(prev => ({
+          ...prev,
+          elapsedSec: 0,
+          remainingTtlSec: prev.ttlSec,
+          isExpired: false,
+          version: prev.version + 1,
+          isBackgroundRefreshing: false,
+        }));
+        setStampedeAuditLog(prev => [
+          {
+            id: Date.now(),
+            time: timestamp,
+            strategy: 'XFETCH_PROBABILISTIC',
+            badge: 'XFETCH_EARLY_REFRESH',
+            badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+            message: `SUCCESS: XFetch early refresh fired at ${remMs}ms remaining (-βδ ln u = ${expTerm}ms). Key refreshed in background with 0 client latency penalty.`,
+          },
+          ...prev.slice(0, 8),
+        ]);
+      } else {
+        const result: StampedeTrafficResult = {
+          timestamp,
+          strategy: 'XFETCH_PROBABILISTIC',
+          concurrency,
+          cacheHits: concurrency,
+          cacheMisses: 0,
+          dbQueriesDispatched: 0,
+          dbPoolPeak: 0,
+          dbPoolCapacity: DB_POOL_CAPACITY,
+          failedRequests: 0,
+          p50LatencyMs: 0.1,
+          p99LatencyMs: 0.8,
+          summary: `All ${concurrency} requests hit valid cache. Condition [-βδ ln u (${expTerm}ms) > ${remMs}ms] was false; early refresh deferred.`,
+        };
+        setLastBurstResult(result);
+        setStampedeAuditLog(prev => [
+          {
+            id: Date.now(),
+            time: timestamp,
+            strategy: 'XFETCH_PROBABILISTIC',
+            badge: 'CACHE_HIT_FAR_TTL',
+            badgeClass: 'bg-blue-100 text-blue-800 border-blue-300',
+            message: `Cache Hit (${concurrency} reqs). Condition [-βδ ln u (${expTerm}ms) > TTL_rem (${remMs}ms)] was false. Freshness preserved.`,
+          },
+          ...prev.slice(0, 8),
+        ]);
+      }
+    }
+  };
+
+  const handleSimulateWorkerCrash = () => {
+    setIsMutexDeadlocked(true);
+    setStampedeAuditLog(prev => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        strategy: 'MUTEX_LOCK',
+        badge: 'LOCK_CRASH_INJECTED',
+        badgeClass: 'bg-red-100 text-red-800 border-red-300',
+        message: 'FAULT INJECTED: Worker holding distributed mutex killed abruptly. Next burst will experience complete thread starvation deadlock.',
+      },
+      ...prev.slice(0, 8),
+    ]);
+  };
+
+  const handleResetStampede = () => {
+    setStampedeKey(INITIAL_STAMPEDE_KEY);
+    setStampedeStrategy('XFETCH_PROBABILISTIC');
+    setXfetchBeta(1.0);
+    setXfetchDeltaMs(120);
+    setIsMutexDeadlocked(false);
+    setLastBurstResult(null);
+    setLastRandomU(0.38);
+    setStampedeAuditLog([
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        strategy: 'XFETCH_PROBABILISTIC',
+        badge: 'STUDIO_RESET',
+        badgeClass: 'bg-slate-100 text-slate-800 border-slate-300',
+        message: 'Cache Stampede & XFetch Studio reset to baseline (remaining TTL = 1.5s, β=1.0, δ=120ms).',
+      },
+    ]);
+  };
+
   // Module 1: Stack vs Heap State
   const [shScenarioKey, setShScenarioKey] = useState<keyof typeof STACK_HEAP_SCENARIOS>('clean');
   const [shStepIndex, setShStepIndex] = useState(0);
@@ -1314,6 +1761,17 @@ export function MemoryCacheInspectorSandbox() {
             }`}
           >
             ARIES Database Recovery
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveSubTab('CACHE_STAMPEDE_XFETCH')}
+            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+              activeSubTab === 'CACHE_STAMPEDE_XFETCH'
+                ? 'bg-primary-700 text-white shadow-xs'
+                : 'text-text-muted hover:text-text'
+            }`}
+          >
+            Cache Stampede &amp; XFetch
           </button>
         </div>
       </div>
@@ -3068,6 +3526,672 @@ export function MemoryCacheInspectorSandbox() {
               <h4 className="font-bold text-sm text-text">Fuzzy Checkpointing</h4>
               <p className="text-xs text-text-muted leading-relaxed">
                 Fuzzy checkpointing does not flush dirty data pages or freeze active transactions. It simply records a snapshot of the Transaction Table and Dirty Page Table into the log, bounding how far back Pass 1 (Analysis) and Pass 2 (Redo) must scan.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SUB-TAB 6: CACHE STAMPEDE & PROBABILISTIC EARLY RECOMPUTATION (XFETCH) */}
+      {activeSubTab === 'CACHE_STAMPEDE_XFETCH' && (
+        <div className="p-6 space-y-6">
+          {/* Header & Strategy Selector */}
+          <div className="bg-canvas border border-border rounded-xl p-5 space-y-4">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-accent-700">
+                    Module 6: High-Concurrency Caching
+                  </span>
+                  <span className="text-[11px] font-semibold bg-indigo-50 text-indigo-800 px-2 py-0.5 rounded-full border border-indigo-200">
+                    VLDB 2015 Standard
+                  </span>
+                </div>
+                <h3 className="text-base font-bold text-text mt-1">
+                  Two-Tier Cache Stampede &amp; Probabilistic Early Recomputation (XFetch)
+                </h3>
+                <p className="text-xs text-text-muted mt-0.5 max-w-3xl">
+                  Simulate the catastrophic Thundering Herd when hot cache keys expire under concurrent load, and evaluate how the optimal probabilistic XFetch algorithm prevents database connection pool exhaustion without mutex locks.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={handleResetStampede}
+                  className="text-xs font-semibold"
+                >
+                  Reset Studio
+                </Button>
+              </div>
+            </div>
+
+            {/* Strategy Pill Switcher */}
+            <div className="pt-2 border-t border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-1.5 bg-surface p-1 rounded-lg border border-border">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStampedeStrategy('NAIVE_TTL');
+                    setIsMutexDeadlocked(false);
+                  }}
+                  className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+                    stampedeStrategy === 'NAIVE_TTL'
+                      ? 'bg-rose-700 text-white shadow-xs'
+                      : 'text-text-muted hover:text-text'
+                  }`}
+                >
+                  1. Naive TTL Expiry (Zero Defense)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStampedeStrategy('MUTEX_LOCK')}
+                  className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+                    stampedeStrategy === 'MUTEX_LOCK'
+                      ? 'bg-amber-700 text-white shadow-xs'
+                      : 'text-text-muted hover:text-text'
+                  }`}
+                >
+                  2. Distributed Mutex (Singleflight)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStampedeStrategy('XFETCH_PROBABILISTIC');
+                    setIsMutexDeadlocked(false);
+                  }}
+                  className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+                    stampedeStrategy === 'XFETCH_PROBABILISTIC'
+                      ? 'bg-emerald-700 text-white shadow-xs'
+                      : 'text-text-muted hover:text-text'
+                  }`}
+                >
+                  3. XFetch Probabilistic (VLDB 2015)
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {stampedeStrategy === 'MUTEX_LOCK' && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={handleSimulateWorkerCrash}
+                    className="text-xs font-semibold text-rose-700 border-rose-300 hover:bg-rose-50"
+                  >
+                    ⚠ Crash Mutex Worker
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Interactive Control Toolbar */}
+          <div className="bg-surface border border-border rounded-xl p-4 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Traffic Burst Launcher */}
+              <div className="space-y-1.5">
+                <span className="text-xs font-bold uppercase tracking-wider text-text-muted">
+                  Simulate Concurrent Traffic:
+                </span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => handleDispatchTrafficBurst(10)}
+                    className="text-xs font-bold flex-1"
+                  >
+                    ⚡ 10 Reqs
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => handleDispatchTrafficBurst(50)}
+                    className="text-xs font-bold flex-1"
+                  >
+                    ⚡ 50 Reqs
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    onClick={() => handleDispatchTrafficBurst(100)}
+                    className="text-xs font-bold flex-1"
+                  >
+                    ⚡ 100 Reqs
+                  </Button>
+                </div>
+                <p className="text-[11px] text-text-muted">
+                  Dispatches simultaneous read burst hitting cache key
+                </p>
+              </div>
+
+              {/* Virtual Clock Steppers */}
+              <div className="space-y-1.5">
+                <span className="text-xs font-bold uppercase tracking-wider text-text-muted">
+                  Virtual Clock Controls:
+                </span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => handleAdvanceStampedeTime(1)}
+                    className="text-xs font-semibold flex-1"
+                  >
+                    +1.0s Time
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={handleJumpNearExpiry}
+                    className="text-xs font-semibold flex-1"
+                  >
+                    Near Expiry (9.8s)
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={handleForceExpireStampedeKey}
+                    className="text-xs font-semibold flex-1 text-red-700"
+                  >
+                    Expire (10s)
+                  </Button>
+                </div>
+                <p className="text-[11px] text-text-muted">
+                  Elapsed: {stampedeKey.elapsedSec}s / {stampedeKey.ttlSec}s ({stampedeKey.remainingTtlSec}s remaining)
+                </p>
+              </div>
+
+              {/* XFetch Beta Parameter Slider */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs font-bold">
+                  <span className="uppercase tracking-wider text-text-muted">
+                    Aggressiveness Multiplier (β):
+                  </span>
+                  <span className="font-mono text-primary-800">{xfetchBeta.toFixed(1)}×</span>
+                </div>
+                <input
+                  type="range"
+                  min="0.5"
+                  max="2.0"
+                  step="0.1"
+                  aria-label="XFetch Beta Multiplier"
+                  value={xfetchBeta}
+                  onChange={(e) => setXfetchBeta(parseFloat(e.target.value))}
+                  className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-primary-700"
+                />
+                <div className="flex justify-between text-[10px] text-text-muted">
+                  <span>0.5× (Conservative)</span>
+                  <span>1.0× (Standard)</span>
+                  <span>2.0× (Aggressive)</span>
+                </div>
+              </div>
+
+              {/* DB Query Latency Delta Slider */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs font-bold">
+                  <span className="uppercase tracking-wider text-text-muted">
+                    DB Computation Time (δ):
+                  </span>
+                  <span className="font-mono text-primary-800">{xfetchDeltaMs}ms</span>
+                </div>
+                <input
+                  type="range"
+                  min="50"
+                  max="250"
+                  step="10"
+                  aria-label="Database Computation Latency Delta"
+                  value={xfetchDeltaMs}
+                  onChange={(e) => setXfetchDeltaMs(parseInt(e.target.value, 10))}
+                  className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-primary-700"
+                />
+                <div className="flex justify-between text-[10px] text-text-muted">
+                  <span>50ms (Indexed)</span>
+                  <span>120ms (Standard)</span>
+                  <span>250ms (Heavy Agg)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 3-Tier Cache Topology Architecture Visual */}
+          <div className="bg-canvas border border-border rounded-xl p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-text-muted">
+                3-Tier Cache Hierarchy Architecture:
+              </span>
+              <span className="text-xs text-text-muted font-mono">
+                Key: “{stampedeKey.key}” (v{stampedeKey.version})
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Tier 1: L1 In-Process Cache */}
+              <div className="p-4 rounded-xl bg-surface border border-border space-y-3 relative overflow-hidden">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-primary-800 uppercase tracking-wider">
+                    Tier 1: L1 In-Process Cache
+                  </span>
+                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">
+                    RAM (0.1ms)
+                  </span>
+                </div>
+                <div className="text-xs space-y-1">
+                  <div className="flex justify-between text-text-muted">
+                    <span>Structure:</span>
+                    <span className="font-mono text-text">Process LRU Map</span>
+                  </div>
+                  <div className="flex justify-between text-text-muted">
+                    <span>Read Latency:</span>
+                    <span className="font-mono text-emerald-700 font-semibold">0.1 ms</span>
+                  </div>
+                  <div className="flex justify-between text-text-muted">
+                    <span>Cache State:</span>
+                    <span className={`font-bold ${stampedeKey.isExpired ? 'text-red-700' : 'text-emerald-700'}`}>
+                      {stampedeKey.isExpired ? 'STALE / EXPIRED' : 'VALID HIT'}
+                    </span>
+                  </div>
+                </div>
+                <div className="pt-2 border-t border-border text-[11px] text-text-muted">
+                  Serves immediate reads without serialization or network round-trips.
+                </div>
+              </div>
+
+              {/* Tier 2: L2 Distributed Shared Cache */}
+              <div className="p-4 rounded-xl bg-surface border border-border space-y-3 relative overflow-hidden">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-accent-700 uppercase tracking-wider">
+                    Tier 2: L2 Distributed Cache
+                  </span>
+                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">
+                    Cluster (1.5ms)
+                  </span>
+                </div>
+                <div className="text-xs space-y-1">
+                  <div className="flex justify-between text-text-muted">
+                    <span>Time-to-Live (TTL):</span>
+                    <span className="font-mono font-bold text-text">
+                      {stampedeKey.remainingTtlSec}s / {stampedeKey.ttlSec}s
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full transition-all duration-300 ${
+                        stampedeKey.remainingTtlSec > 3
+                          ? 'bg-emerald-500'
+                          : stampedeKey.remainingTtlSec > 0.5
+                          ? 'bg-amber-500'
+                          : 'bg-rose-500'
+                      }`}
+                      style={{ width: `${(stampedeKey.remainingTtlSec / stampedeKey.ttlSec) * 100}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-text-muted pt-1">
+                    <span>Lock Status:</span>
+                    <span className={`font-mono font-bold ${isMutexDeadlocked ? 'text-red-700' : stampedeStrategy === 'MUTEX_LOCK' ? 'text-amber-700' : 'text-slate-500'}`}>
+                      {isMutexDeadlocked ? 'DEADLOCKED (5000ms)' : stampedeStrategy === 'MUTEX_LOCK' ? 'ACTIVE SINGLEFLIGHT' : 'LOCK-FREE'}
+                    </span>
+                  </div>
+                </div>
+                <div className="pt-2 border-t border-border text-[11px] text-text-muted">
+                  Shared across application nodes with atomic TTL expiration and key leasing.
+                </div>
+              </div>
+
+              {/* Tier 3: L3 Relational Persistent Database */}
+              <div className="p-4 rounded-xl bg-surface border border-border space-y-3 relative overflow-hidden">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-purple-800 uppercase tracking-wider">
+                    Tier 3: Relational Database
+                  </span>
+                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">
+                    Disk ({xfetchDeltaMs}ms)
+                  </span>
+                </div>
+                <div className="text-xs space-y-1">
+                  <div className="flex justify-between text-text-muted">
+                    <span>Connection Pool Capacity:</span>
+                    <span className="font-mono font-bold text-text">10 Connections</span>
+                  </div>
+                  <div className="flex justify-between text-text-muted">
+                    <span>Active Usage:</span>
+                    <span className={`font-mono font-bold ${
+                      lastBurstResult && lastBurstResult.dbPoolPeak >= 10
+                        ? 'text-red-700'
+                        : lastBurstResult && lastBurstResult.dbPoolPeak > 0
+                        ? 'text-amber-700'
+                        : 'text-emerald-700'
+                    }`}>
+                      {lastBurstResult ? `${lastBurstResult.dbPoolPeak} / 10` : '0 / 10'}
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full transition-all duration-300 ${
+                        lastBurstResult && lastBurstResult.dbPoolPeak >= 10
+                          ? 'bg-rose-600'
+                          : 'bg-indigo-600'
+                      }`}
+                      style={{
+                        width: `${lastBurstResult ? (lastBurstResult.dbPoolPeak / 10) * 100 : 0}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+                <div className="pt-2 border-t border-border text-[11px] text-text-muted">
+                  Canonical data source. Heavy aggregations require {xfetchDeltaMs}ms compute per query.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Mathematical Proof & XFetch Probability HUD */}
+          <div className="bg-surface border border-border rounded-xl p-5 space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-border pb-3">
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-accent-700">
+                  Mathematical Formulation &amp; Probability HUD
+                </span>
+                <h4 className="font-bold text-sm text-text mt-0.5">
+                  The XFetch Optimal Early Recomputation Invariant (VLDB 2015)
+                </h4>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-md bg-indigo-50 text-indigo-900 border border-indigo-200">
+                  P(Early Refresh) = {(xfetchProb * 100).toFixed(1)}%
+                </span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
+              {/* SVG Probability Curve */}
+              <div className="bg-canvas border border-border rounded-xl p-4 space-y-2">
+                <div className="flex justify-between items-center text-xs font-semibold text-text-muted">
+                  <span>Probability Curve: P(Refresh) vs Remaining TTL</span>
+                  <span className="font-mono">P = exp(-remaining / (β×δ))</span>
+                </div>
+                <svg viewBox="0 0 400 160" className="w-full h-40 overflow-visible">
+                  {/* Grid Lines */}
+                  <line x1="40" y1="20" x2="380" y2="20" stroke="#E2E8F0" strokeDasharray="3 3" />
+                  <line x1="40" y1="70" x2="380" y2="70" stroke="#E2E8F0" strokeDasharray="3 3" />
+                  <line x1="40" y1="120" x2="380" y2="120" stroke="#CBD5E1" strokeWidth="1.5" />
+                  <line x1="40" y1="20" x2="40" y2="120" stroke="#CBD5E1" strokeWidth="1.5" />
+
+                  {/* Axis Labels */}
+                  <text x="35" y="24" textAnchor="end" className="text-[9px] fill-slate-400 font-mono">1.0</text>
+                  <text x="35" y="74" textAnchor="end" className="text-[9px] fill-slate-400 font-mono">0.5</text>
+                  <text x="35" y="124" textAnchor="end" className="text-[9px] fill-slate-400 font-mono">0.0</text>
+
+                  <text x="40" y="136" textAnchor="middle" className="text-[9px] fill-slate-500 font-mono">0s (Expiry)</text>
+                  <text x="125" y="136" textAnchor="middle" className="text-[9px] fill-slate-500 font-mono">2.5s</text>
+                  <text x="210" y="136" textAnchor="middle" className="text-[9px] fill-slate-500 font-mono">5.0s</text>
+                  <text x="295" y="136" textAnchor="middle" className="text-[9px] fill-slate-500 font-mono">7.5s</text>
+                  <text x="380" y="136" textAnchor="middle" className="text-[9px] fill-slate-500 font-mono">10s</text>
+
+                  {/* Exponential Curve: x from 40 (0s) to 380 (10s) */}
+                  <path
+                    d={Array.from({ length: 50 }, (_, i) => {
+                      const tSec = (i / 49) * 10;
+                      const x = 40 + (tSec / 10) * 340;
+                      const p = Math.exp(-(tSec * 1000) / stampedeDenominator);
+                      const y = 120 - p * 100;
+                      return `${i === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
+                    }).join(' ')}
+                    fill="none"
+                    stroke="#4F46E5"
+                    strokeWidth="2.5"
+                  />
+
+                  {/* Current Position Marker */}
+                  {(() => {
+                    const currentX = 40 + (stampedeKey.remainingTtlSec / 10) * 340;
+                    const currentY = 120 - xfetchProb * 100;
+                    return (
+                      <g>
+                        <line
+                          x1={currentX}
+                          y1="20"
+                          x2={currentX}
+                          y2="120"
+                          stroke="#EF4444"
+                          strokeDasharray="2 2"
+                          strokeWidth="1.5"
+                        />
+                        <circle
+                          cx={currentX}
+                          cy={currentY}
+                          r="5"
+                          fill="#EF4444"
+                          stroke="#FFFFFF"
+                          strokeWidth="2"
+                        />
+                        <text
+                          x={Math.min(350, Math.max(70, currentX))}
+                          y={Math.max(30, currentY - 8)}
+                          textAnchor="middle"
+                          className="text-[10px] font-mono font-bold fill-red-700"
+                        >
+                          t={stampedeKey.remainingTtlSec}s ({(xfetchProb * 100).toFixed(0)}%)
+                        </text>
+                      </g>
+                    );
+                  })()}
+                </svg>
+              </div>
+
+              {/* Mathematical Equation & Evaluation Breakdown */}
+              <div className="p-4 rounded-xl bg-canvas border border-border space-y-3">
+                <div className="text-xs font-mono font-bold text-primary-900 bg-primary-50 p-2.5 rounded-lg border border-primary-200">
+                  Condition: [-β × δ × ln(u) &gt; TTL_remaining]
+                </div>
+                <div className="space-y-1.5 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-text-muted">Uniform Random Deviate (u ∼ U(0,1)):</span>
+                    <span className="font-mono font-bold text-text">{lastRandomU.toFixed(3)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-text-muted">Exponential Deviation Term (-βδ ln u):</span>
+                    <span className="font-mono font-bold text-indigo-700">{calculatedExpTerm} ms</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-text-muted">Remaining Time-To-Live (TTL_rem):</span>
+                    <span className="font-mono font-bold text-text">{stampedeRemainingMs} ms</span>
+                  </div>
+                  <div className="flex justify-between pt-2 border-t border-border">
+                    <span className="font-bold text-text">Evaluation Result:</span>
+                    <span className={`font-mono font-bold px-2 py-0.5 rounded text-xs ${
+                      xfetchConditionMet
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : 'bg-slate-100 text-slate-700'
+                    }`}>
+                      {xfetchConditionMet ? 'TRUE → PROACTIVE REFRESH TRIGGERED' : 'FALSE → CACHE HIT DEFERRED'}
+                    </span>
+                  </div>
+                </div>
+                <p className="text-[11px] text-text-muted leading-relaxed">
+                  As remaining TTL approaches 0, the probability of drawing an exponential deviate greater than the remaining time approaches 1.0. With λ_r requests arriving per second, at least one worker triggers recomputation before expiration with high probability.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Traffic Burst Result & Comparative Benchmark Matrix */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Last Burst Telemetry Card */}
+            <div className="lg:col-span-1 p-5 rounded-xl bg-surface border border-border space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-text-muted">
+                  Last Burst Telemetry:
+                </span>
+                <span className="text-xs font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-700">
+                  {lastBurstResult ? lastBurstResult.timestamp : 'Awaiting Burst'}
+                </span>
+              </div>
+
+              {!lastBurstResult ? (
+                <div className="p-8 text-center text-text-muted text-xs">
+                  Click “⚡ 50 Reqs” or “⚡ 100 Reqs” in the toolbar to simulate concurrent reads hitting the cache hierarchy.
+                </div>
+              ) : (
+                <div className="space-y-3 text-xs">
+                  <div className="p-3 rounded-lg bg-canvas border border-border font-medium text-text leading-relaxed">
+                    {lastBurstResult.summary}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="p-2.5 rounded-lg bg-canvas border border-border">
+                      <div className="text-[10px] uppercase tracking-wider text-text-muted">Cache Hit Rate</div>
+                      <div className={`text-lg font-bold font-mono ${
+                        lastBurstResult.cacheHits > 0 ? 'text-emerald-700' : 'text-red-700'
+                      }`}>
+                        {((lastBurstResult.cacheHits / lastBurstResult.concurrency) * 100).toFixed(0)}%
+                      </div>
+                    </div>
+
+                    <div className="p-2.5 rounded-lg bg-canvas border border-border">
+                      <div className="text-[10px] uppercase tracking-wider text-text-muted">DB Connections</div>
+                      <div className={`text-lg font-bold font-mono ${
+                        lastBurstResult.dbPoolPeak >= 10 ? 'text-red-700' : 'text-indigo-700'
+                      }`}>
+                        {lastBurstResult.dbPoolPeak} / 10
+                      </div>
+                    </div>
+
+                    <div className="p-2.5 rounded-lg bg-canvas border border-border">
+                      <div className="text-[10px] uppercase tracking-wider text-text-muted">p50 Latency</div>
+                      <div className="text-lg font-bold font-mono text-text">
+                        {lastBurstResult.p50LatencyMs} ms
+                      </div>
+                    </div>
+
+                    <div className="p-2.5 rounded-lg bg-canvas border border-border">
+                      <div className="text-[10px] uppercase tracking-wider text-text-muted">p99 Latency</div>
+                      <div className={`text-lg font-bold font-mono ${
+                        lastBurstResult.p99LatencyMs > 200 ? 'text-red-700' : 'text-emerald-700'
+                      }`}>
+                        {lastBurstResult.p99LatencyMs} ms
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Comparative Benchmark Matrix */}
+            <div className="lg:col-span-2 p-5 rounded-xl bg-surface border border-border space-y-3">
+              <span className="text-xs font-bold uppercase tracking-wider text-accent-700">
+                Architectural Benchmark Comparison
+              </span>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-border bg-slate-50/50 text-text-muted uppercase text-[10px] tracking-wider">
+                      <th className="p-2.5">Strategy</th>
+                      <th className="p-2.5">Concurrent Misses</th>
+                      <th className="p-2.5">DB Connection Load</th>
+                      <th className="p-2.5">p99 Read Latency</th>
+                      <th className="p-2.5">Worker Crash Resilience</th>
+                      <th className="p-2.5">Implementation Complexity</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    <tr className={stampedeStrategy === 'NAIVE_TTL' ? 'bg-rose-50/40 font-semibold' : ''}>
+                      <td className="p-2.5 text-text">1. Naive TTL Expiry</td>
+                      <td className="p-2.5 font-mono text-red-700">100% Stampede</td>
+                      <td className="p-2.5 font-mono text-red-700">10/10 Exhaustion (503s)</td>
+                      <td className="p-2.5 font-mono text-red-700">2,500ms (Timeout)</td>
+                      <td className="p-2.5 text-slate-500">N/A (Crashes DB)</td>
+                      <td className="p-2.5 text-slate-500">None (Naive default)</td>
+                    </tr>
+                    <tr className={stampedeStrategy === 'MUTEX_LOCK' ? 'bg-amber-50/40 font-semibold' : ''}>
+                      <td className="p-2.5 text-text">2. Distributed Mutex</td>
+                      <td className="p-2.5 font-mono text-emerald-700">0% (1 executes)</td>
+                      <td className="p-2.5 font-mono text-emerald-700">1 / 10 (Protected)</td>
+                      <td className="p-2.5 font-mono text-amber-700">135ms (Blocked Wait)</td>
+                      <td className="p-2.5 font-mono text-red-700">Deadlock Vulnerable</td>
+                      <td className="p-2.5 text-slate-500">High (Lease/TTL/Orphan)</td>
+                    </tr>
+                    <tr className={stampedeStrategy === 'XFETCH_PROBABILISTIC' ? 'bg-emerald-50/40 font-semibold' : ''}>
+                      <td className="p-2.5 text-text">3. XFetch Probabilistic</td>
+                      <td className="p-2.5 font-mono text-emerald-700">0% (Proactive Refresh)</td>
+                      <td className="p-2.5 font-mono text-emerald-700">1 / 10 (Optimal)</td>
+                      <td className="p-2.5 font-mono text-emerald-700">0.8ms (Zero Wait)</td>
+                      <td className="p-2.5 font-mono text-emerald-700">100% Resilient</td>
+                      <td className="p-2.5 text-emerald-700">Low (Read math only)</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          {/* Audit Event Stream */}
+          <div className="bg-surface border border-border rounded-xl p-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-text-muted">
+                Stampede &amp; XFetch Operational Audit Stream:
+              </span>
+              <span className="text-[11px] text-text-muted font-mono">
+                {stampedeAuditLog.length} events logged
+              </span>
+            </div>
+
+            <div className="space-y-2 max-h-56 overflow-y-auto font-mono text-xs">
+              {stampedeAuditLog.map((log) => (
+                <div
+                  key={log.id}
+                  className="p-2 rounded-lg bg-canvas border border-border flex items-start justify-between gap-3 text-xs"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-text-muted text-[10px]">{log.time}</span>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${log.badgeClass}`}>
+                      {log.badge}
+                    </span>
+                  </div>
+                  <span className="text-text text-left flex-1 text-xs">{log.message}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 4 Socratic Invariant Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="p-4 rounded-xl bg-surface border border-border space-y-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-accent-700">
+                Failure Invariant
+              </span>
+              <h4 className="font-bold text-sm text-text">The Thundering Herd</h4>
+              <p className="text-xs text-text-muted leading-relaxed">
+                When hot cache keys expire under heavy concurrency, N simultaneous cache misses trigger N duplicate database queries. This abruptly saturates database connection pools, causing cascading 503/504 outages across downstream services.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-xl bg-surface border border-border space-y-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-accent-700">
+                Pessimistic Invariant
+              </span>
+              <h4 className="font-bold text-sm text-text">The Latency Cost of Mutexes</h4>
+              <p className="text-xs text-text-muted leading-relaxed">
+                Singleflight distributed locks protect the database by permitting only one worker to query, but force all other requests to stall. This spikes tail p99 latency and introduces fatal deadlock vulnerabilities if the lock owner crashes.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-xl bg-surface border border-border space-y-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-accent-700">
+                Mathematical Invariant
+              </span>
+              <h4 className="font-bold text-sm text-text">Exponential Deviation Invariant</h4>
+              <p className="text-xs text-text-muted leading-relaxed">
+                By drawing a uniform deviate u ∼ U(0,1), the term -βδ ln(u) follows an exponential distribution. The condition -βδ ln(u) &gt; TTL_remaining guarantees that probability smoothly approaches 1.0 as expiration nears.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-xl bg-surface border border-border space-y-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-accent-700">
+                Concurrency Invariant
+              </span>
+              <h4 className="font-bold text-sm text-text">Concurrency-Adaptive Refresh</h4>
+              <p className="text-xs text-text-muted leading-relaxed">
+                Under high read rates λ_r, the probability of at least one request refreshing early is 1 - exp(-λ_r β δ). Cold keys are never refreshed, while scorching hot keys are refreshed smoothly before any client can ever observe a cache miss!
               </p>
             </div>
           </div>

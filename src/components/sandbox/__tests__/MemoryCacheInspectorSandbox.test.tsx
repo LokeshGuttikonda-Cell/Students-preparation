@@ -233,4 +233,69 @@ describe('MemoryCacheInspectorSandbox', () => {
     fireEvent.click(resetBtn);
     expect(screen.getByText('STATUS: IDLE')).toBeInTheDocument();
   });
+
+  it('switches to Cache Stampede & XFetch and tests Naive Expiry, Mutex Singleflight, and Probabilistic Early Refresh', () => {
+    render(<MemoryCacheInspectorSandbox />);
+
+    const stampedeTab = screen.getByRole('button', { name: /Cache Stampede & XFetch/i });
+    fireEvent.click(stampedeTab);
+
+    // Initial steady state
+    expect(screen.getByText('Two-Tier Cache Stampede & Probabilistic Early Recomputation (XFetch)')).toBeInTheDocument();
+    expect(screen.getByText(/Tier 1: L1 In-Process Cache/i)).toBeInTheDocument();
+    expect(screen.getByText(/Tier 2: L2 Distributed Cache/i)).toBeInTheDocument();
+    expect(screen.getByText(/Tier 3: Relational Database/i)).toBeInTheDocument();
+    expect(screen.getByText('The XFetch Optimal Early Recomputation Invariant (VLDB 2015)')).toBeInTheDocument();
+
+    // 1. Test XFetch Probabilistic Strategy near expiry
+    const jumpBtn = screen.getByRole('button', { name: /Near Expiry \(9.8s\)/i });
+    fireEvent.click(jumpBtn);
+
+    const burst50Btn = screen.getByRole('button', { name: /⚡ 50 Reqs/i });
+    fireEvent.click(burst50Btn);
+
+    expect(screen.getAllByText(/OPTIMAL PROBABILISTIC REFRESH/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('100%')).toBeInTheDocument(); // Cache hit rate 100%
+
+    // 2. Switch to Naive TTL Expiry and test Cache Stampede
+    const naiveBtn = screen.getByRole('button', { name: /1. Naive TTL Expiry/i });
+    fireEvent.click(naiveBtn);
+
+    const expireBtn = screen.getByRole('button', { name: /Expire \(10s\)/i });
+    fireEvent.click(expireBtn);
+
+    const burst100Btn = screen.getByRole('button', { name: /⚡ 100 Reqs/i });
+    fireEvent.click(burst100Btn);
+
+    expect(screen.getAllByText(/CATASTROPHIC STAMPEDE/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/10 \/ 10/i).length).toBeGreaterThanOrEqual(1); // 10/10 connection pool saturated
+
+    // 3. Switch to Distributed Mutex (Singleflight)
+    const mutexBtn = screen.getByRole('button', { name: /2. Distributed Mutex/i });
+    fireEvent.click(mutexBtn);
+
+    // Force expire again
+    fireEvent.click(expireBtn);
+    fireEvent.click(burst50Btn);
+
+    expect(screen.getAllByText(/MUTEX SINGLEFLIGHT/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/1 \/ 10/i).length).toBeGreaterThanOrEqual(1); // Only 1 DB connection used
+
+    // Test Mutex crash simulation
+    const crashWorkerBtn = screen.getByRole('button', { name: /Crash Mutex Worker/i });
+    fireEvent.click(crashWorkerBtn);
+
+    fireEvent.click(burst50Btn);
+    expect(screen.getAllByText(/DEADLOCK COLLAPSE/i).length).toBeGreaterThanOrEqual(1);
+
+    // 4. Test Sliders: Beta and Delta
+    const betaSlider = screen.getByLabelText(/XFetch Beta Multiplier/i);
+    fireEvent.change(betaSlider, { target: { value: '1.5' } });
+    expect(screen.getByText('1.5×')).toBeInTheDocument();
+
+    // 5. Reset Studio
+    const resetBtn = screen.getByRole('button', { name: /Reset Studio/i });
+    fireEvent.click(resetBtn);
+    expect(screen.getAllByText(/remaining TTL = 1.5s/i).length).toBeGreaterThanOrEqual(1);
+  });
 });

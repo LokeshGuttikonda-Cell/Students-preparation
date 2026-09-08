@@ -121,6 +121,9 @@ describe('SandboxPage', () => {
     const hashBtn = screen.getByRole('button', { name: /Hash Table Collision Probing/i });
     fireEvent.click(hashBtn);
     expect(screen.getByText(/Bucket Array Representation/i)).toBeInTheDocument();
+
+    // Verify Cache Stampede & XFetch subtab button
+    expect(screen.getByRole('button', { name: /Cache Stampede & XFetch/i })).toBeInTheDocument();
   });
 
   it('switches to Distributed Systems & Architecture Lab tab and interacts with consistent hash ring and rate limiters', () => {
