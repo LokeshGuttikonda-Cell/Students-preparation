@@ -385,4 +385,50 @@ describe('DistributedSystemsSandbox', () => {
     expect(screen.getByText('maxToken = 32')).toBeInTheDocument();
     expect(screen.queryByText(/CRITICAL SPLIT-BRAIN CORRUPTION DETECTED/i)).not.toBeInTheDocument();
   });
+  it('switches to Paxos & Multi-Paxos and verifies Classic 2-RTT consensus, Dueling Proposer Livelock, and 1-RTT fast path', () => {
+    render(<DistributedSystemsSandbox />);
+
+    // Switch to Paxos subtab
+    const paxosTabBtn = screen.getByRole('button', { name: /Paxos & Multi-Paxos/i });
+    fireEvent.click(paxosTabBtn);
+
+    // Initial steady state
+    expect(screen.getByText('Classic Paxos vs Multi-Paxos: 2-RTT Quorums, Dueling Proposer Livelock & 1-RTT Fast Path')).toBeInTheDocument();
+    expect(screen.getByText('Proposer Nodes (Client Request Gateways)')).toBeInTheDocument();
+    expect(screen.getByText('Acceptor Quorum Nodes (State Consensus Storage)')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Classic Paxos (2 RTT)' })).toHaveClass('bg-primary-700');
+    expect(screen.getAllByText('READY').length).toBe(3);
+
+    // 1. Run Classic Paxos Clean 2-RTT Write
+    const cleanWriteBtn = screen.getByRole('button', { name: /1. Classic Paxos Clean 2-RTT Write/i });
+    fireEvent.click(cleanWriteBtn);
+
+    expect(screen.getAllByText('ACCEPTED').length).toBe(3);
+    expect(screen.getAllByText('COMMITTED').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('PAXOS_2RTT_COMMIT').length).toBeGreaterThanOrEqual(1);
+
+    // 2. Trigger Dueling Proposer Livelock
+    const livelockBtn = screen.getByRole('button', { name: /2. Simulate Dueling Proposer Livelock/i });
+    fireEvent.click(livelockBtn);
+
+    expect(screen.getByText(/CRITICAL DUELING PROPOSER LIVELOCK DETECTED/i)).toBeInTheDocument();
+    expect(screen.getAllByText('REJECTED_LIVELOCK').length).toBe(2);
+    expect(screen.getAllByText('PROMISED').length).toBe(3);
+    expect(screen.getAllByText('DUELING_LIVELOCK').length).toBeGreaterThanOrEqual(1);
+
+    // 3. Test Multi-Paxos 1-RTT Stream Write
+    const multiPaxosBtn = screen.getByRole('button', { name: /3. Multi-Paxos 1-RTT Stream Write/i });
+    fireEvent.click(multiPaxosBtn);
+
+    expect(screen.queryByText(/CRITICAL DUELING PROPOSER LIVELOCK DETECTED/i)).not.toBeInTheDocument();
+    expect(screen.getAllByText('MULTI_PAXOS_1RTT').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/COMMITTED ✓/i).length).toBeGreaterThanOrEqual(1);
+
+    // 4. Reset Paxos Lab
+    const resetBtn = screen.getByRole('button', { name: /Reset Paxos Lab/i });
+    fireEvent.click(resetBtn);
+
+    expect(screen.getAllByText('READY').length).toBe(3);
+    expect(screen.queryByText(/CRITICAL DUELING PROPOSER LIVELOCK DETECTED/i)).not.toBeInTheDocument();
+  });
 });

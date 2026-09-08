@@ -10,10 +10,52 @@ export type DistributedMode =
   | 'RAFT_CONSENSUS'
   | 'VECTOR_CLOCKS'
   | 'TWO_PHASE_COMMIT_SAGA'
-  | 'FENCING_TOKENS_JEPSEN';
+  | 'FENCING_TOKENS_JEPSEN'
+  | 'PAXOS_CONSENSUS';
 
 export type TxArchitecture = 'TWO_PHASE_COMMIT' | 'DISTRIBUTED_SAGA';
 
+
+
+// --- Module 8: Classic Paxos vs Multi-Paxos Consensus & Livelock Types ---
+export type PaxosProtocolMode = 'CLASSIC_PAXOS' | 'MULTI_PAXOS';
+
+export interface PaxosProposer {
+  id: 'P1' | 'P2';
+  name: string;
+  proposalNum: number;
+  proposedValue: string;
+  phase: 'IDLE' | 'PREPARE_SENT' | 'ACCEPT_SENT' | 'COMMITTED' | 'REJECTED_LIVELOCK';
+  promisesReceived: string[];
+  acceptedReceived: string[];
+  statusMessage: string;
+}
+
+export interface PaxosAcceptor {
+  id: 'A1' | 'A2' | 'A3';
+  name: string;
+  minProposal: number;
+  acceptedProposal: number | null;
+  acceptedValue: string | null;
+  stateBadge: 'READY' | 'PROMISED' | 'ACCEPTED';
+}
+
+export interface PaxosLogEntry {
+  slot: number;
+  proposalNum: number;
+  value: string;
+  committed: boolean;
+  leader: string;
+}
+
+export interface PaxosAuditEvent {
+  id: number;
+  time: string;
+  protocol: string;
+  badge: string;
+  badgeClass: string;
+  message: string;
+}
 
 // --- Module 7: Distributed Lock Fencing Tokens & Split-Brain Storage Types ---
 export type FencingClientStatus =
@@ -1940,6 +1982,232 @@ export function DistributedSystemsSandbox() {
     ]);
   };
 
+
+  // --- Module 8: Paxos & Multi-Paxos Consensus State ---
+  const [paxosMode, setPaxosMode] = useState<PaxosProtocolMode>('CLASSIC_PAXOS');
+  const [paxosLivelockAlert, setPaxosLivelockAlert] = useState<string | null>(null);
+
+  const initialProposers: Record<'P1' | 'P2', PaxosProposer> = {
+    P1: {
+      id: 'P1',
+      name: 'Proposer 1 (Leader Candidate A)',
+      proposalNum: 10,
+      proposedValue: 'SET account:101 = $500',
+      phase: 'IDLE',
+      promisesReceived: [],
+      acceptedReceived: [],
+      statusMessage: 'Proposer idle. Proposal tuple: (10, P1). Ready to propose value.',
+    },
+    P2: {
+      id: 'P2',
+      name: 'Proposer 2 (Rival Proposer B)',
+      proposalNum: 20,
+      proposedValue: 'SET account:101 = $750',
+      phase: 'IDLE',
+      promisesReceived: [],
+      acceptedReceived: [],
+      statusMessage: 'Proposer idle. Proposal tuple: (20, P2). Ready to propose value.',
+    },
+  };
+
+  const initialAcceptors: PaxosAcceptor[] = [
+    { id: 'A1', name: 'Acceptor 1', minProposal: 0, acceptedProposal: null, acceptedValue: null, stateBadge: 'READY' },
+    { id: 'A2', name: 'Acceptor 2', minProposal: 0, acceptedProposal: null, acceptedValue: null, stateBadge: 'READY' },
+    { id: 'A3', name: 'Acceptor 3', minProposal: 0, acceptedProposal: null, acceptedValue: null, stateBadge: 'READY' },
+  ];
+
+  const initialPaxosLog: PaxosLogEntry[] = [
+    { slot: 1, proposalNum: 5, value: 'INIT config_epoch = 1', committed: true, leader: 'P1' },
+  ];
+
+  const [paxosProposers, setPaxosProposers] = useState<Record<'P1' | 'P2', PaxosProposer>>(initialProposers);
+  const [paxosAcceptors, setPaxosAcceptors] = useState<PaxosAcceptor[]>(initialAcceptors);
+  const [paxosLog, setPaxosLog] = useState<PaxosLogEntry[]>(initialPaxosLog);
+  const [paxosAuditLog, setPaxosAuditLog] = useState<PaxosAuditEvent[]>([
+    {
+      id: 1,
+      time: '00:00:00',
+      protocol: 'CLASSIC_PAXOS',
+      badge: 'CLUSTER_INIT',
+      badgeClass: 'bg-slate-100 text-slate-800 border-slate-300 dark:bg-zinc-800 dark:text-zinc-200',
+      message: 'Paxos Cluster initialized: 2 Proposers (P1, P2) and 3 Acceptors (A1, A2, A3). Majority quorum Q = 2.',
+    },
+  ]);
+
+  const handleClassicPaxosRunCleanWrite = () => {
+    setPaxosLivelockAlert(null);
+    const n = 10;
+    const val = 'SET account:101 = $500';
+
+    // Phase 1: Prepare(10) -> Promise from majority (A1, A2, A3)
+    // Phase 2: Accept(10, val) -> Accepted from majority -> COMMITTED
+    setPaxosAcceptors((prev) =>
+      prev.map((a) => ({
+        ...a,
+        minProposal: n,
+        acceptedProposal: n,
+        acceptedValue: val,
+        stateBadge: 'ACCEPTED',
+      }))
+    );
+
+    setPaxosProposers((prev) => ({
+      ...prev,
+      P1: {
+        ...prev.P1,
+        phase: 'COMMITTED',
+        promisesReceived: ['A1', 'A2', 'A3'],
+        acceptedReceived: ['A1', 'A2', 'A3'],
+        statusMessage: 'COMMITTED in 2 RTTs! Phase 1: Received 3/3 Promises for n=10. Phase 2: Received 3/3 Accepted for "SET account:101 = $500".',
+      },
+    }));
+
+    setPaxosLog((prev) => [
+      ...prev,
+      { slot: prev.length + 1, proposalNum: n, value: val, committed: true, leader: 'P1' },
+    ]);
+
+    setPaxosAuditLog((prev) => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        protocol: 'CLASSIC_PAXOS',
+        badge: 'PAXOS_2RTT_COMMIT',
+        badgeClass: 'bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-950/50 dark:text-emerald-300',
+        message: 'Classic Paxos 2-RTT write succeeded: Phase 1 (Prepare/Promise, 1 RTT) + Phase 2 (Accept/Accepted, 1 RTT). Total latency = 2 RTTs.',
+      },
+      ...prev.slice(0, 9),
+    ]);
+  };
+
+  const handleClassicPaxosTriggerLivelock = () => {
+    // Dueling Proposers Livelock:
+    // 1. P1 prepares n=10, Acceptors promise n=10
+    // 2. P2 preempts with prepare n=20, Acceptors promise n=20 (minProposal becomes 20)
+    // 3. P1 tries to Accept(n=10), rejected because 10 < 20!
+    // 4. P1 preempts with prepare n=30, Acceptors promise n=30 (minProposal becomes 30)
+    // 5. P2 tries to Accept(n=20), rejected because 20 < 30!
+    // Zero values committed!
+    setPaxosAcceptors((prev) =>
+      prev.map((a) => ({
+        ...a,
+        minProposal: 30, // Overwritten by P1's counter-proposal
+        acceptedProposal: null,
+        acceptedValue: null,
+        stateBadge: 'PROMISED',
+      }))
+    );
+
+    setPaxosProposers({
+      P1: {
+        id: 'P1',
+        name: 'Proposer 1',
+        proposalNum: 30,
+        proposedValue: 'SET account:101 = $500',
+        phase: 'REJECTED_LIVELOCK',
+        promisesReceived: ['A1', 'A2'],
+        acceptedReceived: [],
+        statusMessage: 'LIVELOCK: P1 Accept(10) rejected (10 < minProposal 20). Counter-prepared n=30, but P2 will preempt again!',
+      },
+      P2: {
+        id: 'P2',
+        name: 'Proposer 2',
+        proposalNum: 20,
+        proposedValue: 'SET account:101 = $750',
+        phase: 'REJECTED_LIVELOCK',
+        promisesReceived: ['A2', 'A3'],
+        acceptedReceived: [],
+        statusMessage: 'LIVELOCK: P2 Accept(20) rejected (20 < minProposal 30). Preempted by P1. Zero progress possible!',
+      },
+    });
+
+    setPaxosLivelockAlert(
+      'CRITICAL DUELING PROPOSER LIVELOCK DETECTED: P1 and P2 continually preempt each other with higher proposal numbers before Phase 2 can complete. Classic Paxos guarantees safety but not liveness in the presence of uncoordinated dueling proposers!'
+    );
+
+    setPaxosAuditLog((prev) => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        protocol: 'CLASSIC_PAXOS',
+        badge: 'DUELING_LIVELOCK',
+        badgeClass: 'bg-rose-100 text-rose-900 border-rose-300 dark:bg-rose-950/50 dark:text-rose-300',
+        message: 'LIVELOCK COLLAPSE: P1 (n=10) &rarr; P2 preempts (n=20) &rarr; P1 Accept rejected &rarr; P1 counter-preempts (n=30) &rarr; P2 Accept rejected. 0 values committed!',
+      },
+      ...prev.slice(0, 9),
+    ]);
+  };
+
+  const handleMultiPaxosStreamWrite = () => {
+    setPaxosLivelockAlert(null);
+    // In Multi-Paxos, Phase 1 was executed once during leader election for P1.
+    // Subsequent writes execute purely in Phase 2 in 1 RTT!
+    const nextSlot = paxosLog.length + 1;
+    const val = 'SET invoice:882 = PAID (Tx #' + nextSlot + ')';
+
+    setPaxosAcceptors((prev) =>
+      prev.map((a) => ({
+        ...a,
+        minProposal: 50,
+        acceptedProposal: 50,
+        acceptedValue: val,
+        stateBadge: 'ACCEPTED',
+      }))
+    );
+
+    setPaxosProposers((prev) => ({
+      ...prev,
+      P1: {
+        ...prev.P1,
+        proposalNum: 50,
+        phase: 'COMMITTED',
+        promisesReceived: ['A1', 'A2', 'A3'],
+        acceptedReceived: ['A1', 'A2', 'A3'],
+        statusMessage: 'MULTI-PAXOS 1-RTT STREAM: Stable Leader P1 skipped Phase 1 entirely! Broadcasted Accept(slot ' + nextSlot + ', val) directly. Quorum committed in 1 RTT.',
+      },
+      P2: {
+        ...prev.P2,
+        phase: 'IDLE',
+        statusMessage: 'Follower / Standby Proposer. Leader lease active on P1; P2 does not contend.',
+      },
+    }));
+
+    setPaxosLog((prev) => [
+      ...prev,
+      { slot: nextSlot, proposalNum: 50, value: val, committed: true, leader: 'P1' },
+    ]);
+
+    setPaxosAuditLog((prev) => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        protocol: 'MULTI_PAXOS',
+        badge: 'MULTI_PAXOS_1RTT',
+        badgeClass: 'bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-950/50 dark:text-emerald-300',
+        message: 'Multi-Paxos Fast Path: Skipped Phase 1! Streamed write directly into slot ' + nextSlot + ' via Phase 2 in 1 RTT. Zero livelock contention.',
+      },
+      ...prev.slice(0, 9),
+    ]);
+  };
+
+  const handlePaxosReset = () => {
+    setPaxosLivelockAlert(null);
+    setPaxosProposers(initialProposers);
+    setPaxosAcceptors(initialAcceptors);
+    setPaxosLog(initialPaxosLog);
+    setPaxosAuditLog((prev) => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        protocol: paxosMode,
+        badge: 'RESET',
+        badgeClass: 'bg-slate-100 text-slate-800 border-slate-300 dark:bg-zinc-800 dark:text-zinc-200',
+        message: 'Paxos cluster state, acceptor promises, and proposers reset to baseline.',
+      },
+      ...prev.slice(0, 9),
+    ]);
+  };
+
   return (
     <div className="bg-surface border border-border rounded-xl shadow-xs overflow-hidden space-y-6">
       {/* Sub-Header Tabs */}
@@ -2035,6 +2303,17 @@ export function DistributedSystemsSandbox() {
             }`}
           >
             Lock Fencing &amp; Split-Brain
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('PAXOS_CONSENSUS')}
+            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+              activeTab === 'PAXOS_CONSENSUS'
+                ? 'bg-primary-700 text-white shadow-xs'
+                : 'text-text-muted hover:text-text'
+            }`}
+          >
+            Paxos &amp; Multi-Paxos
           </button>
         </div>
       </div>
@@ -4812,6 +5091,367 @@ export function DistributedSystemsSandbox() {
               </span>
               <p className="text-[11px] text-text-muted leading-relaxed">
                 Mutual exclusion can only be finalized at the shared resource (storage engine). The storage layer must atomically reject any write where token_write &le; token_max.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {/* SUB-TAB 8: PAXOS & MULTI-PAXOS CONSENSUS */}
+      {activeTab === 'PAXOS_CONSENSUS' && (
+        <div className="p-6 space-y-6">
+          {/* Header & Protocol Mode Selector */}
+          <div className="bg-canvas border border-border rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-primary-600">
+                  Distributed Consensus Protocols &amp; Quorums
+                </span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded border border-primary-200 bg-primary-50 text-primary-800 dark:bg-primary-950/40 dark:text-primary-300">
+                  Lamport 1998 / 2001 Invariant
+                </span>
+              </div>
+              <h3 className="font-bold text-base text-text">
+                Classic Paxos vs Multi-Paxos: 2-RTT Quorums, Dueling Proposer Livelock &amp; 1-RTT Fast Path
+              </h3>
+              <p className="text-xs text-text-muted max-w-3xl leading-relaxed">
+                Analyze Leslie Lamport&apos;s Paxos consensus algorithm. Observe how Classic Single-Decree Paxos requires 2 RTTs per decision and can suffer from non-terminating <strong>Dueling Proposer Livelock</strong> under concurrent writes, whereas Multi-Paxos amortizes Phase 1 with a stable leader lease, streaming log writes directly via Phase 2 in 1 RTT.
+              </p>
+            </div>
+
+            {/* Protocol Mode Selector */}
+            <div className="bg-surface border border-border p-2.5 rounded-lg flex flex-col gap-1.5 min-w-[280px]">
+              <span className="text-[11px] font-bold text-text uppercase tracking-wider">
+                Paxos Protocol Architecture:
+              </span>
+              <div className="grid grid-cols-2 gap-1 bg-canvas p-1 rounded-md border border-border">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPaxosMode('CLASSIC_PAXOS');
+                    handlePaxosReset();
+                  }}
+                  className={`px-2 py-1.5 rounded text-[11px] font-bold cursor-pointer transition-colors ${
+                    paxosMode === 'CLASSIC_PAXOS'
+                      ? 'bg-primary-700 text-white shadow-xs'
+                      : 'text-text-muted hover:text-text'
+                  }`}
+                >
+                  Classic Paxos (2 RTT)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPaxosMode('MULTI_PAXOS');
+                    handlePaxosReset();
+                  }}
+                  className={`px-2 py-1.5 rounded text-[11px] font-bold cursor-pointer transition-colors ${
+                    paxosMode === 'MULTI_PAXOS'
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'text-text-muted hover:text-text'
+                  }`}
+                >
+                  Multi-Paxos (1 RTT)
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Stepper Operations Bar */}
+          <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+            <span className="text-xs font-bold uppercase tracking-wider text-text block">
+              Consensus Execution Scenarios (Cluster: 2 Proposers, 3 Acceptors, Majority Quorum Q=2):
+            </span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+              <Button
+                onClick={handleClassicPaxosRunCleanWrite}
+                variant="primary"
+                className="text-xs px-2.5 py-2 cursor-pointer w-full text-center"
+              >
+                1. Classic Paxos Clean 2-RTT Write
+              </Button>
+              <Button
+                onClick={handleClassicPaxosTriggerLivelock}
+                variant="destructive"
+                className="text-xs px-2.5 py-2 cursor-pointer w-full text-center"
+              >
+                2. Simulate Dueling Proposer Livelock
+              </Button>
+              <Button
+                onClick={handleMultiPaxosStreamWrite}
+                variant="accent"
+                className="text-xs px-2.5 py-2 cursor-pointer w-full text-center"
+              >
+                3. Multi-Paxos 1-RTT Stream Write
+              </Button>
+              <Button
+                onClick={handlePaxosReset}
+                variant="secondary"
+                className="text-xs px-2.5 py-2 cursor-pointer w-full text-center"
+              >
+                ↺ Reset Paxos Lab
+              </Button>
+            </div>
+          </div>
+
+          {/* Critical Alerts Banner */}
+          {paxosLivelockAlert && (
+            <div className="p-4 rounded-xl bg-rose-50 border-2 border-rose-500 text-rose-950 dark:bg-rose-950/40 dark:border-rose-400 dark:text-rose-100 flex items-start gap-3 animate-pulse">
+              <span className="text-xl">⚠️</span>
+              <div className="space-y-1">
+                <span className="font-bold text-xs uppercase tracking-wider text-rose-800 dark:text-rose-300 block">
+                  Consensus Hazard: Dueling Proposer Livelock (FLP Impossibility)
+                </span>
+                <p className="text-xs font-mono leading-relaxed">{paxosLivelockAlert}</p>
+                <p className="text-[11px] text-rose-700 dark:text-rose-300">
+                  Because neither proposer can complete Phase 2 before the other preempts Phase 1, the cluster is stuck in an infinite prepare-promise-reject loop. Multi-Paxos resolves this by using randomized backoff and electing a single stable leader with lease heartbeats.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Architecture Visualization: Proposers -> Acceptors -> Replicated Log */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            {/* Proposers Panel */}
+            <div className="lg:col-span-5 bg-surface border border-border rounded-xl p-4 space-y-4">
+              <div className="flex items-center justify-between border-b border-border pb-2">
+                <div>
+                  <h4 className="font-bold text-sm text-text">Proposer Nodes (Client Request Gateways)</h4>
+                  <span className="text-xs text-text-muted">Proposers coordinate Phase 1 (Prepare) and Phase 2 (Accept).</span>
+                </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded border border-border bg-canvas">
+                  2 Nodes
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                {Object.values(paxosProposers).map((p) => (
+                  <div
+                    key={p.id}
+                    className={`p-3.5 rounded-xl border transition-all space-y-2 ${
+                      p.phase === 'COMMITTED'
+                        ? 'bg-emerald-50/30 border-emerald-400 dark:bg-emerald-950/20'
+                        : p.phase === 'REJECTED_LIVELOCK'
+                        ? 'bg-rose-50/40 border-rose-400 dark:bg-rose-950/20'
+                        : 'bg-canvas border-border'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-bold text-xs bg-primary-100 text-primary-900 dark:bg-primary-950/60 dark:text-primary-300 px-2 py-0.5 rounded">
+                          {p.id}
+                        </span>
+                        <span className="font-semibold text-xs text-text">{p.name}</span>
+                      </div>
+                      <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
+                        p.phase === 'COMMITTED'
+                          ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                          : p.phase === 'REJECTED_LIVELOCK'
+                          ? 'bg-rose-100 text-rose-800 border-rose-300'
+                          : 'bg-zinc-100 text-zinc-700 border-zinc-300'
+                      }`}>
+                        {p.phase}
+                      </span>
+                    </div>
+
+                    <div className="text-xs font-mono space-y-1 text-text-muted">
+                      <div>Proposal Number (n): <strong className="text-text">{p.proposalNum}</strong></div>
+                      <div>Proposed Value: <code className="text-text">{p.proposedValue}</code></div>
+                      <div>Promises Quorum: <strong className="text-text">{p.promisesReceived.length}/3 {p.promisesReceived.length >= 2 ? '✓ (Quorum)' : ''}</strong></div>
+                      <div>Accept Quorum: <strong className="text-text">{p.acceptedReceived.length}/3 {p.acceptedReceived.length >= 2 ? '✓ (Quorum)' : ''}</strong></div>
+                    </div>
+
+                    <p className="text-[11px] text-text-muted leading-relaxed bg-surface p-2 rounded border border-border">
+                      {p.statusMessage}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Acceptors & State Panel */}
+            <div className="lg:col-span-7 space-y-4">
+              <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between border-b border-border pb-2">
+                  <div>
+                    <h4 className="font-bold text-sm text-text">Acceptor Quorum Nodes (State Consensus Storage)</h4>
+                    <span className="text-xs text-text-muted">
+                      Acceptors persist minProposal and acceptedProposal/acceptedValue to survive crashes.
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded border border-border bg-canvas">
+                    Majority Q = 2 of 3
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {paxosAcceptors.map((a) => (
+                    <div
+                      key={a.id}
+                      className={`p-3 rounded-xl border transition-all space-y-2 ${
+                        a.stateBadge === 'ACCEPTED'
+                          ? 'bg-emerald-50/40 border-emerald-400 dark:bg-emerald-950/20'
+                          : a.stateBadge === 'PROMISED'
+                          ? 'bg-amber-50/40 border-amber-400 dark:bg-amber-950/20'
+                          : 'bg-canvas border-border'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between font-mono text-xs">
+                        <span className="font-bold text-text">{a.name}</span>
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
+                          a.stateBadge === 'ACCEPTED'
+                            ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                            : a.stateBadge === 'PROMISED'
+                            ? 'bg-amber-100 text-amber-800 border-amber-300'
+                            : 'bg-zinc-100 text-zinc-600 border-zinc-300'
+                        }`}>
+                          {a.stateBadge}
+                        </span>
+                      </div>
+
+                      <div className="text-[11px] font-mono space-y-1 text-text-muted">
+                        <div>minProposal: <strong className="text-primary-700 dark:text-primary-400">{a.minProposal}</strong></div>
+                        <div>acceptedProposal: <strong className="text-text">{a.acceptedProposal ?? 'None'}</strong></div>
+                        <div className="truncate">acceptedVal: <strong className="text-text">{a.acceptedValue ?? 'None'}</strong></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Replicated State Machine Log */}
+              <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between border-b border-border pb-2">
+                  <h4 className="font-bold text-sm text-text">Replicated Consensus Log (Committed Slots)</h4>
+                  <span className="text-xs font-mono text-text-muted">{paxosLog.length} Committed Slot(s)</span>
+                </div>
+
+                <div className="space-y-1.5 max-h-36 overflow-y-auto font-mono text-xs">
+                  {paxosLog.map((entry) => (
+                    <div
+                      key={entry.slot}
+                      className="p-2 rounded bg-canvas border border-border flex items-center justify-between"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold px-1.5 py-0.5 rounded bg-primary-100 text-primary-900 dark:bg-primary-950/60 dark:text-primary-300 text-[10px]">
+                          Slot {entry.slot}
+                        </span>
+                        <span className="text-text">{entry.value}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-[10px] text-text-muted">
+                        <span>n={entry.proposalNum}</span>
+                        <span className="text-emerald-600 font-bold">COMMITTED ✓</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* RTT & Latency Comparison Table */}
+          <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+            <h4 className="font-bold text-sm text-text">
+              Consensus Protocol Latency &amp; Message Complexity Matrix
+            </h4>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-border bg-canvas text-text font-bold">
+                    <th className="p-2">Consensus Protocol</th>
+                    <th className="p-2">Steady-State Latency</th>
+                    <th className="p-2">Phase Breakdown</th>
+                    <th className="p-2">Livelock Vulnerability</th>
+                    <th className="p-2">Leader Requirement</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  <tr>
+                    <td className="p-2 font-semibold text-text">Classic Paxos (Single-Decree)</td>
+                    <td className="p-2 text-rose-600 font-mono font-bold">2 RTTs per value</td>
+                    <td className="p-2 text-text-muted font-mono">Phase 1 (Prepare) + Phase 2 (Accept)</td>
+                    <td className="p-2 text-rose-600 font-semibold">HIGH (Dueling Proposers)</td>
+                    <td className="p-2 text-text-muted">Leaderless (Any Proposer)</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2 font-semibold text-text">Multi-Paxos</td>
+                    <td className="p-2 text-emerald-600 font-mono font-bold">1 RTT (Fast Path)</td>
+                    <td className="p-2 text-text-muted font-mono">Phase 1 once during election; Phase 2 streaming</td>
+                    <td className="p-2 text-emerald-600 font-semibold">NONE (Leader Lease Protected)</td>
+                    <td className="p-2 text-text-muted">Stable Leader with Heartbeats</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2 font-semibold text-text">Raft Consensus</td>
+                    <td className="p-2 text-emerald-600 font-mono font-bold">1 RTT (AppendEntries)</td>
+                    <td className="p-2 text-text-muted font-mono">Randomized election; 1-RTT log replication</td>
+                    <td className="p-2 text-emerald-600 font-semibold">NONE (Term-based Preemption)</td>
+                    <td className="p-2 text-text-muted">Strict Strong Leader</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Real-Time Audit Log */}
+          <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+            <h4 className="font-bold text-sm text-text">
+              Real-Time Paxos Consensus Protocol Audit Stream
+            </h4>
+            <div className="space-y-1.5 max-h-48 overflow-y-auto font-mono text-xs">
+              {paxosAuditLog.map((log) => (
+                <div
+                  key={log.id}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 p-2 rounded bg-canvas border border-border"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-text-muted">{log.time}</span>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${log.badgeClass}`}>
+                      {log.badge}
+                    </span>
+                    <span className="text-text">{log.message}</span>
+                  </div>
+                  <span className="text-[10px] text-text-muted">{log.protocol}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 4 Socratic Invariant Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                1. Lamport&apos;s Quorum Intersection
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                Any two majorities of Acceptors must share at least one node in common ($Q_1 \cap Q_2 \neq \emptyset$). This geometric overlap guarantees that Phase 2 cannot commit a value contradictory to a completed Phase 1.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                2. Classic Paxos 2-RTT Cost
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                In Single-Decree Paxos, every write requires Phase 1 (Prepare/Promise) to discover prior accepted proposals, followed by Phase 2 (Accept/Accepted) to commit. This incurs 2 full RTTs per command.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                3. Dueling Proposer Livelock
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                Without leader coordination, two proposers $P_1$ and $P_2$ can repeatedly issue higher proposal numbers before the other can complete Phase 2. FLP impossibility dictates that deterministic liveness is impossible without timeouts or leases.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                4. Multi-Paxos 1-RTT Stream
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                Multi-Paxos elects a stable leader once using Phase 1. Subsequent log slots stream directly via Phase 2 in 1 RTT with leader lease heartbeats, resolving both the 2-RTT latency penalty and the dueling livelock hazard.
               </p>
             </div>
           </div>
