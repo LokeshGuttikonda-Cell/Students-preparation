@@ -28,6 +28,7 @@ describe('AlgorithmVisualizerSandbox', () => {
     expect(screen.getByRole('button', { name: 'B+ Tree Range Scan & Leaf Sibling Pointers' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Bloom Filter Bit-Array Hashing & False Positive Invariants' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Trie Prefix Tree & Compressed Radix Tree Autocomplete Studio' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Inverted Index & Okapi BM25 Search Relevance Scoring Studio' })).toBeInTheDocument();
   });
 
   it('renders AVL Tree Rotations with complete Socratic step-by-step frames', () => {
@@ -509,6 +510,114 @@ describe('AlgorithmVisualizerSandbox', () => {
     expect(screen.getByText('Step 9 of 9')).toBeInTheDocument();
     expect(screen.getByText('Mathematical Invariants & Systems Engineering Applications')).toBeInTheDocument();
     expect(screen.getByText(/Global Verification: Radix Invariants Proven/)).toBeInTheDocument();
+    expect(nextBtn).toBeDisabled();
+  });
+  it('renders Inverted Index & Okapi BM25 Relevance Scoring with boolean intersection and ranking frames', () => {
+    render(<AlgorithmVisualizerSandbox />);
+
+    // Select Inverted Index & Okapi BM25
+    const bm25Button = screen.getByRole('button', {
+      name: 'Inverted Index & Okapi BM25 Search Relevance Scoring Studio',
+    });
+    fireEvent.click(bm25Button);
+
+    // Verify Title & Complexity Badges
+    expect(
+      screen.getByRole('heading', {
+        name: 'Inverted Index & Okapi BM25 Search Relevance Scoring Studio',
+        level: 3,
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Time: Index Lookup: O(1), Intersection: O(L1 + L2), Ranking: O(Q · D)'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Space: Index: O(V + Σ L_i), Skip Lists: O(L / √L)'),
+    ).toBeInTheDocument();
+
+    // Verify Initial Step 1 of 9
+    expect(screen.getByText('Step 1 of 9')).toBeInTheDocument();
+    expect(
+      screen.getByText('Initial State: Document Corpus Ingestion & Token Stream Extraction'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('INDEX_CORPUS')).toBeInTheDocument();
+    expect(screen.getByText('Raft Consensus Cluster')).toBeInTheDocument();
+    expect(screen.getByText('Distributed Cache Tier')).toBeInTheDocument();
+    expect(screen.getByText('Leader Election Protocol')).toBeInTheDocument();
+    expect(screen.getByText('Database Index Engine')).toBeInTheDocument();
+
+    const nextBtn = screen.getByRole('button', { name: /Next Step/i });
+
+    // Step 2: Inverted Index Construction
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 2 of 9')).toBeInTheDocument();
+    expect(
+      screen.getByText('Inverted Index Construction: Vocabulary Terms & Posting Lists'),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Inverted Index Built/)).toBeInTheDocument();
+
+    // Step 3: Conjunctive Boolean Intersection ("distributed AND consensus")
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 3 of 9')).toBeInTheDocument();
+    expect(
+      screen.getByText('Boolean Conjunctive Query: "distributed AND consensus"'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('BOOLEAN_AND')).toBeInTheDocument();
+    expect(screen.getByText(/Two-Pointer Leapfrog Posting Intersection:/)).toBeInTheDocument();
+    expect(screen.getByText(/Intersection Match: Document D1 Matches Both Terms/)).toBeInTheDocument();
+
+    // Step 4: Disjunctive Boolean Query ("raft consensus")
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 4 of 9')).toBeInTheDocument();
+    expect(
+      screen.getByText('Multi-Term Disjunctive Candidate Retrieval: "raft consensus"'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('BOOLEAN_OR')).toBeInTheDocument();
+    expect(screen.getByText(/Disjunctive Candidates Retrieved/)).toBeInTheDocument();
+
+    // Step 5: RSJ-Smoothed IDF Calculation
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 5 of 9')).toBeInTheDocument();
+    expect(
+      screen.getByText('Computing Robertson-Spärck Jones IDF: Term Rarity Weighting'),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/IDF Calculated/)).toBeInTheDocument();
+
+    // Step 6: Okapi BM25 Ranking ("raft consensus")
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 6 of 9')).toBeInTheDocument();
+    expect(
+      screen.getByText('BM25 Scoring & Document Length Normalization (D1 vs D3)'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('BM25_RANKED')).toBeInTheDocument();
+    expect(screen.getByText(/BM25 Ranking Complete: D1 \(1.464\) > D3 \(1.272\)/)).toBeInTheDocument();
+    expect(screen.getByText('#1')).toBeInTheDocument();
+    expect(screen.getByText('#2')).toBeInTheDocument();
+
+    // Step 7: Single-Term Precision Query ("quorum")
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 7 of 9')).toBeInTheDocument();
+    expect(
+      screen.getByText('Single-Term Precision Query: "quorum" (High IDF Boost)'),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Precision Match: D1 Matched on Rare Term/)).toBeInTheDocument();
+
+    // Step 8: Keyword Stuffing Resistance
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 8 of 9')).toBeInTheDocument();
+    expect(
+      screen.getByText('Keyword Stuffing Resistance: BM25 Saturation vs Raw TF'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('KEYWORD_STUFFING_DEFENSE')).toBeInTheDocument();
+    expect(screen.getByText(/Keyword Stuffing Defeated: D1 \(0.732\) > D_spam \(0.587\)/)).toBeInTheDocument();
+
+    // Step 9: Invariants & Production IR Architecture
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 9 of 9')).toBeInTheDocument();
+    expect(
+      screen.getByText('Mathematical Invariants & Production Search Engine Architecture'),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Search Relevance Architecture Proven/)).toBeInTheDocument();
     expect(nextBtn).toBeDisabled();
   });
 });

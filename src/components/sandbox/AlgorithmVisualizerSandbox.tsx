@@ -18,7 +18,55 @@ export type VisualizerAlgorithm =
   | 'B_TREE_SPLIT'
   | 'B_PLUS_TREE_RANGE_SCAN'
   | 'BLOOM_FILTER_HASHING'
-  | 'TRIE_PREFIX_TREE';
+  | 'TRIE_PREFIX_TREE'
+  | 'INVERTED_INDEX_BM25';
+
+export interface InvertedIndexPosting {
+  docId: string;
+  tf: number;
+}
+
+export interface InvertedIndexTerm {
+  term: string;
+  df: number; // document frequency
+  idf: number; // calculated IDF
+  postings: InvertedIndexPosting[];
+  isActive?: boolean;
+  isIntersecting?: boolean;
+}
+
+export interface BM25DocScore {
+  docId: string;
+  docTitle: string;
+  docLength: number;
+  matchedTerms: string[];
+  termScores: Record<string, { tf: number; idf: number; tfNorm: number; score: number }>;
+  totalScore: number;
+  rank: number;
+}
+
+export interface VisualizerInvertedIndexState {
+  corpus: Array<{ id: string; title: string; text: string; length: number }>;
+  avgdl: number;
+  terms: InvertedIndexTerm[];
+  activeQuery?: string;
+  queryType?: 'BOOLEAN_AND' | 'BOOLEAN_OR' | 'BM25_RANKED' | 'KEYWORD_STUFFING_DEFENSE';
+  twoPointerState?: {
+    term1: string;
+    term2: string;
+    ptr1: number;
+    ptr2: number;
+    matchedDocIds: string[];
+  };
+  rankedResults?: BM25DocScore[];
+  k1: number;
+  b: number;
+  banner?: {
+    type: 'INDEX_BUILT' | 'INTERSECTION_MATCH' | 'BM25_RANKING' | 'ANTI_STUFFING';
+    title: string;
+    description: string;
+  };
+}
 
 export interface VisualizerTrieNode {
   id: string;
@@ -203,6 +251,7 @@ interface StepFrame {
   bTreeState?: VisualizerBTreeState;
   bloomFilterState?: VisualizerBloomFilterState;
   trieState?: VisualizerTrieState;
+  invertedIndexState?: VisualizerInvertedIndexState;
   metrics?: Record<string, string | number | undefined>;
 }
 
@@ -2608,6 +2657,326 @@ const ALGORITHM_CONFIGS: AlgorithmConfig[] = [
     },
   },
 
+  {
+    id: 'INVERTED_INDEX_BM25',
+    name: 'Inverted Index & Okapi BM25 Search Relevance Scoring Studio',
+    category: 'Information Retrieval & Full-Text Search Engines',
+    timeComplexity: 'Index Lookup: O(1), Intersection: O(L1 + L2), Ranking: O(Q · D)',
+    spaceComplexity: 'Index: O(V + Σ L_i), Skip Lists: O(L / √L)',
+    description:
+      'Inverted indexes map vocabulary terms to posting lists of document IDs and term frequencies, powering search engines (Lucene, Elasticsearch). Okapi BM25 scores relevance by combining Robertson-Spärck Jones IDF with non-linear term frequency saturation (k1) and document length normalization (b), neutralizing keyword stuffing and prioritizing concise documents.',
+    generateFrames: () => {
+      const corpus = [
+        { id: 'D1', title: 'Raft Consensus Cluster', text: 'distributed consensus raft quorum replication', length: 5 },
+        { id: 'D2', title: 'Distributed Cache Tier', text: 'distributed caching redis memcached sharding', length: 5 },
+        { id: 'D3', title: 'Leader Election Protocol', text: 'raft leader election consensus log replication heartbeat', length: 7 },
+        { id: 'D4', title: 'Database Index Engine', text: 'caching query optimization database indexing index', length: 6 },
+      ];
+      const avgdl = 5.75;
+      const k1 = 1.2;
+      const b = 0.75;
+
+      const baseTerms: InvertedIndexTerm[] = [
+        { term: 'distributed', df: 2, idf: 0.693, postings: [{ docId: 'D1', tf: 1 }, { docId: 'D2', tf: 1 }] },
+        { term: 'consensus', df: 2, idf: 0.693, postings: [{ docId: 'D1', tf: 1 }, { docId: 'D3', tf: 1 }] },
+        { term: 'raft', df: 2, idf: 0.693, postings: [{ docId: 'D1', tf: 1 }, { docId: 'D3', tf: 1 }] },
+        { term: 'quorum', df: 1, idf: 1.204, postings: [{ docId: 'D1', tf: 1 }] },
+        { term: 'replication', df: 2, idf: 0.693, postings: [{ docId: 'D1', tf: 1 }, { docId: 'D3', tf: 1 }] },
+        { term: 'caching', df: 2, idf: 0.693, postings: [{ docId: 'D2', tf: 1 }, { docId: 'D4', tf: 1 }] },
+        { term: 'redis', df: 1, idf: 1.204, postings: [{ docId: 'D2', tf: 1 }] },
+        { term: 'leader', df: 1, idf: 1.204, postings: [{ docId: 'D3', tf: 1 }] },
+        { term: 'election', df: 1, idf: 1.204, postings: [{ docId: 'D3', tf: 1 }] },
+        { term: 'database', df: 1, idf: 1.204, postings: [{ docId: 'D4', tf: 1 }] },
+        { term: 'indexing', df: 1, idf: 1.204, postings: [{ docId: 'D4', tf: 2 }] },
+      ];
+
+      return [
+        {
+          stepIndex: 0,
+          title: 'Initial State: Document Corpus Ingestion & Token Stream Extraction',
+          explanation:
+            'A text corpus of N = 4 technical documents is ingested. Text is tokenized into word streams with stop-word removal. Corpus statistics: total tokens = 23, average document length avgdl = (5 + 5 + 7 + 6) / 4 = 5.75 words. Document lengths vary between 5 and 7 words.',
+          status: 'IN_PROGRESS',
+          invertedIndexState: {
+            corpus,
+            avgdl,
+            terms: [],
+            k1,
+            b,
+          },
+          metrics: { 'Total Documents (N)': 4, 'Avg Doc Length (avgdl)': 5.75, 'Vocabulary Size (V)': 11, 'Total Tokens': 23 },
+        },
+        {
+          stepIndex: 1,
+          title: 'Inverted Index Construction: Vocabulary Terms & Posting Lists',
+          explanation:
+            'The inverted index is constructed. Each distinct vocabulary term maps to a sorted Posting List containing document IDs (docId) and within-document Term Frequency (tf). For example, "consensus" maps to [D1 (tf=1), D3 (tf=1)], with Document Frequency df = 2. Postings are sorted by docId to enable fast linear intersections.',
+          status: 'SUCCESS',
+          invertedIndexState: {
+            corpus,
+            avgdl,
+            terms: baseTerms,
+            k1,
+            b,
+            banner: {
+              type: 'INDEX_BUILT',
+              title: '✓ Inverted Index Built (11 Vocabulary Terms)',
+              description: 'All 4 documents indexed into posting lists with term frequencies and document frequencies.',
+            },
+          },
+          metrics: { 'Indexed Terms': 11, 'Total Postings': 16, 'Posting Compression': 'Sorted docIDs', 'Lookup Bound': 'O(1) FST' },
+        },
+        {
+          stepIndex: 2,
+          title: 'Boolean Conjunctive Query: "distributed AND consensus"',
+          explanation:
+            'Executing boolean query: "distributed AND consensus". The search engine retrieves posting lists for "distributed" [D1, D2] and "consensus" [D1, D3]. A Two-Pointer Leapfrog Algorithm advances pointers: ptr1=0 (D1) matches ptr2=0 (D1) -> Doc D1 emitted to result set! ptr1 advances to D2 while ptr2 advances to D3 (mismatch, D2 < D3). Intersection finishes in O(L1 + L2) = O(4) steps.',
+          status: 'SUCCESS',
+          invertedIndexState: {
+            corpus,
+            avgdl,
+            terms: baseTerms.map((t) => {
+              if (t.term === 'distributed' || t.term === 'consensus') {
+                return { ...t, isActive: true, isIntersecting: true };
+              }
+              return t;
+            }),
+            activeQuery: 'distributed AND consensus',
+            queryType: 'BOOLEAN_AND',
+            twoPointerState: {
+              term1: 'distributed',
+              term2: 'consensus',
+              ptr1: 0,
+              ptr2: 0,
+              matchedDocIds: ['D1'],
+            },
+            k1,
+            b,
+            banner: {
+              type: 'INTERSECTION_MATCH',
+              title: '✓ Intersection Match: Document D1 Matches Both Terms',
+              description: 'Two-pointer leapfrog scan matched docId D1 in O(L1 + L2) time without scanning full corpus.',
+            },
+          },
+          metrics: { 'Query': '"distributed AND consensus"', 'Matching Docs': 'D1 only', 'Algorithm': 'Two-Pointer Leapfrog', 'Complexity': 'O(L1 + L2)' },
+        },
+        {
+          stepIndex: 3,
+          title: 'Multi-Term Disjunctive Candidate Retrieval: "raft consensus"',
+          explanation:
+            'Executing disjunctive multi-term query: "raft consensus". The query planner retrieves postings for "raft" [D1, D3] and "consensus" [D1, D3]. Taking the posting union yields candidate set {D1, D3}. Both documents match both query terms. Next, the scoring engine must determine which document is more relevant using Okapi BM25.',
+          status: 'IN_PROGRESS',
+          invertedIndexState: {
+            corpus,
+            avgdl,
+            terms: baseTerms.map((t) => {
+              if (t.term === 'raft' || t.term === 'consensus') {
+                return { ...t, isActive: true };
+              }
+              return t;
+            }),
+            activeQuery: 'raft consensus',
+            queryType: 'BOOLEAN_OR',
+            k1,
+            b,
+            banner: {
+              type: 'INTERSECTION_MATCH',
+              title: 'Disjunctive Candidates Retrieved: {D1, D3}',
+              description: 'Both D1 and D3 match terms "raft" and "consensus". BM25 scoring will rank candidate relevance.',
+            },
+          },
+          metrics: { 'Candidate Docs': 2, 'Query Terms': 2, 'Candidate Set': '{D1, D3}', 'Scoring Pipeline': 'Okapi BM25' },
+        },
+        {
+          stepIndex: 4,
+          title: 'Computing Robertson-Spärck Jones IDF: Term Rarity Weighting',
+          explanation:
+            'BM25 calculates Inverse Document Frequency (IDF) using Robertson-Spärck Jones smoothing: IDF(q) = ln((N - n + 0.5) / (n + 0.5) + 1). For terms with df = 2 (e.g. "raft", "consensus"), IDF = ln((4 - 2 + 0.5)/(2 + 0.5) + 1) = ln(2.0) = 0.693. Rare terms with df = 1 (e.g. "quorum") receive higher IDF = ln(3.5/1.5 + 1) = ln(3.33) = 1.204.',
+          status: 'SUCCESS',
+          invertedIndexState: {
+            corpus,
+            avgdl,
+            terms: baseTerms.map((t) => {
+              if (['raft', 'consensus', 'quorum'].includes(t.term)) {
+                return { ...t, isActive: true };
+              }
+              return t;
+            }),
+            activeQuery: 'raft consensus',
+            queryType: 'BM25_RANKED',
+            k1,
+            b,
+            banner: {
+              type: 'BM25_RANKING',
+              title: 'IDF Calculated: df=2 -> IDF=0.693 | df=1 -> IDF=1.204',
+              description: 'Rare terms across the corpus receive exponentially higher relevance weights.',
+            },
+          },
+          metrics: { 'IDF ("raft")': 0.693, 'IDF ("consensus")': 0.693, 'IDF ("quorum")': 1.204, 'Corpus Size (N)': 4 },
+        },
+        {
+          stepIndex: 5,
+          title: 'BM25 Scoring & Document Length Normalization (D1 vs D3)',
+          explanation:
+            'Ranking query "raft consensus" across D1 (|D1|=5) and D3 (|D3|=7). Both contain 1 occurrence of each term. Document length normalization factor B_norm = 1 - b + b * (|D| / avgdl). For D1: B_norm = 1 - 0.75 + 0.75*(5/5.75) = 0.902. TF_norm = (1 * 2.2) / (1 + 1.2 * 0.902) = 1.056 -> BM25(D1) = 2 * (0.693 * 1.056) = 1.464. For D3: B_norm = 1 - 0.75 + 0.75*(7/5.75) = 1.163. TF_norm = (1 * 2.2) / (1 + 1.2 * 1.163) = 0.918 -> BM25(D3) = 2 * (0.693 * 0.918) = 1.272. Result: D1 outranks D3 because it is more concise!',
+          status: 'SUCCESS',
+          invertedIndexState: {
+            corpus,
+            avgdl,
+            terms: baseTerms.map((t) => {
+              if (['raft', 'consensus'].includes(t.term)) {
+                return { ...t, isActive: true };
+              }
+              return t;
+            }),
+            activeQuery: 'raft consensus',
+            queryType: 'BM25_RANKED',
+            rankedResults: [
+              {
+                docId: 'D1',
+                docTitle: 'Raft Consensus Cluster',
+                docLength: 5,
+                matchedTerms: ['raft', 'consensus'],
+                termScores: {
+                  raft: { tf: 1, idf: 0.693, tfNorm: 1.056, score: 0.732 },
+                  consensus: { tf: 1, idf: 0.693, tfNorm: 1.056, score: 0.732 },
+                },
+                totalScore: 1.464,
+                rank: 1,
+              },
+              {
+                docId: 'D3',
+                docTitle: 'Leader Election Protocol',
+                docLength: 7,
+                matchedTerms: ['raft', 'consensus'],
+                termScores: {
+                  raft: { tf: 1, idf: 0.693, tfNorm: 0.918, score: 0.636 },
+                  consensus: { tf: 1, idf: 0.693, tfNorm: 0.918, score: 0.636 },
+                },
+                totalScore: 1.272,
+                rank: 2,
+              },
+            ],
+            k1,
+            b,
+            banner: {
+              type: 'BM25_RANKING',
+              title: '✓ BM25 Ranking Complete: D1 (1.464) > D3 (1.272)',
+              description: 'Concise document D1 (|D1|=5) outranks longer document D3 (|D3|=7) via length normalization penalty (b=0.75).',
+            },
+          },
+          metrics: { 'Rank 1 Score (D1)': 1.464, 'Rank 2 Score (D3)': 1.272, 'Length Penalty (b)': 0.75, 'Saturation (k1)': 1.2 },
+        },
+        {
+          stepIndex: 6,
+          title: 'Single-Term Precision Query: "quorum" (High IDF Boost)',
+          explanation:
+            'Executing precision query: "quorum". Term "quorum" appears in only 1 document (df = 1), yielding maximum IDF = 1.204. For D1 (|D1|=5): TF_norm = 1.056. Total BM25 score = 1.204 * 1.056 = 1.271. D1 is returned as the sole top-ranked match with high confidence.',
+          status: 'SUCCESS',
+          invertedIndexState: {
+            corpus,
+            avgdl,
+            terms: baseTerms.map((t) => {
+              if (t.term === 'quorum') return { ...t, isActive: true };
+              return t;
+            }),
+            activeQuery: 'quorum',
+            queryType: 'BM25_RANKED',
+            rankedResults: [
+              {
+                docId: 'D1',
+                docTitle: 'Raft Consensus Cluster',
+                docLength: 5,
+                matchedTerms: ['quorum'],
+                termScores: {
+                  quorum: { tf: 1, idf: 1.204, tfNorm: 1.056, score: 1.271 },
+                },
+                totalScore: 1.271,
+                rank: 1,
+              },
+            ],
+            k1,
+            b,
+            banner: {
+              type: 'BM25_RANKING',
+              title: '✓ Precision Match: D1 Matched on Rare Term "quorum"',
+              description: 'Term with df=1 yielded strong IDF weight (1.204), producing precise single-document match.',
+            },
+          },
+          metrics: { 'Query': '"quorum"', 'IDF Weight': 1.204, 'Rank 1 Doc': 'D1', 'Precision': '100%' },
+        },
+        {
+          stepIndex: 7,
+          title: 'Keyword Stuffing Resistance: BM25 Saturation vs Raw TF',
+          explanation:
+            'Simulating an adversarial document D_spam that repeats keyword "consensus" 10 times in a 100-word spam document. Under linear TF (raw TF-IDF), D_spam achieves a score 10x higher than D1, polluting search rankings. Under Okapi BM25, TF_norm = (10 * 2.2) / (10 + 1.2 * (1 - 0.75 + 0.75*(100/5.75))) = 22.0 / (10 + 1.2 * 13.29) = 22.0 / 25.95 = 0.847. Despite having 10x more occurrences, D_spam\'s BM25 term score is ONLY 0.587 (lower than D1\'s 0.732!). BM25 completely neutralizes keyword stuffing.',
+          status: 'SUCCESS',
+          invertedIndexState: {
+            corpus: [
+              ...corpus,
+              { id: 'D_spam', title: 'Adversarial Keyword Spammer', text: 'consensus consensus consensus ... (100 words)', length: 100 },
+            ],
+            avgdl: 24.6,
+            terms: baseTerms.map((t) => {
+              if (t.term === 'consensus') return { ...t, isActive: true };
+              return t;
+            }),
+            activeQuery: 'consensus',
+            queryType: 'KEYWORD_STUFFING_DEFENSE',
+            rankedResults: [
+              {
+                docId: 'D1',
+                docTitle: 'Raft Consensus Cluster (tf=1, len=5)',
+                docLength: 5,
+                matchedTerms: ['consensus'],
+                termScores: { consensus: { tf: 1, idf: 0.693, tfNorm: 1.056, score: 0.732 } },
+                totalScore: 0.732,
+                rank: 1,
+              },
+              {
+                docId: 'D_spam',
+                docTitle: 'Adversarial Spammer (tf=10, len=100)',
+                docLength: 100,
+                matchedTerms: ['consensus'],
+                termScores: { consensus: { tf: 10, idf: 0.693, tfNorm: 0.847, score: 0.587 } },
+                totalScore: 0.587,
+                rank: 2,
+              },
+            ],
+            k1,
+            b,
+            banner: {
+              type: 'ANTI_STUFFING',
+              title: '🛡️ Keyword Stuffing Defeated: D1 (0.732) > D_spam (0.587)',
+              description: 'BM25 term saturation (k1=1.2) and document length penalty (b=0.75) suppressed the 10x keyword spammer.',
+            },
+          },
+          metrics: { 'Raw TF Spammer Score': '10.0 (Unfair)', 'BM25 Spammer Score': '0.587 (Neutralized)', 'Legitimate Doc Score': '0.732 (Wins)', 'Defense Invariant': 'Proven' },
+        },
+        {
+          stepIndex: 8,
+          title: 'Mathematical Invariants & Production Search Engine Architecture',
+          explanation:
+            'Key Information Retrieval invariants proven: 1. Term Frequency Saturation (k1=1.2) enforces that 10 occurrences never score 10x higher than 1. 2. Document Length Normalization (b=0.75) guarantees information density over verbose fluff. 3. Inverted indexes compress posting lists using Elias-Fano and Frame-of-Reference (FoR) bit-packing, allowing Lucene and Elasticsearch to query billions of documents in sub-millisecond latencies.',
+          status: 'COMPLETE',
+          invertedIndexState: {
+            corpus,
+            avgdl,
+            terms: baseTerms,
+            k1,
+            b,
+            banner: {
+              type: 'BM25_RANKING',
+              title: '✓ Search Relevance Architecture Proven',
+              description: 'Inverted index, posting lists, RSJ-smoothed IDF, length normalization, and Okapi BM25 verified.',
+            },
+          },
+          metrics: { 'Relevance Model': 'Okapi BM25', 'Saturation Ceiling': 'k1 + 1 = 2.2', 'Length Factor (b)': 0.75, 'Industrial Standard': 'Lucene / ES' },
+        },
+      ];
+    },
+  },
+
 ];
 
 export function AlgorithmVisualizerSandbox() {
@@ -4212,6 +4581,312 @@ export function AlgorithmVisualizerSandbox() {
                     </p>
                   </>
                 )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Dynamic Inverted Index & Okapi BM25 Scoring Display */}
+        {currentFrame.invertedIndexState && (
+          <div className="space-y-4">
+            {/* Top Status & Query HUD */}
+            <div className="bg-surface border border-border rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-mono font-bold px-2 py-0.5 rounded text-[11px] bg-primary-100 text-primary-900 border border-primary-300">
+                  {currentFrame.invertedIndexState.queryType || 'INDEX_CORPUS'}
+                </span>
+
+                {currentFrame.invertedIndexState.activeQuery && (
+                  <span className="font-semibold text-text">
+                    Query: <code className="bg-canvas px-1.5 py-0.5 rounded border border-border text-primary-700 font-mono">&quot;{currentFrame.invertedIndexState.activeQuery}&quot;</code>
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-3 flex-wrap text-[11px]">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-text-muted">Corpus Docs (N):</span>
+                  <span className="font-mono font-bold text-text">
+                    {currentFrame.invertedIndexState.corpus.length}
+                  </span>
+                </div>
+                <span className="text-border">|</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-text-muted">avgdl:</span>
+                  <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400">
+                    {currentFrame.invertedIndexState.avgdl} words
+                  </span>
+                </div>
+                <span className="text-border">|</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-text-muted">Parameters:</span>
+                  <span className="font-mono font-bold text-purple-700 dark:text-purple-400">
+                    k₁={currentFrame.invertedIndexState.k1}, b={currentFrame.invertedIndexState.b}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Socratic Banner Alert */}
+            {currentFrame.invertedIndexState.banner && (
+              <div
+                className={`border rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs ${
+                  currentFrame.invertedIndexState.banner.type === 'ANTI_STUFFING'
+                    ? 'bg-purple-500/10 border-purple-500/30'
+                    : currentFrame.invertedIndexState.banner.type === 'INTERSECTION_MATCH'
+                    ? 'bg-indigo-500/10 border-indigo-500/30'
+                    : 'bg-emerald-500/10 border-emerald-500/30'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`font-bold ${
+                      currentFrame.invertedIndexState.banner.type === 'ANTI_STUFFING'
+                        ? 'text-purple-900 dark:text-purple-300'
+                        : currentFrame.invertedIndexState.banner.type === 'INTERSECTION_MATCH'
+                        ? 'text-indigo-900 dark:text-indigo-300'
+                        : 'text-emerald-900 dark:text-emerald-300'
+                    }`}
+                  >
+                    {currentFrame.invertedIndexState.banner.title}:
+                  </span>
+                  <span className="text-text font-medium">
+                    {currentFrame.invertedIndexState.banner.description}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Corpus Document Cards Grid */}
+            <div className="bg-surface/50 border border-border rounded-xl p-4 space-y-2">
+              <div className="flex items-center justify-between text-[11px] font-semibold text-text-muted">
+                <span>Ingested Document Collection ($N = {currentFrame.invertedIndexState.corpus.length}$):</span>
+                <span>Document Length ($|D|$) &amp; Tokens</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 pt-1">
+                {currentFrame.invertedIndexState.corpus.map((doc) => (
+                  <div
+                    key={doc.id}
+                    className="p-3 rounded-lg bg-surface border border-border space-y-1.5 text-xs shadow-2xs"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-text font-mono text-[11px] bg-canvas px-1.5 py-0.5 rounded border border-border">
+                        {doc.id}
+                      </span>
+                      <span className="text-[10px] font-mono text-text-muted">
+                        |D| = {doc.length} words
+                      </span>
+                    </div>
+                    <span className="font-semibold text-text block text-[11px]">
+                      {doc.title}
+                    </span>
+                    <p className="font-mono text-[10px] text-text-muted leading-relaxed bg-canvas p-1.5 rounded border border-border">
+                      {doc.text}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Inverted Index Posting Lists Visualizer */}
+            {currentFrame.invertedIndexState.terms.length > 0 && (
+              <div className="bg-surface/50 border border-border rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between text-[11px] font-semibold text-text-muted">
+                  <span>Inverted Index Dictionary ($V = {currentFrame.invertedIndexState.terms.length}$ Vocabulary Terms):</span>
+                  <span className="font-mono">Term → Posting List [docId, tf]</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 pt-1">
+                  {currentFrame.invertedIndexState.terms.map((t) => {
+                    const isActive = t.isActive;
+                    return (
+                      <div
+                        key={t.term}
+                        className={`p-2.5 rounded-lg border text-xs transition-all ${
+                          isActive
+                            ? 'bg-primary-50 dark:bg-primary-950/30 border-primary-400 ring-1 ring-primary-400 shadow-xs'
+                            : 'bg-surface border-border'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="font-mono font-bold text-[11px] text-primary-700">
+                            &quot;{t.term}&quot;
+                          </span>
+                          <span className="text-[10px] font-mono text-text-muted">
+                            df={t.df} | IDF={t.idf.toFixed(3)}
+                          </span>
+                        </div>
+
+                        {/* Postings Chain */}
+                        <div className="flex items-center gap-1 flex-wrap font-mono text-[10px]">
+                          {t.postings.map((p, pIdx) => (
+                            <span
+                              key={pIdx}
+                              className={`px-1.5 py-0.5 rounded border font-semibold ${
+                                isActive
+                                  ? 'bg-primary-100 dark:bg-primary-900 text-primary-900 dark:text-primary-100 border-primary-300'
+                                  : 'bg-canvas text-text border-border'
+                              }`}
+                            >
+                              {p.docId} <span className="text-text-muted text-[9px]">(tf={p.tf})</span>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Two-Pointer Intersection Visualizer (if active) */}
+            {currentFrame.invertedIndexState.twoPointerState && (
+              <div className="bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-800 rounded-xl p-4 space-y-2 text-xs">
+                <div className="flex items-center justify-between font-bold text-indigo-900 dark:text-indigo-200">
+                  <span>Two-Pointer Leapfrog Posting Intersection:</span>
+                  <span className="font-mono text-[11px]">Time Complexity: O(L₁ + L₂)</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <div className="bg-canvas border border-border p-2.5 rounded-lg space-y-1">
+                    <span className="font-bold text-text font-mono text-[11px]">
+                      Pointer 1: &quot;{currentFrame.invertedIndexState.twoPointerState.term1}&quot;
+                    </span>
+                    <p className="text-[11px] text-text-muted font-mono">
+                      Index [{currentFrame.invertedIndexState.twoPointerState.ptr1}] → Doc D1
+                    </p>
+                  </div>
+                  <div className="bg-canvas border border-border p-2.5 rounded-lg space-y-1">
+                    <span className="font-bold text-text font-mono text-[11px]">
+                      Pointer 2: &quot;{currentFrame.invertedIndexState.twoPointerState.term2}&quot;
+                    </span>
+                    <p className="text-[11px] text-text-muted font-mono">
+                      Index [{currentFrame.invertedIndexState.twoPointerState.ptr2}] → Doc D1
+                    </p>
+                  </div>
+                </div>
+                <div className="pt-1 flex items-center gap-2">
+                  <span className="text-text-muted font-semibold">Matched Conjunctive Documents:</span>
+                  {currentFrame.invertedIndexState.twoPointerState.matchedDocIds.map((docId) => (
+                    <span
+                      key={docId}
+                      className="font-mono font-bold bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded border border-emerald-300"
+                    >
+                      ✓ {docId}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* BM25 Scoring Breakdown Table */}
+            {currentFrame.invertedIndexState.rankedResults &&
+              currentFrame.invertedIndexState.rankedResults.length > 0 && (
+                <div className="bg-surface/50 border border-border rounded-xl p-4 space-y-3">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-text">
+                      Okapi BM25 Relevance Score Breakdown &amp; Ranking
+                    </span>
+                    <span className="font-mono text-[11px] text-primary-700 font-bold">
+                      BM25(D, Q) = ∑ IDF(qᵢ) · [f(qᵢ, D) · (k₁+1)] / [f(qᵢ, D) + k₁ · (1 - b + b · |D|/avgdl)]
+                    </span>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="border-b border-border text-text-muted font-mono text-[10px] uppercase">
+                          <th className="py-2 px-3">Rank</th>
+                          <th className="py-2 px-3">Doc ID</th>
+                          <th className="py-2 px-3">Document Title</th>
+                          <th className="py-2 px-3">Length (|D|)</th>
+                          <th className="py-2 px-3">Matched Terms</th>
+                          <th className="py-2 px-3 text-right">BM25 Score</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border font-mono text-[11px]">
+                        {currentFrame.invertedIndexState.rankedResults.map((res) => (
+                          <tr
+                            key={res.docId}
+                            className={`transition-colors ${
+                              res.rank === 1
+                                ? 'bg-emerald-50/50 dark:bg-emerald-950/20 font-bold'
+                                : 'hover:bg-canvas'
+                            }`}
+                          >
+                            <td className="py-2.5 px-3">
+                              <span
+                                className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                  res.rank === 1
+                                    ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                                    : 'bg-slate-100 text-slate-800 border border-slate-300'
+                                }`}
+                              >
+                                #{res.rank}
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-3 text-primary-700">{res.docId}</td>
+                            <td className="py-2.5 px-3 font-sans font-semibold text-text">{res.docTitle}</td>
+                            <td className="py-2.5 px-3 text-text-muted">{res.docLength} words</td>
+                            <td className="py-2.5 px-3">
+                              <div className="flex items-center gap-1 flex-wrap">
+                                {res.matchedTerms.map((term) => (
+                                  <span
+                                    key={term}
+                                    className="bg-canvas border border-border px-1.5 py-0.5 rounded text-[10px]"
+                                  >
+                                    {term}
+                                  </span>
+                                ))}
+                              </div>
+                            </td>
+                            <td className="py-2.5 px-3 text-right font-extrabold text-primary-700">
+                              {res.totalScore.toFixed(3)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+            {/* Socratic Invariant Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+              <div className="bg-surface border border-border rounded-lg p-3 space-y-1 text-xs">
+                <span className="font-bold text-text block text-[11px]">
+                  1. Term Saturation (k₁)
+                </span>
+                <p className="text-text-muted text-[11px] leading-relaxed">
+                  Raw TF grows linearly, rewarding keyword stuffers. BM25 non-linear saturation bounds term contribution to <code className="text-primary-600 font-mono">k₁ + 1 = 2.2</code>.
+                </p>
+              </div>
+
+              <div className="bg-surface border border-border rounded-lg p-3 space-y-1 text-xs">
+                <span className="font-bold text-text block text-[11px]">
+                  2. Length Normalization (b)
+                </span>
+                <p className="text-text-muted text-[11px] leading-relaxed">
+                  Parameter <code className="text-primary-600 font-mono">b = 0.75</code> penalizes wordy documents. Concise documents containing the target term achieve higher density scores.
+                </p>
+              </div>
+
+              <div className="bg-surface border border-border rounded-lg p-3 space-y-1 text-xs">
+                <span className="font-bold text-text block text-[11px]">
+                  3. RSJ-Smoothed IDF
+                </span>
+                <p className="text-text-muted text-[11px] leading-relaxed">
+                  Rare words across the corpus carry high information entropy, receiving exponentially higher weights than frequent stopwords.
+                </p>
+              </div>
+
+              <div className="bg-surface border border-border rounded-lg p-3 space-y-1 text-xs">
+                <span className="font-bold text-text block text-[11px]">
+                  4. Skip List Intersections
+                </span>
+                <p className="text-[11px] text-text-muted leading-relaxed">
+                  Lucene posting lists contain skip pointers spaced at √L, turning linear scans into O(√L) fast logarithmic seeks.
+                </p>
               </div>
             </div>
           </div>
