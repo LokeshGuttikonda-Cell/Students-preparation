@@ -3,9 +3,50 @@
 import React, { useState } from 'react';
 import { Button } from '../ui/Button';
 
-export type KernelNetworkMode = 'CPU_SCHEDULING' | 'PAGE_REPLACEMENT' | 'TCP_CONGESTION' | 'EPOLL_MULTIPLEXING' | 'ZERO_COPY_IO_URING' | 'VIRTUAL_MEMORY_PAGE_TABLES_TLB';
+export type KernelNetworkMode = 'CPU_SCHEDULING' | 'PAGE_REPLACEMENT' | 'TCP_CONGESTION' | 'EPOLL_MULTIPLEXING' | 'ZERO_COPY_IO_URING' | 'VIRTUAL_MEMORY_PAGE_TABLES_TLB' | 'TCP_BBR_BUFFERBLOAT';
 
 
+
+
+// --- Module 7: Linux Kernel TCP BBR Congestion Control & Bufferbloat Types ---
+export type TcpCongestionAlgorithm = 'BBR_CARDWELL' | 'RENO_LOSS_BASED' | 'CUBIC_LOSS_BASED';
+export type BbrState = 'STARTUP' | 'DRAIN' | 'PROBE_BW' | 'PROBE_RTT';
+
+export interface BbrStepSnapshot {
+  stepIndex: number;
+  title: string;
+  explanation: string;
+  algorithm: TcpCongestionAlgorithm;
+  bbrState: BbrState;
+  pacingGain: number;
+  cwndGain: number;
+  cwndPackets: number;
+  inflightPackets: number;
+  bdpPackets: number;
+  routerQueuePackets: number;
+  routerQueueCapacity: number;
+  bottleneckBwMbps: number;
+  rtPropMs: number;
+  measuredRttMs: number;
+  deliveryRateMbps: number;
+  pacingRateMbps: number;
+  droppedPacketsCount: number;
+  phaseCycleIndex: number;
+  socketStats: {
+    skPacingRate: string;
+    bbrBw: string;
+    minRttUs: string;
+    sndCwnd: number;
+    packetsOut: number;
+    pacingGainVal: string;
+    cwndGainVal: string;
+  };
+  banner: {
+    type: 'OPTIMAL' | 'BLOAT_ALERT' | 'LOSS_EVENT' | 'STARTUP' | 'DRAIN' | 'PROBING';
+    title: string;
+    description: string;
+  };
+}
 
 // --- Module 6: Linux Kernel Virtual Memory, Page Tables & TLB Types ---
 export type PagingPageSize = '4KB_STANDARD' | '2MB_HUGE_PAGE';
@@ -208,7 +249,14 @@ const SCHEDULING_DATA: Record<
 const REF_STRING = [1, 2, 3, 4, 1, 2, 5, 1, 2, 3, 4, 5];
 
 export function KernelNetworkSandbox() {
-  // --- Module 6: Virtual Memory & TLB State ---
+  // --- Module 7: Linux Kernel TCP BBR & Bufferbloat State ---
+  const [bbrSelectedAlgo, setBbrSelectedAlgo] = useState<TcpCongestionAlgorithm>('BBR_CARDWELL');
+  const [bbrStepIndex, setBbrStepIndex] = useState<number>(0);
+  const [bbrQueueCapacity, setBbrQueueCapacity] = useState<number>(100);
+  const [bbrBottleneckBw, setBbrBottleneckBw] = useState<number>(50); // Mbps
+  const [bbrInjectedBurst, setBbrInjectedBurst] = useState<boolean>(false);
+
+    // --- Module 6: Virtual Memory & TLB State ---
   const [vmAddressInput, setVmAddressInput] = useState('0x7fff_cafe_4000');
   const [vmPageSize, setVmPageSize] = useState<PagingPageSize>('4KB_STANDARD');
   const [vmLastResult, setVmLastResult] = useState<TlbLookupResult>('TLB_HIT');
@@ -956,6 +1004,17 @@ export function KernelNetworkSandbox() {
             }`}
           >
             Zero-Copy &amp; io_uring
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('TCP_BBR_BUFFERBLOAT')}
+            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+              activeTab === 'TCP_BBR_BUFFERBLOAT'
+                ? 'bg-primary-700 text-white shadow-xs'
+                : 'text-text-muted hover:text-text'
+            }`}
+          >
+            BBR &amp; Bufferbloat
           </button>
         </div>
       </div>
@@ -2709,6 +2768,816 @@ export function KernelNetworkSandbox() {
           </div>
         </div>
       )}
+
+      {/* ======================================================== */}
+      {/* MODULE 7: TCP BBR CONGESTION CONTROL & BUFFERBLOAT STUDIO */}
+      {/* ======================================================== */}
+      {activeTab === 'TCP_BBR_BUFFERBLOAT' && (() => {
+        // Compute active snapshot based on parameters
+        const baseBdp = Math.round((bbrBottleneckBw * 20) / 40); // 25 pkts for 50 Mbps
+        const burstOffset = bbrInjectedBurst ? 30 : 0;
+
+        const snapshots: BbrStepSnapshot[] = [
+          // Step 1: System Baseline & The Kleinrock Operating Point
+          {
+            stepIndex: 1,
+            title: 'System Baseline & The Kleinrock Operating Point',
+            explanation:
+              'Leonard Kleinrock (1979) established that the optimal congestion control operating point occurs where inflight data exactly equals the Bandwidth-Delay Product (BDP = BtlBw × RTprop). At this inflection point, bottleneck bandwidth is 100% saturated while packet queuing delay is exactly zero. Traditional loss-based algorithms cannot operate here because they require buffer overflow to detect congestion.',
+            algorithm: 'BBR_CARDWELL',
+            bbrState: 'PROBE_BW',
+            pacingGain: 1.0,
+            cwndGain: 2.0,
+            cwndPackets: baseBdp,
+            inflightPackets: baseBdp,
+            bdpPackets: baseBdp,
+            routerQueuePackets: 0,
+            routerQueueCapacity: bbrQueueCapacity,
+            bottleneckBwMbps: bbrBottleneckBw,
+            rtPropMs: 20,
+            measuredRttMs: 20,
+            deliveryRateMbps: bbrBottleneckBw,
+            pacingRateMbps: bbrBottleneckBw,
+            droppedPacketsCount: 0,
+            phaseCycleIndex: 2,
+            socketStats: {
+              skPacingRate: String(bbrBottleneckBw) + '.0 Mbps',
+              bbrBw: String(bbrBottleneckBw) + '.0 Mbps (Max Filter)',
+              minRttUs: '20,000 us (20.0 ms)',
+              sndCwnd: baseBdp,
+              packetsOut: baseBdp,
+              pacingGainVal: '1.0x (Cruise)',
+              cwndGainVal: '2.0x',
+            },
+            banner: {
+              type: 'OPTIMAL',
+              title: 'Kleinrock Optimal Point: Zero Queuing Delay & 100% Wire Saturation',
+              description:
+                'Inflight packets (' + String(baseBdp) + ') exactly match physical BDP. The ' + String(bbrBottleneckBw) + ' Mbps bottleneck link runs at 100% capacity with 0 queued packets in the router buffer. RTT is 20 ms.',
+            },
+          },
+
+          // Step 2: Loss-Based Reno/CUBIC Additive Increase: The Bufferbloat Trap
+          {
+            stepIndex: 2,
+            title: 'Loss-Based Reno/CUBIC Additive Increase: The Bufferbloat Trap',
+            explanation:
+              'Bufferbloat is the latency inflation caused by over-sized router buffers. Loss-based congestion algorithms (Reno, CUBIC) blindly increase their congestion window (AIMD: +1 packet per RTT) as long as ACKs arrive without loss. Because the bottleneck wire can only transmit at BtlBw, excess packets pile up in the deep router FIFO buffer, bloating RTT from 20ms to 60ms with zero throughput gain.',
+            algorithm: 'RENO_LOSS_BASED',
+            bbrState: 'STARTUP',
+            pacingGain: 1.0,
+            cwndGain: 1.0,
+            cwndPackets: baseBdp * 3,
+            inflightPackets: baseBdp * 3 + burstOffset,
+            bdpPackets: baseBdp,
+            routerQueuePackets: Math.min(bbrQueueCapacity, baseBdp * 2 + burstOffset),
+            routerQueueCapacity: bbrQueueCapacity,
+            bottleneckBwMbps: bbrBottleneckBw,
+            rtPropMs: 20,
+            measuredRttMs: 20 + Math.round(((baseBdp * 2 + burstOffset) / (baseBdp / 20))),
+            deliveryRateMbps: bbrBottleneckBw,
+            pacingRateMbps: bbrBottleneckBw * 2,
+            droppedPacketsCount: 0,
+            phaseCycleIndex: 0,
+            socketStats: {
+              skPacingRate: 'Unpaced (Line Rate Burst)',
+              bbrBw: 'N/A (Loss-Based)',
+              minRttUs: '20,000 us',
+              sndCwnd: baseBdp * 3,
+              packetsOut: baseBdp * 3 + burstOffset,
+              pacingGainVal: 'N/A',
+              cwndGainVal: 'N/A',
+            },
+            banner: {
+              type: 'BLOAT_ALERT',
+              title: '⚠️ Bufferbloat Hazard: Standing Queue Inflates Latency by 300%',
+              description:
+                'Reno pumps ' + String(baseBdp * 2 + burstOffset) + ' excess packets into the router buffer. RTT surges from 20 ms to ' + String(20 + Math.round(((baseBdp * 2 + burstOffset) / (baseBdp / 20)))) + ' ms. Memory bus and router switch buffers are clogged with zero extra throughput.',
+            },
+          },
+
+          // Step 3: Buffer Overflow & Tail Drop: Packet Loss and Window Halving
+          {
+            stepIndex: 3,
+            title: 'Buffer Overflow & Tail Drop: Packet Loss and Halving Collapse',
+            explanation:
+              'Once the deep router buffer fills to 100% capacity, arriving packets are tail dropped. Reno interprets this loss as the first signal to slow down, cutting cwnd in half. However, while cwnd collapses, the standing queue takes hundreds of milliseconds to drain, keeping latency bloated while throughput plummets due to retransmission stalls.',
+            algorithm: 'RENO_LOSS_BASED',
+            bbrState: 'STARTUP',
+            pacingGain: 1.0,
+            cwndGain: 1.0,
+            cwndPackets: Math.round(bbrQueueCapacity / 2),
+            inflightPackets: bbrQueueCapacity,
+            bdpPackets: baseBdp,
+            routerQueuePackets: bbrQueueCapacity,
+            routerQueueCapacity: bbrQueueCapacity,
+            bottleneckBwMbps: bbrBottleneckBw,
+            rtPropMs: 20,
+            measuredRttMs: 20 + Math.round((bbrQueueCapacity / (baseBdp / 20))),
+            deliveryRateMbps: Math.round(bbrBottleneckBw * 0.64),
+            pacingRateMbps: bbrBottleneckBw,
+            droppedPacketsCount: 8,
+            phaseCycleIndex: 0,
+            socketStats: {
+              skPacingRate: 'Unpaced (Tail Drop)',
+              bbrBw: 'N/A',
+              minRttUs: '20,000 us',
+              sndCwnd: Math.round(bbrQueueCapacity / 2),
+              packetsOut: bbrQueueCapacity,
+              pacingGainVal: 'N/A',
+              cwndGainVal: 'N/A',
+            },
+            banner: {
+              type: 'LOSS_EVENT',
+              title: '💥 Tail Drop Event: Buffer Saturated & Multiplicative cwnd Collapse',
+              description:
+                'Router buffer at 100% capacity (' + String(bbrQueueCapacity) + ' pkts). 8 packets dropped. Reno cuts cwnd to ' + String(Math.round(bbrQueueCapacity / 2)) + ', triggering retransmission stalls while latency remains pinned at ' + String(20 + Math.round((bbrQueueCapacity / (baseBdp / 20)))) + ' ms.',
+            },
+          },
+
+          // Step 4: BBR State Machine Phase 1: STARTUP (Bandwidth Discovery)
+          {
+            stepIndex: 4,
+            title: 'BBR State Machine Phase 1: STARTUP (Bottleneck Bandwidth Search)',
+            explanation:
+              'Rather than probing until loss occurs, BBR STARTUP doubles sending rate each RTT using a pacing gain of 2/ln(2) ≈ 2.89. BBR monitors delivery rate: as long as sending faster increases throughput, the pipe has capacity. Once delivery rate plateaus (<25% gain across 3 rounds), BBR records the detected bottleneck capacity (50 Mbps) and transitions immediately to DRAIN.',
+            algorithm: 'BBR_CARDWELL',
+            bbrState: 'STARTUP',
+            pacingGain: 2.89,
+            cwndGain: 2.89,
+            cwndPackets: baseBdp * 2,
+            inflightPackets: baseBdp * 2,
+            bdpPackets: baseBdp,
+            routerQueuePackets: baseBdp,
+            routerQueueCapacity: bbrQueueCapacity,
+            bottleneckBwMbps: bbrBottleneckBw,
+            rtPropMs: 20,
+            measuredRttMs: 40,
+            deliveryRateMbps: bbrBottleneckBw,
+            pacingRateMbps: Math.round(bbrBottleneckBw * 2.89),
+            droppedPacketsCount: 0,
+            phaseCycleIndex: 0,
+            socketStats: {
+              skPacingRate: String(Math.round(bbrBottleneckBw * 2.89)) + '.0 Mbps',
+              bbrBw: String(bbrBottleneckBw) + '.0 Mbps (Detected BtlBw)',
+              minRttUs: '20,000 us',
+              sndCwnd: baseBdp * 2,
+              packetsOut: baseBdp * 2,
+              pacingGainVal: '2.89x (2/ln2)',
+              cwndGainVal: '2.89x',
+            },
+            banner: {
+              type: 'STARTUP',
+              title: 'BBR STARTUP: Exponential Search Discovers Bottleneck at 50 Mbps',
+              description:
+                'Pacing gain 2.89 doubles rate every RTT. Throughput plateau detected at ' + String(bbrBottleneckBw) + ' Mbps. BBR halts expansion without overflowing the buffer or causing packet loss.',
+            },
+          },
+
+          // Step 5: BBR State Machine Phase 2: DRAIN (Purging the Startup Queue)
+          {
+            stepIndex: 5,
+            title: 'BBR State Machine Phase 2: DRAIN (Purging the Startup Queue)',
+            explanation:
+              'STARTUP creates a temporary queue equal to one BDP. BBR enters DRAIN with pacing gain 1/2.89 ≈ 0.35, deliberately sending below the bottleneck rate. This under-pacing allows the router buffer to completely drain its excess packets into the receiver, returning router queue depth to 0 and restoring RTT to the physical minimum of 20 ms.',
+            algorithm: 'BBR_CARDWELL',
+            bbrState: 'DRAIN',
+            pacingGain: 0.35,
+            cwndGain: 2.0,
+            cwndPackets: baseBdp,
+            inflightPackets: baseBdp,
+            bdpPackets: baseBdp,
+            routerQueuePackets: 0,
+            routerQueueCapacity: bbrQueueCapacity,
+            bottleneckBwMbps: bbrBottleneckBw,
+            rtPropMs: 20,
+            measuredRttMs: 20,
+            deliveryRateMbps: bbrBottleneckBw,
+            pacingRateMbps: Math.round(bbrBottleneckBw * 0.35),
+            droppedPacketsCount: 0,
+            phaseCycleIndex: 0,
+            socketStats: {
+              skPacingRate: String(Math.round(bbrBottleneckBw * 0.35)) + '.0 Mbps',
+              bbrBw: String(bbrBottleneckBw) + '.0 Mbps',
+              minRttUs: '20,000 us',
+              sndCwnd: baseBdp,
+              packetsOut: baseBdp,
+              pacingGainVal: '0.35x (1/2.89)',
+              cwndGainVal: '2.0x',
+            },
+            banner: {
+              type: 'DRAIN',
+              title: 'BBR DRAIN: Queue Drained to Zero via Under-Pacing (0.35x Gain)',
+              description:
+                'BBR paces below link capacity until inflight equals BDP. Standing queue is purged back to 0 packets, restoring speed-of-light 20 ms latency.',
+            },
+          },
+
+          // Step 6: BBR State Machine Phase 3: PROBE_BW (Cyclic Pacing Gain Cycling)
+          {
+            stepIndex: 6,
+            title: 'BBR State Machine Phase 3: PROBE_BW (Cyclic Pacing Gain Cycling)',
+            explanation:
+              'To adapt to dynamic network conditions, BBR cycles through an 8-phase pacing gain array: [1.25, 0.75, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]. Phase 0 (1.25x) injects 25% extra data to probe for newly available bandwidth; Phase 1 (0.75x) immediately drains the queue created by Phase 0; Phases 2-7 (1.0x) cruise at 100% link utilization with zero standing queue.',
+            algorithm: 'BBR_CARDWELL',
+            bbrState: 'PROBE_BW',
+            pacingGain: 1.25,
+            cwndGain: 2.0,
+            cwndPackets: Math.round(baseBdp * 1.25),
+            inflightPackets: baseBdp,
+            bdpPackets: baseBdp,
+            routerQueuePackets: 0,
+            routerQueueCapacity: bbrQueueCapacity,
+            bottleneckBwMbps: bbrBottleneckBw,
+            rtPropMs: 20,
+            measuredRttMs: 20,
+            deliveryRateMbps: bbrBottleneckBw,
+            pacingRateMbps: Math.round(bbrBottleneckBw * 1.25),
+            droppedPacketsCount: 0,
+            phaseCycleIndex: 0,
+            socketStats: {
+              skPacingRate: String(Math.round(bbrBottleneckBw * 1.25)) + '.0 Mbps (Probe) / ' + String(bbrBottleneckBw) + ' Mbps (Cruise)',
+              bbrBw: String(bbrBottleneckBw) + '.0 Mbps',
+              minRttUs: '20,000 us',
+              sndCwnd: Math.round(baseBdp * 1.25),
+              packetsOut: baseBdp,
+              pacingGainVal: '[1.25, 0.75, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]',
+              cwndGainVal: '2.0x',
+            },
+            banner: {
+              type: 'PROBING',
+              title: 'BBR PROBE_BW: 8-Phase Gain Modulation Probes Bandwidth Without Bloat',
+              description:
+                'Pacing alternates between 1.25x (bandwidth probe), 0.75x (queue drain), and 1.0x (steady-state cruise). Zero persistent queues accumulate.',
+            },
+          },
+
+          // Step 7: BBR State Machine Phase 4: PROBE_RTT (Min-RTT Unmasking)
+          {
+            stepIndex: 7,
+            title: 'BBR State Machine Phase 4: PROBE_RTT (Min-RTT Unmasking)',
+            explanation:
+              'Because network routing and queue states evolve, BBR must periodically re-measure true physical RTprop. Every 10 seconds, if min_rtt has not been refreshed, BBR enters PROBE_RTT, clamping cwnd to 4 packets for 200 ms. With only 4 packets inflight, queues across every intermediary router drain to zero, enabling accurate sampling of speed-of-light fiber propagation delay.',
+            algorithm: 'BBR_CARDWELL',
+            bbrState: 'PROBE_RTT',
+            pacingGain: 1.0,
+            cwndGain: 1.0,
+            cwndPackets: 4,
+            inflightPackets: 4,
+            bdpPackets: baseBdp,
+            routerQueuePackets: 0,
+            routerQueueCapacity: bbrQueueCapacity,
+            bottleneckBwMbps: bbrBottleneckBw,
+            rtPropMs: 20,
+            measuredRttMs: 20,
+            deliveryRateMbps: bbrBottleneckBw,
+            pacingRateMbps: bbrBottleneckBw,
+            droppedPacketsCount: 0,
+            phaseCycleIndex: 0,
+            socketStats: {
+              skPacingRate: String(bbrBottleneckBw) + '.0 Mbps',
+              bbrBw: String(bbrBottleneckBw) + '.0 Mbps',
+              minRttUs: '20,000 us (RTprop Refreshed)',
+              sndCwnd: 4,
+              packetsOut: 4,
+              pacingGainVal: '1.0x (Probe-RTT Clamp)',
+              cwndGainVal: '1.0x',
+            },
+            banner: {
+              type: 'OPTIMAL',
+              title: 'BBR PROBE_RTT: cwnd Clamped to 4 Packets to Measure True RTprop',
+              description:
+                'Inflight is clamped to 4 packets for 200 ms. All queues along the internet path drain, unmasking true physical fiber propagation delay (20 ms).',
+            },
+          },
+
+          // Step 8: Quantitative Bufferbloat & Latency Benchmark Table
+          {
+            stepIndex: 8,
+            title: 'Quantitative Bufferbloat Benchmark: BBR vs Reno/CUBIC Invariants',
+            explanation:
+              'BBR decouples congestion control from packet loss. By continuously pacing data at bottleneck bandwidth and holding inflight at BDP, BBR eliminates bufferbloat, slashes latency by up to 5x-25x, avoids loss-induced throughput collapses, and operates right at Kleinrock’s optimal performance point.',
+            algorithm: 'BBR_CARDWELL',
+            bbrState: 'PROBE_BW',
+            pacingGain: 1.0,
+            cwndGain: 2.0,
+            cwndPackets: baseBdp,
+            inflightPackets: baseBdp,
+            bdpPackets: baseBdp,
+            routerQueuePackets: 0,
+            routerQueueCapacity: bbrQueueCapacity,
+            bottleneckBwMbps: bbrBottleneckBw,
+            rtPropMs: 20,
+            measuredRttMs: 20,
+            deliveryRateMbps: bbrBottleneckBw,
+            pacingRateMbps: bbrBottleneckBw,
+            droppedPacketsCount: 0,
+            phaseCycleIndex: 2,
+            socketStats: {
+              skPacingRate: String(bbrBottleneckBw) + '.0 Mbps',
+              bbrBw: String(bbrBottleneckBw) + '.0 Mbps',
+              minRttUs: '20,000 us',
+              sndCwnd: baseBdp,
+              packetsOut: baseBdp,
+              pacingGainVal: '1.0x',
+              cwndGainVal: '2.0x',
+            },
+            banner: {
+              type: 'OPTIMAL',
+              title: '✓ TCP BBR Congestion Control Verified: 5x Lower Latency & 0% Packet Loss',
+              description:
+                'BBR maintains zero standing queue, continuous line-rate saturation, and immunity to shallow random packet loss on wireless and modern networks.',
+            },
+          },
+        ];
+
+        const currentSnap = snapshots[bbrStepIndex] || snapshots[0];
+
+        return (
+          <div className="p-6 space-y-6">
+            {/* Header & Controls */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-canvas border border-border p-5 rounded-xl">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-primary-800">
+                    Linux Kernel Network Stack • net/ipv4/tcp_bbr.c
+                  </span>
+                  <span className="text-[10px] font-mono bg-primary-100 text-primary-800 font-semibold px-2 py-0.5 rounded">
+                    Cardwell &amp; Cheng (ACM Queue 2016)
+                  </span>
+                </div>
+                <h3 className="text-lg font-bold text-text">
+                  TCP BBR Congestion Control vs Loss-Based Reno/CUBIC &amp; Bufferbloat Studio
+                </h3>
+                <p className="text-xs text-text-muted leading-relaxed">
+                  Model-based congestion control that decouples throughput from packet loss. BBR regulates sending rates via physical Bandwidth-Delay Product (BDP) pacing, eliminating standing router queues and crushing bufferbloat latency.
+                </p>
+              </div>
+
+              {/* Step Controls */}
+              <div className="flex items-center gap-2 shrink-0">
+                <Button variant="secondary"
+                  size="sm"
+                  onClick={() => setBbrStepIndex((prev) => Math.max(0, prev - 1))}
+                  disabled={bbrStepIndex === 0}
+                  className="cursor-pointer"
+                >
+                  Previous Step
+                </Button>
+                <span className="text-xs font-mono font-bold px-3 py-1 bg-surface border border-border rounded-md">
+                  Step {bbrStepIndex + 1} of {snapshots.length}
+                </span>
+                <Button variant="secondary"
+                  size="sm"
+                  onClick={() => setBbrStepIndex((prev) => Math.min(snapshots.length - 1, prev + 1))}
+                  disabled={bbrStepIndex === snapshots.length - 1}
+                  className="cursor-pointer"
+                >
+                  Next Step
+                </Button>
+                <Button variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    setBbrStepIndex(0);
+                    setBbrSelectedAlgo('BBR_CARDWELL');
+                    setBbrInjectedBurst(false);
+                  }}
+                  className="cursor-pointer text-xs"
+                >
+                  Reset Studio
+                </Button>
+              </div>
+            </div>
+
+            {/* Status Banner */}
+            <div
+              className={`p-4 rounded-xl border flex items-start gap-3.5 ${
+                currentSnap.banner.type === 'OPTIMAL'
+                  ? 'bg-emerald-50/80 border-emerald-300 text-emerald-950'
+                  : currentSnap.banner.type === 'BLOAT_ALERT'
+                  ? 'bg-amber-50/80 border-amber-300 text-amber-950'
+                  : currentSnap.banner.type === 'LOSS_EVENT'
+                  ? 'bg-red-50/80 border-red-300 text-red-950'
+                  : currentSnap.banner.type === 'STARTUP'
+                  ? 'bg-purple-50/80 border-purple-300 text-purple-950'
+                  : 'bg-primary-50/80 border-primary-300 text-primary-950'
+              }`}
+            >
+              <div className="text-lg">
+                {currentSnap.banner.type === 'OPTIMAL'
+                  ? '✓'
+                  : currentSnap.banner.type === 'BLOAT_ALERT'
+                  ? '⚠️'
+                  : currentSnap.banner.type === 'LOSS_EVENT'
+                  ? '💥'
+                  : currentSnap.banner.type === 'STARTUP'
+                  ? '🚀'
+                  : '🔄'}
+              </div>
+              <div className="space-y-0.5">
+                <div className="text-sm font-bold">{currentSnap.banner.title}</div>
+                <div className="text-xs text-text-muted leading-relaxed">
+                  {currentSnap.banner.description}
+                </div>
+              </div>
+            </div>
+
+            {/* Interactive Protocol & Physical Parameters */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Algorithm Switcher */}
+              <div className="bg-canvas border border-border rounded-xl p-4 space-y-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-text-muted block">
+                  Congestion Control Algorithm:
+                </span>
+                <div className="grid grid-cols-3 gap-1.5 pt-1">
+                  {(['BBR_CARDWELL', 'RENO_LOSS_BASED', 'CUBIC_LOSS_BASED'] as TcpCongestionAlgorithm[]).map((alg) => (
+                    <button
+                      key={alg}
+                      type="button"
+                      onClick={() => {
+                        setBbrSelectedAlgo(alg);
+                        if (alg === 'RENO_LOSS_BASED') setBbrStepIndex(1);
+                        else if (alg === 'BBR_CARDWELL') setBbrStepIndex(0);
+                        else setBbrStepIndex(1);
+                      }}
+                      className={`text-xs font-semibold py-1.5 px-2 rounded-lg border transition-all cursor-pointer text-center ${
+                        bbrSelectedAlgo === alg
+                          ? 'bg-primary-700 text-white border-primary-700 shadow-xs'
+                          : 'bg-surface border-border text-text-muted hover:text-text'
+                      }`}
+                    >
+                      {alg === 'BBR_CARDWELL' ? 'BBR' : alg === 'RENO_LOSS_BASED' ? 'Reno' : 'CUBIC'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Router Buffer Capacity Selector */}
+              <div className="bg-canvas border border-border rounded-xl p-4 space-y-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-text-muted block">
+                  Bottleneck Router Buffer Depth:
+                </span>
+                <div className="grid grid-cols-3 gap-1.5 pt-1">
+                  {[50, 100, 200].map((cap) => (
+                    <button
+                      key={cap}
+                      type="button"
+                      onClick={() => setBbrQueueCapacity(cap)}
+                      className={`text-xs font-mono font-semibold py-1.5 px-2 rounded-lg border transition-all cursor-pointer text-center ${
+                        bbrQueueCapacity === cap
+                          ? 'bg-primary-700 text-white border-primary-700 shadow-xs'
+                          : 'bg-surface border-border text-text-muted hover:text-text'
+                      }`}
+                    >
+                      {cap} pkts
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Bottleneck Bandwidth Selector & Burst Trigger */}
+              <div className="bg-canvas border border-border rounded-xl p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-wider text-text-muted">
+                    Bottleneck Bandwidth:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setBbrInjectedBurst(!bbrInjectedBurst)}
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded cursor-pointer transition-colors ${
+                      bbrInjectedBurst
+                        ? 'bg-amber-600 text-white'
+                        : 'bg-amber-100 text-amber-900 border border-amber-300'
+                    }`}
+                  >
+                    {bbrInjectedBurst ? 'Burst Active (+30 pkts)' : '+ Inject Burst'}
+                  </button>
+                </div>
+                <div className="grid grid-cols-3 gap-1.5 pt-1">
+                  {[25, 50, 100].map((bw) => (
+                    <button
+                      key={bw}
+                      type="button"
+                      onClick={() => setBbrBottleneckBw(bw)}
+                      className={`text-xs font-mono font-semibold py-1.5 px-2 rounded-lg border transition-all cursor-pointer text-center ${
+                        bbrBottleneckBw === bw
+                          ? 'bg-primary-700 text-white border-primary-700 shadow-xs'
+                          : 'bg-surface border-border text-text-muted hover:text-text'
+                      }`}
+                    >
+                      {bw} Mbps
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Real-time Oscilloscope: Bottleneck Router Queue & Bufferbloat Display */}
+            <div className="bg-surface border border-border rounded-xl p-5 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border pb-3">
+                <div className="space-y-0.5">
+                  <span className="text-xs font-bold uppercase tracking-wider text-primary-800">
+                    Bottleneck Router Queue Oscilloscope
+                  </span>
+                  <div className="text-xs text-text-muted">
+                    Buffer Fill: <strong className="text-text font-mono">{currentSnap.routerQueuePackets} / {currentSnap.routerQueueCapacity} packets</strong> ({Math.round((currentSnap.routerQueuePackets / currentSnap.routerQueueCapacity) * 100)}% capacity)
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 text-xs font-mono">
+                  <span className={`px-2.5 py-1 rounded font-bold ${
+                    currentSnap.routerQueuePackets === 0
+                      ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                      : currentSnap.routerQueuePackets >= currentSnap.routerQueueCapacity
+                      ? 'bg-red-100 text-red-900 border border-red-300 animate-pulse'
+                      : 'bg-amber-100 text-amber-900 border border-amber-300'
+                  }`}>
+                    Queuing Delay: +{currentSnap.measuredRttMs - currentSnap.rtPropMs} ms
+                  </span>
+                  <span className="bg-canvas border border-border px-2.5 py-1 rounded text-text-muted">
+                    Total RTT: <strong className="text-text">{currentSnap.measuredRttMs} ms</strong>
+                  </span>
+                </div>
+              </div>
+
+              {/* Visual Buffer Bar */}
+              <div className="space-y-2">
+                <div className="w-full bg-canvas border border-border rounded-lg h-10 p-1 flex items-center gap-1 overflow-hidden relative">
+                  {/* Inflight wire packets */}
+                  <div
+                    style={{ width: String(Math.min(100, (currentSnap.bdpPackets / currentSnap.routerQueueCapacity) * 100)) + '%' }}
+                    className="h-full bg-emerald-500/80 rounded flex items-center justify-center text-[10px] font-bold text-white transition-all overflow-hidden"
+                    title="Inflight on Wire (BDP)"
+                  >
+                    BDP Wire ({currentSnap.bdpPackets} pkts)
+                  </div>
+
+                  {/* Queued standing packets (Bufferbloat) */}
+                  {currentSnap.routerQueuePackets > 0 && (
+                    <div
+                      style={{
+                        width: String(Math.min(
+                          100 - (currentSnap.bdpPackets / currentSnap.routerQueueCapacity) * 100,
+                          (currentSnap.routerQueuePackets / currentSnap.routerQueueCapacity) * 100
+                        )) + '%',
+                      }}
+                      className={`h-full rounded flex items-center justify-center text-[10px] font-bold text-white transition-all overflow-hidden ${
+                        currentSnap.routerQueuePackets >= currentSnap.routerQueueCapacity
+                          ? 'bg-red-600 animate-pulse'
+                          : 'bg-amber-500'
+                      }`}
+                      title="Queued Packets (Bufferbloat)"
+                    >
+                      Queue Bloat ({currentSnap.routerQueuePackets} pkts)
+                    </div>
+                  )}
+                </div>
+
+                {/* Legend */}
+                <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-text-muted font-mono pt-1">
+                  <div className="flex items-center gap-4">
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-3 h-3 bg-emerald-500 rounded-xs inline-block" />
+                      Inflight Wire (BDP = {currentSnap.bdpPackets} pkts)
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-3 h-3 bg-amber-500 rounded-xs inline-block" />
+                      Standing Queue (Bufferbloat = {currentSnap.routerQueuePackets} pkts)
+                    </span>
+                    {currentSnap.droppedPacketsCount > 0 && (
+                      <span className="flex items-center gap-1.5 text-red-700 font-bold">
+                        <span className="w-3 h-3 bg-red-600 rounded-xs inline-block" />
+                        Tail Dropped ({currentSnap.droppedPacketsCount} pkts)
+                      </span>
+                    )}
+                  </div>
+                  <span>Buffer Capacity: {currentSnap.routerQueueCapacity} packets</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Kleinrock Latency-Throughput Phase Diagram & Kernel Socket Inspector */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* Kleinrock Operating Curve */}
+              <div className="bg-canvas border border-border rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between border-b border-border pb-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-text">
+                    Kleinrock Congestion Operating Curve
+                  </span>
+                  <span className="text-[10px] font-mono text-primary-700 bg-primary-50 px-2 py-0.5 rounded font-bold">
+                    Inflight vs Throughput &amp; Latency
+                  </span>
+                </div>
+
+                <div className="space-y-3 text-xs">
+                  {/* Delivery Rate Curve */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[11px]">
+                      <span className="text-text-muted">Delivery Rate (Throughput):</span>
+                      <span className="font-mono font-bold text-emerald-700">
+                        {currentSnap.deliveryRateMbps}.0 Mbps (Capacity: {bbrBottleneckBw} Mbps)
+                      </span>
+                    </div>
+                    <div className="w-full bg-surface border border-border h-3 rounded-full overflow-hidden">
+                      <div
+                        style={{ width: String((currentSnap.deliveryRateMbps / bbrBottleneckBw) * 100) + '%' }}
+                        className="h-full bg-emerald-600 rounded-full transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  {/* RTT Latency Curve */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[11px]">
+                      <span className="text-text-muted">Round-Trip Time (RTT Latency):</span>
+                      <span className={`font-mono font-bold ${
+                        currentSnap.measuredRttMs === 20 ? 'text-emerald-700' : 'text-red-700'
+                      }`}>
+                        {currentSnap.measuredRttMs} ms (Physical RTprop: 20 ms)
+                      </span>
+                    </div>
+                    <div className="w-full bg-surface border border-border h-3 rounded-full overflow-hidden">
+                      <div
+                        style={{ width: String(Math.min(100, (currentSnap.measuredRttMs / 100) * 100)) + '%' }}
+                        className={`h-full rounded-full transition-all ${
+                          currentSnap.measuredRttMs === 20 ? 'bg-emerald-600' : 'bg-amber-500'
+                        }`}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Kleinrock Invariant Explainer */}
+                  <div className="p-3 bg-surface border border-border rounded-lg text-[11px] text-text-muted leading-relaxed">
+                    <strong className="text-text block mb-0.5">The Kleinrock Dilemma:</strong>
+                    Operating below BDP starves the wire; operating above BDP inflates queuing delay without increasing delivery rate. Loss-based TCP operates far to the right in the bufferbloat zone; BBR clamps inflight precisely at the knee (BDP).
+                  </div>
+                </div>
+              </div>
+
+              {/* Linux Kernel Socket State Inspector (net/ipv4/tcp_bbr.c) */}
+              <div className="bg-canvas border border-border rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between border-b border-border pb-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-text">
+                    Kernel Socket State: struct tcp_sock &amp; tcp_bbr
+                  </span>
+                  <span className="text-[10px] font-mono text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded font-bold">
+                    State: {currentSnap.bbrState}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-xs font-mono">
+                  <div className="p-2.5 bg-surface border border-border rounded-lg space-y-0.5">
+                    <span className="text-text-muted text-[10px] block">sk-&gt;sk_pacing_rate:</span>
+                    <span className="font-bold text-text text-[11px]">{currentSnap.socketStats.skPacingRate}</span>
+                  </div>
+                  <div className="p-2.5 bg-surface border border-border rounded-lg space-y-0.5">
+                    <span className="text-text-muted text-[10px] block">bbr-&gt;bw (Bottleneck Bw):</span>
+                    <span className="font-bold text-emerald-700 text-[11px]">{currentSnap.socketStats.bbrBw}</span>
+                  </div>
+                  <div className="p-2.5 bg-surface border border-border rounded-lg space-y-0.5">
+                    <span className="text-text-muted text-[10px] block">bbr-&gt;min_rtt_us (RTprop):</span>
+                    <span className="font-bold text-sky-700 text-[11px]">{currentSnap.socketStats.minRttUs}</span>
+                  </div>
+                  <div className="p-2.5 bg-surface border border-border rounded-lg space-y-0.5">
+                    <span className="text-text-muted text-[10px] block">tp-&gt;snd_cwnd (Packets):</span>
+                    <span className="font-bold text-purple-700 text-[11px]">{currentSnap.socketStats.sndCwnd} pkts</span>
+                  </div>
+                  <div className="p-2.5 bg-surface border border-border rounded-lg space-y-0.5">
+                    <span className="text-text-muted text-[10px] block">bbr-&gt;pacing_gain:</span>
+                    <span className="font-bold text-primary-700 text-[11px]">{currentSnap.socketStats.pacingGainVal}</span>
+                  </div>
+                  <div className="p-2.5 bg-surface border border-border rounded-lg space-y-0.5">
+                    <span className="text-text-muted text-[10px] block">tp-&gt;packets_out (Inflight):</span>
+                    <span className="font-bold text-text text-[11px]">{currentSnap.socketStats.packetsOut} pkts</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Socratic Step Description Card */}
+            <div className="bg-surface border border-border rounded-xl p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold px-2 py-0.5 rounded bg-primary-100 text-primary-800 font-mono">
+                  Step {bbrStepIndex + 1} of {snapshots.length}
+                </span>
+                <h4 className="text-sm font-bold text-text">{currentSnap.title}</h4>
+              </div>
+              <p className="text-xs text-text-muted leading-relaxed">
+                {currentSnap.explanation}
+              </p>
+            </div>
+
+            {/* Quantitative Architectural Comparison Table */}
+            <div className="bg-surface border border-border rounded-xl p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-text">
+                  Quantitative Congestion Control &amp; Bufferbloat Benchmark
+                </span>
+                <span className="text-xs font-mono text-emerald-700 font-bold">
+                  BBR Advantage: 5x Lower Latency &amp; Zero Tail Drops
+                </span>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-left">
+                  <thead>
+                    <tr className="border-b border-border text-text-muted">
+                      <th className="py-1.5 pr-4 font-semibold">Architectural Metric</th>
+                      <th className="py-1.5 px-4 font-semibold">Loss-Based TCP Reno</th>
+                      <th className="py-1.5 px-4 font-semibold">Loss-Based TCP CUBIC</th>
+                      <th className="py-1.5 px-4 font-semibold">Model-Based TCP BBR</th>
+                      <th className="py-1.5 pl-4 font-semibold text-right">BBR Delta</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border font-mono text-[11px]">
+                    <tr>
+                      <td className="py-2 pr-4 font-sans font-medium text-text">Congestion Signal</td>
+                      <td className="py-2 px-4 text-red-700">Packet Loss (Tail Drop)</td>
+                      <td className="py-2 px-4 text-amber-700">Packet Loss (Tail Drop)</td>
+                      <td className="py-2 px-4 text-emerald-700 font-bold">Max Delivery Rate &amp; Min RTT</td>
+                      <td className="py-2 pl-4 text-right text-emerald-700 font-bold">Loss Independent</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 pr-4 font-sans font-medium text-text">Inflight Equilibrium</td>
+                      <td className="py-2 px-4 text-red-700">Buffer Limit (100 pkts)</td>
+                      <td className="py-2 px-4 text-amber-700">Buffer Limit (100 pkts)</td>
+                      <td className="py-2 px-4 text-emerald-700 font-bold">BDP = 25 pkts</td>
+                      <td className="py-2 pl-4 text-right text-emerald-700 font-bold">75% Lower Inflight</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 pr-4 font-sans font-medium text-text">Router Queue Delay</td>
+                      <td className="py-2 px-4 text-red-700">+80 ms (Bloated)</td>
+                      <td className="py-2 px-4 text-amber-700">+75 ms (Bloated)</td>
+                      <td className="py-2 px-4 text-emerald-700 font-bold">0 ms (Clean Buffer)</td>
+                      <td className="py-2 pl-4 text-right text-emerald-700 font-bold">100% Queue Bloat Eliminated</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 pr-4 font-sans font-medium text-text">Total Latency (RTT)</td>
+                      <td className="py-2 px-4 text-red-700">100 ms (5x Spike)</td>
+                      <td className="py-2 px-4 text-amber-700">95 ms (4.7x Spike)</td>
+                      <td className="py-2 px-4 text-emerald-700 font-bold">20 ms (Speed of Light)</td>
+                      <td className="py-2 pl-4 text-right text-emerald-700 font-bold">5x Lower Latency</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 pr-4 font-sans font-medium text-text">Packet Drop Rate</td>
+                      <td className="py-2 px-4 text-red-700">8% - 15% periodic drops</td>
+                      <td className="py-2 px-4 text-amber-700">5% - 10% drops</td>
+                      <td className="py-2 px-4 text-emerald-700 font-bold">0% (Zero loss required)</td>
+                      <td className="py-2 pl-4 text-right text-emerald-700 font-bold">Zero Loss Tolerance</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 pr-4 font-sans font-medium text-text">Throughput Stability</td>
+                      <td className="py-2 px-4 text-red-700">Sawtooth Halving</td>
+                      <td className="py-2 px-4 text-amber-700">Cubic Curve Halving</td>
+                      <td className="py-2 px-4 text-emerald-700 font-bold">Constant 50.0 Mbps Saturation</td>
+                      <td className="py-2 pl-4 text-right text-emerald-700 font-bold">100% Continuous Saturation</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* 4 Socratic Invariant Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+              <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+                <span className="text-xs font-bold text-text block">
+                  1. Kleinrock Optimal Operating Point
+                </span>
+                <p className="text-[11px] text-text-muted leading-relaxed">
+                  The ideal operating state sits at Inflight = BDP. Maximizing bandwidth and minimizing delay simultaneously is mathematically impossible with loss signals alone because loss requires buffer overflow.
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+                <span className="text-xs font-bold text-text block">
+                  2. Bufferbloat &amp; Standing Queues
+                </span>
+                <p className="text-[11px] text-text-muted leading-relaxed">
+                  Deep FIFO router buffers do not increase bottleneck throughput; they merely transform transient bursts into persistent standing queues, destroying interactive VoIP, web, and gaming traffic.
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+                <span className="text-xs font-bold text-text block">
+                  3. Cyclic Pacing Gain Modulation
+                </span>
+                <p className="text-[11px] text-text-muted leading-relaxed">
+                  BBR cycles through [1.25, 0.75, 1.0x6]: 1.25x probes for higher link capacity; 0.75x immediately drains the transient queue; 1.0x cruises at 100% capacity with 0 standing queue.
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+                <span className="text-xs font-bold text-text block">
+                  4. Probe-RTT Min-Latency Sampling
+                </span>
+                <p className="text-[11px] text-text-muted leading-relaxed">
+                  Because active queuing delays contaminate RTT measurements, BBR clamps cwnd to 4 packets every 10 seconds, draining all network hops to sample true physical propagation delay RTprop.
+                </p>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
 
 
     </div>

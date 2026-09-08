@@ -249,4 +249,88 @@ describe('KernelNetworkSandbox', () => {
     expect(screen.getByText(/Switch to 2MB Huge Pages/i)).toBeInTheDocument();
     expect(screen.getByText(/TLB Hit: Instant 1-Cycle MMU Translation/i)).toBeInTheDocument();
   });
+
+  it('switches to TCP BBR & Bufferbloat and verifies Kleinrock optimal operating point, Reno queue bloat, tail drop, and BBR 4-phase state machine', () => {
+    render(<KernelNetworkSandbox />);
+
+    // Switch to BBR & Bufferbloat tab
+    const bbrTabBtn = screen.getByRole('button', { name: /BBR & Bufferbloat/i });
+    fireEvent.click(bbrTabBtn);
+
+    // Verify Title & Baseline
+    expect(screen.getByText(/TCP BBR Congestion Control vs Loss-Based Reno\/CUBIC & Bufferbloat Studio/i)).toBeInTheDocument();
+    expect(screen.getByText(/Kleinrock Optimal Point: Zero Queuing Delay & 100% Wire Saturation/i)).toBeInTheDocument();
+    expect(screen.getByText(/Inflight Wire \(BDP = 25 pkts\)/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Step 1 of 8/i).length).toBeGreaterThanOrEqual(1);
+
+    const nextBtn = screen.getByRole('button', { name: /Next Step/i });
+    const resetBtn = screen.getByRole('button', { name: /Reset Studio/i });
+
+    // Step 2: Loss-Based Reno Bufferbloat Trap
+    fireEvent.click(nextBtn);
+    expect(screen.getAllByText(/Step 2 of 8/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/Loss-Based Reno\/CUBIC Additive Increase: The Bufferbloat Trap/i)).toBeInTheDocument();
+    expect(screen.getByText(/Bufferbloat Hazard: Standing Queue Inflates Latency/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Queuing Delay: \+40 ms/i).length).toBeGreaterThanOrEqual(1);
+
+    // Step 3: Buffer Overflow & Tail Drop
+    fireEvent.click(nextBtn);
+    expect(screen.getAllByText(/Step 3 of 8/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/Buffer Overflow & Tail Drop: Packet Loss and Halving Collapse/i)).toBeInTheDocument();
+    expect(screen.getByText(/Tail Drop Event: Buffer Saturated & Multiplicative cwnd Collapse/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Tail Dropped \(8 pkts\)/i).length).toBeGreaterThanOrEqual(1);
+
+    // Step 4: BBR STARTUP
+    fireEvent.click(nextBtn);
+    expect(screen.getAllByText(/Step 4 of 8/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/BBR State Machine Phase 1: STARTUP \(Bottleneck Bandwidth Search\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/BBR STARTUP: Exponential Search Discovers Bottleneck/i)).toBeInTheDocument();
+    expect(screen.getByText(/2.89x \(2\/ln2\)/i)).toBeInTheDocument();
+
+    // Step 5: BBR DRAIN
+    fireEvent.click(nextBtn);
+    expect(screen.getAllByText(/Step 5 of 8/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/BBR State Machine Phase 2: DRAIN \(Purging the Startup Queue\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/BBR DRAIN: Queue Drained to Zero via Under-Pacing/i)).toBeInTheDocument();
+    expect(screen.getByText(/0.35x \(1\/2.89\)/i)).toBeInTheDocument();
+
+    // Step 6: BBR PROBE_BW
+    fireEvent.click(nextBtn);
+    expect(screen.getAllByText(/Step 6 of 8/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/BBR State Machine Phase 3: PROBE_BW \(Cyclic Pacing Gain Cycling\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/BBR PROBE_BW: 8-Phase Gain Modulation Probes Bandwidth Without Bloat/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/\[1.25, 0.75, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0\]/i).length).toBeGreaterThanOrEqual(1);
+
+    // Step 7: BBR PROBE_RTT
+    fireEvent.click(nextBtn);
+    expect(screen.getAllByText(/Step 7 of 8/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/BBR State Machine Phase 4: PROBE_RTT \(Min-RTT Unmasking\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/BBR PROBE_RTT: cwnd Clamped to 4 Packets/i)).toBeInTheDocument();
+    expect(screen.getByText(/1.0x \(Probe-RTT Clamp\)/i)).toBeInTheDocument();
+
+    // Step 8: Full Benchmark Verification & Invariants
+    fireEvent.click(nextBtn);
+    expect(screen.getAllByText(/Step 8 of 8/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/Quantitative Bufferbloat Benchmark: BBR vs Reno\/CUBIC Invariants/i)).toBeInTheDocument();
+    expect(screen.getByText(/✓ TCP BBR Congestion Control Verified/i)).toBeInTheDocument();
+    expect(screen.getByText('1. Kleinrock Optimal Operating Point')).toBeInTheDocument();
+    expect(screen.getByText('2. Bufferbloat & Standing Queues')).toBeInTheDocument();
+    expect(screen.getByText('3. Cyclic Pacing Gain Modulation')).toBeInTheDocument();
+    expect(screen.getByText('4. Probe-RTT Min-Latency Sampling')).toBeInTheDocument();
+
+    // Interactive parameter testing
+    const cap50Btn = screen.getByRole('button', { name: '50 pkts' });
+    fireEvent.click(cap50Btn);
+    expect(screen.getByText(/Buffer Capacity: 50 packets/i)).toBeInTheDocument();
+
+    const burstBtn = screen.getByRole('button', { name: /\+ Inject Burst/i });
+    fireEvent.click(burstBtn);
+    expect(screen.getByText(/Burst Active/i)).toBeInTheDocument();
+
+    // Reset Studio
+    fireEvent.click(resetBtn);
+    expect(screen.getAllByText(/Step 1 of 8/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/Kleinrock Optimal Point: Zero Queuing Delay/i)).toBeInTheDocument();
+  });
 });
+
