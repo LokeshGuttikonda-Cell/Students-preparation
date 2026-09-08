@@ -3,9 +3,58 @@
 import React, { useState } from 'react';
 import { Button } from '../ui/Button';
 
-export type KernelNetworkMode = 'CPU_SCHEDULING' | 'PAGE_REPLACEMENT' | 'TCP_CONGESTION' | 'EPOLL_MULTIPLEXING' | 'ZERO_COPY_IO_URING';
+export type KernelNetworkMode = 'CPU_SCHEDULING' | 'PAGE_REPLACEMENT' | 'TCP_CONGESTION' | 'EPOLL_MULTIPLEXING' | 'ZERO_COPY_IO_URING' | 'VIRTUAL_MEMORY_PAGE_TABLES_TLB';
 
 
+
+// --- Module 6: Linux Kernel Virtual Memory, Page Tables & TLB Types ---
+export type PagingPageSize = '4KB_STANDARD' | '2MB_HUGE_PAGE';
+export type TlbLookupResult = 'TLB_HIT' | 'TLB_MISS_PAGE_WALK' | 'PAGE_FAULT_COW' | 'PAGE_FAULT_DEMAND_ZERO';
+
+export interface VirtualAddressDecomposition {
+  rawHex: string;
+  segmentName: string;
+  pgdIndex: number;
+  pudIndex: number;
+  pmdIndex: number;
+  pteIndex: number;
+  offset: number;
+  isHugePage: boolean;
+}
+
+export interface TlbEntry {
+  vpn: string;
+  pfn: string;
+  pageSize: PagingPageSize;
+  permissions: string;
+  valid: boolean;
+  hits: number;
+}
+
+export interface PageWalkStep {
+  level: 'CR3' | 'PGD' | 'PUD' | 'PMD' | 'PTE' | 'PHYSICAL_FRAME';
+  tableName: string;
+  index: number;
+  entryValue: string;
+  flags: string[];
+  latencyCycles: number;
+}
+
+export interface VmMetrics {
+  tlbHits: number;
+  tlbMisses: number;
+  pageWalks: number;
+  pageFaults: number;
+  avgLatencyCycles: number;
+}
+
+export interface VmAuditEvent {
+  id: number;
+  time: string;
+  badge: string;
+  badgeClass: string;
+  message: string;
+}
 
 // --- Module 5: Zero-Copy I/O & io_uring Types ---
 export type IOArchitectureMode = 'TRADITIONAL_READ_WRITE' | 'SENDFILE_ZERO_COPY' | 'IO_URING_RING_BUFFER';
@@ -159,6 +208,204 @@ const SCHEDULING_DATA: Record<
 const REF_STRING = [1, 2, 3, 4, 1, 2, 5, 1, 2, 3, 4, 5];
 
 export function KernelNetworkSandbox() {
+  // --- Module 6: Virtual Memory & TLB State ---
+  const [vmAddressInput, setVmAddressInput] = useState('0x7fff_cafe_4000');
+  const [vmPageSize, setVmPageSize] = useState<PagingPageSize>('4KB_STANDARD');
+  const [vmLastResult, setVmLastResult] = useState<TlbLookupResult>('TLB_HIT');
+  const [vmActiveDecomp, setVmActiveDecomp] = useState<VirtualAddressDecomposition>({
+    rawHex: '0x7fff_cafe_4000',
+    segmentName: 'Application Stack (Hot User Memory)',
+    pgdIndex: 255,
+    pudIndex: 511,
+    pmdIndex: 479,
+    pteIndex: 254,
+    offset: 0,
+    isHugePage: false,
+  });
+
+  const [tlbEntries, setTlbEntries] = useState<TlbEntry[]>([
+    { vpn: '0x7fff_cafe_4', pfn: '0x10a2_4', pageSize: '4KB_STANDARD', permissions: 'RW-', valid: true, hits: 42 },
+    { vpn: '0x0000_7f80_1', pfn: '0x20b4_1', pageSize: '4KB_STANDARD', permissions: 'R-X', valid: true, hits: 88 },
+    { vpn: '0x0000_6000_0', pfn: '0x30c0_0', pageSize: '2MB_HUGE_PAGE', permissions: 'RW-', valid: true, hits: 14 },
+    { vpn: '0x0000_0000_0', pfn: '0x0000_0', pageSize: '4KB_STANDARD', permissions: '---', valid: false, hits: 0 },
+  ]);
+
+  const [vmPageWalkSteps] = useState<PageWalkStep[]>([
+    { level: 'CR3', tableName: 'Control Register 3 (%cr3)', index: 0, entryValue: '0x8000_1000 (Base PGD PhysAddr)', flags: ['Present'], latencyCycles: 0 },
+    { level: 'PGD', tableName: 'Page Global Directory (Level 4)', index: 255, entryValue: '0x8000_2000 (Points to PUD)', flags: ['Present', 'User', 'Writable'], latencyCycles: 60 },
+    { level: 'PUD', tableName: 'Page Upper Directory (Level 3)', index: 511, entryValue: '0x8000_3000 (Points to PMD)', flags: ['Present', 'User', 'Writable'], latencyCycles: 60 },
+    { level: 'PMD', tableName: 'Page Middle Directory (Level 2)', index: 479, entryValue: '0x8000_4000 (Points to PTE)', flags: ['Present', 'User', 'Writable'], latencyCycles: 60 },
+    { level: 'PTE', tableName: 'Page Table Entry (Level 1)', index: 254, entryValue: '0x10a2_4000 (Physical Frame)', flags: ['Present', 'User', 'Writable', 'Accessed', 'Dirty'], latencyCycles: 60 },
+    { level: 'PHYSICAL_FRAME', tableName: 'Target Physical RAM Address', index: 0, entryValue: '0x10a2_4000 (0x10a2_4000 + Offset 0)', flags: ['Cached'], latencyCycles: 1 },
+  ]);
+
+  const [vmMetrics, setVmMetrics] = useState<VmMetrics>({
+    tlbHits: 130,
+    tlbMisses: 12,
+    pageWalks: 12,
+    pageFaults: 1,
+    avgLatencyCycles: 18,
+  });
+
+  const [vmAuditLog, setVmAuditLog] = useState<VmAuditEvent[]>([
+    {
+      id: 1,
+      time: '14:30:00',
+      badge: 'MMU_INIT',
+      badgeClass: 'bg-slate-100 text-slate-800 border-slate-300 dark:bg-zinc-800 dark:text-zinc-200',
+      message: 'MMU hardware initialized with 4-level paging (PGD -> PUD -> PMD -> PTE) and L1/L2 data TLB cache.',
+    },
+  ]);
+
+  const handleTranslateAddress = (presetHex?: string) => {
+    const targetHex = presetHex || vmAddressInput;
+    setVmAddressInput(targetHex);
+
+    let decomp: VirtualAddressDecomposition;
+    let result: TlbLookupResult = 'TLB_HIT';
+    let cycles = 1;
+
+    if (targetHex === '0x7fff_cafe_4000') {
+      decomp = { rawHex: targetHex, segmentName: 'Application Stack (Hot Stack Pointer)', pgdIndex: 255, pudIndex: 511, pmdIndex: 479, pteIndex: 254, offset: 0, isHugePage: false };
+      result = 'TLB_HIT';
+      cycles = 1;
+    } else if (targetHex === '0x0000_7f80_1000') {
+      decomp = { rawHex: targetHex, segmentName: 'Code Segment (.text Read-Only Executable)', pgdIndex: 0, pudIndex: 127, pmdIndex: 64, pteIndex: 1, offset: 0, isHugePage: false };
+      result = 'TLB_HIT';
+      cycles = 1;
+    } else if (targetHex === '0x0000_55aa_0000') {
+      decomp = { rawHex: targetHex, segmentName: 'Heap Segment (Cold malloc() Uncached Page)', pgdIndex: 0, pudIndex: 85, pmdIndex: 170, pteIndex: 0, offset: 0, isHugePage: false };
+      result = 'TLB_MISS_PAGE_WALK';
+      cycles = 241;
+    } else if (targetHex === '0x0000_6000_0000') {
+      decomp = { rawHex: targetHex, segmentName: 'Transparent Huge Page (2MB Database Buffer)', pgdIndex: 0, pudIndex: 96, pmdIndex: 0, pteIndex: 0, offset: 0, isHugePage: true };
+      result = vmPageSize === '2MB_HUGE_PAGE' ? 'TLB_HIT' : 'TLB_MISS_PAGE_WALK';
+      cycles = vmPageSize === '2MB_HUGE_PAGE' ? 1 : 180;
+    } else if (targetHex === '0x0000_1000_0000') {
+      decomp = { rawHex: targetHex, segmentName: 'Forked Child Process Page (Copy-on-Write)', pgdIndex: 0, pudIndex: 16, pmdIndex: 0, pteIndex: 0, offset: 0, isHugePage: false };
+      result = 'PAGE_FAULT_COW';
+      cycles = 1200;
+    } else {
+      decomp = { rawHex: targetHex, segmentName: 'Custom Virtual Memory Address', pgdIndex: 128, pudIndex: 64, pmdIndex: 32, pteIndex: 16, offset: 0, isHugePage: false };
+      result = 'TLB_MISS_PAGE_WALK';
+      cycles = 241;
+    }
+
+    setVmActiveDecomp(decomp);
+    setVmLastResult(result);
+
+    if (result === 'TLB_HIT') {
+      setVmMetrics((prev) => ({
+        ...prev,
+        tlbHits: prev.tlbHits + 1,
+        avgLatencyCycles: Math.round((prev.avgLatencyCycles * 9 + 1) / 10),
+      }));
+      setVmAuditLog((prev) => [
+        {
+          id: Date.now(),
+          time: new Date().toLocaleTimeString(),
+          badge: 'TLB_HIT',
+          badgeClass: 'bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-950/50 dark:text-emerald-300',
+          message: `TLB Hit on VPN ${decomp.rawHex.slice(0, 13)}! Resolved in 1 CPU cycle with 0 memory bus references.`,
+        },
+        ...prev.slice(0, 8),
+      ]);
+    } else if (result === 'TLB_MISS_PAGE_WALK') {
+      setVmMetrics((prev) => ({
+        ...prev,
+        tlbMisses: prev.tlbMisses + 1,
+        pageWalks: prev.pageWalks + 1,
+        avgLatencyCycles: Math.round((prev.avgLatencyCycles * 9 + cycles) / 10),
+      }));
+      setVmAuditLog((prev) => [
+        {
+          id: Date.now(),
+          time: new Date().toLocaleTimeString(),
+          badge: 'TLB_MISS_WALK',
+          badgeClass: 'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-950/50 dark:text-amber-300',
+          message: `TLB Miss on ${targetHex}! MMU initiated 4-level page table walk (CR3 -> PGD[${decomp.pgdIndex}] -> PUD[${decomp.pudIndex}] -> PMD[${decomp.pmdIndex}] -> PTE[${decomp.pteIndex}]). Latency: ${cycles} cycles.`,
+        },
+        ...prev.slice(0, 8),
+      ]);
+    } else if (result === 'PAGE_FAULT_COW') {
+      setVmMetrics((prev) => ({
+        ...prev,
+        pageFaults: prev.pageFaults + 1,
+        tlbMisses: prev.tlbMisses + 1,
+        avgLatencyCycles: Math.round((prev.avgLatencyCycles * 9 + cycles) / 10),
+      }));
+      setVmAuditLog((prev) => [
+        {
+          id: Date.now(),
+          time: new Date().toLocaleTimeString(),
+          badge: 'PAGE_FAULT_COW',
+          badgeClass: 'bg-purple-100 text-purple-900 border-purple-300 dark:bg-purple-950/50 dark:text-purple-300',
+          message: `Soft Page Fault (Copy-on-Write): Child attempted write to shared frame. Kernel allocated private physical frame, copied 4KB, updated PTE to RW=1, and resumed thread. Latency: ${cycles} cycles.`,
+        },
+        ...prev.slice(0, 8),
+      ]);
+    }
+  };
+
+  const handleFlushTLB = () => {
+    setTlbEntries((prev) => prev.map((e) => ({ ...e, valid: false })));
+    setVmAuditLog((prev) => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        badge: 'INVLPG_SHOOTDOWN',
+        badgeClass: 'bg-rose-100 text-rose-900 border-rose-300 dark:bg-rose-950/50 dark:text-rose-300',
+        message: 'INVLPG instruction executed / %cr3 reload. All TLB entries invalidated. Next access will incur full 4-level page walk penalty!',
+      },
+      ...prev.slice(0, 8),
+    ]);
+  };
+
+  const handleToggleHugePages = () => {
+    const nextSize = vmPageSize === '4KB_STANDARD' ? '2MB_HUGE_PAGE' : '4KB_STANDARD';
+    setVmPageSize(nextSize);
+    setVmAuditLog((prev) => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        badge: nextSize === '2MB_HUGE_PAGE' ? 'THP_ENABLED' : 'THP_DISABLED',
+        badgeClass: 'bg-indigo-100 text-indigo-900 border-indigo-300 dark:bg-indigo-950/50 dark:text-indigo-300',
+        message: nextSize === '2MB_HUGE_PAGE'
+          ? 'Transparent Huge Pages (THP 2MB) enabled! PMD acts as direct leaf pointer, bypassing Level 1 PTE and increasing TLB reach by 512x.'
+          : 'Standard 4KB paging enabled. Full 4-level page table walk active.',
+      },
+      ...prev.slice(0, 8),
+    ]);
+  };
+
+  const handleResetVM = () => {
+    setVmPageSize('4KB_STANDARD');
+    setVmLastResult('TLB_HIT');
+    setVmMetrics({
+      tlbHits: 130,
+      tlbMisses: 12,
+      pageWalks: 12,
+      pageFaults: 1,
+      avgLatencyCycles: 18,
+    });
+    setTlbEntries([
+      { vpn: '0x7fff_cafe_4', pfn: '0x10a2_4', pageSize: '4KB_STANDARD', permissions: 'RW-', valid: true, hits: 42 },
+      { vpn: '0x0000_7f80_1', pfn: '0x20b4_1', pageSize: '4KB_STANDARD', permissions: 'R-X', valid: true, hits: 88 },
+      { vpn: '0x0000_6000_0', pfn: '0x30c0_0', pageSize: '2MB_HUGE_PAGE', permissions: 'RW-', valid: true, hits: 14 },
+      { vpn: '0x0000_0000_0', pfn: '0x0000_0', pageSize: '4KB_STANDARD', permissions: '---', valid: false, hits: 0 },
+    ]);
+    setVmAuditLog((prev) => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        badge: 'RESET',
+        badgeClass: 'bg-slate-100 text-slate-800 border-slate-300 dark:bg-zinc-800 dark:text-zinc-200',
+        message: 'Virtual memory state, page tables, and TLB cache reset to initial state.',
+      },
+      ...prev.slice(0, 8),
+    ]);
+  };
+
   const [activeTab, setActiveTab] = useState<KernelNetworkMode>('CPU_SCHEDULING');
 
   // --- Module 1: CPU Scheduling State ---
@@ -687,6 +934,17 @@ export function KernelNetworkSandbox() {
             }`}
           >
             epoll &amp; C10K I/O
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('VIRTUAL_MEMORY_PAGE_TABLES_TLB')}
+            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+              activeTab === 'VIRTUAL_MEMORY_PAGE_TABLES_TLB'
+                ? 'bg-primary-700 text-white shadow-xs'
+                : 'text-text-muted hover:text-text'
+            }`}
+          >
+            Virtual Memory &amp; TLB
           </button>
           <button
             type="button"
@@ -2063,6 +2321,395 @@ export function KernelNetworkSandbox() {
           </div>
         </div>
       )}
+
+      {/* MODULE 6: LINUX KERNEL VIRTUAL MEMORY, PAGE TABLES & TLB STUDIO */}
+      {activeTab === 'VIRTUAL_MEMORY_PAGE_TABLES_TLB' && (
+        <div className="p-6 space-y-6">
+          {/* Header & Controls */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-canvas border border-border p-5 rounded-xl">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-accent-700">
+                  x86-64 Hardware MMU &amp; Linux Kernel Subsystem
+                </span>
+                <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-primary-100 text-primary-900 border border-primary-300 font-bold">
+                  Mode: 48-Bit Virtual Address Space
+                </span>
+              </div>
+              <h3 className="text-base font-bold text-text">
+                Virtual Memory, Multi-Level Page Tables &amp; Translation Lookaside Buffer (TLB)
+              </h3>
+              <p className="text-xs text-text-muted max-w-2xl leading-relaxed">
+                Translating a 48-bit virtual address requires traversing 4 hierarchical directory levels (PGD &rarr; PUD &rarr; PMD &rarr; PTE) rooted at the %cr3 register. Hardware TLBs cache translations to avoid 4 memory bus round trips per memory reference.
+              </p>
+              <div className="flex flex-wrap items-center gap-3 bg-surface border border-border px-3 py-1.5 rounded-lg text-xs font-mono mt-2">
+                <span>TLB Hits: <strong className="text-emerald-700">{vmMetrics.tlbHits}</strong></span>
+                <span>Misses: <strong className="text-amber-700">{vmMetrics.tlbMisses}</strong></span>
+                <span>Page Walks: <strong className="text-indigo-700">{vmMetrics.pageWalks}</strong></span>
+                <span>Page Faults: <strong className="text-purple-700">{vmMetrics.pageFaults}</strong></span>
+                <span>Avg Latency: <strong className="text-text">{vmMetrics.avgLatencyCycles} cycles</strong></span>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleToggleHugePages}
+                className="text-xs font-semibold"
+              >
+                {vmPageSize === '2MB_HUGE_PAGE' ? '✓ THP 2MB Active' : 'Switch to 2MB Huge Pages'}
+              </Button>
+
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleFlushTLB}
+                className="text-xs font-semibold text-rose-700 border-rose-300 hover:bg-rose-50"
+              >
+                Flush TLB (INVLPG)
+              </Button>
+
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleResetVM}
+                className="text-xs font-semibold"
+              >
+                ↺ Reset MMU Lab
+              </Button>
+            </div>
+          </div>
+
+          {/* Preset Address Selector */}
+          <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-text uppercase tracking-wider">
+                Select Test Virtual Memory Address:
+              </span>
+              <span className="text-[11px] font-mono text-text-muted">
+                Active: {vmActiveDecomp.segmentName}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
+              {[
+                { hex: '0x7fff_cafe_4000', label: '1. Stack Pointer', desc: 'Hot stack (TLB Hit, 4KB)' },
+                { hex: '0x0000_7f80_1000', label: '2. .text Segment', desc: 'Code (TLB Hit, R-X)' },
+                { hex: '0x0000_55aa_0000', label: '3. Heap Allocation', desc: 'Cold page (TLB Miss, Walk)' },
+                { hex: '0x0000_6000_0000', label: '4. Huge Page 2MB', desc: 'THP (PMD Leaf, 3 levels)' },
+                { hex: '0x0000_1000_0000', label: '5. Fork COW Page', desc: 'Copy-on-Write (Soft Fault)' },
+              ].map((preset) => (
+                <button
+                  key={preset.hex}
+                  type="button"
+                  onClick={() => handleTranslateAddress(preset.hex)}
+                  className={`p-2.5 rounded-lg border text-left transition-all cursor-pointer ${
+                    vmAddressInput === preset.hex
+                      ? 'bg-primary-50 border-primary-400 text-primary-950 shadow-xs'
+                      : 'bg-canvas border-border text-text hover:border-border-hover'
+                  }`}
+                >
+                  <div className="text-xs font-bold">{preset.label}</div>
+                  <div className="text-[11px] font-mono text-primary-800">{preset.hex}</div>
+                  <div className="text-[10px] text-text-muted truncate mt-0.5">{preset.desc}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 48-Bit Virtual Address Breakdown */}
+          <div className="bg-canvas border border-border rounded-xl p-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-primary-800 uppercase tracking-wider">
+                48-Bit Canonical Virtual Address Decomposition
+              </span>
+              <span className="text-[11px] font-mono bg-surface border border-border px-2 py-0.5 rounded font-bold text-text">
+                {vmActiveDecomp.rawHex}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-6 gap-2 text-center font-mono text-xs">
+              <div className="bg-surface border border-border p-2 rounded-lg">
+                <div className="text-[10px] text-text-muted font-bold">Sign Extension</div>
+                <div className="text-sm font-bold text-text mt-1">16 Bits</div>
+                <div className="text-[10px] text-text-muted">Canonical Guard</div>
+              </div>
+              <div className="bg-primary-50 border border-primary-300 p-2 rounded-lg">
+                <div className="text-[10px] text-primary-800 font-bold">PGD Index (L4)</div>
+                <div className="text-sm font-bold text-primary-950 mt-1">#{vmActiveDecomp.pgdIndex}</div>
+                <div className="text-[10px] text-primary-700">Bits [47:39] (9b)</div>
+              </div>
+              <div className="bg-indigo-50 border border-indigo-300 p-2 rounded-lg">
+                <div className="text-[10px] text-indigo-800 font-bold">PUD Index (L3)</div>
+                <div className="text-sm font-bold text-indigo-950 mt-1">#{vmActiveDecomp.pudIndex}</div>
+                <div className="text-[10px] text-indigo-700">Bits [38:30] (9b)</div>
+              </div>
+              <div className="bg-purple-50 border border-purple-300 p-2 rounded-lg">
+                <div className="text-[10px] text-purple-800 font-bold">PMD Index (L2)</div>
+                <div className="text-sm font-bold text-purple-950 mt-1">#{vmActiveDecomp.pmdIndex}</div>
+                <div className="text-[10px] text-purple-700">Bits [29:21] (9b)</div>
+              </div>
+              <div className="bg-amber-50 border border-amber-300 p-2 rounded-lg">
+                <div className="text-[10px] text-amber-800 font-bold">PTE Index (L1)</div>
+                <div className="text-sm font-bold text-amber-950 mt-1">#{vmActiveDecomp.pteIndex}</div>
+                <div className="text-[10px] text-amber-700">Bits [20:12] (9b)</div>
+              </div>
+              <div className="bg-emerald-50 border border-emerald-300 p-2 rounded-lg">
+                <div className="text-[10px] text-emerald-800 font-bold">Page Offset</div>
+                <div className="text-sm font-bold text-emerald-950 mt-1">{vmActiveDecomp.offset} B</div>
+                <div className="text-[10px] text-emerald-700">Bits [11:0] (12b)</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Translation Result Banner */}
+          <div
+            className={`p-4 rounded-xl border flex items-center justify-between ${
+              vmLastResult === 'TLB_HIT'
+                ? 'bg-emerald-50/80 border-emerald-300 text-emerald-950'
+                : vmLastResult === 'PAGE_FAULT_COW'
+                ? 'bg-purple-50/80 border-purple-300 text-purple-950'
+                : 'bg-amber-50/80 border-amber-300 text-amber-950'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-xl">
+                {vmLastResult === 'TLB_HIT' ? '⚡' : vmLastResult === 'PAGE_FAULT_COW' ? '🛡️' : '🔍'}
+              </span>
+              <div>
+                <div className="text-sm font-bold">
+                  {vmLastResult === 'TLB_HIT'
+                    ? 'TLB Hit: Instant 1-Cycle MMU Translation'
+                    : vmLastResult === 'PAGE_FAULT_COW'
+                    ? 'Soft Page Fault: Copy-on-Write (COW) Frame Duplicate'
+                    : 'TLB Miss: Full 4-Level Page Table Walk Initiated'}
+                </div>
+                <div className="text-xs text-text-muted mt-0.5">
+                  {vmLastResult === 'TLB_HIT'
+                    ? 'Virtual Page Number found in hardware TLB cache. Zero main-memory page table references required.'
+                    : vmLastResult === 'PAGE_FAULT_COW'
+                    ? 'Child thread attempted write to shared copy-on-write frame. Kernel cloned 4KB and cleared write-protection.'
+                    : 'Address not in TLB. MMU initiated 4 sequential DRAM reads to traverse PGD, PUD, PMD, and PTE.'}
+                </div>
+              </div>
+            </div>
+
+            <span className="font-mono text-xs font-bold px-2.5 py-1 rounded bg-white/80 border border-border text-text">
+              {vmLastResult === 'TLB_HIT' ? '1 Cycle' : vmLastResult === 'PAGE_FAULT_COW' ? '1,200 Cycles' : '241 Cycles'}
+            </span>
+          </div>
+
+          {/* TLB Cache Inspector & Multi-Level Page Walk Pathway */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* TLB Cache Table */}
+            <div className="bg-canvas border border-border rounded-xl p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-primary-800 uppercase tracking-wider">
+                  Translation Lookaside Buffer (L1 D-TLB Cache)
+                </span>
+                <span className="text-[11px] font-mono text-text-muted">
+                  Fully Associative / Tag Indexed
+                </span>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-left">
+                  <thead>
+                    <tr className="border-b border-border text-text-muted font-mono">
+                      <th className="py-1.5 pr-2">VPN Tag</th>
+                      <th className="py-1.5 px-2">PFN Frame</th>
+                      <th className="py-1.5 px-2">Page Size</th>
+                      <th className="py-1.5 px-2">Perms</th>
+                      <th className="py-1.5 pl-2 text-right">Hits</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border font-mono text-[11px]">
+                    {tlbEntries.map((tlb) => (
+                      <tr
+                        key={tlb.vpn}
+                        className={`${tlb.valid ? 'text-text' : 'text-text-muted opacity-40 line-through'}`}
+                      >
+                        <td className="py-2 pr-2 font-bold text-primary-900">{tlb.vpn}</td>
+                        <td className="py-2 px-2 text-emerald-800 font-semibold">{tlb.pfn}</td>
+                        <td className="py-2 px-2">
+                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                            tlb.pageSize === '2MB_HUGE_PAGE' ? 'bg-indigo-100 text-indigo-900' : 'bg-surface border border-border'
+                          }`}>
+                            {tlb.pageSize === '2MB_HUGE_PAGE' ? '2MB THP' : '4KB'}
+                          </span>
+                        </td>
+                        <td className="py-2 px-2 font-semibold">{tlb.permissions}</td>
+                        <td className="py-2 pl-2 text-right font-bold text-accent-700">{tlb.hits}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Multi-Level Page Walk Pathway */}
+            <div className="bg-canvas border border-border rounded-xl p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-primary-800 uppercase tracking-wider">
+                  Multi-Level Page Walk Pathway (MMU State Machine)
+                </span>
+                <span className="text-[11px] font-mono text-amber-800 font-semibold">
+                  {vmPageSize === '2MB_HUGE_PAGE' ? '3 Levels (Bypasses PTE)' : '4 Levels (PGD &rarr; PTE)'}
+                </span>
+              </div>
+
+              <div className="space-y-2 font-mono text-xs">
+                {vmPageWalkSteps.map((step, sIdx) => {
+                  const isSkipped = vmPageSize === '2MB_HUGE_PAGE' && step.level === 'PTE';
+                  return (
+                    <div
+                      key={step.level}
+                      className={`p-2 rounded border flex items-center justify-between ${
+                        isSkipped
+                          ? 'bg-neutral-50 border-neutral-200 text-neutral-400 opacity-40 line-through'
+                          : step.level === 'PHYSICAL_FRAME'
+                          ? 'bg-emerald-50 border-emerald-300 text-emerald-950 font-bold'
+                          : 'bg-surface border-border text-text'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-primary-100 text-primary-900 flex items-center justify-center text-[10px] font-bold">
+                          {sIdx + 1}
+                        </span>
+                        <span className="font-bold">{step.level}:</span>
+                        <span className="text-[11px] text-text-muted truncate max-w-[200px]">{step.tableName}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] text-primary-800 font-semibold truncate max-w-[140px]">
+                          {step.entryValue}
+                        </span>
+                        <span className="text-[10px] bg-canvas px-1.5 py-0.5 rounded border border-border text-text-muted">
+                          +{step.latencyCycles}c
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Quantitative Performance Benchmark Matrix */}
+          <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+            <div className="flex items-center justify-between border-b border-border pb-2">
+              <span className="text-xs font-bold text-text uppercase tracking-wider">
+                Virtual Memory Architecture KPI Matrix: 4KB Standard vs 2MB Transparent Huge Pages (THP)
+              </span>
+              <span className="text-xs font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded">
+                512x TLB Coverage Reach
+              </span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs text-left">
+                <thead>
+                  <tr className="border-b border-border text-text-muted">
+                    <th className="py-1.5 pr-4 font-semibold">MMU Performance Characteristic</th>
+                    <th className="py-1.5 px-4 font-semibold">4KB Standard Paging</th>
+                    <th className="py-1.5 px-4 font-semibold">2MB Transparent Huge Pages</th>
+                    <th className="py-1.5 pl-4 font-semibold text-right">Advantage</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border font-mono text-[11px]">
+                  <tr>
+                    <td className="py-2 pr-4 font-sans font-medium text-text">64-Entry TLB Coverage Reach</td>
+                    <td className="py-2 px-4 text-amber-700">256 KB (64 × 4KB)</td>
+                    <td className="py-2 px-4 text-emerald-700 font-bold">128 MB (64 × 2MB)</td>
+                    <td className="py-2 pl-4 text-right text-emerald-700 font-bold">512x Greater Reach</td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 pr-4 font-sans font-medium text-text">Page Table Walk Depth</td>
+                    <td className="py-2 px-4 text-amber-700">4 Levels (PGD &rarr; PTE)</td>
+                    <td className="py-2 px-4 text-emerald-700 font-bold">3 Levels (PMD Direct Leaf)</td>
+                    <td className="py-2 pl-4 text-right text-emerald-700 font-bold">25% Fewer DRAM Cycles</td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 pr-4 font-sans font-medium text-text">DRAM Accesses per TLB Miss</td>
+                    <td className="py-2 px-4 text-amber-700">4 DRAM Memory Reads</td>
+                    <td className="py-2 px-4 text-emerald-700 font-bold">3 DRAM Memory Reads</td>
+                    <td className="py-2 pl-4 text-right text-emerald-700 font-bold">1 Bus Roundtrip Saved</td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 pr-4 font-sans font-medium text-text">Internal Memory Fragmentation</td>
+                    <td className="py-2 px-4 text-emerald-700 font-bold">Low (Avg 2KB / allocation)</td>
+                    <td className="py-2 px-4 text-amber-700">High (Up to 2MB wasted if sparse)</td>
+                    <td className="py-2 pl-4 text-right text-text-muted">4KB Wins for Small Heaps</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Real-Time Kernel MMU Audit Log */}
+          <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+            <h4 className="font-bold text-sm text-text">
+              Real-Time Kernel MMU &amp; Page Fault Execution Audit Stream
+            </h4>
+            <div className="space-y-1.5 max-h-48 overflow-y-auto font-mono text-xs">
+              {vmAuditLog.map((log) => (
+                <div
+                  key={log.id}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 p-2 rounded bg-canvas border border-border"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-text-muted">{log.time}</span>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${log.badgeClass}`}>
+                      {log.badge}
+                    </span>
+                    <span className="text-text">{log.message}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 4 Socratic Invariant Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                1. Multi-Level Page Efficiency
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                A flat 48-bit page table requires 512 GB of RAM per process. Hierarchical multi-level page tables allocate directory pages on demand, keeping memory overhead under 2MB for typical process working sets.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                2. TLB Reach &amp; Memory Wall
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                TLB Reach is Entries &times; PageSize. With 4KB pages, 64 TLB entries covers only 256KB. Modern high-throughput databases suffer severe TLB thrashing unless Transparent Huge Pages (2MB) are deployed.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                3. Copy-on-Write (COW) Fork
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                Linux fork() duplicates page tables in O(1) without copying RAM, marking all PTEs read-only. The first write triggers a benign Soft Page Fault, allocating a private physical frame on demand.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                4. TLB Shootdown Overhead
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                When a thread unmaps shared memory or changes permissions, the kernel must send Inter-Processor Interrupts (IPI) to all other CPU cores to invalidate their local TLBs (TLB Shootdown), stalling execution.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
 
     </div>
   );

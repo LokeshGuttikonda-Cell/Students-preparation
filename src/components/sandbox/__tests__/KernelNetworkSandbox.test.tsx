@@ -193,4 +193,60 @@ describe('KernelNetworkSandbox', () => {
 
     expect(screen.getByText('AWAITING_EXECUTION')).toBeInTheDocument();
   });
+
+  it('switches to Virtual Memory & TLB and verifies 48-bit address walk, TLB hit, miss walk, COW soft fault, and 2MB THP', () => {
+    render(<KernelNetworkSandbox />);
+
+    // Switch to Virtual Memory & TLB subtab
+    const vmTabBtn = screen.getByRole('button', { name: /Virtual Memory & TLB/i });
+    fireEvent.click(vmTabBtn);
+
+    // Verify Title & Canonical Decomposition
+    expect(screen.getByText(/Virtual Memory, Multi-Level Page Tables & Translation Lookaside Buffer \(TLB\)/i)).toBeInTheDocument();
+    expect(screen.getByText('48-Bit Canonical Virtual Address Decomposition')).toBeInTheDocument();
+    expect(screen.getByText(/PGD Index \(L4\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/PUD Index \(L3\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/PMD Index \(L2\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/PTE Index \(L1\)/i)).toBeInTheDocument();
+
+    // Default address 0x7fff_cafe_4000 is a TLB Hit
+    expect(screen.getByText(/TLB Hit: Instant 1-Cycle MMU Translation/i)).toBeInTheDocument();
+    expect(screen.getByText('1 Cycle')).toBeInTheDocument();
+
+    // 1. Select Cold Heap page -> Triggers TLB Miss & 4-Level Page Walk
+    const heapPresetBtn = screen.getByRole('button', { name: /3\. Heap Allocation/i });
+    fireEvent.click(heapPresetBtn);
+
+    expect(screen.getByText(/TLB Miss: Full 4-Level Page Table Walk Initiated/i)).toBeInTheDocument();
+    expect(screen.getByText('241 Cycles')).toBeInTheDocument();
+    expect(screen.getAllByText(/TLB_MISS_WALK/i).length).toBeGreaterThanOrEqual(1);
+
+    // 2. Select Fork COW page -> Triggers Soft Page Fault (Copy-on-Write)
+    const cowPresetBtn = screen.getByRole('button', { name: /5\. Fork COW Page/i });
+    fireEvent.click(cowPresetBtn);
+
+    expect(screen.getByText(/Soft Page Fault: Copy-on-Write \(COW\) Frame Duplicate/i)).toBeInTheDocument();
+    expect(screen.getByText('1,200 Cycles')).toBeInTheDocument();
+    expect(screen.getAllByText(/PAGE_FAULT_COW/i).length).toBeGreaterThanOrEqual(1);
+
+    // 3. Toggle Transparent Huge Pages (THP 2MB)
+    const thpToggleBtn = screen.getByRole('button', { name: /Switch to 2MB Huge Pages/i });
+    fireEvent.click(thpToggleBtn);
+
+    expect(screen.getByText(/✓ THP 2MB Active/i)).toBeInTheDocument();
+    expect(screen.getByText('3 Levels (Bypasses PTE)')).toBeInTheDocument();
+
+    // 4. Test Flush TLB (INVLPG)
+    const flushBtn = screen.getByRole('button', { name: /Flush TLB \(INVLPG\)/i });
+    fireEvent.click(flushBtn);
+
+    expect(screen.getAllByText(/INVLPG_SHOOTDOWN/i).length).toBeGreaterThanOrEqual(1);
+
+    // 5. Test Reset MMU Lab
+    const resetBtn = screen.getByRole('button', { name: /Reset MMU Lab/i });
+    fireEvent.click(resetBtn);
+
+    expect(screen.getByText(/Switch to 2MB Huge Pages/i)).toBeInTheDocument();
+    expect(screen.getByText(/TLB Hit: Instant 1-Cycle MMU Translation/i)).toBeInTheDocument();
+  });
 });
