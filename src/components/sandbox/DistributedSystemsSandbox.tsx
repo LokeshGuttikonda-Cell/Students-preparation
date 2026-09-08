@@ -93,7 +93,7 @@ export interface VectorClockEvent {
   lamportTime: number;
 }
 
-interface HashNode {
+export interface HashNode {
   id: string;
   name: string;
   baseAngle: number;
@@ -101,7 +101,44 @@ interface HashNode {
   badgeBg: string;
 }
 
-interface CacheKey {
+export interface RingToken {
+  id: string;
+  nodeId: string;
+  name: string;
+  angle: number;
+  color: string;
+  isVirtual: boolean;
+  badgeBg: string;
+}
+
+export interface PreferenceListEntry {
+  physicalNode: HashNode;
+  token: RingToken;
+  isCoordinator: boolean;
+  isOnline: boolean;
+}
+
+export interface NodePartitionStats {
+  nodeId: string;
+  name: string;
+  color: string;
+  badgeBg: string;
+  arcDegrees: number;
+  percentShare: number;
+  assignedKeyCount: number;
+  isOnline: boolean;
+}
+
+export interface HashSimulationEvent {
+  id: number;
+  time: string;
+  op: 'WRITE' | 'READ' | 'TOPOLOGY';
+  badge: string;
+  badgeClass: string;
+  message: string;
+}
+
+export interface CacheKey {
   id: string;
   label: string;
   angle: number;
@@ -559,13 +596,29 @@ export function DistributedSystemsSandbox() {
     ]);
   };
 
-  // --- Module 1: Consistent Hashing State ---
+  // --- Module 1: Consistent Hashing, Multi-Replica & Quorums State ---
   const [includeNodeD, setIncludeNodeD] = useState(false);
   const [vnodesMultiplier, setVnodesMultiplier] = useState<1 | 2 | 3>(1);
+  const [replicationFactor, setReplicationFactor] = useState<1 | 2 | 3>(3);
+  const [writeQuorum, setWriteQuorum] = useState<1 | 2 | 3>(2);
+  const [readQuorum, setReadQuorum] = useState<1 | 2 | 3>(2);
+  const [enableSloppyQuorum, setEnableSloppyQuorum] = useState(false);
+  const [offlineNodes, setOfflineNodes] = useState<Record<string, boolean>>({});
+  const [selectedKeyId, setSelectedKeyId] = useState<string>('k2');
+  const [hashAuditLog, setHashAuditLog] = useState<HashSimulationEvent[]>([
+    {
+      id: 1,
+      time: '12:00:00',
+      op: 'TOPOLOGY',
+      badge: 'CLUSTER_INIT',
+      badgeClass: 'bg-slate-100 text-slate-800 border-slate-300',
+      message: 'Consistent Hash Ring initialized: 3 physical nodes, Replication Factor N=3, Quorums W=2, R=2 (Strong Consistency W+R > N).',
+    },
+  ]);
 
   // Generate active node positions (with virtual nodes if multiplier > 1)
   const activeNodes = includeNodeD ? [...BASE_NODES, NODE_D] : BASE_NODES;
-  const ringPoints: Array<{ id: string; name: string; angle: number; color: string; isVirtual: boolean }> = [];
+  const ringPoints: RingToken[] = [];
 
   for (const node of activeNodes) {
     for (let v = 0; v < vnodesMultiplier; v++) {
@@ -574,26 +627,244 @@ export function DistributedSystemsSandbox() {
       const ringAngle = (node.baseAngle + offset) % 360;
       ringPoints.push({
         id: `${node.id}-v${v}`,
+        nodeId: node.id,
         name: v === 0 ? node.name : `${node.name}#${v + 1}`,
         angle: Math.round(ringAngle),
         color: node.color,
         isVirtual: v > 0,
+        badgeBg: node.badgeBg,
       });
     }
   }
   ringPoints.sort((a, b) => a.angle - b.angle);
 
-  // Map each key clockwise to first node with angle >= key.angle (or wrap to ringPoints[0])
-  const keyAssignments = CACHE_KEYS.map((k) => {
-    let assigned = ringPoints[0];
-    for (const p of ringPoints) {
-      if (p.angle >= k.angle) {
-        assigned = p;
+  // Compute ring partition arc for each physical node
+  const partitionStats: NodePartitionStats[] = activeNodes.map((node) => {
+    let nodeArc = 0;
+    for (let i = 0; i < ringPoints.length; i++) {
+      const pt = ringPoints[i];
+      if (pt.nodeId === node.id) {
+        const prevPt = ringPoints[(i - 1 + ringPoints.length) % ringPoints.length];
+        const arc = ringPoints.length === 1 ? 360 : (pt.angle - prevPt.angle + 360) % 360;
+        nodeArc += arc;
+      }
+    }
+    const percentShare = Math.round((nodeArc / 360) * 1000) / 10;
+    return {
+      nodeId: node.id,
+      name: node.name,
+      color: node.color,
+      badgeBg: node.badgeBg,
+      arcDegrees: nodeArc,
+      percentShare,
+      assignedKeyCount: 0, // updated below
+      isOnline: !offlineNodes[node.id],
+    };
+  });
+
+  // Function to compute preference list for any given key angle
+  const getPreferenceListForKey = (keyAngle: number): PreferenceListEntry[] => {
+    if (ringPoints.length === 0) return [];
+    // Find first token with angle >= keyAngle (or ringPoints[0])
+    let startIndex = 0;
+    for (let i = 0; i < ringPoints.length; i++) {
+      if (ringPoints[i].angle >= keyAngle) {
+        startIndex = i;
         break;
       }
     }
-    return { ...k, assignedNode: assigned };
+
+    const prefList: PreferenceListEntry[] = [];
+    const seenPhysicalNodes = new Set<string>();
+    const targetN = Math.min(replicationFactor, activeNodes.length);
+
+    for (let step = 0; step < ringPoints.length; step++) {
+      const token = ringPoints[(startIndex + step) % ringPoints.length];
+      if (!seenPhysicalNodes.has(token.nodeId)) {
+        seenPhysicalNodes.add(token.nodeId);
+        const physical = activeNodes.find((n) => n.id === token.nodeId)!;
+        prefList.push({
+          physicalNode: physical,
+          token,
+          isCoordinator: prefList.length === 0,
+          isOnline: !offlineNodes[physical.id],
+        });
+        if (prefList.length >= targetN) break;
+      }
+    }
+    return prefList;
+  };
+
+  // Map each key clockwise to preference list and primary coordinator
+  const keyAssignments = CACHE_KEYS.map((k) => {
+    const prefList = getPreferenceListForKey(k.angle);
+    const assigned = prefList[0]?.token || ringPoints[0];
+    const primaryNode = prefList[0]?.physicalNode || activeNodes[0];
+    return {
+      ...k,
+      assignedNode: assigned,
+      primaryPhysicalNode: primaryNode,
+      preferenceList: prefList,
+    };
   });
+
+  // Update assignedKeyCount in partitionStats
+  keyAssignments.forEach((k) => {
+    const stat = partitionStats.find((s) => s.nodeId === k.primaryPhysicalNode.id);
+    if (stat) stat.assignedKeyCount += 1;
+  });
+
+  // Calculate load distribution variance and CV
+  const idealShare = 100 / activeNodes.length;
+  const variance =
+    partitionStats.reduce((sum, s) => sum + Math.pow(s.percentShare - idealShare, 2), 0) /
+    activeNodes.length;
+  const stdDev = Math.sqrt(variance);
+  const coeffVariation = idealShare > 0 ? (stdDev / idealShare) * 100 : 0;
+
+  // Selected key and its preference list
+  const activeSelectedKey = keyAssignments.find((k) => k.id === selectedKeyId) || keyAssignments[0];
+  const activePrefList = activeSelectedKey.preferenceList;
+  const isStrongConsistency = writeQuorum + readQuorum > replicationFactor;
+  const quorumMargin = writeQuorum + readQuorum - replicationFactor;
+
+  const handleToggleNodeOnline = (nodeId: string) => {
+    const target = activeNodes.find((n) => n.id === nodeId);
+    const isCurrentlyOffline = !!offlineNodes[nodeId];
+    const nextState = !isCurrentlyOffline;
+
+    setOfflineNodes((prev) => ({ ...prev, [nodeId]: nextState }));
+    setHashAuditLog((prev) => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        op: 'TOPOLOGY',
+        badge: nextState ? 'NODE_OFFLINE' : 'NODE_ONLINE',
+        badgeClass: nextState ? 'bg-rose-100 text-rose-900 border-rose-300' : 'bg-emerald-100 text-emerald-900 border-emerald-300',
+        message: `${target?.name || nodeId} transitioned to ${nextState ? 'OFFLINE (Partitioned/Crashed)' : 'ONLINE'}. Ring health updated.`,
+      },
+      ...prev.slice(0, 8),
+    ]);
+  };
+
+  const handleSimulateQuorumWrite = () => {
+    const pref = activePrefList;
+    const onlineNodesInPref = pref.filter((p) => p.isOnline);
+    const acks = onlineNodesInPref.length;
+
+    if (acks >= writeQuorum) {
+      setHashAuditLog((prev) => [
+        {
+          id: Date.now(),
+          time: new Date().toLocaleTimeString(),
+          op: 'WRITE',
+          badge: 'WRITE_SUCCESS',
+          badgeClass: 'bg-emerald-100 text-emerald-900 border-emerald-300',
+          message: `Quorum Write for "${activeSelectedKey.label}" SUCCEEDED! Acknowledged by ${acks}/${writeQuorum} replicas (${onlineNodesInPref.map((p) => p.physicalNode.name).join(', ')}). Durable write confirmed.`,
+        },
+        ...prev.slice(0, 8),
+      ]);
+    } else if (enableSloppyQuorum) {
+      const healthyOutside = activeNodes.find((n) => !offlineNodes[n.id] && !pref.some((p) => p.physicalNode.id === n.id));
+      if (healthyOutside) {
+        setHashAuditLog((prev) => [
+          {
+            id: Date.now(),
+            time: new Date().toLocaleTimeString(),
+            op: 'WRITE',
+            badge: 'SLOPPY_HINTED_HANDOFF',
+            badgeClass: 'bg-amber-100 text-amber-900 border-amber-300',
+            message: `Sloppy Quorum Active: Replicas down (only ${acks}/${writeQuorum} healthy in preference list). Accepted write via Hinted Handoff on healthy successor ${healthyOutside.name}! Will replay upon replica recovery.`,
+          },
+          ...prev.slice(0, 8),
+        ]);
+      } else {
+        setHashAuditLog((prev) => [
+          {
+            id: Date.now(),
+            time: new Date().toLocaleTimeString(),
+            op: 'WRITE',
+            badge: 'SLOPPY_WRITE_FAILED',
+            badgeClass: 'bg-rose-100 text-rose-900 border-rose-300',
+            message: `Sloppy Quorum Write FAILED: Not enough healthy nodes in cluster to accept hinted handoff!`,
+          },
+          ...prev.slice(0, 8),
+        ]);
+      }
+    } else {
+      setHashAuditLog((prev) => [
+        {
+          id: Date.now(),
+          time: new Date().toLocaleTimeString(),
+          op: 'WRITE',
+          badge: 'WRITE_QUORUM_FAILED',
+          badgeClass: 'bg-rose-100 text-rose-900 border-rose-300',
+          message: `Strict Quorum Write for "${activeSelectedKey.label}" FAILED! Required W=${writeQuorum} acks, but only ${acks} online replica(s) responded (${onlineNodesInPref.map((p) => p.physicalNode.name).join(', ') || 'none'}). Rejected to preserve safety.`,
+        },
+        ...prev.slice(0, 8),
+      ]);
+    }
+  };
+
+  const handleSimulateQuorumRead = () => {
+    const pref = activePrefList;
+    const onlineNodesInPref = pref.filter((p) => p.isOnline);
+    const acks = onlineNodesInPref.length;
+
+    if (acks >= readQuorum) {
+      if (isStrongConsistency) {
+        setHashAuditLog((prev) => [
+          {
+            id: Date.now(),
+            time: new Date().toLocaleTimeString(),
+            op: 'READ',
+            badge: 'STRONG_READ_HIT',
+            badgeClass: 'bg-emerald-100 text-emerald-900 border-emerald-300',
+            message: `Strong Consistency Read: Received ${acks}/${readQuorum} acks (${onlineNodesInPref.map((p) => p.physicalNode.name).join(', ')}). W (${writeQuorum}) + R (${readQuorum}) = ${writeQuorum + readQuorum} > N (${replicationFactor}). Pigeonhole Principle guarantees intersection with write set. Latest value verified!`,
+          },
+          ...prev.slice(0, 8),
+        ]);
+      } else {
+        setHashAuditLog((prev) => [
+          {
+            id: Date.now(),
+            time: new Date().toLocaleTimeString(),
+            op: 'READ',
+            badge: 'STALE_READ_RISK',
+            badgeClass: 'bg-amber-100 text-amber-900 border-amber-300',
+            message: `Eventual Consistency Read: Achieved R=${readQuorum} acks (${onlineNodesInPref.map((p) => p.physicalNode.name).join(', ')}), BUT W+R (${writeQuorum}+${readQuorum}) <= N (${replicationFactor}). Read set and write set may be disjoint! Risk of reading stale data.`,
+          },
+          ...prev.slice(0, 8),
+        ]);
+      }
+    } else {
+      setHashAuditLog((prev) => [
+        {
+          id: Date.now(),
+          time: new Date().toLocaleTimeString(),
+          op: 'READ',
+          badge: 'READ_QUORUM_FAILED',
+          badgeClass: 'bg-rose-100 text-rose-900 border-rose-300',
+          message: `Read Quorum FAILED! Required R=${readQuorum} acks, but only ${acks} online replica(s) available in preference list.`,
+        },
+        ...prev.slice(0, 8),
+      ]);
+    }
+  };
+
+  const handleResetHashCluster = () => {
+    setOfflineNodes({});
+    setHashAuditLog([
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        op: 'TOPOLOGY',
+        badge: 'CLUSTER_RESET',
+        badgeClass: 'bg-slate-100 text-slate-800 border-slate-300',
+        message: 'All physical nodes restored to ONLINE. Quorum metrics reset.',
+      },
+    ]);
+  };
 
   // --- Module 2: Rate Limiter State ---
   const [rateLimiterType, setRateLimiterType] = useState<'TOKEN_BUCKET' | 'LEAKY_BUCKET' | 'SLIDING_WINDOW'>('TOKEN_BUCKET');
@@ -1474,53 +1745,198 @@ export function DistributedSystemsSandbox() {
         </div>
       </div>
 
-      {/* MODULE 1: CONSISTENT HASH RING */}
+      {/* MODULE 1: CONSISTENT HASH RING, MULTI-REPLICA QUORUMS & LOAD HISTOGRAM */}
       {activeTab === 'CONSISTENT_HASHING' && (
         <div className="p-6 space-y-6">
-          {/* Controls & Invariant Banner */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-canvas border border-border p-4 rounded-xl">
-            <div className="space-y-1">
-              <span className="text-xs font-bold uppercase tracking-wider text-text-muted">
-                Topology Controls:
-              </span>
-              <div className="flex flex-wrap items-center gap-2 pt-1">
-                <Button
-                  variant={includeNodeD ? 'primary' : 'secondary'}
-                  size="sm"
-                  onClick={() => setIncludeNodeD(!includeNodeD)}
-                >
-                  {includeNodeD ? '✓ Node D Active (Scale Out)' : '+ Scale Out: Add Node D'}
-                </Button>
+          {/* Controls & Quorum Configuration Banner */}
+          <div className="space-y-4 bg-canvas border border-border p-4 rounded-xl">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <span className="text-xs font-bold uppercase tracking-wider text-text-muted">
+                  Topology &amp; Partitioning Controls:
+                </span>
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <Button
+                    variant={includeNodeD ? 'primary' : 'secondary'}
+                    size="sm"
+                    onClick={() => setIncludeNodeD(!includeNodeD)}
+                  >
+                    {includeNodeD ? '✓ Node D Active (Scale Out)' : '+ Scale Out: Add Node D'}
+                  </Button>
 
-                <div className="flex items-center gap-1 bg-surface p-1 rounded-lg border border-border text-xs">
-                  <span className="text-text-muted px-1.5 font-medium">Virtual Nodes:</span>
-                  {([1, 2, 3] as const).map((mul) => (
-                    <button
-                      key={mul}
-                      type="button"
-                      onClick={() => setVnodesMultiplier(mul)}
-                      className={`px-2 py-0.5 rounded font-bold cursor-pointer ${
-                        vnodesMultiplier === mul
-                          ? 'bg-primary-700 text-white shadow-xs'
-                          : 'text-text-muted hover:text-text'
-                      }`}
-                    >
-                      {mul}x
-                    </button>
-                  ))}
+                  <div className="flex items-center gap-1 bg-surface p-1 rounded-lg border border-border text-xs">
+                    <span className="text-text-muted px-1.5 font-medium">Virtual Nodes:</span>
+                    {([1, 2, 3] as const).map((mul) => (
+                      <button
+                        key={mul}
+                        type="button"
+                        onClick={() => setVnodesMultiplier(mul)}
+                        className={`px-2 py-0.5 rounded font-bold cursor-pointer ${
+                          vnodesMultiplier === mul
+                            ? 'bg-primary-700 text-white shadow-xs'
+                            : 'text-text-muted hover:text-text'
+                        }`}
+                      >
+                        {mul}x
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center gap-1 bg-surface p-1 rounded-lg border border-border text-xs">
+                    <span className="text-text-muted px-1.5 font-medium">Replicas (N):</span>
+                    {([1, 2, 3] as const).map((nVal) => (
+                      <button
+                        key={nVal}
+                        type="button"
+                        onClick={() => setReplicationFactor(nVal)}
+                        className={`px-2 py-0.5 rounded font-bold cursor-pointer ${
+                          replicationFactor === nVal
+                            ? 'bg-primary-700 text-white shadow-xs'
+                            : 'text-text-muted hover:text-text'
+                        }`}
+                      >
+                        N={nVal}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center gap-1 bg-surface p-1 rounded-lg border border-border text-xs">
+                    <span className="text-text-muted px-1.5 font-medium">Write Quorum (W):</span>
+                    {([1, 2, 3] as const).map((wVal) => (
+                      <button
+                        key={wVal}
+                        type="button"
+                        onClick={() => setWriteQuorum(wVal)}
+                        className={`px-2 py-0.5 rounded font-bold cursor-pointer ${
+                          writeQuorum === wVal
+                            ? 'bg-amber-600 text-white shadow-xs'
+                            : 'text-text-muted hover:text-text'
+                        }`}
+                      >
+                        W={wVal}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center gap-1 bg-surface p-1 rounded-lg border border-border text-xs">
+                    <span className="text-text-muted px-1.5 font-medium">Read Quorum (R):</span>
+                    {([1, 2, 3] as const).map((rVal) => (
+                      <button
+                        key={rVal}
+                        type="button"
+                        onClick={() => setReadQuorum(rVal)}
+                        className={`px-2 py-0.5 rounded font-bold cursor-pointer ${
+                          readQuorum === rVal
+                            ? 'bg-sky-600 text-white shadow-xs'
+                            : 'text-text-muted hover:text-text'
+                        }`}
+                      >
+                        R={rVal}
+                      </button>
+                    ))}
+                  </div>
+
+                  <label className="flex items-center gap-1.5 bg-surface px-2.5 py-1 rounded-lg border border-border text-xs cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={enableSloppyQuorum}
+                      onChange={(e) => setEnableSloppyQuorum(e.target.checked)}
+                      className="rounded border-border text-primary-600 focus:ring-0"
+                    />
+                    <span className="font-semibold text-text">Sloppy Quorum &amp; Hinted Handoff</span>
+                  </label>
+
+                  <Button variant="secondary" size="sm" onClick={handleResetHashCluster}>
+                    Reset Cluster
+                  </Button>
                 </div>
+              </div>
+
+              <div className="text-right sm:max-w-xs text-xs text-text-muted">
+                <span className="font-semibold text-text block">Circular Hash Space: 0° → 360°</span>
+                Keys route clockwise to N distinct physical node preference replicas.
               </div>
             </div>
 
-            <div className="text-right sm:max-w-xs text-xs text-text-muted">
-              <span className="font-semibold text-text block">Circular Hash Space: 0° → 360°</span>
-              Keys map clockwise to the nearest active physical or virtual node token.
+            {/* Consistency Invariant Status HUD */}
+            <div
+              className={`p-3 rounded-lg border text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${
+                isStrongConsistency
+                  ? 'bg-emerald-50 border-emerald-300 text-emerald-950 dark:bg-emerald-950/20 dark:border-emerald-800 dark:text-emerald-300'
+                  : 'bg-amber-50 border-amber-300 text-amber-950 dark:bg-amber-950/20 dark:border-amber-800 dark:text-amber-300'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <span
+                  className={`px-2 py-0.5 rounded font-mono font-bold uppercase tracking-wider text-[11px] ${
+                    isStrongConsistency ? 'bg-emerald-600 text-white' : 'bg-amber-600 text-white'
+                  }`}
+                >
+                  {isStrongConsistency ? 'STRONG_CONSISTENCY' : 'EVENTUAL_CONSISTENCY'}
+                </span>
+                <span className="font-semibold">
+                  {isStrongConsistency
+                    ? `W (${writeQuorum}) + R (${readQuorum}) = ${writeQuorum + readQuorum} > N (${replicationFactor})`
+                    : `W (${writeQuorum}) + R (${readQuorum}) = ${writeQuorum + readQuorum} ≤ N (${replicationFactor})`}
+                </span>
+              </div>
+              <div className="text-xs">
+                {isStrongConsistency ? (
+                  <span>
+                    ✓ <strong>Pigeonhole Principle Guaranteed:</strong> Write set and Read set overlap by at least{' '}
+                    <strong>{quorumMargin}</strong> replica(s). Eliminates stale reads!
+                  </span>
+                ) : (
+                  <span>
+                    ⚠️ <strong>Disjoint Quorums:</strong> Write set and Read set can be disjoint! Stale reads are possible until anti-entropy sync.
+                  </span>
+                )}
+              </div>
             </div>
+          </div>
+
+          {/* Node Health & Partition Toolbar */}
+          <div className="bg-canvas border border-border p-3 rounded-xl flex flex-wrap items-center justify-between gap-2 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-text uppercase tracking-wider text-[11px]">
+                Physical Node Health (Click to Partition):
+              </span>
+              <div className="flex flex-wrap items-center gap-2">
+                {activeNodes.map((n) => {
+                  const isOff = !!offlineNodes[n.id];
+                  return (
+                    <button
+                      key={n.id}
+                      type="button"
+                      onClick={() => handleToggleNodeOnline(n.id)}
+                      className={`px-2.5 py-1 rounded-lg border font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
+                        isOff
+                          ? 'bg-rose-100 text-rose-800 border-rose-300 hover:bg-rose-200 dark:bg-rose-950/40 dark:text-rose-300'
+                          : 'bg-surface text-text border-border hover:bg-surface-hover'
+                      }`}
+                    >
+                      <span
+                        className="w-2.5 h-2.5 rounded-full inline-block"
+                        style={{ backgroundColor: isOff ? '#f43f5e' : n.color }}
+                      />
+                      <span>{n.name}</span>
+                      <span className={`text-[10px] font-mono px-1 rounded ${isOff ? 'bg-rose-200 text-rose-900 font-bold' : 'text-emerald-700 font-bold'}`}>
+                        {isOff ? 'OFFLINE 🔴' : 'ONLINE 🟢'}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <span className="text-text-muted text-[11px]">
+              Simulate network partitions or hardware failures to test Quorum tolerance.
+            </span>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* Visual SVG Hash Ring */}
-            <div className="lg:col-span-7 bg-canvas border border-border rounded-xl p-4 flex flex-col items-center justify-center relative overflow-hidden">
+            <div className="lg:col-span-6 bg-canvas border border-border rounded-xl p-4 flex flex-col items-center justify-center relative overflow-hidden">
               <div className="w-full max-w-[380px] aspect-square relative">
                 <svg viewBox="0 0 400 400" className="w-full h-full select-none">
                   {/* Outer Ring */}
@@ -1555,11 +1971,12 @@ export function DistributedSystemsSandbox() {
                     );
                   })}
 
-                  {/* Active Node Tokens on Ring */}
+                  {/* Node Tokens on Ring */}
                   {ringPoints.map((pt) => {
                     const rad = ((pt.angle - 90) * Math.PI) / 180;
                     const cx = 200 + 140 * Math.cos(rad);
                     const cy = 200 + 140 * Math.sin(rad);
+                    const isOff = !!offlineNodes[pt.nodeId];
 
                     return (
                       <g key={pt.id} className="cursor-pointer group">
@@ -1567,126 +1984,383 @@ export function DistributedSystemsSandbox() {
                           cx={cx}
                           cy={cy}
                           r={pt.isVirtual ? '8' : '14'}
-                          fill={pt.color}
+                          fill={isOff ? '#94a3b8' : pt.color}
                           stroke="#ffffff"
-                          strokeWidth="2.5"
-                          className="shadow-sm"
+                          strokeWidth="2"
+                          opacity={isOff ? 0.5 : 1}
+                          className="transition-all duration-200 shadow-sm"
                         />
+                        {isOff && (
+                          <text
+                            x={cx}
+                            y={cy + 3}
+                            fontSize="9"
+                            fill="#ffffff"
+                            fontWeight="bold"
+                            textAnchor="middle"
+                          >
+                            ✕
+                          </text>
+                        )}
+                        {!pt.isVirtual && !isOff && (
+                          <text
+                            x={cx}
+                            y={cy + 3.5}
+                            fontSize="8"
+                            fill="#ffffff"
+                            fontWeight="bold"
+                            textAnchor="middle"
+                          >
+                            {pt.name.slice(5, 6)}
+                          </text>
+                        )}
                         <text
                           x={cx}
-                          y={cy + 3}
-                          fontSize={pt.isVirtual ? '7' : '9'}
-                          fill="#ffffff"
-                          fontWeight="bold"
+                          y={cy + (pt.isVirtual ? 16 : 24)}
+                          fontSize="9"
+                          fill={isOff ? '#f43f5e' : '#64748b'}
                           textAnchor="middle"
-                          pointerEvents="none"
+                          fontWeight={pt.isVirtual ? 'normal' : 'bold'}
+                          className="font-mono"
                         >
-                          {pt.isVirtual ? 'V' : pt.name.slice(5, 6)}
+                          {pt.name} ({pt.angle}°)
                         </text>
-                        {/* Tooltip on hover */}
-                        <title>{`${pt.name} at ${pt.angle}°`}</title>
                       </g>
                     );
                   })}
 
-                  {/* Cache Keys inside / outside ring */}
-                  {keyAssignments.map((k) => {
-                    const rad = ((k.angle - 90) * Math.PI) / 180;
-                    const kx = 200 + 105 * Math.cos(rad);
-                    const ky = 200 + 105 * Math.sin(rad);
-                    const nx = 200 + 140 * Math.cos(((k.assignedNode.angle - 90) * Math.PI) / 180);
-                    const ny = 200 + 140 * Math.sin(((k.assignedNode.angle - 90) * Math.PI) / 180);
+                  {/* Selected Key Vectors to Preference List */}
+                  {activePrefList.map((pref, idx) => {
+                    const krad = ((activeSelectedKey.angle - 90) * Math.PI) / 180;
+                    const kx = 200 + 90 * Math.cos(krad);
+                    const ky = 200 + 90 * Math.sin(krad);
+
+                    const nrad = ((pref.token.angle - 90) * Math.PI) / 180;
+                    const nx = 200 + 140 * Math.cos(nrad);
+                    const ny = 200 + 140 * Math.sin(nrad);
 
                     return (
-                      <g key={k.id}>
-                        {/* Assignment vector line */}
+                      <g key={pref.token.id}>
                         <line
                           x1={kx}
                           y1={ky}
                           x2={nx}
                           y2={ny}
-                          stroke={k.assignedNode.color}
-                          strokeWidth="1.5"
-                          strokeDasharray="2 3"
-                          opacity="0.6"
+                          stroke={pref.isOnline ? pref.physicalNode.color : '#f43f5e'}
+                          strokeWidth={idx === 0 ? '2' : '1.5'}
+                          strokeDasharray={idx === 0 ? undefined : '3 3'}
+                          opacity={pref.isOnline ? (idx === 0 ? 0.9 : 0.6) : 0.4}
                         />
-                        <circle
-                          cx={kx}
-                          cy={ky}
-                          r="5"
-                          fill="#475569"
-                          stroke="#ffffff"
-                          strokeWidth="1.5"
-                        />
-                        <text
-                          x={kx}
-                          y={ky - 8}
-                          fontSize="9"
-                          fill="#334155"
-                          className="dark:fill-zinc-300 font-mono font-bold"
-                          textAnchor="middle"
-                        >
-                          {k.label}
-                        </text>
                       </g>
                     );
                   })}
+
+                  {/* Selected Key Marker */}
+                  {(() => {
+                    const rad = ((activeSelectedKey.angle - 90) * Math.PI) / 180;
+                    const kx = 200 + 90 * Math.cos(rad);
+                    const ky = 200 + 90 * Math.sin(rad);
+                    return (
+                      <g key="selected-key">
+                        <circle
+                          cx={kx}
+                          cy={ky}
+                          r="6"
+                          fill="#475569"
+                          stroke="#ffffff"
+                          strokeWidth="2"
+                        />
+                        <text
+                          x={kx}
+                          y={ky - 10}
+                          fontSize="10"
+                          fill="#0f172a"
+                          className="dark:fill-white font-mono font-bold"
+                          textAnchor="middle"
+                        >
+                          {activeSelectedKey.label}
+                        </text>
+                      </g>
+                    );
+                  })()}
                 </svg>
               </div>
 
-              <div className="flex flex-wrap items-center justify-center gap-4 mt-2">
-                {activeNodes.map((n) => (
-                  <span
-                    key={n.id}
-                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${n.badgeBg}`}
-                  >
+              {/* Topology Legend */}
+              <div className="flex flex-wrap items-center justify-center gap-3 mt-3">
+                {activeNodes.map((n) => {
+                  const isOff = !!offlineNodes[n.id];
+                  return (
                     <span
-                      className="w-2 h-2 rounded-full inline-block"
-                      style={{ backgroundColor: n.color }}
-                    />
-                    {n.name} ({n.baseAngle}°)
-                  </span>
-                ))}
+                      key={n.id}
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${
+                        isOff ? 'bg-rose-50 text-rose-800 border-rose-300 opacity-60' : n.badgeBg
+                      }`}
+                    >
+                      <span
+                        className="w-2 h-2 rounded-full inline-block"
+                        style={{ backgroundColor: isOff ? '#f43f5e' : n.color }}
+                      />
+                      {n.name} ({n.baseAngle}°) {isOff && '(OFFLINE)'}
+                    </span>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Key Ownership & Relocation Table */}
-            <div className="lg:col-span-5 space-y-4">
+            {/* Right Column: Partition Histogram & Quorum Simulation Console */}
+            <div className="lg:col-span-6 space-y-4">
+              {/* Partition Arc & Load Distribution Histogram */}
               <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
                 <div className="flex items-center justify-between border-b border-border pb-2">
-                  <h3 className="font-bold text-sm text-text">
-                    Key Ownership &amp; Relocation Table
-                  </h3>
-                  <span className="text-[11px] text-text-muted font-mono">8 Sample Keys</span>
+                  <div>
+                    <h3 className="font-bold text-sm text-text">
+                      Partition Arc &amp; Load Distribution Histogram
+                    </h3>
+                    <p className="text-[11px] text-text-muted">
+                      Proves how Virtual Nodes eliminate partition imbalance and hot spots.
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span
+                      className={`text-[11px] font-mono font-bold px-2 py-0.5 rounded border ${
+                        coeffVariation < 15
+                          ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                          : coeffVariation < 30
+                          ? 'bg-amber-100 text-amber-900 border-amber-300'
+                          : 'bg-rose-100 text-rose-900 border-rose-300'
+                      }`}
+                    >
+                      CV = {coeffVariation.toFixed(1)}% ({coeffVariation < 15 ? 'Near-Uniform' : coeffVariation < 30 ? 'Moderate Skew' : 'High Skew'})
+                    </span>
+                  </div>
                 </div>
 
-                <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
-                  {keyAssignments.map((k) => (
-                    <div
-                      key={k.id}
-                      className="p-2.5 rounded-lg bg-canvas border border-border flex items-center justify-between text-xs"
-                    >
-                      <div className="flex items-center gap-2 font-mono">
-                        <span className="font-bold text-text">{k.label}</span>
-                        <span className="text-[10px] text-text-muted">({k.angle}°)</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-text-muted text-[10px]">Routed Clockwise →</span>
-                        <span
-                          className="px-2 py-0.5 rounded text-[11px] font-bold text-white shadow-2xs"
-                          style={{ backgroundColor: k.assignedNode.color }}
-                        >
-                          {k.assignedNode.name}
+                <div className="space-y-2.5">
+                  {partitionStats.map((stat) => (
+                    <div key={stat.nodeId} className="space-y-1 text-xs">
+                      <div className="flex items-center justify-between font-mono">
+                        <span className="font-semibold text-text flex items-center gap-1.5">
+                          <span
+                            className="w-2.5 h-2.5 rounded-sm inline-block"
+                            style={{ backgroundColor: stat.color }}
+                          />
+                          {stat.name}
+                          {!stat.isOnline && <span className="text-[10px] text-rose-600 font-bold">(OFFLINE)</span>}
                         </span>
+                        <span className="text-text-muted">
+                          {stat.arcDegrees}° ({stat.percentShare}%) — {stat.assignedKeyCount} keys
+                        </span>
+                      </div>
+                      <div className="w-full bg-slate-100 dark:bg-zinc-800 rounded-full h-2.5 overflow-hidden flex relative">
+                        <div
+                          className="h-full rounded-full transition-all duration-300"
+                          style={{
+                            width: `${Math.min(100, (stat.percentShare / (idealShare * 1.5)) * 100)}%`,
+                            backgroundColor: stat.color,
+                            opacity: stat.isOnline ? 1 : 0.4,
+                          }}
+                        />
                       </div>
                     </div>
                   ))}
-                </div>
-
-                <div className="p-3 bg-primary-50 border border-primary-200 rounded-lg text-xs text-primary-900 leading-relaxed">
-                  <strong>Architectural Invariant:</strong> In naive modulo hashing ($hash(k) \pmod N$), adding or removing a node relocates nearly <strong>100%</strong> of cached keys, causing catastrophic cache avalanches. In Consistent Hashing, adding Node D only relocates <strong>$k / N$</strong> keys ($\approx 25\%$), leaving the remaining <strong>$75\%$</strong> of cache entries undisturbed!
+                  <div className="text-[11px] text-text-muted flex justify-between pt-1 border-t border-border">
+                    <span>Ideal Parity Baseline: <strong>{idealShare.toFixed(1)}%</strong> per node</span>
+                    <span>Std Dev: <strong>σ = {stdDev.toFixed(1)}%</strong></span>
+                  </div>
                 </div>
               </div>
+
+              {/* Dynamic Preference List & Quorum Simulation Console */}
+              <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between border-b border-border pb-2">
+                  <div>
+                    <h3 className="font-bold text-sm text-text">
+                      Key Preference List &amp; Quorum Simulator
+                    </h3>
+                    <span className="text-[11px] text-text-muted font-mono">
+                      Select Key to inspect Distinct-Physical-Node placement
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {CACHE_KEYS.slice(0, 4).map((k) => (
+                      <button
+                        key={k.id}
+                        type="button"
+                        onClick={() => setSelectedKeyId(k.id)}
+                        className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold cursor-pointer transition-colors ${
+                          selectedKeyId === k.id
+                            ? 'bg-primary-700 text-white shadow-xs'
+                            : 'bg-canvas text-text-muted border border-border hover:text-text'
+                        }`}
+                      >
+                        {k.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Preference List Breakdown */}
+                <div className="space-y-1.5 bg-canvas p-3 rounded-lg border border-border text-xs">
+                  <div className="flex items-center justify-between font-mono pb-1 border-b border-border text-[11px]">
+                    <span className="font-bold text-text">Target: {activeSelectedKey.label} ({activeSelectedKey.angle}°)</span>
+                    <span className="text-text-muted">Clockwise Walk: N={replicationFactor} Replicas</span>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 pt-1">
+                    {activePrefList.map((pref, idx) => (
+                      <div
+                        key={pref.token.id}
+                        className={`p-2 rounded border text-center space-y-1 ${
+                          pref.isOnline
+                            ? 'bg-surface border-border'
+                            : 'bg-rose-50 border-rose-300 dark:bg-rose-950/20 text-rose-900'
+                        }`}
+                      >
+                        <span className="text-[10px] uppercase font-bold text-text-muted block">
+                          {idx === 0 ? 'Primary (Coord)' : `Replica #${idx}`}
+                        </span>
+                        <span
+                          className="inline-block px-1.5 py-0.5 rounded text-[11px] font-bold text-white"
+                          style={{ backgroundColor: pref.physicalNode.color }}
+                        >
+                          {pref.physicalNode.name}
+                        </span>
+                        <div className="text-[10px] font-mono">
+                          {pref.isOnline ? (
+                            <span className="text-emerald-700 font-bold">ONLINE ✓</span>
+                          ) : (
+                            <span className="text-rose-600 font-bold">OFFLINE ✕</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Simulation Trigger Buttons */}
+                <div className="flex items-center gap-2 pt-1">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={handleSimulateQuorumWrite}
+                    className="flex-1"
+                  >
+                    Simulate Quorum Write (W={writeQuorum})
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleSimulateQuorumRead}
+                    className="flex-1"
+                  >
+                    Simulate Quorum Read (R={readQuorum})
+                  </Button>
+                </div>
+
+                {/* Live Audit Log */}
+                <div className="space-y-1.5 max-h-[140px] overflow-y-auto pr-1">
+                  {hashAuditLog.map((ev) => (
+                    <div
+                      key={ev.id}
+                      className="p-2 rounded bg-canvas border border-border text-[11px] space-y-0.5"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className={`px-1.5 py-0.2 rounded font-mono font-bold text-[10px] border ${ev.badgeClass}`}>
+                          {ev.badge}
+                        </span>
+                        <span className="text-text-muted font-mono text-[10px]">{ev.time}</span>
+                      </div>
+                      <p className="text-text leading-tight">{ev.message}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Key Ownership & Relocation Table (Preserved for compatibility) */}
+          <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+            <div className="flex items-center justify-between border-b border-border pb-2">
+              <h3 className="font-bold text-sm text-text">
+                Key Ownership &amp; Relocation Table
+              </h3>
+              <span className="text-[11px] text-text-muted font-mono">8 Sample Keys</span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
+              {keyAssignments.map((k) => (
+                <div
+                  key={k.id}
+                  onClick={() => setSelectedKeyId(k.id)}
+                  className={`p-2.5 rounded-lg border flex flex-col justify-between text-xs cursor-pointer transition-colors ${
+                    selectedKeyId === k.id
+                      ? 'bg-primary-50 border-primary-300 dark:bg-primary-950/20'
+                      : 'bg-canvas border-border hover:bg-surface-hover'
+                  }`}
+                >
+                  <div className="flex items-center justify-between font-mono">
+                    <span className="font-bold text-text">{k.label}</span>
+                    <span className="text-[10px] text-text-muted">({k.angle}°)</span>
+                  </div>
+                  <div className="flex items-center justify-between mt-1.5 text-[10px]">
+                    <span className="text-text-muted">Coord:</span>
+                    <span
+                      className="px-1.5 py-0.5 rounded font-bold text-white shadow-2xs"
+                      style={{ backgroundColor: k.assignedNode.color }}
+                    >
+                      {k.assignedNode.name}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="p-3 bg-primary-50 border border-primary-200 rounded-lg text-xs text-primary-900 leading-relaxed dark:bg-primary-950/20 dark:border-primary-800 dark:text-primary-300">
+              <strong>Architectural Invariant:</strong> In naive modulo hashing ($hash(k) \pmod N$), adding or removing a node relocates nearly <strong>100%</strong> of cached keys, causing catastrophic cache avalanches. In Consistent Hashing, adding Node D only relocates <strong>$k / N$</strong> keys ($approx 25%$), leaving the remaining <strong>$75%$</strong> of cache entries undisturbed!
+            </div>
+          </div>
+
+          {/* Socratic Invariant Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="p-4 rounded-xl bg-surface border border-border space-y-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-accent-700">
+                Consistency Invariant
+              </span>
+              <h4 className="font-bold text-sm text-text">Pigeonhole Quorum ($R + W &gt; N$)</h4>
+              <p className="text-xs text-text-muted leading-relaxed">
+                If the read quorum $R$ and write quorum $W$ sum to strictly greater than $N$, the Pigeonhole Principle guarantees that the read set and write set must share at least one replica. That overlapping replica supplies the latest monotonic version timestamp, preventing stale data.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-xl bg-surface border border-border space-y-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-accent-700">
+                Fault Domain Invariant
+              </span>
+              <h4 className="font-bold text-sm text-text">Distinct Physical Placement</h4>
+              <p className="text-xs text-text-muted leading-relaxed">
+                When virtual nodes (vnodes) are enabled, multiple tokens belong to the same machine. A naive successor walk could place all $N$ replicas on distinct vnodes of the <em>same</em> physical server. Dynamo engines enforce distinct physical node collection to avoid single-point-of-failure loss.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-xl bg-surface border border-border space-y-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-accent-700">
+                Availability Invariant
+              </span>
+              <h4 className="font-bold text-sm text-text">Sloppy Quorum &amp; Hinted Handoff</h4>
+              <p className="text-xs text-text-muted leading-relaxed">
+                During network partitions, strict quorum rejects writes if $W$ replicas in the preference list are unreachable. A Sloppy Quorum routes the write to a healthy successor node with a metadata hint. When the primary recovers, the hinted handoff replays the write.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-xl bg-surface border border-border space-y-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-accent-700">
+                Load Balancing Invariant
+              </span>
+              <h4 className="font-bold text-sm text-text">Variance Reduction (σ ∝ 1/√V)</h4>
+              <p className="text-xs text-text-muted leading-relaxed">
+                With only 1 token per node, random ring placement yields high partition variance (CV &gt; 40%), creating severe hotspot nodes. Allocating V virtual tokens per node dramatically decreases standard deviation by 1/√V, driving load balance toward uniform parity.
+              </p>
             </div>
           </div>
         </div>

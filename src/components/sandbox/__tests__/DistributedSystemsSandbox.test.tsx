@@ -248,4 +248,61 @@ describe('DistributedSystemsSandbox', () => {
     fireEvent.click(sagaResetBtn);
     expect(screen.getByText('ORCHESTRATOR: IDLE')).toBeInTheDocument();
   });
+
+  it('tests Dynamo-Style Multi-Replica Consistent Hashing, Quorum Consistency, and Load Distribution Histogram', () => {
+    render(<DistributedSystemsSandbox />);
+
+    // Defaults: Consistent Hash Ring tab is active
+    expect(screen.getByText('Partition Arc & Load Distribution Histogram')).toBeInTheDocument();
+    expect(screen.getByText('Key Preference List & Quorum Simulator')).toBeInTheDocument();
+    expect(screen.getByText('STRONG_CONSISTENCY')).toBeInTheDocument();
+
+    // 1. Quorum Consistency toggle (Strong -> Eventual)
+    const w1Btn = screen.getByRole('button', { name: 'W=1' });
+    const r1Btn = screen.getByRole('button', { name: 'R=1' });
+    fireEvent.click(w1Btn);
+    fireEvent.click(r1Btn);
+    expect(screen.getByText('EVENTUAL_CONSISTENCY')).toBeInTheDocument();
+    expect(screen.getByText(/Disjoint Quorums:/i)).toBeInTheDocument();
+
+    // Restore Strong Consistency W=2, R=2
+    const w2Btn = screen.getByRole('button', { name: 'W=2' });
+    const r2Btn = screen.getByRole('button', { name: 'R=2' });
+    fireEvent.click(w2Btn);
+    fireEvent.click(r2Btn);
+    expect(screen.getByText('STRONG_CONSISTENCY')).toBeInTheDocument();
+
+    // 2. Simulate Quorum Write (Success when all nodes online)
+    const writeBtn = screen.getByRole('button', { name: /Simulate Quorum Write \(W=2\)/i });
+    fireEvent.click(writeBtn);
+    expect(screen.getAllByText('WRITE_SUCCESS').length).toBeGreaterThanOrEqual(1);
+
+    // 3. Simulate Quorum Read (Success)
+    const readBtn = screen.getByRole('button', { name: /Simulate Quorum Read \(R=2\)/i });
+    fireEvent.click(readBtn);
+    expect(screen.getAllByText('STRONG_READ_HIT').length).toBeGreaterThanOrEqual(1);
+
+    // 4. Set N=2 and Partition Node B (leaving Node B offline in preference list [B, C])
+    const n2Btn = screen.getByRole('button', { name: 'N=2' });
+    fireEvent.click(n2Btn);
+
+    const nodeBBtn = screen.getByRole('button', { name: /Node B.*ONLINE/i });
+    fireEvent.click(nodeBBtn);
+
+    // 5. Strict Quorum Write fails (W=2 requires 2 acks, but only Node C is online in pref list)
+    fireEvent.click(writeBtn);
+    expect(screen.getAllByText('WRITE_QUORUM_FAILED').length).toBeGreaterThanOrEqual(1);
+
+    // 6. Enable Sloppy Quorum & Hinted Handoff (Node A outside pref list accepts write with hint)
+    const sloppyCheckbox = screen.getByRole('checkbox', { name: /Sloppy Quorum & Hinted Handoff/i });
+    fireEvent.click(sloppyCheckbox);
+
+    fireEvent.click(writeBtn);
+    expect(screen.getAllByText('SLOPPY_HINTED_HANDOFF').length).toBeGreaterThanOrEqual(1);
+
+    // 7. Reset Cluster
+    const resetClusterBtn = screen.getByRole('button', { name: /Reset Cluster/i });
+    fireEvent.click(resetClusterBtn);
+    expect(screen.getAllByText('CLUSTER_RESET').length).toBeGreaterThanOrEqual(1);
+  });
 });
