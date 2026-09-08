@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getRoles, type RoleTrackItem } from '../../../lib/roles-client';
@@ -9,6 +9,10 @@ import {
   startInterviewSession,
   type PaginatedInterviews,
 } from '../../../lib/interview-client';
+import {
+  INTERVIEW_CATEGORIES,
+  getInterviewQuestions,
+} from '../../../lib/interview-catalog';
 import { Button } from '../../../components/ui/Button';
 
 export default function InterviewsHubPage() {
@@ -22,6 +26,14 @@ export default function InterviewsHubPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isLaunching, setIsLaunching] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [qaCategory, setQaCategory] = useState<string>('all');
+  const [qaSearch, setQaSearch] = useState<string>('');
+  const [expandedQaId, setExpandedQaId] = useState<string | null>(null);
+
+  const filteredQuestions = useMemo(() => {
+    return getInterviewQuestions(qaCategory, qaSearch);
+  }, [qaCategory, qaSearch]);
 
   useEffect(() => {
     async function loadData() {
@@ -266,6 +278,274 @@ export default function InterviewsHubPage() {
             </div>
           </div>
         </div>
+
+        {/* Flagship Technical Interview Q&A Repository */}
+        <section id="qa-repository" className="space-y-6 pt-8 border-t border-border">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-primary-700 bg-primary-50 px-2.5 py-0.5 rounded-full border border-primary-200">
+                  Comprehensive Q&amp;A Repository
+                </span>
+                <span className="text-xs font-semibold text-text-muted bg-surface px-2.5 py-0.5 rounded-full border border-border">
+                  51+ Master Technical Questions
+                </span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-text tracking-tight">
+                Top Technical Interview Questions &amp; Answers
+              </h2>
+              <p className="text-sm text-text-muted max-w-3xl leading-relaxed">
+                Study first-principles technical solutions with algorithmic complexity proofs, architectural trade-offs, interviewer counter-questions, and direct links to curriculum concept guides.
+              </p>
+            </div>
+
+            {/* Quick Stats Pill */}
+            <div className="flex items-center gap-3 text-xs bg-surface border border-border p-3 rounded-xl shadow-xs">
+              <div>
+                <span className="block font-bold text-text text-sm">51</span>
+                <span className="text-text-muted">Master Questions</span>
+              </div>
+              <div className="w-px h-8 bg-border" />
+              <div>
+                <span className="block font-bold text-text text-sm">8</span>
+                <span className="text-text-muted">Disciplines</span>
+              </div>
+              <div className="w-px h-8 bg-border" />
+              <div>
+                <span className="block font-bold text-text text-sm">100%</span>
+                <span className="text-text-muted">Follow-ups &amp; Pitfalls</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Search & Filter Bar */}
+          <div className="space-y-4 bg-surface border border-border rounded-2xl p-5 shadow-xs">
+            <div className="relative">
+              <input
+                type="text"
+                value={qaSearch}
+                onChange={(e) => setQaSearch(e.target.value)}
+                placeholder="Search interview questions by keyword, algorithm, design pattern, or trap..."
+                className="w-full pl-10 pr-10 py-3 bg-canvas border border-border rounded-xl text-sm text-text placeholder:text-text-muted focus:outline-hidden focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all"
+              />
+              <span className="absolute left-3.5 top-3.5 text-text-muted text-sm">🔍</span>
+              {qaSearch && (
+                <button
+                  type="button"
+                  onClick={() => setQaSearch('')}
+                  className="absolute right-3.5 top-3 text-xs font-semibold text-text-muted hover:text-text bg-surface border border-border px-2 py-0.5 rounded cursor-pointer"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+
+            {/* Category Pills */}
+            <div className="flex flex-wrap gap-2 pt-1">
+              {INTERVIEW_CATEGORIES.map((cat) => {
+                const isActive = qaCategory === cat.slug;
+                return (
+                  <button
+                    key={cat.slug}
+                    type="button"
+                    onClick={() => setQaCategory(cat.slug)}
+                    className={`text-xs px-3.5 py-1.5 rounded-lg font-semibold transition-all cursor-pointer ${
+                      isActive
+                        ? 'bg-primary-700 text-white shadow-xs'
+                        : 'bg-canvas text-text-muted hover:text-text border border-border hover:border-primary-300'
+                    }`}
+                  >
+                    {cat.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="text-xs text-text-muted flex items-center justify-between pt-1">
+              <span>Showing <strong>{filteredQuestions.length}</strong> questions matching criteria</span>
+              {qaCategory !== 'all' && (
+                <button
+                  type="button"
+                  onClick={() => setQaCategory('all')}
+                  className="text-primary-700 hover:underline cursor-pointer font-medium"
+                >
+                  Reset Category
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Questions Accordion List */}
+          <div className="space-y-4">
+            {filteredQuestions.length === 0 ? (
+              <div className="p-8 text-center bg-surface border border-border rounded-2xl space-y-2">
+                <p className="text-sm font-semibold text-text">No technical interview questions match your search.</p>
+                <p className="text-xs text-text-muted">Try clearing the search input or selecting another engineering discipline.</p>
+              </div>
+            ) : (
+              filteredQuestions.map((q) => {
+                const isExpanded = expandedQaId === q.id;
+                return (
+                  <div
+                    key={q.id}
+                    className="bg-surface border border-border rounded-2xl overflow-hidden shadow-xs transition-all hover:border-primary-200"
+                  >
+                    {/* Card Header / Summary */}
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setExpandedQaId(isExpanded ? null : q.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setExpandedQaId(isExpanded ? null : q.id);
+                        }
+                      }}
+                      className="p-5 sm:p-6 cursor-pointer flex flex-col sm:flex-row sm:items-start justify-between gap-4 select-none"
+                    >
+                      <div className="space-y-2 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-primary-50 text-primary-800 border border-primary-200">
+                            {q.category}
+                          </span>
+                          <span
+                            className={`text-[11px] font-bold px-2 py-0.5 rounded-md border ${
+                              q.difficulty === 'EASY'
+                                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                : q.difficulty === 'MEDIUM'
+                                ? 'bg-sky-50 text-sky-800 border-sky-200'
+                                : q.difficulty === 'HARD'
+                                ? 'bg-amber-50 text-amber-800 border-amber-200'
+                                : 'bg-purple-50 text-purple-800 border-purple-200'
+                            }`}
+                          >
+                            {q.difficulty}
+                          </span>
+                          <span
+                            className={`text-[11px] font-bold px-2 py-0.5 rounded-md border ${
+                              q.frequency === 'VERY HIGH'
+                                ? 'bg-rose-50 text-rose-800 border-rose-200'
+                                : q.frequency === 'HIGH'
+                                ? 'bg-orange-50 text-orange-800 border-orange-200'
+                                : 'bg-slate-50 text-slate-700 border-slate-200'
+                            }`}
+                          >
+                            Frequency: {q.frequency}
+                          </span>
+                        </div>
+
+                        <h3 className="text-base sm:text-lg font-bold text-text hover:text-primary-700 transition-colors">
+                          {q.title}
+                        </h3>
+
+                        <p className="text-xs sm:text-sm text-text-muted leading-relaxed">
+                          {q.shortSummary}
+                        </p>
+                      </div>
+
+                      <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 pt-2 sm:pt-0">
+                        <span className="text-xs font-bold text-primary-700">
+                          {isExpanded ? 'Hide Solution ▲' : 'View Solution ▼'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Expandable Model Answer & Deep Dive Details */}
+                    {isExpanded && (
+                      <div className="px-5 pb-6 sm:px-6 sm:pb-6 space-y-6 border-t border-border/60 pt-5 bg-canvas/40">
+                        {/* Deep Model Answer */}
+                        <div className="space-y-2">
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-text-muted">
+                            Model Answer &amp; First-Principles Architecture
+                          </h4>
+                          <div className="p-4 bg-surface border border-border rounded-xl text-xs sm:text-sm text-text font-mono leading-relaxed whitespace-pre-wrap overflow-x-auto">
+                            {q.deepAnswer}
+                          </div>
+                        </div>
+
+                        {/* Two Columns: Follow-ups & Pitfalls */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* Interviewer Counter-Questions */}
+                          <div className="p-4 bg-amber-50/50 border border-amber-200 rounded-xl space-y-2">
+                            <h5 className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                              <span>🎯</span>
+                              <span>Senior Interviewer Counter-Questions (Follow-ups)</span>
+                            </h5>
+                            <ul className="space-y-1.5 text-xs text-amber-950">
+                              {q.interviewerCounterQuestions.map((cq, idx) => (
+                                <li key={idx} className="flex items-start gap-2">
+                                  <span className="font-bold text-amber-800">•</span>
+                                  <span>{cq}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+
+                          {/* Common Traps & Pitfalls */}
+                          <div className="p-4 bg-rose-50/50 border border-rose-200 rounded-xl space-y-2">
+                            <h5 className="text-xs font-bold text-rose-900 flex items-center gap-1.5">
+                              <span>⚠️</span>
+                              <span>Common Candidate Traps &amp; Pitfalls</span>
+                            </h5>
+                            <ul className="space-y-1.5 text-xs text-rose-950">
+                              {q.pitfalls.map((pf, idx) => (
+                                <li key={idx} className="flex items-start gap-2">
+                                  <span className="font-bold text-rose-800">•</span>
+                                  <span>{pf}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+
+                        {/* Key Takeaways */}
+                        <div className="p-4 bg-primary-50/50 border border-primary-200 rounded-xl space-y-2">
+                          <h5 className="text-xs font-bold text-primary-900 flex items-center gap-1.5">
+                            <span>💡</span>
+                            <span>Core Architectural Takeaways</span>
+                          </h5>
+                          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-primary-950">
+                            {q.keyTakeaways.map((tk, idx) => (
+                              <li key={idx} className="flex items-start gap-2">
+                                <span className="font-bold text-primary-700">✓</span>
+                                <span>{tk}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        {/* Action Footer */}
+                        <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                          {q.relatedCurriculumSlug ? (
+                            <Link
+                              href={`/curriculum/${q.relatedCurriculumSlug}`}
+                              className="text-xs font-bold text-primary-700 hover:text-primary-800 flex items-center gap-1 hover:underline"
+                            >
+                              <span>Read In-Depth Theory &amp; Code in Curriculum</span>
+                              <span>→</span>
+                            </Link>
+                          ) : (
+                            <div />
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }}
+                            className="text-xs font-semibold text-text-muted hover:text-text bg-surface border border-border px-3 py-1.5 rounded-lg cursor-pointer transition-colors"
+                          >
+                            Launch AI Simulator for this Topic ↑
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </section>
 
         {/* Historical Interviews Section */}
         {history && history.items.length > 0 && (

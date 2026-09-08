@@ -42,7 +42,7 @@ export const CURRICULUM_DOMAINS: CurriculumDomain[] = [
     "name": "System Design & Software Architecture",
     "description": "Low-level object-oriented design patterns, SOLID principles, concurrency models, and scalable distributed systems.",
     "icon": "🏛️",
-    "articlesCount": 4
+    "articlesCount": 9
   },
   {
     "slug": "operating-systems-internals",
@@ -70,14 +70,14 @@ export const CURRICULUM_DOMAINS: CurriculumDomain[] = [
     "name": "Cloud Computing & Enterprise Infrastructure",
     "description": "VPC network topologies, serverless event-driven compute, IAM least privilege, and disaster recovery strategies.",
     "icon": "☁️",
-    "articlesCount": 2
+    "articlesCount": 4
   },
   {
     "slug": "devops-sre-kubernetes",
     "name": "DevOps, SRE & Container Orchestration",
     "description": "Docker multi-stage builds, Kubernetes pod scheduling and services, Helm templating, and observability SLI/SLO.",
     "icon": "🚀",
-    "articlesCount": 2
+    "articlesCount": 5
   },
   {
     "slug": "fullstack-web-engineering",
@@ -1090,6 +1090,238 @@ export const CURRICULUM_SUMMARIES: CurriculumArticleSummary[] = [
       "backend-systems-engineer",
       "data-engineer",
       "cloud-architect"
+    ],
+    "practiceMcqsCount": 5
+  }
+,
+  {
+    "id": "art-sys-caching-redis",
+    "slug": "distributed-caching-strategies-and-redis-cluster",
+    "domainSlug": "system-design-architecture",
+    "domainName": "System Design & Software Architecture",
+    "title": "Distributed Caching: Patterns, Cache Stampedes & Redis Cluster Hash Slots",
+    "level": "ADVANCED",
+    "readTimeMinutes": 20,
+    "summary": "Master enterprise caching topologies: Cache-Aside, Write-Through, Write-Behind, Probabilistic Early Expiration (XFetch algorithm) to prevent Cache Stampedes, and Redis Cluster 16,384 Hash Slot mechanics with zero-downtime resharding.",
+    "keyConcepts": [
+      "Cache-Aside vs Write-Through vs Write-Behind",
+      "Cache Stampede & XFetch Probabilistic Expiry",
+      "Cache Penetration (Bloom Filters) & Avalanche",
+      "Redis Cluster 16,384 Hash Slots (CRC16 mod 16384)",
+      "Hash Tags & Multi-Key Slot Locality"
+    ],
+    "relatedRoleSlugs": [
+      "backend-systems-engineer",
+      "cloud-architect",
+      "data-engineer"
+    ],
+    "practiceMcqsCount": 5
+  },
+  {
+    "id": "art-sys-event-driven-kafka",
+    "slug": "event-driven-architectures-kafka-and-rabbitmq",
+    "domainSlug": "system-design-architecture",
+    "domainName": "System Design & Software Architecture",
+    "title": "Event-Driven Architecture: Kafka Log Streaming vs RabbitMQ AMQP Queues",
+    "level": "ADVANCED",
+    "readTimeMinutes": 22,
+    "summary": "Architecting resilient asynchronous systems: append-only immutable commit logs (Apache Kafka) versus smart-broker message queues (RabbitMQ), Exactly-Once Semantics (EOS), Transactional Outbox pattern, and Cooperative Sticky Rebalance.",
+    "keyConcepts": [
+      "Distributed Commit Log vs AMQP Message Queue",
+      "At-Least-Once vs Exactly-Once Semantics (EOS)",
+      "Transactional Outbox Pattern & Change Data Capture (CDC)",
+      "Kafka Consumer Groups & Partition Assignment",
+      "Cooperative Sticky Rebalance Protocol"
+    ],
+    "relatedRoleSlugs": [
+      "backend-systems-engineer",
+      "data-engineer",
+      "cloud-architect"
+    ],
+    "practiceMcqsCount": 5
+  },
+  {
+    "id": "art-sys-db-scaling-sharding",
+    "slug": "database-scaling-replication-and-sharding",
+    "domainSlug": "system-design-architecture",
+    "domainName": "System Design & Software Architecture",
+    "title": "Database Scaling: Asynchronous vs Semi-Sync Replication, Lag & Sharding",
+    "level": "ADVANCED",
+    "readTimeMinutes": 23,
+    "summary": "Scale data persistence beyond single-node bottlenecks. Compare asynchronous vs semi-synchronous replication, mitigate Replication Lag anomalies (Read-Your-Writes), and implement Range, Hash, and Directory sharding with Consistent Hashing.",
+    "keyConcepts": [
+      "Asynchronous vs Semi-Synchronous Replication",
+      "Replication Lag Anomalies (Read-Your-Writes)",
+      "Range-Based vs Hash-Based Database Sharding",
+      "Consistent Hashing & Virtual Nodes for Shard Balancing",
+      "Cross-Shard Distributed Join & Two-Phase Commit Mitigation"
+    ],
+    "relatedRoleSlugs": [
+      "backend-systems-engineer",
+      "data-engineer",
+      "cloud-architect"
+    ],
+    "practiceMcqsCount": 5
+  },
+  {
+    "id": "art-sys-api-gateway-resilience",
+    "slug": "api-gateway-architecture-and-resilience",
+    "domainSlug": "system-design-architecture",
+    "domainName": "System Design & Software Architecture",
+    "title": "API Gateway Architecture: Reverse Proxies, Rate Limiting & Circuit Breakers",
+    "level": "INTERMEDIATE",
+    "readTimeMinutes": 19,
+    "summary": "The front door of modern distributed systems: reverse proxying, TLS termination, unified JWT authentication, Token Bucket vs Sliding Window rate limiting, and Circuit Breakers (Closed, Open, Half-Open) with exponential backoff and jitter.",
+    "keyConcepts": [
+      "API Gateway Reverse Proxy & TLS Termination",
+      "Token Bucket vs Sliding Window Rate Limiting",
+      "Circuit Breaker State Machine (Closed, Open, Half-Open)",
+      "Exponential Backoff with Full Jitter",
+      "Bulkhead Pattern & Resource Isolation"
+    ],
+    "relatedRoleSlugs": [
+      "backend-systems-engineer",
+      "fullstack-javascript-developer",
+      "devops-engineer"
+    ],
+    "practiceMcqsCount": 5
+  },
+  {
+    "id": "art-sys-dist-transactions-tracing",
+    "slug": "distributed-transactions-and-observability",
+    "domainSlug": "system-design-architecture",
+    "domainName": "System Design & Software Architecture",
+    "title": "Distributed Transactions: 2PC vs Saga Pattern, Idempotency & Distributed Tracing",
+    "level": "ADVANCED",
+    "readTimeMinutes": 24,
+    "summary": "Eliminate split-brain and partial failures in microservices: Two-Phase Commit (2PC) blocking coordinator hazards versus Saga Choreography and Orchestration with compensating transactions, Idempotency Keys, and W3C Trace Context propagation.",
+    "keyConcepts": [
+      "Two-Phase Commit (2PC) Blocking Coordinator Hazard",
+      "Saga Pattern (Choreography vs Orchestration)",
+      "Compensating Transactions & Backward Recovery",
+      "Idempotency Keys & Distributed Deduplication",
+      "W3C Trace Context & OpenTelemetry Distributed Spans"
+    ],
+    "relatedRoleSlugs": [
+      "backend-systems-engineer",
+      "cloud-architect",
+      "devops-engineer"
+    ],
+    "practiceMcqsCount": 5
+  }
+,
+  {
+    "id": "art-k8s-control-plane",
+    "slug": "kubernetes-control-plane-internals-and-scheduling",
+    "domainSlug": "devops-sre-kubernetes",
+    "domainName": "DevOps, SRE & Container Orchestration",
+    "title": "Kubernetes Architecture: Control Plane, Kube-Scheduler & Node Components",
+    "level": "ADVANCED",
+    "readTimeMinutes": 22,
+    "summary": "Deep dive into Kubernetes architecture: declarative reconciliation loops, etcd Raft storage, Kube-Scheduler two-phase filtering and priority scoring, Kubelet CRI/CNI/CSI plugins, and Kube-proxy IPVS load balancing.",
+    "keyConcepts": [
+      "Declarative Reconciliation & Controllers",
+      "etcd Distributed Raft State Storage",
+      "Kube-Scheduler Filtering & Scoring Phases",
+      "Kubelet CRI, CNI & CSI Plugin Topologies",
+      "Kube-Proxy iptables vs IPVS Modes"
+    ],
+    "relatedRoleSlugs": [
+      "devops-engineer",
+      "cloud-architect",
+      "backend-systems-engineer"
+    ],
+    "practiceMcqsCount": 5
+  },
+  {
+    "id": "art-containers-namespaces-cgroups",
+    "slug": "container-internals-namespaces-cgroups-overlayfs",
+    "domainSlug": "devops-sre-kubernetes",
+    "domainName": "DevOps, SRE & Container Orchestration",
+    "title": "Container Internals: Linux Namespaces, cgroups v2 & OverlayFS",
+    "level": "ADVANCED",
+    "readTimeMinutes": 21,
+    "summary": "Deconstruct what a Linux container actually is: process isolation via Linux Namespaces (PID, Mount, Net, IPC, UTS, User), resource throttling via cgroups v2 (CFS quotas and OOM killers), and OverlayFS copy-up union filesystems.",
+    "keyConcepts": [
+      "Linux Namespaces (PID, Mount, Net, IPC, UTS, User)",
+      "Control Groups (cgroups v2) CPU Quotas & Memory Limits",
+      "OverlayFS Lower, Upper, and Merged Layer Architecture",
+      "Copy-up Mutation Semantics",
+      "Rootless Containers & User Namespace Mapping"
+    ],
+    "relatedRoleSlugs": [
+      "devops-engineer",
+      "backend-systems-engineer",
+      "cloud-architect"
+    ],
+    "practiceMcqsCount": 5
+  },
+  {
+    "id": "art-cloud-iam-zero-trust",
+    "slug": "cloud-security-iam-and-zero-trust",
+    "domainSlug": "cloud-infrastructure-architecture",
+    "domainName": "Cloud Computing & Enterprise Infrastructure",
+    "title": "Cloud Security Architecture: IAM Least Privilege, ABAC & OIDC Federation",
+    "level": "INTERMEDIATE",
+    "readTimeMinutes": 19,
+    "summary": "Zero Trust architecture in public clouds: Role-Based vs Attribute-Based Access Control (RBAC vs ABAC), IAM policy evaluation algorithms (Explicit Deny override), and keyless OpenID Connect (OIDC) identity federation in CI/CD.",
+    "keyConcepts": [
+      "Principle of Least Privilege (PoLP)",
+      "RBAC vs Attribute-Based Access Control (ABAC)",
+      "IAM Policy Evaluation Engine (Explicit Deny > Allow)",
+      "Keyless OIDC Token Federation for CI/CD",
+      "Zero Trust Defense-in-Depth Model"
+    ],
+    "relatedRoleSlugs": [
+      "cloud-architect",
+      "devops-engineer",
+      "cybersecurity-specialist"
+    ],
+    "practiceMcqsCount": 5
+  },
+  {
+    "id": "art-sre-slis-slos-budgets",
+    "slug": "site-reliability-engineering-slis-slos-and-error-budgets",
+    "domainSlug": "cloud-infrastructure-architecture",
+    "domainName": "Cloud Computing & Enterprise Infrastructure",
+    "title": "Site Reliability Engineering (SRE): SLIs, SLOs, Error Budgets & Burn Rates",
+    "level": "INTERMEDIATE",
+    "readTimeMinutes": 20,
+    "summary": "Master the quantitative discipline of Site Reliability Engineering: formulating valid Service Level Indicators (SLIs), setting defensible Service Level Objectives (SLOs), calculating Error Budget consumption, and alerting on multi-window burn rates.",
+    "keyConcepts": [
+      "SLIs, SLOs, and SLAs Distinction",
+      "Error Budget Mathematical Formulation (1 - SLO)",
+      "Multi-Window Multi-Burn-Rate Alerting",
+      "Automated Feature Deployment Freezes",
+      "High-Cardinality Observability Metrics"
+    ],
+    "relatedRoleSlugs": [
+      "devops-engineer",
+      "cloud-architect",
+      "backend-systems-engineer"
+    ],
+    "practiceMcqsCount": 5
+  },
+  {
+    "id": "art-cicd-gitops-security",
+    "slug": "cicd-pipeline-security-gitops-and-immutable-infrastructure",
+    "domainSlug": "devops-sre-kubernetes",
+    "domainName": "DevOps, SRE & Container Orchestration",
+    "title": "Modern CI/CD Security: GitOps, Supply Chain Security & Minimal Containers",
+    "level": "ADVANCED",
+    "readTimeMinutes": 22,
+    "summary": "Secure the modern software supply chain: GitOps pull-based declarative synchronization (ArgoCD/Flux), Software Bill of Materials (SBOM), cryptographic container signing (Sigstore/Cosign), and distroless minimal container images.",
+    "keyConcepts": [
+      "GitOps Pull-Based Reconciliation Loops",
+      "Automated Configuration Drift Correction",
+      "Software Bill of Materials (SBOM) Generation",
+      "Cryptographic Image Signing (Sigstore / Cosign)",
+      "Distroless & Multi-Stage Scratch Base Images"
+    ],
+    "relatedRoleSlugs": [
+      "devops-engineer",
+      "cloud-architect",
+      "cybersecurity-specialist"
     ],
     "practiceMcqsCount": 5
   }

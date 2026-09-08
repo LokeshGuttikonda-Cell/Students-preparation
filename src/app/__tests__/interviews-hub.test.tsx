@@ -126,4 +126,49 @@ describe('InterviewsHubPage', () => {
       expect(mockPush).toHaveBeenCalledWith('/interviews/sess_new_123');
     });
   });
+
+  it('renders technical interview Q&A repository with disciplines and questions', async () => {
+    render(<InterviewsHubPage />);
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Cloud & DevOps Engineer').length).toBeGreaterThan(0);
+    });
+
+    expect(screen.getByText('Top Technical Interview Questions & Answers')).toBeDefined();
+    expect(screen.getByText(/51\+ Master Technical Questions/i)).toBeDefined();
+    expect(screen.getAllByText('Data Structures & Algorithms').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('System Design & Scalability').length).toBeGreaterThan(0);
+
+    // Verify initial question rendered
+    expect(
+      screen.getByText('How do you implement an O(1) LRU (Least Recently Used) Cache?'),
+    ).toBeDefined();
+  });
+
+  it('filters questions by keyword and toggles accordion expansion', async () => {
+    render(<InterviewsHubPage />);
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Cloud & DevOps Engineer').length).toBeGreaterThan(0);
+    });
+
+    const searchInput = screen.getByPlaceholderText(
+      /Search interview questions by keyword/i,
+    );
+    fireEvent.change(searchInput, { target: { value: 'BBR' } });
+
+    await waitFor(() => {
+      expect(screen.getByText(/TCP Congestion Control/i)).toBeDefined();
+    });
+
+    // Toggle accordion to reveal model answer and follow-ups
+    const questionCard = screen.getByText(/TCP Congestion Control/i);
+    fireEvent.click(questionCard);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Model Answer & First-Principles Architecture/i)).toBeDefined();
+      expect(screen.getByText(/Senior Interviewer Counter-Questions/i)).toBeDefined();
+      expect(screen.getByText(/Common Candidate Traps & Pitfalls/i)).toBeDefined();
+    });
+  });
 });
