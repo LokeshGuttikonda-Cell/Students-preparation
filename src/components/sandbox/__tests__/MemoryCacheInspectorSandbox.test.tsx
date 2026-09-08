@@ -116,4 +116,71 @@ describe('MemoryCacheInspectorSandbox', () => {
     expect(screen.getByText(/Quadratic Jump Offsets/i)).toBeInTheDocument();
     expect(screen.getByText(/Quadratic Invariant/i)).toBeInTheDocument();
   });
+  it('switches to LSM-Tree & SSTables and tests writes, auto-flush, tombstone deletion, bloom filter read skipping, and leveled compaction', () => {
+    render(<MemoryCacheInspectorSandbox />);
+
+    const lsmTabBtn = screen.getByRole('button', { name: /LSM-Tree & SSTables/i });
+    fireEvent.click(lsmTabBtn);
+
+    // Verify Title & Initial State
+    expect(
+      screen.getByRole('heading', {
+        name: 'Log-Structured Merge-Tree (LSM-Tree) & SSTable Compaction Studio',
+        level: 3,
+      })
+    ).toBeInTheDocument();
+    expect(screen.getByText('In-Memory Tier (RAM)')).toBeInTheDocument();
+    expect(screen.getByText('Sequential Write-Ahead Log (WAL)')).toBeInTheDocument();
+    expect(screen.getByText('Persistent Storage Tier (Disk / SSD)')).toBeInTheDocument();
+    expect(screen.getByText('1 / 4 Entries')).toBeInTheDocument();
+    expect(screen.getByText('user:088')).toBeInTheDocument();
+
+    // 1. Insert keys up to capacity (triggering auto-flush)
+    const putAliceBtn = screen.getByRole('button', { name: /\+ Put "user:101=Alice"/i });
+    fireEvent.click(putAliceBtn);
+    expect(screen.getByText('2 / 4 Entries')).toBeInTheDocument();
+
+    const putBobBtn = screen.getByRole('button', { name: /\+ Put "user:204=Bob"/i });
+    fireEvent.click(putBobBtn);
+    expect(screen.getByText('3 / 4 Entries')).toBeInTheDocument();
+
+    // Fourth insertion triggers auto-flush to L0 SSTable
+    const putDavidBtn = screen.getByRole('button', { name: /Put "user:412=David" \(Triggers Auto-Flush\)/i });
+    fireEvent.click(putDavidBtn);
+
+    // MemTable should now be 0 / 4 (flushed)
+    expect(screen.getByText('0 / 4 Entries')).toBeInTheDocument();
+    expect(screen.getByText(/MemTable is empty \(flushed to disk\)/i)).toBeInTheDocument();
+    expect(screen.getAllByText('2 Tables').length).toBeGreaterThanOrEqual(1); // L0 tables count increased from 1 to 2
+
+    // 2. Tombstone Deletion
+    const deleteBtn = screen.getByRole('button', { name: /Delete "user:101" \(Tombstone\)/i });
+    fireEvent.click(deleteBtn);
+    expect(screen.getByText('1 / 4 Entries')).toBeInTheDocument();
+    expect(screen.getByText('TOMBSTONE')).toBeInTheDocument();
+    expect(screen.getAllByText('✝ DELETED').length).toBeGreaterThanOrEqual(1);
+
+    // 3. Point Read Query for existing key (Trace check)
+    const queryBobBtn = screen.getByRole('button', { name: /Query "user:204"/i });
+    fireEvent.click(queryBobBtn);
+    expect(screen.getByText(/Multi-Tier Read Pipeline Execution Trace:/i)).toBeInTheDocument();
+    expect(screen.getAllByText('HIT').length).toBeGreaterThanOrEqual(1);
+
+    // 4. Point Read Query for missing key (Bloom Filter Negative Skip)
+    const queryMissingBtn = screen.getByRole('button', { name: /Query Missing "user:999"/i });
+    fireEvent.click(queryMissingBtn);
+    expect(screen.getAllByText(/BLOOM_FILTER_NEGATIVE_SKIP/i).length).toBeGreaterThanOrEqual(1);
+
+    // 5. Trigger Leveled Compaction
+    const compactBtn = screen.getByRole('button', { name: /Trigger Leveled Compaction/i });
+    fireEvent.click(compactBtn);
+    expect(screen.getAllByText('0 Tables').length).toBeGreaterThanOrEqual(1); // L0 tables compacted into L1
+    expect(screen.getByText(/No L0 tables on disk \(compacted into L1\)/i)).toBeInTheDocument();
+
+    // 6. Reset Engine
+    const resetBtn = screen.getByRole('button', { name: /Reset Engine/i });
+    fireEvent.click(resetBtn);
+    expect(screen.getByText('1 / 4 Entries')).toBeInTheDocument();
+    expect(screen.getAllByText('1 Tables').length).toBeGreaterThanOrEqual(1); // L0 restored to 1 table
+  });
 });

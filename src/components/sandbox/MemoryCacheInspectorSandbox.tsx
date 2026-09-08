@@ -3,7 +3,51 @@
 import React, { useState } from 'react';
 import { Button } from '../ui/Button';
 
-export type InspectorMode = 'STACK_HEAP' | 'CACHE_LINE' | 'HASH_TABLE';
+export type InspectorMode =
+  | 'STACK_HEAP'
+  | 'CACHE_LINE'
+  | 'HASH_TABLE'
+  | 'LSM_TREE_SSTABLE';
+
+export interface WALRecord {
+  id: number;
+  op: 'PUT' | 'DELETE';
+  key: string;
+  value: string;
+}
+
+export interface LSMEntry {
+  key: string;
+  value: string;
+  version: number;
+  isTombstone?: boolean;
+}
+
+export interface SSTable {
+  id: string;
+  level: 0 | 1;
+  minKey: string;
+  maxKey: string;
+  entries: LSMEntry[];
+  bloomFilterBits: number[]; // 8-bit array
+  sizeBytes: number;
+}
+
+export interface ReadTraceStep {
+  stage: string;
+  target: string;
+  result: 'HIT' | 'MISS' | 'BLOOM_FILTER_NEGATIVE_SKIP';
+  detail: string;
+}
+
+export interface LSMAuditEvent {
+  id: number;
+  time: string;
+  op: string;
+  badge: string;
+  badgeClass: string;
+  message: string;
+}
 
 export interface StackHeapStep {
   step: number;
@@ -444,6 +488,445 @@ export function MemoryCacheInspectorSandbox() {
     return { slots, totalProbes, type: 'open_addressing' as const };
   };
 
+  // --- Module 4: LSM-Tree & SSTable Compaction State ---
+  const computeBloomFilterBits = (keys: string[]): number[] => {
+    const bits = [0, 0, 0, 0, 0, 0, 0, 0];
+    keys.forEach((k) => {
+      let h1 = 0;
+      let h2 = 0;
+      for (let i = 0; i < k.length; i++) {
+        h1 = (h1 * 31 + k.charCodeAt(i)) % 8;
+        h2 = (h2 * 17 + k.charCodeAt(i)) % 8;
+      }
+      bits[h1] = 1;
+      bits[h2] = 1;
+    });
+    return bits;
+  };
+
+  const checkBloomFilter = (bits: number[], key: string): boolean => {
+    let h1 = 0;
+    let h2 = 0;
+    for (let i = 0; i < key.length; i++) {
+      h1 = (h1 * 31 + key.charCodeAt(i)) % 8;
+      h2 = (h2 * 17 + key.charCodeAt(i)) % 8;
+    }
+    return bits[h1] === 1 && bits[h2] === 1;
+  };
+
+  const INITIAL_WAL: WALRecord[] = [
+    { id: 1, op: 'PUT', key: 'user:088', value: 'RootAdmin' },
+  ];
+
+  const INITIAL_MEMTABLE: LSMEntry[] = [
+    { key: 'user:088', value: 'RootAdmin', version: 1 },
+  ];
+
+  const INITIAL_L0_TABLES: SSTable[] = [
+    {
+      id: 'SSTable-L0-1',
+      level: 0,
+      minKey: 'user:010',
+      maxKey: 'user:075',
+      entries: [
+        { key: 'user:010', value: 'SystemGuest', version: 1 },
+        { key: 'user:075', value: 'Operator', version: 1 },
+      ],
+      bloomFilterBits: computeBloomFilterBits(['user:010', 'user:075']),
+      sizeBytes: 256,
+    },
+  ];
+
+  const INITIAL_L1_TABLES: SSTable[] = [
+    {
+      id: 'SSTable-L1-1',
+      level: 1,
+      minKey: 'user:001',
+      maxKey: 'user:050',
+      entries: [
+        { key: 'user:001', value: 'Genesis', version: 1 },
+        { key: 'user:045', value: 'Auditor', version: 1 },
+      ],
+      bloomFilterBits: computeBloomFilterBits(['user:001', 'user:045']),
+      sizeBytes: 512,
+    },
+    {
+      id: 'SSTable-L1-2',
+      level: 1,
+      minKey: 'user:051',
+      maxKey: 'user:099',
+      entries: [
+        { key: 'user:060', value: 'Reviewer', version: 1 },
+        { key: 'user:095', value: 'ArchivedUser', version: 1, isTombstone: true },
+      ],
+      bloomFilterBits: computeBloomFilterBits(['user:060', 'user:095']),
+      sizeBytes: 512,
+    },
+  ];
+
+  const [walEntries, setWalEntries] = useState<WALRecord[]>(INITIAL_WAL);
+  const [memTable, setMemTable] = useState<LSMEntry[]>(INITIAL_MEMTABLE);
+  const [l0Tables, setL0Tables] = useState<SSTable[]>(INITIAL_L0_TABLES);
+  const [l1Tables, setL1Tables] = useState<SSTable[]>(INITIAL_L1_TABLES);
+  const [readTrace, setReadTrace] = useState<ReadTraceStep[] | null>(null);
+  const [lsmCustomKey, setLsmCustomKey] = useState('');
+  const [lsmCustomVal, setLsmCustomVal] = useState('');
+  const [lsmAuditLog, setLsmAuditLog] = useState<LSMAuditEvent[]>([
+    {
+      id: 1,
+      time: '12:00:00',
+      op: 'INIT',
+      badge: 'STORAGE_INIT',
+      badgeClass: 'bg-slate-100 text-slate-800 border-slate-300',
+      message: 'LSM-Tree storage engine initialized: MemTable active (capacity 4), WAL linked, L0 and L1 SSTables loaded.',
+    },
+  ]);
+
+  const handleLsmPut = (kToPut?: string, vToPut?: string) => {
+    const key = (kToPut || lsmCustomKey).trim();
+    const val = (vToPut || lsmCustomVal).trim();
+    if (!key || !val) return;
+
+    // Append to WAL
+    setWalEntries((prev) => [
+      ...prev,
+      { id: Date.now(), op: 'PUT', key, value: val },
+    ]);
+
+    // Insert sorted into MemTable
+    const nextMem = [...memTable.filter((e) => e.key !== key), { key, value: val, version: Date.now() }].sort((a, b) =>
+      a.key.localeCompare(b.key)
+    );
+
+    if (nextMem.length >= 4) {
+      // Auto-flush to L0 SSTable
+      const newL0: SSTable = {
+        id: 'SSTable-L0-' + (l0Tables.length + 1),
+        level: 0,
+        minKey: nextMem[0].key,
+        maxKey: nextMem[nextMem.length - 1].key,
+        entries: nextMem,
+        bloomFilterBits: computeBloomFilterBits(nextMem.map((e) => e.key)),
+        sizeBytes: nextMem.length * 128,
+      };
+
+      setL0Tables((prev) => [newL0, ...prev]);
+      setMemTable([]);
+      setWalEntries([]);
+
+      setLsmAuditLog((prev) => [
+        {
+          id: Date.now(),
+          time: new Date().toLocaleTimeString(),
+          op: 'FLUSH_L0',
+          badge: 'FLUSH_L0',
+          badgeClass: 'bg-amber-100 text-amber-900 border-amber-300',
+          message: 'MemTable reached capacity threshold (4 entries)! Flushed to disk as ' + newL0.id + ' (Range: [' + newL0.minKey + '..' + newL0.maxKey + ']). WAL truncated.',
+        },
+        ...prev.slice(0, 8),
+      ]);
+    } else {
+      setMemTable(nextMem);
+      setLsmAuditLog((prev) => [
+        {
+          id: Date.now(),
+          time: new Date().toLocaleTimeString(),
+          op: 'PUT',
+          badge: 'MEMTABLE_PUT',
+          badgeClass: 'bg-emerald-100 text-emerald-900 border-emerald-300',
+          message: 'Appended to disk WAL. Inserted "' + key + '=' + val + '" sorted into in-memory MemTable (Skiplist). 0 disk seeks executed.',
+        },
+        ...prev.slice(0, 8),
+      ]);
+    }
+
+    setLsmCustomKey('');
+    setLsmCustomVal('');
+  };
+
+  const handleLsmDelete = (keyToDelete: string) => {
+    const key = keyToDelete.trim();
+    if (!key) return;
+
+    setWalEntries((prev) => [
+      ...prev,
+      { id: Date.now(), op: 'DELETE', key, value: '✝ DELETED' },
+    ]);
+
+    const nextMem = [
+      ...memTable.filter((e) => e.key !== key),
+      { key, value: '✝ DELETED', version: Date.now(), isTombstone: true },
+    ].sort((a, b) => a.key.localeCompare(b.key));
+
+    if (nextMem.length >= 4) {
+      const newL0: SSTable = {
+        id: 'SSTable-L0-' + (l0Tables.length + 1),
+        level: 0,
+        minKey: nextMem[0].key,
+        maxKey: nextMem[nextMem.length - 1].key,
+        entries: nextMem,
+        bloomFilterBits: computeBloomFilterBits(nextMem.map((e) => e.key)),
+        sizeBytes: nextMem.length * 128,
+      };
+
+      setL0Tables((prev) => [newL0, ...prev]);
+      setMemTable([]);
+      setWalEntries([]);
+
+      setLsmAuditLog((prev) => [
+        {
+          id: Date.now(),
+          time: new Date().toLocaleTimeString(),
+          op: 'TOMBSTONE_FLUSH',
+          badge: 'TOMBSTONE_FLUSH',
+          badgeClass: 'bg-rose-100 text-rose-900 border-rose-300',
+          message: 'Tombstone marker for "' + key + '" triggered L0 flush. Deleted keys are written sequentially without reading disk!',
+        },
+        ...prev.slice(0, 8),
+      ]);
+    } else {
+      setMemTable(nextMem);
+      setLsmAuditLog((prev) => [
+        {
+          id: Date.now(),
+          time: new Date().toLocaleTimeString(),
+          op: 'TOMBSTONE',
+          badge: 'TOMBSTONE_APPEND',
+          badgeClass: 'bg-rose-100 text-rose-900 border-rose-300',
+          message: 'Tombstone marker appended for "' + key + '". In LSM-Trees, deletes are instantaneous sequential writes without reading disk!',
+        },
+        ...prev.slice(0, 8),
+      ]);
+    }
+  };
+
+  const handleLsmPointRead = (targetKey: string) => {
+    const key = targetKey.trim();
+    const trace: ReadTraceStep[] = [];
+    let found = false;
+
+    // 1. Check RAM MemTable
+    const memMatch = memTable.find((e) => e.key === key);
+    if (memMatch) {
+      if (memMatch.isTombstone) {
+        trace.push({
+          stage: '1. In-Memory MemTable (RAM)',
+          target: 'MemTable (Skiplist)',
+          result: 'HIT',
+          detail: 'Found Tombstone marker for "' + key + '". Key was deleted! Returned NOT_FOUND with 0 disk seeks.',
+        });
+      } else {
+        trace.push({
+          stage: '1. In-Memory MemTable (RAM)',
+          target: 'MemTable (Skiplist)',
+          result: 'HIT',
+          detail: 'Instant RAM Hit! Value: "' + memMatch.value + '". Returned in sub-microsecond latency with 0 disk seeks.',
+        });
+      }
+      found = true;
+    } else {
+      trace.push({
+        stage: '1. In-Memory MemTable (RAM)',
+        target: 'MemTable (Skiplist)',
+        result: 'MISS',
+        detail: 'Key "' + key + '" not present in active RAM MemTable. Escalating to Persistent Storage Tier...',
+      });
+    }
+
+    // 2. Check Level 0 SSTables (if not found in MemTable)
+    if (!found) {
+      for (const table of l0Tables) {
+        const bloomHit = checkBloomFilter(table.bloomFilterBits, key);
+        if (!bloomHit) {
+          trace.push({
+            stage: '2. Disk Level 0 SSTable',
+            target: table.id,
+            result: 'BLOOM_FILTER_NEGATIVE_SKIP',
+            detail: 'Bloom Filter returned DEFINITE NEGATIVE for ' + table.id + '. Guaranteed key is absent. Skipped disk I/O entirely!',
+          });
+        } else {
+          // Bloom positive: check entries
+          const entry = table.entries.find((e) => e.key === key);
+          if (entry) {
+            if (entry.isTombstone) {
+              trace.push({
+                stage: '2. Disk Level 0 SSTable',
+                target: table.id,
+                result: 'HIT',
+                detail: 'Bloom Filter positive -> Read block from ' + table.id + ' -> Found Tombstone marker! Key was deleted.',
+              });
+            } else {
+              trace.push({
+                stage: '2. Disk Level 0 SSTable',
+                target: table.id,
+                result: 'HIT',
+                detail: 'Bloom Filter positive -> Read block from ' + table.id + ' -> Value: "' + entry.value + '".',
+              });
+            }
+            found = true;
+            break;
+          } else {
+            trace.push({
+              stage: '2. Disk Level 0 SSTable',
+              target: table.id,
+              result: 'MISS',
+              detail: 'Bloom Filter FALSE POSITIVE on ' + table.id + '! Read disk block but key was not present.',
+            });
+          }
+        }
+      }
+    }
+
+    // 3. Check Level 1 SSTables (if still not found)
+    if (!found) {
+      for (const table of l1Tables) {
+        if (key >= table.minKey && key <= table.maxKey) {
+          const bloomHit = checkBloomFilter(table.bloomFilterBits, key);
+          if (!bloomHit) {
+            trace.push({
+              stage: '3. Disk Level 1 SSTable',
+              target: table.id,
+              result: 'BLOOM_FILTER_NEGATIVE_SKIP',
+              detail: 'Key within range [' + table.minKey + '..' + table.maxKey + '], but Bloom filter was negative. Skipped disk read on ' + table.id + '.',
+            });
+          } else {
+            const entry = table.entries.find((e) => e.key === key);
+            if (entry) {
+              if (entry.isTombstone) {
+                trace.push({
+                  stage: '3. Disk Level 1 SSTable',
+                  target: table.id,
+                  result: 'HIT',
+                  detail: 'Found Tombstone in partitioned ' + table.id + '. Key is deleted.',
+                });
+              } else {
+                trace.push({
+                  stage: '3. Disk Level 1 SSTable',
+                  target: table.id,
+                  result: 'HIT',
+                  detail: 'Found in partitioned ' + table.id + '! Binary searched block index -> Value: "' + entry.value + '".',
+                });
+              }
+              found = true;
+              break;
+            } else {
+              trace.push({
+                stage: '3. Disk Level 1 SSTable',
+                target: table.id,
+                result: 'MISS',
+                detail: 'Key not found in block index of ' + table.id + '.',
+              });
+            }
+          }
+        }
+      }
+    }
+
+    if (!found) {
+      trace.push({
+        stage: '4. Pipeline Result',
+        target: 'Corpus Exhausted',
+        result: 'MISS',
+        detail: 'Key "' + key + '" does not exist in active MemTable, L0, or L1 SSTables. Returned NULL.',
+      });
+    }
+
+    setReadTrace(trace);
+    setLsmAuditLog((prev) => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        op: 'POINT_READ',
+        badge: found ? 'READ_HIT' : 'READ_MISS',
+        badgeClass: found ? 'bg-emerald-100 text-emerald-900 border-emerald-300' : 'bg-slate-100 text-slate-800 border-slate-300',
+        message: 'Point Read query for "' + key + '": Evaluated ' + trace.length + ' stages across RAM and Storage tiers.',
+      },
+      ...prev.slice(0, 8),
+    ]);
+  };
+
+  const handleLsmCompaction = () => {
+    const allEntries: LSMEntry[] = [];
+    l0Tables.forEach((t) => allEntries.push(...t.entries));
+    l1Tables.forEach((t) => allEntries.push(...t.entries));
+
+    allEntries.sort((a, b) => {
+      const cmp = a.key.localeCompare(b.key);
+      if (cmp !== 0) return cmp;
+      return b.version - a.version;
+    });
+
+    const compactedMap = new Map<string, LSMEntry>();
+    allEntries.forEach((e) => {
+      if (!compactedMap.has(e.key)) {
+        compactedMap.set(e.key, e);
+      }
+    });
+
+    const activeEntries = Array.from(compactedMap.values()).filter((e) => !e.isTombstone);
+
+    const mid = Math.ceil(activeEntries.length / 2);
+    const part1 = activeEntries.slice(0, mid);
+    const part2 = activeEntries.slice(mid);
+
+    const nextL1: SSTable[] = [];
+    if (part1.length > 0) {
+      nextL1.push({
+        id: 'SSTable-L1-A',
+        level: 1,
+        minKey: part1[0].key,
+        maxKey: part1[part1.length - 1].key,
+        entries: part1,
+        bloomFilterBits: computeBloomFilterBits(part1.map((e) => e.key)),
+        sizeBytes: part1.length * 256,
+      });
+    }
+    if (part2.length > 0) {
+      nextL1.push({
+        id: 'SSTable-L1-B',
+        level: 1,
+        minKey: part2[0].key,
+        maxKey: part2[part2.length - 1].key,
+        entries: part2,
+        bloomFilterBits: computeBloomFilterBits(part2.map((e) => e.key)),
+        sizeBytes: part2.length * 256,
+      });
+    }
+
+    setL0Tables([]);
+    setL1Tables(nextL1);
+
+    setLsmAuditLog((prev) => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        op: 'COMPACTION',
+        badge: 'LEVELED_COMPACTION',
+        badgeClass: 'bg-purple-100 text-purple-900 border-purple-300',
+        message: 'Leveled Compaction Complete! Overlapping L0 SSTables merged into strictly partitioned, non-overlapping L1 SSTables. Older versions eliminated and tombstones permanently garbage collected.',
+      },
+      ...prev.slice(0, 8),
+    ]);
+  };
+
+  const handleLsmReset = () => {
+    setWalEntries(INITIAL_WAL);
+    setMemTable(INITIAL_MEMTABLE);
+    setL0Tables(INITIAL_L0_TABLES);
+    setL1Tables(INITIAL_L1_TABLES);
+    setReadTrace(null);
+    setLsmAuditLog([
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        op: 'RESET',
+        badge: 'ENGINE_RESET',
+        badgeClass: 'bg-slate-100 text-slate-800 border-slate-300',
+        message: 'LSM-Tree storage engine reset to initial clean baseline state.',
+      },
+    ]);
+  };
+
   const hashState = computeHashTable();
 
   return (
@@ -497,6 +980,17 @@ export function MemoryCacheInspectorSandbox() {
             }`}
           >
             Hash Table Collision Probing
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveSubTab('LSM_TREE_SSTABLE')}
+            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+              activeSubTab === 'LSM_TREE_SSTABLE'
+                ? 'bg-primary-700 text-white shadow-xs'
+                : 'text-text-muted hover:text-text'
+            }`}
+          >
+            LSM-Tree &amp; SSTables
           </button>
         </div>
       </div>
@@ -1334,6 +1828,465 @@ export function MemoryCacheInspectorSandbox() {
                 )}
               </div>
             ) : null}
+          </div>
+        </div>
+      )}
+
+      {/* SUB-TAB 4: LOG-STRUCTURED MERGE-TREE (LSM-TREE) & SSTABLES */}
+      {activeSubTab === 'LSM_TREE_SSTABLE' && (
+        <div className="p-6 space-y-6">
+          {/* Module Header */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-border pb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-accent-700 font-mono">
+                  Module 4: Storage Engine Architecture
+                </span>
+                <span className="text-[11px] font-semibold bg-primary-50 text-primary-800 px-2 py-0.5 rounded-full border border-primary-200">
+                  Sequential vs Random I/O
+                </span>
+              </div>
+              <h3 className="text-lg font-bold text-text mt-1">
+                Log-Structured Merge-Tree (LSM-Tree) &amp; SSTable Compaction Studio
+              </h3>
+              <p className="text-xs text-text-muted mt-0.5 max-w-3xl leading-relaxed">
+                Explore the write-optimized storage architecture powering <strong>RocksDB, Apache Cassandra, and Google Bigtable</strong>. Observe sequential Write-Ahead Log (WAL) appends, RAM MemTable skiplist insertion, auto-flush to disk Level 0 (L0) SSTables, Bloom filter read skipping, tombstone deletions, and multi-way merge Leveled Compaction.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 self-start md:self-auto font-mono text-[11px]">
+              <span className="bg-canvas border border-border px-2.5 py-1 rounded-md text-text-muted">
+                MemTable: <strong className="text-primary-700">{memTable.length} / 4 Entries</strong>
+              </span>
+              <span className="bg-canvas border border-border px-2.5 py-1 rounded-md text-text-muted">
+                Disk L0: <strong className="text-amber-700">{l0Tables.length} Tables</strong>
+              </span>
+              <span className="bg-canvas border border-border px-2.5 py-1 rounded-md text-text-muted">
+                Disk L1: <strong className="text-emerald-700">{l1Tables.length} Tables</strong>
+              </span>
+            </div>
+          </div>
+
+          {/* Action Control Toolbar */}
+          <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+            <span className="text-xs font-bold uppercase tracking-wider text-text-muted block">
+              Storage Engine Operations (Write, Read, Delete &amp; Compact):
+            </span>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => handleLsmPut('user:101', 'Alice')}
+                className="text-xs cursor-pointer"
+              >
+                + Put &quot;user:101=Alice&quot;
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => handleLsmPut('user:204', 'Bob')}
+                className="text-xs cursor-pointer"
+              >
+                + Put &quot;user:204=Bob&quot;
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => handleLsmPut('user:309', 'Charlie')}
+                className="text-xs cursor-pointer"
+              >
+                + Put &quot;user:309=Charlie&quot;
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => handleLsmPut('user:412', 'David')}
+                className="text-xs cursor-pointer"
+              >
+                ⚡ Put &quot;user:412=David&quot; (Triggers Auto-Flush)
+              </Button>
+
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => handleLsmDelete('user:101')}
+                className="text-xs cursor-pointer"
+              >
+                ✝ Delete &quot;user:101&quot; (Tombstone)
+              </Button>
+
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => handleLsmPointRead('user:204')}
+                className="text-xs cursor-pointer"
+              >
+                🔍 Query &quot;user:204&quot;
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => handleLsmPointRead('user:999')}
+                className="text-xs cursor-pointer"
+              >
+                🔍 Query Missing &quot;user:999&quot; (Bloom Skip)
+              </Button>
+
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleLsmCompaction}
+                className="bg-purple-50 text-purple-900 border-purple-300 hover:bg-purple-100 text-xs cursor-pointer font-bold"
+              >
+                ⚡ Trigger Leveled Compaction (L0 → L1)
+              </Button>
+
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleLsmReset}
+                className="text-xs cursor-pointer ml-auto"
+              >
+                ↺ Reset Engine
+              </Button>
+            </div>
+          </div>
+
+          {/* Read Pipeline Trace HUD (if active) */}
+          {readTrace && (
+            <div className="bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-800 rounded-xl p-4 space-y-2 text-xs">
+              <div className="flex items-center justify-between font-bold text-indigo-900 dark:text-indigo-200">
+                <span>Multi-Tier Read Pipeline Execution Trace:</span>
+                <span className="font-mono text-[11px]">{readTrace.length} Evaluation Stages</span>
+              </div>
+
+              <div className="space-y-1.5 pt-1">
+                {readTrace.map((step, idx) => (
+                  <div
+                    key={idx}
+                    className="p-2.5 rounded-lg bg-canvas border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-[11px] text-text-muted font-bold">{step.stage}:</span>
+                      <span className="font-mono text-primary-700 bg-surface px-1.5 py-0.5 rounded border border-border font-bold">
+                        {step.target}
+                      </span>
+                      <span className="text-text font-medium">{step.detail}</span>
+                    </div>
+                    <span className={`font-mono text-[10px] font-bold px-2 py-0.5 rounded border self-start sm:self-center shrink-0 ${
+                      step.result === 'HIT'
+                        ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                        : step.result === 'BLOOM_FILTER_NEGATIVE_SKIP'
+                        ? 'bg-purple-100 text-purple-900 border-purple-300'
+                        : 'bg-slate-100 text-slate-800 border-slate-300'
+                    }`}>
+                      {step.result}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Split-Pane: Memory Tier (RAM) vs Persistent Storage Tier (Disk/SSD) */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* LEFT: RAM TIER */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-primary-700 font-mono flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-primary-600 animate-pulse"></span>
+                  In-Memory Tier (RAM)
+                </span>
+                <span className="text-[11px] font-mono text-text-muted">Sub-Microsecond Latency</span>
+              </div>
+
+              {/* Write-Ahead Log (WAL) */}
+              <div className="bg-surface border border-border rounded-xl p-4 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold text-text font-mono">Sequential Write-Ahead Log (WAL)</span>
+                  <span className="text-[10px] font-mono text-text-muted">Append-Only Sequential I/O</span>
+                </div>
+                <div className="bg-canvas border border-border rounded-lg p-2.5 font-mono text-xs max-h-32 overflow-y-auto space-y-1">
+                  {walEntries.length > 0 ? (
+                    walEntries.map((w) => (
+                      <div key={w.id} className="flex items-center justify-between text-[11px]">
+                        <span className="text-primary-700 font-bold">APPEND: [{w.op}] {w.key}</span>
+                        <span className="text-text-muted">{w.value}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <span className="text-text-muted italic text-[11px]">WAL truncated after MemTable flush to disk</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Active MemTable (Skiplist) */}
+              <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between text-xs">
+                  <div>
+                    <span className="font-bold text-text font-mono block">Active MemTable (SkipList in RAM)</span>
+                    <span className="text-[10px] text-text-muted">O(log N) Sorted Lookups &amp; Inserts</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-mono font-bold text-primary-700 bg-primary-50 px-2 py-0.5 rounded border border-primary-200">
+                      Capacity: {memTable.length} / 4
+                    </span>
+                  </div>
+                </div>
+
+                {/* Capacity Progress Bar */}
+                <div className="w-full bg-canvas rounded-full h-1.5 border border-border overflow-hidden">
+                  <div
+                    className={`h-full transition-all ${
+                      memTable.length >= 3 ? 'bg-amber-500' : 'bg-primary-600'
+                    }`}
+                    style={{ width: `${(memTable.length / 4) * 100}%` }}
+                  />
+                </div>
+
+                <div className="space-y-1.5 pt-1">
+                  {memTable.length > 0 ? (
+                    memTable.map((entry) => (
+                      <div
+                        key={entry.key}
+                        className={`p-2.5 rounded-lg border flex items-center justify-between text-xs font-mono ${
+                          entry.isTombstone
+                            ? 'bg-rose-50/60 dark:bg-rose-950/20 border-rose-300'
+                            : 'bg-canvas border-border'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-text">{entry.key}</span>
+                          <span className="text-text-muted">→</span>
+                          <span className={`font-semibold ${entry.isTombstone ? 'text-rose-700' : 'text-primary-700'}`}>
+                            {entry.value}
+                          </span>
+                        </div>
+                        <span className={`text-[10px] px-1.5 py-0.2 rounded font-bold ${
+                          entry.isTombstone ? 'bg-rose-100 text-rose-900' : 'bg-slate-100 text-slate-800'
+                        }`}>
+                          {entry.isTombstone ? 'TOMBSTONE' : `v${entry.version % 1000}`}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-4 text-xs text-text-muted italic bg-canvas rounded-lg border border-border">
+                      MemTable is empty (flushed to disk)
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* RIGHT: PERSISTENT STORAGE TIER (DISK / SSD) */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-amber-700 font-mono flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-amber-600"></span>
+                  Persistent Storage Tier (Disk / SSD)
+                </span>
+                <span className="text-[11px] font-mono text-text-muted">Immutable Sorted String Tables</span>
+              </div>
+
+              {/* Level 0 SSTables (Overlapping) */}
+              <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between text-xs">
+                  <div>
+                    <span className="font-bold text-text font-mono block">Level 0 (L0) SSTables (Overlapping Keys)</span>
+                    <span className="text-[10px] text-text-muted">Flushed directly from RAM without merge compaction</span>
+                  </div>
+                  <span className="text-[10px] font-mono bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded font-bold">
+                    {l0Tables.length} Tables
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  {l0Tables.length > 0 ? (
+                    l0Tables.map((tbl) => (
+                      <div
+                        key={tbl.id}
+                        className="p-3 rounded-lg bg-canvas border border-border space-y-2 text-xs"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-mono font-bold text-text text-xs">{tbl.id}</span>
+                          <span className="font-mono text-[10px] bg-surface px-1.5 py-0.5 rounded border border-border text-text-muted">
+                            Range: [{tbl.minKey} .. {tbl.maxKey}]
+                          </span>
+                        </div>
+
+                        {/* Bloom Filter Bit Array */}
+                        <div className="flex items-center justify-between text-[10px] font-mono text-text-muted pt-0.5">
+                          <span>8-Bit Bloom Filter:</span>
+                          <div className="flex items-center gap-1">
+                            {tbl.bloomFilterBits.map((b, bIdx) => (
+                              <span
+                                key={bIdx}
+                                className={`w-4 h-4 rounded flex items-center justify-center font-bold ${
+                                  b === 1 ? 'bg-primary-600 text-white' : 'bg-surface text-text-muted border border-border'
+                                }`}
+                              >
+                                {b}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Stored Key Entries */}
+                        <div className="flex flex-wrap gap-1.5 pt-1">
+                          {tbl.entries.map((e) => (
+                            <span
+                              key={e.key}
+                              className={`px-1.5 py-0.5 rounded border font-mono text-[10px] ${
+                                e.isTombstone
+                                  ? 'bg-rose-50 text-rose-800 border-rose-300'
+                                  : 'bg-surface text-text border-border'
+                              }`}
+                            >
+                              {e.key}={e.value}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-3 text-xs text-text-muted italic bg-canvas rounded-lg border border-border">
+                      No L0 tables on disk (compacted into L1)
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Level 1 SSTables (Compacted & Partitioned) */}
+              <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between text-xs">
+                  <div>
+                    <span className="font-bold text-text font-mono block">Level 1 (L1) SSTables (Partitioned &amp; Non-Overlapping)</span>
+                    <span className="text-[10px] text-text-muted">Strictly ordered key partitions with 1 disk seek maximum</span>
+                  </div>
+                  <span className="text-[10px] font-mono bg-emerald-100 text-emerald-900 border border-emerald-300 px-2 py-0.5 rounded font-bold">
+                    {l1Tables.length} Tables
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  {l1Tables.map((tbl) => (
+                    <div
+                      key={tbl.id}
+                      className="p-3 rounded-lg bg-canvas border border-border space-y-2 text-xs"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono font-bold text-text text-xs">{tbl.id}</span>
+                        <span className="font-mono text-[10px] bg-emerald-50 text-emerald-800 border border-emerald-300 px-1.5 py-0.5 rounded font-bold">
+                          Partition: [{tbl.minKey} .. {tbl.maxKey}]
+                        </span>
+                      </div>
+
+                      {/* Bloom Filter */}
+                      <div className="flex items-center justify-between text-[10px] font-mono text-text-muted pt-0.5">
+                        <span>8-Bit Bloom Filter:</span>
+                        <div className="flex items-center gap-1">
+                          {tbl.bloomFilterBits.map((b, bIdx) => (
+                            <span
+                              key={bIdx}
+                              className={`w-4 h-4 rounded flex items-center justify-center font-bold ${
+                                b === 1 ? 'bg-emerald-600 text-white' : 'bg-surface text-text-muted border border-border'
+                              }`}
+                            >
+                              {b}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Entries */}
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {tbl.entries.map((e) => (
+                          <span
+                            key={e.key}
+                            className={`px-1.5 py-0.5 rounded border font-mono text-[10px] ${
+                              e.isTombstone
+                                ? 'bg-rose-50 text-rose-800 border-rose-300'
+                                : 'bg-surface text-text border-border'
+                            }`}
+                          >
+                            {e.key}={e.value}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Real-Time Storage Engine Audit Log */}
+          <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-bold text-text uppercase tracking-wider">
+                Storage Engine I/O Audit Log &amp; Event Stream:
+              </span>
+              <span className="text-text-muted font-mono text-[11px]">
+                {lsmAuditLog.length} Recorded Operations
+              </span>
+            </div>
+
+            <div className="space-y-2">
+              {lsmAuditLog.map((ev) => (
+                <div
+                  key={ev.id}
+                  className="p-2.5 rounded-lg bg-canvas border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-text-muted text-[11px]">{ev.time}</span>
+                    <span className={`font-mono font-bold text-[10px] px-2 py-0.5 rounded border ${ev.badgeClass}`}>
+                      {ev.badge}
+                    </span>
+                    <span className="text-text font-medium">{ev.message}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Socratic Mathematical Invariant Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                1. Sequential vs Random I/O
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                By appending to a Write-Ahead Log and writing to in-memory skiplists, LSM-Trees convert random writes into sequential disk I/O, achieving 100x write throughput over in-place B+ Trees.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                2. Write Amplification (WA)
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                Write Amplification is the ratio of bytes written to storage vs bytes requested by user: WA = Bytes_disk / Bytes_user. Leveled compaction bounds WA while minimizing space amplification.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                3. Bloom Filter Short-Circuit
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                Bloom filters provide O(1) definite negative short-circuits. If a key is absent, the bloom filter skips the SSTable without performing expensive random disk seeks.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                4. Tombstone Deletion GC
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                Deletes are written as tombstone markers. Reclaiming disk space and purging tombstones occurs only during background merge compaction when merging into the oldest storage level.
+              </p>
+            </div>
           </div>
         </div>
       )}
