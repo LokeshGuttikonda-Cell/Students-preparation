@@ -10,8 +10,42 @@ export type InspectorMode =
   | 'LSM_TREE_SSTABLE'
   | 'ARIES_RECOVERY'
   | 'CACHE_STAMPEDE_XFETCH'
-  | 'BTREE_LOCK_CRABBING';
+  | 'BTREE_LOCK_CRABBING'
+  | 'MVCC_SNAPSHOT_ISOLATION';
 
+
+
+// --- Module 8: MVCC, Snapshot Isolation & Write Skew Types ---
+export type MvccIsolationLevel = 'SNAPSHOT_ISOLATION' | 'SERIALIZABLE_SNAPSHOT_ISOLATION';
+
+export interface MvccTupleVersion {
+  versionId: string;
+  doctorName: string;
+  onCall: boolean;
+  xmin: number;
+  xmax: number; // 0 if currently active
+  createdAtTx: string;
+  expiredAtTx?: string;
+}
+
+export interface MvccTransaction {
+  txId: number;
+  label: string;
+  doctorTarget: string;
+  snapshotDescriptor: string;
+  observedOnCallCount: number | null;
+  status: 'IDLE' | 'ACTIVE_READ' | 'ROW_MODIFIED' | 'COMMITTED' | 'ABORTED_SSI_CYCLE';
+  statusMessage: string;
+}
+
+export interface MvccAuditEvent {
+  id: number;
+  time: string;
+  isolation: string;
+  badge: string;
+  badgeClass: string;
+  message: string;
+}
 
 // --- Module 7: B-Tree Concurrency & Optimistic Lock Coupling (OLC) Types ---
 export type BTreeConcurrencyMode = 'PESSIMISTIC_CRABBING' | 'OPTIMISTIC_LOCK_COUPLING';
@@ -2040,6 +2074,211 @@ export function MemoryCacheInspectorSandbox() {
     ]);
   };
 
+
+  // --- Module 8: MVCC & Snapshot Isolation State ---
+  const [mvccIsolation, setMvccIsolation] = useState<MvccIsolationLevel>('SNAPSHOT_ISOLATION');
+  const [mvccStep, setMvccStep] = useState<number>(0);
+  const [mvccWriteSkewAlert, setMvccWriteSkewAlert] = useState<string | null>(null);
+
+  const initialMvccTuples: MvccTupleVersion[] = [
+    { versionId: 'Alice-v1', doctorName: 'Alice', onCall: true, xmin: 90, xmax: 0, createdAtTx: 'T_init (txid 90)' },
+    { versionId: 'Bob-v1', doctorName: 'Bob', onCall: true, xmin: 90, xmax: 0, createdAtTx: 'T_init (txid 90)' },
+    { versionId: 'Carol-v1', doctorName: 'Carol', onCall: false, xmin: 85, xmax: 0, createdAtTx: 'T_init (txid 85)' },
+  ];
+
+  const initialMvccT1: MvccTransaction = {
+    txId: 101,
+    label: 'T1: Dr. Alice Leave Request',
+    doctorTarget: 'Alice',
+    snapshotDescriptor: '100:100:[]',
+    observedOnCallCount: null,
+    status: 'IDLE',
+    statusMessage: 'Transaction T1 idle (txid 101). Invariant rule: At least 1 doctor must remain on call.',
+  };
+
+  const initialMvccT2: MvccTransaction = {
+    txId: 102,
+    label: 'T2: Dr. Bob Leave Request',
+    doctorTarget: 'Bob',
+    snapshotDescriptor: '100:100:[101]',
+    observedOnCallCount: null,
+    status: 'IDLE',
+    statusMessage: 'Transaction T2 idle (txid 102). Invariant rule: At least 1 doctor must remain on call.',
+  };
+
+  const [mvccTuples, setMvccTuples] = useState<MvccTupleVersion[]>(initialMvccTuples);
+  const [mvccT1, setMvccT1] = useState<MvccTransaction>(initialMvccT1);
+  const [mvccT2, setMvccT2] = useState<MvccTransaction>(initialMvccT2);
+  const [mvccAuditLog, setMvccAuditLog] = useState<MvccAuditEvent[]>([
+    {
+      id: 1,
+      time: '12:00:00',
+      isolation: 'SNAPSHOT_ISOLATION',
+      badge: 'MVCC_BOOT',
+      badgeClass: 'bg-slate-100 text-slate-800 border-slate-300 dark:bg-zinc-800 dark:text-zinc-200',
+      message: 'MVCC Engine initialized with 3 tuples (Alice=true, Bob=true, Carol=false). Active on-call count = 2.',
+    },
+  ]);
+
+  const handleMvccStep1ConcurrentReads = () => {
+    setMvccStep(1);
+    setMvccWriteSkewAlert(null);
+
+    // T1 takes snapshot [100:100:[]] at t1.
+    // Visible tuples: Alice-v1 (xmin 90), Bob-v1 (xmin 90). On-call count = 2.
+    // T2 takes snapshot [100:100:[101]] at t2.
+    // Visible tuples: Alice-v1 (xmin 90), Bob-v1 (xmin 90). On-call count = 2.
+    setMvccT1({
+      ...initialMvccT1,
+      observedOnCallCount: 2,
+      status: 'ACTIVE_READ',
+      statusMessage: 'T1 executed "SELECT count(*) FROM doctors WHERE on_call=true" -> Count: 2. Evaluated condition: (2 - 1 >= 1) is TRUE. Proceeding to take leave.',
+    });
+
+    setMvccT2({
+      ...initialMvccT2,
+      observedOnCallCount: 2,
+      status: 'ACTIVE_READ',
+      statusMessage: 'T2 executed "SELECT count(*) FROM doctors WHERE on_call=true" -> Count: 2. Evaluated condition: (2 - 1 >= 1) is TRUE. Proceeding to take leave.',
+    });
+
+    setMvccAuditLog((prev) => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        isolation: mvccIsolation,
+        badge: 'CONCURRENT_SNAPSHOT_READ',
+        badgeClass: 'bg-sky-100 text-sky-900 border-sky-300 dark:bg-sky-950/40 dark:text-sky-300',
+        message: 'Concurrent Snapshot Reads: Both T1 (txid 101) and T2 (txid 102) read on_call count = 2 simultaneously. Neither transaction acquired read locks; readers never block writers under MVCC.',
+      },
+      ...prev.slice(0, 9),
+    ]);
+  };
+
+  const handleMvccStep2T1Commit = () => {
+    setMvccStep(2);
+
+    // T1 marks Alice-v1 as expired (xmax = 101) and inserts Alice-v2 (xmin = 101, xmax = 0, onCall = false)
+    setMvccTuples((prev) => [
+      ...prev.map((t) => (t.versionId === 'Alice-v1' ? { ...t, xmax: 101, expiredAtTx: 'T1 (txid 101)' } : t)),
+      {
+        versionId: 'Alice-v2',
+        doctorName: 'Alice',
+        onCall: false,
+        xmin: 101,
+        xmax: 0,
+        createdAtTx: 'T1 (txid 101)',
+      },
+    ]);
+
+    setMvccT1((prev) => ({
+      ...prev,
+      status: 'COMMITTED',
+      statusMessage: 'T1 updated Alice.on_call = false (created Alice-v2 with xmin:101, set Alice-v1 xmax:101) and COMMITTED successfully.',
+    }));
+
+    setMvccAuditLog((prev) => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        isolation: mvccIsolation,
+        badge: 'T1_COMMITTED',
+        badgeClass: 'bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300',
+        message: 'Transaction T1 committed: Alice is now off-call. In SI, Bob (T2) cannot see this commit because T1 committed AFTER T2 snapshot was created.',
+      },
+      ...prev.slice(0, 9),
+    ]);
+  };
+
+  const handleMvccStep3T2Commit = () => {
+    setMvccStep(3);
+
+    if (mvccIsolation === 'SNAPSHOT_ISOLATION') {
+      // First-Committer-Wins (FCW) Check:
+      // T2 is updating Bob. Did any concurrent tx modify Bob? No, T1 modified Alice!
+      // Row sets are disjoint: Write sets W(T1) = {Alice}, W(T2) = {Bob}. Disjoint!
+      // Therefore, FCW passes without conflict, causing WRITE SKEW!
+      setMvccTuples((prev) => [
+        ...prev.map((t) => (t.versionId === 'Bob-v1' ? { ...t, xmax: 102, expiredAtTx: 'T2 (txid 102)' } : t)),
+        {
+          versionId: 'Bob-v2',
+          doctorName: 'Bob',
+          onCall: false,
+          xmin: 102,
+          xmax: 0,
+          createdAtTx: 'T2 (txid 102)',
+        },
+      ]);
+
+      setMvccT2((prev) => ({
+        ...prev,
+        status: 'COMMITTED',
+        statusMessage: 'T2 updated Bob.on_call = false and COMMITTED! First-Committer-Wins passed because T1 and T2 updated disjoint rows.',
+      }));
+
+      setMvccWriteSkewAlert(
+        'CRITICAL WRITE SKEW (G_skew / Berenson A5B) ANOMALY DETECTED: Constraint violated! 0 doctors remain on call! Both T1 and T2 successfully committed because Snapshot Isolation only detects write-write row conflicts on identical rows, failing to detect cross-row predicate dependencies.'
+      );
+
+      setMvccAuditLog((prev) => [
+        {
+          id: Date.now(),
+          time: new Date().toLocaleTimeString(),
+          isolation: 'SNAPSHOT_ISOLATION',
+          badge: 'WRITE_SKEW_HAZARD',
+          badgeClass: 'bg-rose-100 text-rose-900 border-rose-300 dark:bg-rose-950/40 dark:text-rose-300',
+          message: 'WRITE SKEW ANOMALY: Total on-call count collapsed to 0! Neither serial schedule (T1 then T2, or T2 then T1) could produce this outcome. Snapshot Isolation is NOT equivalent to Serializability!',
+        },
+        ...prev.slice(0, 9),
+      ]);
+    } else {
+      // SERIALIZABLE_SNAPSHOT_ISOLATION (SSI / Cahill SIGMOD 2008):
+      // Tracks rw-antidependencies in the Serialization Graph:
+      // T2 read Alice-v1, which T1 wrote -> rw-edge: T2 -> T1
+      // T1 read Bob-v1, which T2 wants to write -> rw-edge: T1 -> T2
+      // Two consecutive rw-edges: T1 -> T2 -> T1 (Cycle detected!)
+      // SSI Engine aborts T2 with SQLSTATE 40001 (serialization_failure)!
+      setMvccT2((prev) => ({
+        ...prev,
+        status: 'ABORTED_SSI_CYCLE',
+        statusMessage: 'ABORTED (SQLSTATE 40001: serialization_failure): SSI detected dangerous rw-antidependency cycle (T1 -> T2 -> T1). T2 rolled back to protect serializability invariant.',
+      }));
+
+      setMvccWriteSkewAlert(null);
+
+      setMvccAuditLog((prev) => [
+        {
+          id: Date.now(),
+          time: new Date().toLocaleTimeString(),
+          isolation: 'SERIALIZABLE_SNAPSHOT_ISOLATION',
+          badge: 'SSI_CYCLE_ABORT',
+          badgeClass: 'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300',
+          message: 'SSI SAFETY INTERVENTION: Cahill SSI engine detected rw-antidependency cycle between T1 and T2. Aborted T2 with SQLSTATE 40001. Bob remains on-call (count = 1). Invariant strictly preserved with zero locking!',
+        },
+        ...prev.slice(0, 9),
+      ]);
+    }
+  };
+
+  const handleMvccReset = () => {
+    setMvccStep(0);
+    setMvccWriteSkewAlert(null);
+    setMvccTuples(initialMvccTuples);
+    setMvccT1(initialMvccT1);
+    setMvccT2(initialMvccT2);
+    setMvccAuditLog((prev) => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        isolation: mvccIsolation,
+        badge: 'MVCC_RESET',
+        badgeClass: 'bg-slate-100 text-slate-800 border-slate-300 dark:bg-zinc-800 dark:text-zinc-200',
+        message: 'MVCC engine reset to initial state: Alice=true, Bob=true, Carol=false (2 on-call doctors).',
+      },
+      ...prev.slice(0, 9),
+    ]);
+  };
+
   return (
     <div className="bg-surface border border-border rounded-xl shadow-xs overflow-hidden space-y-6">
       {/* Sub-Header Tabs */}
@@ -2135,6 +2374,17 @@ export function MemoryCacheInspectorSandbox() {
             }`}
           >
             B-Tree Concurrency &amp; OLC
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveSubTab('MVCC_SNAPSHOT_ISOLATION')}
+            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+              activeSubTab === 'MVCC_SNAPSHOT_ISOLATION'
+                ? 'bg-primary-700 text-white shadow-xs'
+                : 'text-text-muted hover:text-text'
+            }`}
+          >
+            MVCC &amp; Snapshot Isolation
           </button>
         </div>
       </div>
@@ -5012,6 +5262,394 @@ export function MemoryCacheInspectorSandbox() {
               </span>
               <p className="text-[11px] text-text-muted leading-relaxed">
                 Readers in OLC execute zero atomic writes: they read node pointers, re-verify that the version counter has not changed, and complete. If a writer mutates a node concurrently, readers safely restart from the Root.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {/* SUB-TAB 8: MVCC & SNAPSHOT ISOLATION */}
+      {activeSubTab === 'MVCC_SNAPSHOT_ISOLATION' && (
+        <div className="p-6 space-y-6">
+          {/* Header & Isolation Mode Selector */}
+          <div className="bg-canvas border border-border rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-primary-600">
+                  Database Concurrency &amp; Multi-Version Storage
+                </span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded border border-primary-200 bg-primary-50 text-primary-800 dark:bg-primary-950/40 dark:text-primary-300">
+                  Berenson 1995 / Cahill 2008 Invariant
+                </span>
+              </div>
+              <h3 className="font-bold text-base text-text">
+                MVCC Tuple Visibility, Snapshot Isolation &amp; Write Skew Anomalies
+              </h3>
+              <p className="text-xs text-text-muted max-w-3xl leading-relaxed">
+                Explore how relational database engines implement multi-version concurrency control without read locks. Compare standard Snapshot Isolation (SI) &mdash; which exhibits the catastrophic <strong>Write Skew (G_skew)</strong> anomaly on predicate constraints &mdash; against Serializable Snapshot Isolation (SSI), which tracks read-write antidependencies in real time.
+              </p>
+            </div>
+
+            {/* Isolation Selector */}
+            <div className="bg-surface border border-border p-2.5 rounded-lg flex flex-col gap-1.5 min-w-[300px]">
+              <span className="text-[11px] font-bold text-text uppercase tracking-wider">
+                Concurrency Isolation Level:
+              </span>
+              <div className="grid grid-cols-2 gap-1 bg-canvas p-1 rounded-md border border-border">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMvccIsolation('SNAPSHOT_ISOLATION');
+                    handleMvccReset();
+                  }}
+                  className={`px-2 py-1.5 rounded text-[11px] font-bold cursor-pointer transition-colors ${
+                    mvccIsolation === 'SNAPSHOT_ISOLATION'
+                      ? 'bg-primary-700 text-white shadow-xs'
+                      : 'text-text-muted hover:text-text'
+                  }`}
+                >
+                  Snapshot Isolation (SI)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMvccIsolation('SERIALIZABLE_SNAPSHOT_ISOLATION');
+                    handleMvccReset();
+                  }}
+                  className={`px-2 py-1.5 rounded text-[11px] font-bold cursor-pointer transition-colors ${
+                    mvccIsolation === 'SERIALIZABLE_SNAPSHOT_ISOLATION'
+                      ? 'bg-amber-600 text-white shadow-xs'
+                      : 'text-text-muted hover:text-text'
+                  }`}
+                >
+                  Serializable SSI
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Stepper Operations Bar */}
+          <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+            <span className="text-xs font-bold uppercase tracking-wider text-text block">
+              The Classic On-Call Hospital Doctors Scenario (Invariant: active_doctors &gt;= 1):
+            </span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+              <Button
+                onClick={handleMvccStep1ConcurrentReads}
+                variant="primary"
+                disabled={mvccStep !== 0}
+                className="text-xs px-2.5 py-2 cursor-pointer w-full text-center"
+              >
+                1. T1 &amp; T2 Snapshot &amp; Read Count
+              </Button>
+              <Button
+                onClick={handleMvccStep2T1Commit}
+                variant="primary"
+                disabled={mvccStep !== 1}
+                className="text-xs px-2.5 py-2 cursor-pointer w-full text-center"
+              >
+                2. T1 Off-Call Alice &amp; Commit
+              </Button>
+              <Button
+                onClick={handleMvccStep3T2Commit}
+                variant={mvccIsolation === 'SNAPSHOT_ISOLATION' ? 'destructive' : 'accent'}
+                disabled={mvccStep !== 2}
+                className="text-xs px-2.5 py-2 cursor-pointer w-full text-center"
+              >
+                3. T2 Off-Call Bob &amp; Attempt Commit
+              </Button>
+              <Button
+                onClick={handleMvccReset}
+                variant="secondary"
+                className="text-xs px-2.5 py-2 cursor-pointer w-full text-center"
+              >
+                ↺ Reset MVCC Lab
+              </Button>
+            </div>
+          </div>
+
+          {/* Critical Alerts Banner */}
+          {mvccWriteSkewAlert && (
+            <div className="p-4 rounded-xl bg-rose-50 border-2 border-rose-500 text-rose-950 dark:bg-rose-950/40 dark:border-rose-400 dark:text-rose-100 flex items-start gap-3 animate-pulse">
+              <span className="text-xl">⚠️</span>
+              <div className="space-y-1">
+                <span className="font-bold text-xs uppercase tracking-wider text-rose-800 dark:text-rose-300 block">
+                  Catastrophic Concurrency Anomaly: Write Skew (G_skew)
+                </span>
+                <p className="text-xs font-mono leading-relaxed">{mvccWriteSkewAlert}</p>
+                <p className="text-[11px] text-rose-700 dark:text-rose-300">
+                  Notice that First-Committer-Wins (FCW) only checks for collisions on identical tuples. Because T1 mutated Alice and T2 mutated Bob, FCW allowed both to commit.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {mvccStep === 3 && mvccIsolation === 'SERIALIZABLE_SNAPSHOT_ISOLATION' && mvccT2.status === 'ABORTED_SSI_CYCLE' && (
+            <div className="p-4 rounded-xl bg-emerald-50 border-2 border-emerald-500 text-emerald-950 dark:bg-emerald-950/40 dark:border-emerald-400 dark:text-emerald-100 flex items-start gap-3">
+              <span className="text-xl">🛡️</span>
+              <div className="space-y-1">
+                <span className="font-bold text-xs uppercase tracking-wider text-emerald-800 dark:text-emerald-300 block">
+                  SSI Serializability Safety Verified: Cycle Blocked
+                </span>
+                <p className="text-xs font-mono leading-relaxed">
+                  Cahill SSI tracked rw-antidependencies (T1 &rarr; T2 &rarr; T1) and aborted T2 with SQLSTATE 40001 serialization_failure before commit!
+                </p>
+                <p className="text-[11px] text-emerald-700 dark:text-emerald-300">
+                  Dr. Bob was denied leave. 1 doctor remains on call at all times. Serializable consistency preserved with 0 lock contention.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Main Grid: Tuple Versions Table + Concurrent Transactions Inspector */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            {/* Tuple Versions Storage Table (Heap / Page representation) */}
+            <div className="lg:col-span-7 bg-surface border border-border rounded-xl p-4 space-y-4">
+              <div className="flex items-center justify-between border-b border-border pb-2">
+                <div>
+                  <h4 className="font-bold text-sm text-text">MVCC Physical Tuple Heap &amp; Version Chain</h4>
+                  <span className="text-xs text-text-muted">
+                    Tuples are never mutated in place. Updates insert a new tuple version and set xmax.
+                  </span>
+                </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded border border-border bg-canvas">
+                  Table: doctors
+                </span>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse font-mono">
+                  <thead>
+                    <tr className="border-b border-border bg-canvas text-text font-bold">
+                      <th className="p-2">Tuple Version</th>
+                      <th className="p-2">Doctor Name</th>
+                      <th className="p-2">on_call</th>
+                      <th className="p-2">xmin</th>
+                      <th className="p-2">xmax</th>
+                      <th className="p-2">Tuple Status</th>
+                      <th className="p-2">T1 Vis</th>
+                      <th className="p-2">T2 Vis</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {mvccTuples.map((tuple) => {
+                      const isAlive = tuple.xmax === 0;
+                      // T1 snapshot: 100:100:[]
+                      const t1CanSee = tuple.xmin < 100 && (tuple.xmax === 0 || tuple.xmax >= 100);
+                      // T2 snapshot: 100:100:[101]
+                      const t2CanSee = tuple.xmin < 100 && (tuple.xmax === 0 || tuple.xmax >= 100 || tuple.xmax === 101);
+
+                      return (
+                        <tr
+                          key={tuple.versionId}
+                          className={`transition-colors ${
+                            isAlive
+                              ? tuple.onCall
+                                ? 'bg-emerald-50/40 dark:bg-emerald-950/20'
+                                : 'bg-slate-50/50 dark:bg-zinc-800/30'
+                              : 'opacity-60 bg-rose-50/20 dark:bg-rose-950/10'
+                          }`}
+                        >
+                          <td className="p-2 font-bold text-text">{tuple.versionId}</td>
+                          <td className="p-2 font-semibold text-text">{tuple.doctorName}</td>
+                          <td className="p-2">
+                            <span
+                              className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                                tuple.onCall
+                                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
+                                  : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400'
+                              }`}
+                            >
+                              {tuple.onCall ? 'TRUE (ON CALL)' : 'FALSE (OFF)'}
+                            </span>
+                          </td>
+                          <td className="p-2 text-primary-700 dark:text-primary-400">{tuple.xmin}</td>
+                          <td className="p-2 text-rose-600">{tuple.xmax === 0 ? '0 (live)' : tuple.xmax}</td>
+                          <td className="p-2">
+                            {isAlive ? (
+                              <span className="text-emerald-600 font-bold">CURRENT LIVE</span>
+                            ) : (
+                              <span className="text-text-muted italic">EXPIRED (xmax={tuple.xmax})</span>
+                            )}
+                          </td>
+                          <td className="p-2 font-bold">{t1CanSee ? '👁️ YES' : '❌ NO'}</td>
+                          <td className="p-2 font-bold">{t2CanSee ? '👁️ YES' : '❌ NO'}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Current Live Count Summary */}
+              <div className="p-2.5 rounded-lg bg-canvas border border-border flex items-center justify-between text-xs font-mono">
+                <span className="text-text-muted">Current Live Doctors On-Call (xmax = 0 &amp; on_call = true):</span>
+                <span className={`font-bold px-2 py-0.5 rounded ${
+                  mvccTuples.filter((t) => t.xmax === 0 && t.onCall).length >= 1
+                    ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                    : 'bg-rose-100 text-rose-900 border border-rose-400 animate-pulse'
+                }`}>
+                  {mvccTuples.filter((t) => t.xmax === 0 && t.onCall).length} Active Doctor(s)
+                </span>
+              </div>
+            </div>
+
+            {/* Concurrent Transactions Inspector */}
+            <div className="lg:col-span-5 space-y-4">
+              {/* Transaction 1 Card */}
+              <div className={`p-4 rounded-xl border transition-all space-y-2.5 ${
+                mvccT1.status === 'COMMITTED'
+                  ? 'bg-emerald-50/30 border-emerald-400 dark:bg-emerald-950/20'
+                  : 'bg-surface border-border'
+              }`}>
+                <div className="flex items-center justify-between border-b border-border pb-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-xs bg-primary-100 text-primary-900 dark:bg-primary-950/60 dark:text-primary-300 px-2 py-0.5 rounded">
+                      txid {mvccT1.txId}
+                    </span>
+                    <span className="font-bold text-xs text-text">{mvccT1.label}</span>
+                  </div>
+                  <span className="text-[10px] font-mono text-text-muted">
+                    Snapshot: {mvccT1.snapshotDescriptor}
+                  </span>
+                </div>
+                <div className="text-xs space-y-1 font-mono">
+                  <div className="text-text-muted">
+                    Observed On-Call: <strong className="text-text">{mvccT1.observedOnCallCount !== null ? mvccT1.observedOnCallCount : 'Pending read'}</strong>
+                  </div>
+                  <div className="text-text-muted">
+                    Query: <code className="text-text">UPDATE doctors SET on_call=false WHERE name=&apos;Alice&apos;;</code>
+                  </div>
+                  <div className="text-text-muted">
+                    Status: <strong className={mvccT1.status === 'COMMITTED' ? 'text-emerald-600' : 'text-primary-600'}>{mvccT1.status}</strong>
+                  </div>
+                </div>
+                <p className="text-[11px] text-text-muted leading-relaxed bg-canvas p-2 rounded border border-border">
+                  {mvccT1.statusMessage}
+                </p>
+              </div>
+
+              {/* Transaction 2 Card */}
+              <div className={`p-4 rounded-xl border transition-all space-y-2.5 ${
+                mvccT2.status === 'ABORTED_SSI_CYCLE'
+                  ? 'bg-amber-50/40 border-amber-400 dark:bg-amber-950/20'
+                  : mvccT2.status === 'COMMITTED'
+                  ? 'bg-rose-50/40 border-rose-400 dark:bg-rose-950/20'
+                  : 'bg-surface border-border'
+              }`}>
+                <div className="flex items-center justify-between border-b border-border pb-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-xs bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-300 px-2 py-0.5 rounded">
+                      txid {mvccT2.txId}
+                    </span>
+                    <span className="font-bold text-xs text-text">{mvccT2.label}</span>
+                  </div>
+                  <span className="text-[10px] font-mono text-text-muted">
+                    Snapshot: {mvccT2.snapshotDescriptor}
+                  </span>
+                </div>
+                <div className="text-xs space-y-1 font-mono">
+                  <div className="text-text-muted">
+                    Observed On-Call: <strong className="text-text">{mvccT2.observedOnCallCount !== null ? mvccT2.observedOnCallCount : 'Pending read'}</strong>
+                  </div>
+                  <div className="text-text-muted">
+                    Query: <code className="text-text">UPDATE doctors SET on_call=false WHERE name=&apos;Bob&apos;;</code>
+                  </div>
+                  <div className="text-text-muted">
+                    Status: <strong className={
+                      mvccT2.status === 'ABORTED_SSI_CYCLE'
+                        ? 'text-amber-600'
+                        : mvccT2.status === 'COMMITTED'
+                        ? 'text-rose-600'
+                        : 'text-primary-600'
+                    }>{mvccT2.status}</strong>
+                  </div>
+                </div>
+                <p className="text-[11px] text-text-muted leading-relaxed bg-canvas p-2 rounded border border-border">
+                  {mvccT2.statusMessage}
+                </p>
+              </div>
+
+              {/* Serialization Graph rw-Antidependency Visualization */}
+              <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-2">
+                <div className="flex items-center justify-between text-xs font-bold text-text">
+                  <span>Serialization Graph Dependency Tracker (SSN / SIREAD):</span>
+                  <span className="font-mono text-[10px] text-text-muted">Cahill SIGMOD 2008</span>
+                </div>
+                <div className="p-2.5 rounded bg-surface border border-border text-[11px] font-mono space-y-1 text-text-muted">
+                  <div>1. T2 read Alice-v1 &rarr; T1 supersedes Alice-v1 &rArr; <strong className="text-text">T2 &rarr;rw T1</strong></div>
+                  <div>2. T1 read Bob-v1 &rarr; T2 supersedes Bob-v1 &rArr; <strong className="text-text">T1 &rarr;rw T2</strong></div>
+                  <div className="pt-1 border-t border-border flex items-center justify-between">
+                    <span>Cycle Detection:</span>
+                    <span className={`font-bold ${mvccStep >= 2 ? 'text-amber-600' : 'text-text-muted'}`}>
+                      {mvccStep >= 2 ? 'DANGEROUS STRUCTURE: T1 ↔rw T2 (CYCLE)' : 'No conflict yet'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Real-Time Audit Log */}
+          <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+            <h4 className="font-bold text-sm text-text">
+              Real-Time MVCC &amp; Concurrency Engine Audit Stream
+            </h4>
+            <div className="space-y-1.5 max-h-48 overflow-y-auto font-mono text-xs">
+              {mvccAuditLog.map((log) => (
+                <div
+                  key={log.id}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 p-2 rounded bg-canvas border border-border"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-text-muted">{log.time}</span>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${log.badgeClass}`}>
+                      {log.badge}
+                    </span>
+                    <span className="text-text">{log.message}</span>
+                  </div>
+                  <span className="text-[10px] text-text-muted">{log.isolation}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 4 Socratic Invariant Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                1. Berenson 1995 Critique
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                ANSI SQL-92 defined isolation via Dirty Reads, Non-repeatable Reads, and Phantoms. Berenson et al. proved that Snapshot Isolation prevents all three yet fails Serializability due to Write Skew (G_skew).
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                2. Non-Blocking MVCC Tuple Visibility
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                Each tuple version stores $xmin$ (creator tx) and $xmax$ (destroyer tx). Readers compare these IDs against their active snapshot array: readers never acquire shared locks, and writers never block readers.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                3. First-Committer-Wins Flaw
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                Standard SI only checks for write-write conflicts on identical rows. When concurrent transactions update disjoint rows constrained by a shared predicate, both commit cleanly, violating application invariants.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                4. Serializable SSI (Cahill 2008)
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                Serializable Snapshot Isolation tracks rw-antidependency edges in real time. When two consecutive rw-edges form a potential cycle (T1 &rarr; T2 &rarr; T1), SSI aborts the dangerous transaction with SQLSTATE 40001.
               </p>
             </div>
           </div>

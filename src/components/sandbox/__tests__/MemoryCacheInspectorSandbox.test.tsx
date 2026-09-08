@@ -366,4 +366,69 @@ describe('MemoryCacheInspectorSandbox', () => {
     expect(screen.queryByText(/ROOT CONTENTION COLLAPSE/i)).not.toBeInTheDocument();
     expect(screen.getAllByText('IDLE').length).toBe(2);
   });
+  it('switches to MVCC & Snapshot Isolation and tests concurrent reads, Write Skew anomaly, and SSI cycle abort', () => {
+    render(<MemoryCacheInspectorSandbox />);
+
+    // Switch to MVCC & Snapshot Isolation subtab
+    const mvccTab = screen.getByRole('button', { name: /MVCC & Snapshot Isolation/i });
+    fireEvent.click(mvccTab);
+
+    // Initial steady state
+    expect(screen.getByText('MVCC Tuple Visibility, Snapshot Isolation & Write Skew Anomalies')).toBeInTheDocument();
+    expect(screen.getByText('MVCC Physical Tuple Heap & Version Chain')).toBeInTheDocument();
+    expect(screen.getByText('2 Active Doctor(s)')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Snapshot Isolation (SI)' })).toHaveClass('bg-primary-700');
+
+    // 1. Concurrent Snapshot Reads (T1 & T2)
+    const step1Btn = screen.getByRole('button', { name: /1. T1 & T2 Snapshot & Read Count/i });
+    fireEvent.click(step1Btn);
+
+    expect(screen.getAllByText('ACTIVE_READ').length).toBe(2);
+    expect(screen.getAllByText('CONCURRENT_SNAPSHOT_READ').length).toBeGreaterThanOrEqual(1);
+
+    // 2. T1 modifies Alice and Commits
+    const step2Btn = screen.getByRole('button', { name: /2. T1 Off-Call Alice & Commit/i });
+    fireEvent.click(step2Btn);
+
+    expect(screen.getByText('Alice-v2')).toBeInTheDocument();
+    expect(screen.getByText('EXPIRED (xmax=101)')).toBeInTheDocument();
+    expect(screen.getAllByText('COMMITTED').length).toBe(1);
+    expect(screen.getAllByText('T1_COMMITTED').length).toBeGreaterThanOrEqual(1);
+
+    // 3. T2 modifies Bob and attempts commit under Snapshot Isolation (causes Write Skew)
+    const step3Btn = screen.getByRole('button', { name: /3. T2 Off-Call Bob & Attempt Commit/i });
+    fireEvent.click(step3Btn);
+
+    expect(screen.getByText('Bob-v2')).toBeInTheDocument();
+    expect(screen.getAllByText('COMMITTED').length).toBe(2);
+    expect(screen.getByText('0 Active Doctor(s)')).toBeInTheDocument();
+    expect(screen.getByText(/CRITICAL WRITE SKEW.*Berenson.*ANOMALY DETECTED/i)).toBeInTheDocument();
+    expect(screen.getAllByText('WRITE_SKEW_HAZARD').length).toBeGreaterThanOrEqual(1);
+
+    // 4. Switch to Serializable SSI mode
+    const ssiModeBtn = screen.getByRole('button', { name: 'Serializable SSI' });
+    fireEvent.click(ssiModeBtn);
+
+    expect(ssiModeBtn).toHaveClass('bg-amber-600');
+    expect(screen.getByText('2 Active Doctor(s)')).toBeInTheDocument();
+    expect(screen.queryByText(/CRITICAL WRITE SKEW/i)).not.toBeInTheDocument();
+
+    // 5. Re-run under SSI: Step 1 -> Step 2 -> Step 3
+    fireEvent.click(screen.getByRole('button', { name: /1. T1 & T2 Snapshot & Read Count/i }));
+    fireEvent.click(screen.getByRole('button', { name: /2. T1 Off-Call Alice & Commit/i }));
+    fireEvent.click(screen.getByRole('button', { name: /3. T2 Off-Call Bob & Attempt Commit/i }));
+
+    // SSI aborts T2 with serialization_failure!
+    expect(screen.getByText('ABORTED_SSI_CYCLE')).toBeInTheDocument();
+    expect(screen.getByText(/SSI Serializability Safety Verified: Cycle Blocked/i)).toBeInTheDocument();
+    expect(screen.getAllByText('SSI_CYCLE_ABORT').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('1 Active Doctor(s)')).toBeInTheDocument();
+
+    // 6. Reset MVCC Lab
+    const resetBtn = screen.getByRole('button', { name: /Reset MVCC Lab/i });
+    fireEvent.click(resetBtn);
+
+    expect(screen.getByText('2 Active Doctor(s)')).toBeInTheDocument();
+    expect(screen.queryByText(/SSI Serializability Safety Verified/i)).not.toBeInTheDocument();
+  });
 });

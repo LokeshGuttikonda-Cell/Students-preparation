@@ -346,7 +346,6 @@ export function KernelNetworkSandbox() {
 
   const handleEpollWaitCall = () => {
     const readyFds = epollSockets.filter((s) => s.isOnReadyList);
-    setEpollWaitAwake(true);
 
     if (epollMode === 'EDGE_TRIGGERED') {
       // In Edge-Triggered mode, epoll_wait returns events and removes them from rdllist!
@@ -458,7 +457,6 @@ export function KernelNetworkSandbox() {
 
   const handleEpollReset = () => {
     setEpollSockets(initialSockets);
-    setEpollWaitAwake(false);
     setEpollStallAlert(null);
     setEpollAuditLog((prev) => [
       {
