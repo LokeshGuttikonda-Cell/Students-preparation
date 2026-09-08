@@ -3,8 +3,40 @@
 import React, { useState } from 'react';
 import { Button } from '../ui/Button';
 
-export type KernelNetworkMode = 'CPU_SCHEDULING' | 'PAGE_REPLACEMENT' | 'TCP_CONGESTION' | 'EPOLL_MULTIPLEXING';
+export type KernelNetworkMode = 'CPU_SCHEDULING' | 'PAGE_REPLACEMENT' | 'TCP_CONGESTION' | 'EPOLL_MULTIPLEXING' | 'ZERO_COPY_IO_URING';
 
+
+
+// --- Module 5: Zero-Copy I/O & io_uring Types ---
+export type IOArchitectureMode = 'TRADITIONAL_READ_WRITE' | 'SENDFILE_ZERO_COPY' | 'IO_URING_RING_BUFFER';
+
+export interface ZeroCopyMetrics {
+  contextSwitches: number;
+  cpuCopies: number;
+  dmaCopies: number;
+  syscallCount: number;
+  latencyUs: number;
+  cpuOverheadPct: number;
+}
+
+export interface RingBufferEntry {
+  index: number;
+  opcode: string;
+  fd: number;
+  bufferAddr: string;
+  bytes: number;
+  status: 'QUEUED' | 'PROCESSED' | 'COMPLETED';
+  resCode?: number;
+}
+
+export interface ZeroCopyAuditEvent {
+  id: number;
+  time: string;
+  mode: string;
+  badge: string;
+  badgeClass: string;
+  message: string;
+}
 
 // --- Module 4: Linux Kernel epoll & C10K I/O Multiplexing Types ---
 export type EpollTriggerMode = 'LEVEL_TRIGGERED' | 'EDGE_TRIGGERED';
@@ -470,6 +502,129 @@ export function KernelNetworkSandbox() {
     ]);
   };
 
+
+  // --- Module 5: Zero-Copy & io_uring State ---
+  const [ioMode, setIoMode] = useState<IOArchitectureMode>('TRADITIONAL_READ_WRITE');
+  const [ioStep, setIoStep] = useState<number>(0);
+
+  const initialMetrics: Record<IOArchitectureMode, ZeroCopyMetrics> = {
+    TRADITIONAL_READ_WRITE: {
+      contextSwitches: 4,
+      cpuCopies: 2,
+      dmaCopies: 2,
+      syscallCount: 2,
+      latencyUs: 120,
+      cpuOverheadPct: 78,
+    },
+    SENDFILE_ZERO_COPY: {
+      contextSwitches: 2,
+      cpuCopies: 0,
+      dmaCopies: 2,
+      syscallCount: 1,
+      latencyUs: 35,
+      cpuOverheadPct: 18,
+    },
+    IO_URING_RING_BUFFER: {
+      contextSwitches: 0,
+      cpuCopies: 0,
+      dmaCopies: 2,
+      syscallCount: 0,
+      latencyUs: 12,
+      cpuOverheadPct: 4,
+    },
+  };
+
+  const [ioMetrics, setIoMetrics] = useState<ZeroCopyMetrics>(initialMetrics.TRADITIONAL_READ_WRITE);
+
+  const [sqEntries, setSqEntries] = useState<RingBufferEntry[]>([
+    { index: 0, opcode: 'IORING_OP_READ', fd: 3, bufferAddr: '0x7fff_1000', bytes: 65536, status: 'QUEUED' },
+    { index: 1, opcode: 'IORING_OP_WRITE', fd: 4, bufferAddr: '0x7fff_2000', bytes: 65536, status: 'QUEUED' },
+  ]);
+
+  const [cqEntries, setCqEntries] = useState<RingBufferEntry[]>([]);
+
+  const [ioAuditLog, setIoAuditLog] = useState<ZeroCopyAuditEvent[]>([
+    {
+      id: 1,
+      time: '00:00:00',
+      mode: 'TRADITIONAL_READ_WRITE',
+      badge: 'IO_INIT',
+      badgeClass: 'bg-slate-100 text-slate-800 border-slate-300 dark:bg-zinc-800 dark:text-zinc-200',
+      message: 'Kernel I/O Subsystem initialized. Testing 64KB file transfer over 10GbE network socket.',
+    },
+  ]);
+
+  const handleRunIOTransfer = () => {
+    setIoStep(1);
+
+    if (ioMode === 'TRADITIONAL_READ_WRITE') {
+      setIoMetrics(initialMetrics.TRADITIONAL_READ_WRITE);
+      setIoAuditLog((prev) => [
+        {
+          id: Date.now(),
+          time: new Date().toLocaleTimeString(),
+          mode: 'TRADITIONAL_READ_WRITE',
+          badge: 'READ_WRITE_TRANSFER',
+          badgeClass: 'bg-rose-100 text-rose-900 border-rose-300 dark:bg-rose-950/50 dark:text-rose-300',
+          message: 'Traditional I/O: 4 Context Switches (read sysenter/sysexit + write sysenter/sysexit) & 4 Copies (Disk -> PageCache [DMA], PageCache -> UserBuf [CPU Copy 1], UserBuf -> SocketBuf [CPU Copy 2], SocketBuf -> NIC [DMA]). High CPU cache pollution.',
+        },
+        ...prev.slice(0, 8),
+      ]);
+    } else if (ioMode === 'SENDFILE_ZERO_COPY') {
+      setIoMetrics(initialMetrics.SENDFILE_ZERO_COPY);
+      setIoAuditLog((prev) => [
+        {
+          id: Date.now(),
+          time: new Date().toLocaleTimeString(),
+          mode: 'SENDFILE_ZERO_COPY',
+          badge: 'SENDFILE_ZERO_COPY',
+          badgeClass: 'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-950/50 dark:text-amber-300',
+          message: 'sendfile() Zero-Copy: User space completely bypassed! 2 Context Switches (1 syscall). CPU Copies: 0! Kernel passes descriptor pointers directly to socket buffer; NIC performs DMA gather. 70% latency reduction.',
+        },
+        ...prev.slice(0, 8),
+      ]);
+    } else {
+      setIoMetrics(initialMetrics.IO_URING_RING_BUFFER);
+      setSqEntries((prev) => prev.map((e) => ({ ...e, status: 'PROCESSED' })));
+      setCqEntries([
+        { index: 0, opcode: 'IORING_OP_READ', fd: 3, bufferAddr: '0x7fff_1000', bytes: 65536, status: 'COMPLETED', resCode: 65536 },
+        { index: 1, opcode: 'IORING_OP_WRITE', fd: 4, bufferAddr: '0x7fff_2000', bytes: 65536, status: 'COMPLETED', resCode: 65536 },
+      ]);
+      setIoAuditLog((prev) => [
+        {
+          id: Date.now(),
+          time: new Date().toLocaleTimeString(),
+          mode: 'IO_URING_RING_BUFFER',
+          badge: 'IO_URING_ASYNC',
+          badgeClass: 'bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-950/50 dark:text-emerald-300',
+          message: 'io_uring Lockless Ring Buffer: User posted 2 SQEs to submission queue via mmap. Kernel SQPOLL worker consumed SQEs and posted CQEs to completion queue. 0 Syscalls! 0 Context Switches! 90% latency reduction.',
+        },
+        ...prev.slice(0, 8),
+      ]);
+    }
+  };
+
+  const handleZeroCopyReset = () => {
+    setIoStep(0);
+    setIoMetrics(initialMetrics[ioMode]);
+    setSqEntries([
+      { index: 0, opcode: 'IORING_OP_READ', fd: 3, bufferAddr: '0x7fff_1000', bytes: 65536, status: 'QUEUED' },
+      { index: 1, opcode: 'IORING_OP_WRITE', fd: 4, bufferAddr: '0x7fff_2000', bytes: 65536, status: 'QUEUED' },
+    ]);
+    setCqEntries([]);
+    setIoAuditLog((prev) => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        mode: ioMode,
+        badge: 'RESET',
+        badgeClass: 'bg-slate-100 text-slate-800 border-slate-300 dark:bg-zinc-800 dark:text-zinc-200',
+        message: 'I/O pipeline and ring buffer counters reset to initial state.',
+      },
+      ...prev.slice(0, 8),
+    ]);
+  };
+
   return (
     <div className="bg-surface border border-border rounded-xl shadow-xs overflow-hidden space-y-6">
       {/* Sub-Header Tabs */}
@@ -532,6 +687,17 @@ export function KernelNetworkSandbox() {
             }`}
           >
             epoll &amp; C10K I/O
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('ZERO_COPY_IO_URING')}
+            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+              activeTab === 'ZERO_COPY_IO_URING'
+                ? 'bg-primary-700 text-white shadow-xs'
+                : 'text-text-muted hover:text-text'
+            }`}
+          >
+            Zero-Copy &amp; io_uring
           </button>
         </div>
       </div>
@@ -1484,6 +1650,414 @@ export function KernelNetworkSandbox() {
               </span>
               <p className="text-[11px] text-text-muted leading-relaxed">
                 Under ET, non-blocking sockets must be read in a loop until `read()` returns -1 with `errno == EAGAIN`. Partial reads leave data trapped in the kernel buffer with zero subsequent wakeups!
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {/* MODULE 5: ZERO-COPY & IO_URING */}
+      {activeTab === 'ZERO_COPY_IO_URING' && (
+        <div className="p-6 space-y-6">
+          {/* Header & Mode Switcher */}
+          <div className="bg-canvas border border-border rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-primary-600">
+                  Linux Kernel Asynchronous I/O &amp; Memory Subsystem
+                </span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded border border-primary-200 bg-primary-50 text-primary-800 dark:bg-primary-950/40 dark:text-primary-300">
+                  Axboe 2019 / Linux 5.1 Invariant
+                </span>
+              </div>
+              <h3 className="font-bold text-base text-text">
+                Zero-Copy Linux Kernel I/O: Traditional read()/write() vs sendfile() &amp; io_uring
+              </h3>
+              <p className="text-xs text-text-muted max-w-3xl leading-relaxed">
+                Contrast the 4 context switches and 4 data copies of traditional POSIX <code>read()</code>/<code>write()</code> against zero-copy <code>sendfile()</code> and Jens Axboe&apos;s breakthrough <code>io_uring</code> lockless circular ring buffers, which eliminate syscall overhead entirely via shared memory and asynchronous kernel polling (<code>SQPOLL</code>).
+              </p>
+            </div>
+
+            {/* Architecture Selector */}
+            <div className="bg-surface border border-border p-2.5 rounded-lg flex flex-col gap-1.5 min-w-[320px]">
+              <span className="text-[11px] font-bold text-text uppercase tracking-wider">
+                I/O Transmission Architecture:
+              </span>
+              <div className="grid grid-cols-3 gap-1 bg-canvas p-1 rounded-md border border-border text-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIoMode('TRADITIONAL_READ_WRITE');
+                    setIoStep(0);
+                    setIoMetrics(initialMetrics.TRADITIONAL_READ_WRITE);
+                  }}
+                  className={`px-2 py-1.5 rounded text-[10px] font-bold cursor-pointer transition-colors ${
+                    ioMode === 'TRADITIONAL_READ_WRITE'
+                      ? 'bg-rose-600 text-white shadow-xs'
+                      : 'text-text-muted hover:text-text'
+                  }`}
+                >
+                  read()/write()
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIoMode('SENDFILE_ZERO_COPY');
+                    setIoStep(0);
+                    setIoMetrics(initialMetrics.SENDFILE_ZERO_COPY);
+                  }}
+                  className={`px-2 py-1.5 rounded text-[10px] font-bold cursor-pointer transition-colors ${
+                    ioMode === 'SENDFILE_ZERO_COPY'
+                      ? 'bg-amber-600 text-white shadow-xs'
+                      : 'text-text-muted hover:text-text'
+                  }`}
+                >
+                  sendfile()
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIoMode('IO_URING_RING_BUFFER');
+                    setIoStep(0);
+                    setIoMetrics(initialMetrics.IO_URING_RING_BUFFER);
+                  }}
+                  className={`px-2 py-1.5 rounded text-[10px] font-bold cursor-pointer transition-colors ${
+                    ioMode === 'IO_URING_RING_BUFFER'
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'text-text-muted hover:text-text'
+                  }`}
+                >
+                  io_uring
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Stepper Operations Bar */}
+          <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+            <span className="text-xs font-bold uppercase tracking-wider text-text block">
+              Kernel I/O Data Transmission Control:
+            </span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              <Button
+                onClick={handleRunIOTransfer}
+                variant="primary"
+                className="text-xs px-2.5 py-2 cursor-pointer w-full text-center"
+              >
+                1. Execute 64KB I/O Transfer
+              </Button>
+              <Button
+                onClick={handleZeroCopyReset}
+                variant="secondary"
+                className="text-xs px-2.5 py-2 cursor-pointer w-full text-center"
+              >
+                ↺ Reset I/O Pipeline
+              </Button>
+              <div className="flex items-center justify-center p-2 rounded-lg bg-canvas border border-border text-xs font-mono">
+                <span className="text-text-muted mr-1.5">Status:</span>
+                <span className={`font-bold ${ioStep > 0 ? 'text-emerald-600' : 'text-text-muted'}`}>
+                  {ioStep > 0 ? 'TRANSFER_COMPLETED' : 'AWAITING_EXECUTION'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* KPI Metrics Matrix Banner */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <div className="p-3 rounded-xl bg-surface border border-border space-y-1">
+              <span className="text-[10px] uppercase font-bold text-text-muted block">Context Switches</span>
+              <span className={`text-lg font-mono font-bold ${
+                ioMetrics.contextSwitches === 0
+                  ? 'text-emerald-600'
+                  : ioMetrics.contextSwitches === 2
+                  ? 'text-amber-600'
+                  : 'text-rose-600'
+              }`}>
+                {ioMetrics.contextSwitches}
+              </span>
+              <span className="text-[10px] text-text-muted block">User &harr; Kernel</span>
+            </div>
+
+            <div className="p-3 rounded-xl bg-surface border border-border space-y-1">
+              <span className="text-[10px] uppercase font-bold text-text-muted block">CPU Data Copies</span>
+              <span className={`text-lg font-mono font-bold ${
+                ioMetrics.cpuCopies === 0 ? 'text-emerald-600' : 'text-rose-600'
+              }`}>
+                {ioMetrics.cpuCopies}
+              </span>
+              <span className="text-[10px] text-text-muted block">RAM &harr; RAM buffer</span>
+            </div>
+
+            <div className="p-3 rounded-xl bg-surface border border-border space-y-1">
+              <span className="text-[10px] uppercase font-bold text-text-muted block">DMA Transfers</span>
+              <span className="text-lg font-mono font-bold text-emerald-600">
+                {ioMetrics.dmaCopies}
+              </span>
+              <span className="text-[10px] text-text-muted block">Disk &amp; NIC direct</span>
+            </div>
+
+            <div className="p-3 rounded-xl bg-surface border border-border space-y-1">
+              <span className="text-[10px] uppercase font-bold text-text-muted block">Syscalls</span>
+              <span className={`text-lg font-mono font-bold ${
+                ioMetrics.syscallCount === 0 ? 'text-emerald-600' : 'text-primary-700 dark:text-primary-400'
+              }`}>
+                {ioMetrics.syscallCount}
+              </span>
+              <span className="text-[10px] text-text-muted block">Per batch transfer</span>
+            </div>
+
+            <div className="p-3 rounded-xl bg-surface border border-border space-y-1">
+              <span className="text-[10px] uppercase font-bold text-text-muted block">Transfer Latency</span>
+              <span className="text-lg font-mono font-bold text-text">
+                {ioMetrics.latencyUs} &mu;s
+              </span>
+              <span className="text-[10px] text-text-muted block">Total wall time</span>
+            </div>
+
+            <div className="p-3 rounded-xl bg-surface border border-border space-y-1">
+              <span className="text-[10px] uppercase font-bold text-text-muted block">CPU Overhead</span>
+              <span className={`text-lg font-mono font-bold ${
+                ioMetrics.cpuOverheadPct < 10
+                  ? 'text-emerald-600'
+                  : ioMetrics.cpuOverheadPct < 30
+                  ? 'text-amber-600'
+                  : 'text-rose-600'
+              }`}>
+                {ioMetrics.cpuOverheadPct}%
+              </span>
+              <span className="text-[10px] text-text-muted block">Core cycles spent</span>
+            </div>
+          </div>
+
+          {/* Interactive Memory Buffer Flow Pipeline */}
+          <div className="bg-surface border border-border rounded-xl p-4 space-y-4">
+            <div className="flex items-center justify-between border-b border-border pb-2">
+              <div>
+                <h4 className="font-bold text-sm text-text">Kernel Space vs User Space Buffer Pipeline</h4>
+                <span className="text-xs text-text-muted">
+                  Traces data movement from persistent disk storage to hardware network interface card.
+                </span>
+              </div>
+              <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded border ${
+                ioMode === 'IO_URING_RING_BUFFER'
+                  ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                  : ioMode === 'SENDFILE_ZERO_COPY'
+                  ? 'bg-amber-100 text-amber-900 border-amber-300'
+                  : 'bg-rose-100 text-rose-900 border-rose-300'
+              }`}>
+                Active: {ioMode}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+              {/* Stage 1: Hardware Disk */}
+              <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-2 text-center">
+                <span className="text-[10px] font-mono font-bold text-text-muted uppercase">1. Storage Media</span>
+                <div className="text-xs font-bold text-text">Persistent NVMe / SSD</div>
+                <div className="p-2 rounded bg-surface border border-border font-mono text-[11px]">
+                  [File: data.bin]
+                </div>
+                <span className="text-[10px] text-emerald-600 font-bold block">DMA Controller</span>
+              </div>
+
+              {/* Stage 2: Kernel Page Cache */}
+              <div className={`p-3.5 rounded-xl border space-y-2 text-center transition-all ${
+                ioStep > 0
+                  ? 'bg-emerald-50/40 border-emerald-400 dark:bg-emerald-950/20'
+                  : 'bg-canvas border-border'
+              }`}>
+                <span className="text-[10px] font-mono font-bold text-primary-600 uppercase">2. Kernel Space</span>
+                <div className="text-xs font-bold text-text">OS Page Cache Buffer</div>
+                <div className="p-2 rounded bg-surface border border-border font-mono text-[11px] truncate">
+                  {ioStep > 0 ? '0x8000_1000 (64KB)' : 'Empty Page'}
+                </div>
+                <span className="text-[10px] text-text-muted block">
+                  {ioMode === 'TRADITIONAL_READ_WRITE' ? 'CPU Copy &rarr; User' : 'Zero-Copy Direct Pipe'}
+                </span>
+              </div>
+
+              {/* Stage 3: User Space Buffer */}
+              <div className={`p-3.5 rounded-xl border space-y-2 text-center transition-all ${
+                ioMode === 'TRADITIONAL_READ_WRITE' && ioStep > 0
+                  ? 'bg-rose-50/40 border-rose-400 dark:bg-rose-950/20'
+                  : 'bg-canvas border-dashed border-border opacity-60'
+              }`}>
+                <span className="text-[10px] font-mono font-bold text-amber-600 uppercase">3. User Space</span>
+                <div className="text-xs font-bold text-text">App char buf[]</div>
+                <div className="p-2 rounded bg-surface border border-border font-mono text-[11px] truncate">
+                  {ioMode === 'TRADITIONAL_READ_WRITE' && ioStep > 0 ? '0x7fff_cafe (64KB)' : 'BYPASSED (0 COPIES)'}
+                </div>
+                <span className="text-[10px] text-text-muted block">
+                  {ioMode === 'TRADITIONAL_READ_WRITE' ? '2 Syscalls + 2 Copies' : 'User space untouched ✓'}
+                </span>
+              </div>
+
+              {/* Stage 4: Kernel Socket Buffer */}
+              <div className={`p-3.5 rounded-xl border space-y-2 text-center transition-all ${
+                ioStep > 0
+                  ? 'bg-emerald-50/40 border-emerald-400 dark:bg-emerald-950/20'
+                  : 'bg-canvas border-border'
+              }`}>
+                <span className="text-[10px] font-mono font-bold text-primary-600 uppercase">4. Kernel Space</span>
+                <div className="text-xs font-bold text-text">Socket Buffer (sk_buff)</div>
+                <div className="p-2 rounded bg-surface border border-border font-mono text-[11px] truncate">
+                  {ioStep > 0 ? 'skb->data (64KB)' : 'Quiescent'}
+                </div>
+                <span className="text-[10px] text-emerald-600 font-bold block">DMA Gather Ring</span>
+              </div>
+
+              {/* Stage 5: Hardware NIC */}
+              <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-2 text-center">
+                <span className="text-[10px] font-mono font-bold text-text-muted uppercase">5. Network Media</span>
+                <div className="text-xs font-bold text-text">10GbE Hardware NIC</div>
+                <div className="p-2 rounded bg-surface border border-border font-mono text-[11px]">
+                  [Wire: TCP Tx Frame]
+                </div>
+                <span className="text-[10px] text-emerald-600 font-bold block">Wire Emission ✓</span>
+              </div>
+            </div>
+          </div>
+
+          {/* io_uring Ring Buffer Inspector (Interactive in all modes) */}
+          <div className="bg-surface border border-border rounded-xl p-4 space-y-4">
+            <div className="flex items-center justify-between border-b border-border pb-2">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-emerald-600 animate-pulse" />
+                <h4 className="font-bold text-sm text-text">io_uring Lockless Shared-Memory Ring Buffer Inspector</h4>
+              </div>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded border border-border bg-canvas">
+                IORING_SETUP_SQPOLL
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* Submission Queue (SQ) */}
+              <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-2">
+                <div className="flex items-center justify-between text-xs font-bold text-text">
+                  <span>Submission Queue Ring (sq): User Writes, Kernel Reads</span>
+                  <span className="font-mono text-[10px] text-primary-600">head=0, tail=2</span>
+                </div>
+                <div className="space-y-1.5 font-mono text-xs">
+                  {sqEntries.map((sqe) => (
+                    <div
+                      key={sqe.index}
+                      className="p-2 rounded bg-surface border border-border flex items-center justify-between text-[11px]"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-text">SQE #{sqe.index}</span>
+                        <span className="px-1.5 py-0.5 rounded bg-primary-50 text-primary-800 dark:bg-primary-950/60 dark:text-primary-300 font-bold text-[10px]">
+                          {sqe.opcode}
+                        </span>
+                        <span className="text-text-muted">fd={sqe.fd}, addr={sqe.bufferAddr}</span>
+                      </div>
+                      <span className={`font-bold text-[10px] px-1.5 py-0.5 rounded border ${
+                        sqe.status === 'PROCESSED'
+                          ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                          : 'bg-zinc-100 text-zinc-600 border-zinc-300'
+                      }`}>
+                        {sqe.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Completion Queue (CQ) */}
+              <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-2">
+                <div className="flex items-center justify-between text-xs font-bold text-text">
+                  <span>Completion Queue Ring (cq): Kernel Writes, User Reads</span>
+                  <span className="font-mono text-[10px] text-emerald-600">
+                    head={cqEntries.length > 0 ? 0 : 0}, tail={cqEntries.length}
+                  </span>
+                </div>
+                <div className="space-y-1.5 font-mono text-xs">
+                  {cqEntries.length === 0 ? (
+                    <div className="p-4 text-center text-text-muted text-xs italic">
+                      Completion queue empty. Execute I/O transfer in io_uring mode to populate CQEs.
+                    </div>
+                  ) : (
+                    cqEntries.map((cqe) => (
+                      <div
+                        key={cqe.index}
+                        className="p-2 rounded bg-emerald-50/40 border border-emerald-400 dark:bg-emerald-950/20 flex items-center justify-between text-[11px]"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-text">CQE #{cqe.index}</span>
+                          <span className="text-emerald-700 dark:text-emerald-300 font-bold">
+                            res = {cqe.resCode} Bytes OK
+                          </span>
+                        </div>
+                        <span className="font-bold text-[10px] px-1.5 py-0.5 rounded border bg-emerald-100 text-emerald-800 border-emerald-300">
+                          {cqe.status}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Real-Time Audit Log */}
+          <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+            <h4 className="font-bold text-sm text-text">
+              Real-Time Kernel I/O Execution Audit Stream
+            </h4>
+            <div className="space-y-1.5 max-h-48 overflow-y-auto font-mono text-xs">
+              {ioAuditLog.map((log) => (
+                <div
+                  key={log.id}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 p-2 rounded bg-canvas border border-border"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-text-muted">{log.time}</span>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${log.badgeClass}`}>
+                      {log.badge}
+                    </span>
+                    <span className="text-text">{log.message}</span>
+                  </div>
+                  <span className="text-[10px] text-text-muted">{log.mode}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 4 Socratic Invariant Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                1. Context Switch Tax
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                Every syscall requires CPU trap transition (sysenter/sysexit), flushing TLB entries and dirtying L1/L2 CPU caches. Standard read() + write() costs 4 context switches per packet batch.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                2. DMA vs CPU Memory Copies
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                Direct Memory Access (DMA) transfers bytes asynchronously between hardware controllers and RAM. But copying bytes between Kernel Page Cache and User Space buffers requires CPU cycles and saturates memory bus bandwidth.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                3. sendfile() Zero-Copy
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                sendfile() keeps data strictly inside kernel memory. It passes file page descriptors directly to the socket queue, allowing the hardware NIC to perform DMA scatter-gather directly from Page Cache.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                4. io_uring Lockless Rings
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                Jens Axboe&apos;s io_uring shares Submission and Completion circular queues via mmap(). With SQPOLL, a kernel thread polls submissions locklessly, achieving asynchronous I/O with 0 syscalls and 0 context switches.
               </p>
             </div>
           </div>

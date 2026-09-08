@@ -143,4 +143,54 @@ describe('KernelNetworkSandbox', () => {
 
     expect(screen.getByText('0 Socket(s) Ready')).toBeInTheDocument();
   });
+  it('switches to Zero-Copy & io_uring and tests read/write, sendfile, and io_uring ring buffer execution', () => {
+    render(<KernelNetworkSandbox />);
+
+    // Switch to Zero-Copy subtab
+    const zeroCopyTab = screen.getByRole('button', { name: /Zero-Copy & io_uring/i });
+    fireEvent.click(zeroCopyTab);
+
+    // Initial steady state
+    expect(screen.getByText('Zero-Copy Linux Kernel I/O: Traditional read()/write() vs sendfile() & io_uring')).toBeInTheDocument();
+    expect(screen.getByText('Kernel Space vs User Space Buffer Pipeline')).toBeInTheDocument();
+    expect(screen.getByText('io_uring Lockless Shared-Memory Ring Buffer Inspector')).toBeInTheDocument();
+
+    // Default mode is traditional read()/write()
+    expect(screen.getByRole('button', { name: 'read()/write()' })).toHaveClass('bg-rose-600');
+    expect(screen.getByText('AWAITING_EXECUTION')).toBeInTheDocument();
+
+    // 1. Execute Traditional read/write Transfer
+    const transferBtn = screen.getByRole('button', { name: /1. Execute 64KB I\/O Transfer/i });
+    fireEvent.click(transferBtn);
+
+    expect(screen.getByText('TRANSFER_COMPLETED')).toBeInTheDocument();
+    expect(screen.getAllByText('READ_WRITE_TRANSFER').length).toBeGreaterThanOrEqual(1);
+
+    // 2. Switch to sendfile() mode
+    const sendfileBtn = screen.getByRole('button', { name: 'sendfile()' });
+    fireEvent.click(sendfileBtn);
+
+    expect(sendfileBtn).toHaveClass('bg-amber-600');
+    expect(screen.getByText('Active: SENDFILE_ZERO_COPY')).toBeInTheDocument();
+
+    fireEvent.click(transferBtn);
+    expect(screen.getAllByText('SENDFILE_ZERO_COPY').length).toBeGreaterThanOrEqual(1);
+
+    // 3. Switch to io_uring mode
+    const ioUringBtn = screen.getByRole('button', { name: 'io_uring' });
+    fireEvent.click(ioUringBtn);
+
+    expect(ioUringBtn).toHaveClass('bg-emerald-600');
+    expect(screen.getByText('Active: IO_URING_RING_BUFFER')).toBeInTheDocument();
+
+    fireEvent.click(transferBtn);
+    expect(screen.getAllByText('IO_URING_ASYNC').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/res = 65536 Bytes OK/i).length).toBe(2);
+
+    // 4. Reset I/O Pipeline
+    const resetBtn = screen.getByRole('button', { name: /Reset I\/O Pipeline/i });
+    fireEvent.click(resetBtn);
+
+    expect(screen.getByText('AWAITING_EXECUTION')).toBeInTheDocument();
+  });
 });
