@@ -431,4 +431,63 @@ describe('DistributedSystemsSandbox', () => {
     expect(screen.getAllByText('READY').length).toBe(3);
     expect(screen.queryByText(/CRITICAL DUELING PROPOSER LIVELOCK DETECTED/i)).not.toBeInTheDocument();
   });
+  it('switches to CRDTs & Real-Time Collab and verifies PN-Counter, OR-Set, and RGA text sequence convergence', () => {
+    render(<DistributedSystemsSandbox />);
+
+    // Switch to CRDT subtab
+    const crdtTabBtn = screen.getByRole('button', { name: /CRDTs & Real-Time Collab/i });
+    fireEvent.click(crdtTabBtn);
+
+    // Initial steady state
+    expect(screen.getByText('Conflict-Free Replicated Data Types (CRDTs): State-based Join Semilattices & Real-Time Sync')).toBeInTheDocument();
+    expect(screen.getByText('Join-Semilattice (CvRDT) Algebraic Invariants & Proof of Convergence')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'P-N Counter' })).toHaveClass('bg-primary-700');
+
+    // 1. Mutate Local Replicas (PN Counter)
+    const mutateBtn = screen.getByRole('button', { name: /1. Mutate Local Replicas/i });
+    fireEvent.click(mutateBtn);
+
+    expect(screen.getAllByText('DIVERGENT').length).toBe(3);
+    expect(screen.getAllByText('CONCURRENT_MUTATIONS').length).toBeGreaterThanOrEqual(1);
+
+    // 2. Merge Across Network
+    const mergeBtn = screen.getByRole('button', { name: /2. Merge Across Network/i });
+    fireEvent.click(mergeBtn);
+
+    expect(screen.getAllByText('CONVERGED').length).toBe(3);
+    expect(screen.getAllByText('SEMILATTICE_MERGED').length).toBeGreaterThanOrEqual(1);
+
+    // 3. Switch to OR-Set mode
+    const orSetBtn = screen.getByRole('button', { name: 'OR-Set (Add-Wins)' });
+    fireEvent.click(orSetBtn);
+
+    expect(orSetBtn).toHaveClass('bg-primary-700');
+    expect(screen.getAllByText('Design Review').length).toBe(3);
+
+    fireEvent.click(mutateBtn);
+    expect(screen.getAllByText('CONCURRENT_ADD_REMOVE').length).toBeGreaterThanOrEqual(1);
+
+    fireEvent.click(mergeBtn);
+    expect(screen.getAllByText('ADD_WINS_CONVERGENCE').length).toBeGreaterThanOrEqual(1);
+
+    // 4. Switch to RGA Text Sequence mode
+    const rgaBtn = screen.getByRole('button', { name: 'RGA Text Seq' });
+    fireEvent.click(rgaBtn);
+
+    expect(rgaBtn).toHaveClass('bg-primary-700');
+    expect(screen.getAllByText(/"SYS"/i).length).toBe(3);
+
+    fireEvent.click(mutateBtn);
+    expect(screen.getAllByText('CONCURRENT_TYPING').length).toBeGreaterThanOrEqual(1);
+
+    fireEvent.click(mergeBtn);
+    expect(screen.getAllByText('RGA_DETERMINISTIC_MERGE').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/"SYST!"/i).length).toBe(4);
+
+    // 5. Reset CRDT Lab
+    const resetBtn = screen.getByRole('button', { name: /Reset CRDT Lab/i });
+    fireEvent.click(resetBtn);
+
+    expect(screen.getAllByText(/"SYS"/i).length).toBe(3);
+  });
 });

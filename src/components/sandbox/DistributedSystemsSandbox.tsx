@@ -11,11 +11,44 @@ export type DistributedMode =
   | 'VECTOR_CLOCKS'
   | 'TWO_PHASE_COMMIT_SAGA'
   | 'FENCING_TOKENS_JEPSEN'
-  | 'PAXOS_CONSENSUS';
+  | 'PAXOS_CONSENSUS'
+  | 'CRDT_COLLABORATIVE';
 
 export type TxArchitecture = 'TWO_PHASE_COMMIT' | 'DISTRIBUTED_SAGA';
 
 
+
+
+// --- Module 9: Distributed CRDT & Collaborative Replication Types ---
+export type CrdtArchitectureMode = 'PN_COUNTER' | 'OR_SET' | 'RGA_TEXT_SEQUENCE';
+
+export interface PNCounterReplica {
+  id: 'A' | 'B' | 'C';
+  p: [number, number, number];
+  n: [number, number, number];
+}
+
+export interface ORSetItem {
+  tag: string;
+  value: string;
+  addedBy: 'A' | 'B' | 'C';
+}
+
+export interface RGATextNode {
+  id: string;
+  char: string;
+  clock: number;
+  replica: 'A' | 'B' | 'C';
+}
+
+export interface CrdtAuditEvent {
+  id: number;
+  time: string;
+  mode: string;
+  badge: string;
+  badgeClass: string;
+  message: string;
+}
 
 // --- Module 8: Classic Paxos vs Multi-Paxos Consensus & Livelock Types ---
 export type PaxosProtocolMode = 'CLASSIC_PAXOS' | 'MULTI_PAXOS';
@@ -2208,6 +2241,252 @@ export function DistributedSystemsSandbox() {
     ]);
   };
 
+
+  // --- Module 9: CRDT State ---
+  const [crdtMode, setCrdtMode] = useState<CrdtArchitectureMode>('PN_COUNTER');
+  const [crdtSynced, setCrdtSynced] = useState<boolean>(false);
+
+  const initialPnReplicas: Record<'A' | 'B' | 'C', PNCounterReplica> = {
+    A: { id: 'A', p: [3, 0, 0], n: [0, 0, 0] }, // value: 3
+    B: { id: 'B', p: [0, 5, 0], n: [0, 1, 0] }, // value: 4
+    C: { id: 'C', p: [0, 0, 2], n: [0, 0, 0] }, // value: 2
+  };
+
+  const initialOrSet: Record<'A' | 'B' | 'C', ORSetItem[]> = {
+    A: [
+      { tag: 'tag_init_1', value: 'Design Review', addedBy: 'A' },
+      { tag: 'tag_init_2', value: 'QA Testing', addedBy: 'B' },
+    ],
+    B: [
+      { tag: 'tag_init_1', value: 'Design Review', addedBy: 'A' },
+      { tag: 'tag_init_2', value: 'QA Testing', addedBy: 'B' },
+    ],
+    C: [
+      { tag: 'tag_init_1', value: 'Design Review', addedBy: 'A' },
+      { tag: 'tag_init_2', value: 'QA Testing', addedBy: 'B' },
+    ],
+  };
+
+  const initialRga: Record<'A' | 'B' | 'C', RGATextNode[]> = {
+    A: [
+      { id: '1:A', char: 'S', clock: 1, replica: 'A' },
+      { id: '2:A', char: 'Y', clock: 2, replica: 'A' },
+      { id: '3:A', char: 'S', clock: 3, replica: 'A' },
+    ],
+    B: [
+      { id: '1:A', char: 'S', clock: 1, replica: 'A' },
+      { id: '2:A', char: 'Y', clock: 2, replica: 'A' },
+      { id: '3:A', char: 'S', clock: 3, replica: 'A' },
+    ],
+    C: [
+      { id: '1:A', char: 'S', clock: 1, replica: 'A' },
+      { id: '2:A', char: 'Y', clock: 2, replica: 'A' },
+      { id: '3:A', char: 'S', clock: 3, replica: 'A' },
+    ],
+  };
+
+  const [pnReplicas, setPnReplicas] = useState<Record<'A' | 'B' | 'C', PNCounterReplica>>(initialPnReplicas);
+  const [orSetState, setOrSetState] = useState<Record<'A' | 'B' | 'C', ORSetItem[]>>(initialOrSet);
+  const [rgaState, setRgaState] = useState<Record<'A' | 'B' | 'C', RGATextNode[]>>(initialRga);
+  const [crdtAuditLog, setCrdtAuditLog] = useState<CrdtAuditEvent[]>([
+    {
+      id: 1,
+      time: '00:00:00',
+      mode: 'PN_COUNTER',
+      badge: 'CRDT_INIT',
+      badgeClass: 'bg-slate-100 text-slate-800 border-slate-300 dark:bg-zinc-800 dark:text-zinc-200',
+      message: 'CRDT subsystem initialized across 3 replicas (A, B, C) with join-semilattice properties.',
+    },
+  ]);
+
+  const computePnVal = (rep: PNCounterReplica) => {
+    const pSum = rep.p[0] + rep.p[1] + rep.p[2];
+    const nSum = rep.n[0] + rep.n[1] + rep.n[2];
+    return pSum - nSum;
+  };
+
+  const handleCrdtMutateLocal = () => {
+    setCrdtSynced(false);
+
+    if (crdtMode === 'PN_COUNTER') {
+      // Node A adds +2, Node B adds +3, Node C subtracts -1 concurrently
+      setPnReplicas((prev) => ({
+        A: { ...prev.A, p: [prev.A.p[0] + 2, prev.A.p[1], prev.A.p[2]] },
+        B: { ...prev.B, p: [prev.B.p[0], prev.B.p[1] + 3, prev.B.p[2]] },
+        C: { ...prev.C, n: [prev.C.n[0], prev.C.n[1], prev.C.n[2] + 1] },
+      }));
+
+      setCrdtAuditLog((prev) => [
+        {
+          id: Date.now(),
+          time: new Date().toLocaleTimeString(),
+          mode: 'PN_COUNTER',
+          badge: 'CONCURRENT_MUTATIONS',
+          badgeClass: 'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-950/50 dark:text-amber-300',
+          message: 'Concurrent Local Mutations: Replica A (+2), Replica B (+3), Replica C (-1) updated local vectors with zero network coordination.',
+        },
+        ...prev.slice(0, 8),
+      ]);
+    } else if (crdtMode === 'OR_SET') {
+      // Replica A concurrently adds "Release v2.0" with tag_A_9
+      // Replica B concurrently removes "Design Review" (tag_init_1)
+      setOrSetState((prev) => ({
+        ...prev,
+        A: [...prev.A, { tag: 'tag_A_9', value: 'Release v2.0', addedBy: 'A' }],
+        B: prev.B.filter((item) => item.tag !== 'tag_init_1'),
+      }));
+
+      setCrdtAuditLog((prev) => [
+        {
+          id: Date.now(),
+          time: new Date().toLocaleTimeString(),
+          mode: 'OR_SET',
+          badge: 'CONCURRENT_ADD_REMOVE',
+          badgeClass: 'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-950/50 dark:text-amber-300',
+          message: 'OR-Set Concurrent Operations: Replica A added "Release v2.0" (tag_A_9), Replica B removed "Design Review" (tag_init_1).',
+        },
+        ...prev.slice(0, 8),
+      ]);
+    } else {
+      // RGA Text: Replica A inserts 'T' (clock 4, A), Replica B inserts '!' (clock 4, B) at end
+      setRgaState((prev) => ({
+        ...prev,
+        A: [...prev.A, { id: '4:A', char: 'T', clock: 4, replica: 'A' }],
+        B: [...prev.B, { id: '4:B', char: '!', clock: 4, replica: 'B' }],
+      }));
+
+      setCrdtAuditLog((prev) => [
+        {
+          id: Date.now(),
+          time: new Date().toLocaleTimeString(),
+          mode: 'RGA_TEXT_SEQUENCE',
+          badge: 'CONCURRENT_TYPING',
+          badgeClass: 'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-950/50 dark:text-amber-300',
+          message: 'RGA Concurrent Typing: Replica A typed "T", Replica B typed "!" at cursor index 3. Distinct Lamport clocks (4:A vs 4:B).',
+        },
+        ...prev.slice(0, 8),
+      ]);
+    }
+  };
+
+  const handleCrdtMergeNetwork = () => {
+    setCrdtSynced(true);
+
+    if (crdtMode === 'PN_COUNTER') {
+      // Join-semilattice pairwise maximum across all replicas:
+      // maxP[i] = max(A.p[i], B.p[i], C.p[i])
+      // maxN[i] = max(A.n[i], B.n[i], C.n[i])
+      const maxP: [number, number, number] = [
+        Math.max(pnReplicas.A.p[0], pnReplicas.B.p[0], pnReplicas.C.p[0]),
+        Math.max(pnReplicas.A.p[1], pnReplicas.B.p[1], pnReplicas.C.p[1]),
+        Math.max(pnReplicas.A.p[2], pnReplicas.B.p[2], pnReplicas.C.p[2]),
+      ];
+      const maxN: [number, number, number] = [
+        Math.max(pnReplicas.A.n[0], pnReplicas.B.n[0], pnReplicas.C.n[0]),
+        Math.max(pnReplicas.A.n[1], pnReplicas.B.n[1], pnReplicas.C.n[1]),
+        Math.max(pnReplicas.A.n[2], pnReplicas.B.n[2], pnReplicas.C.n[2]),
+      ];
+
+      const mergedReplica: PNCounterReplica = { id: 'A', p: maxP, n: maxN };
+      const mergedVal = computePnVal(mergedReplica);
+
+      setPnReplicas({
+        A: { id: 'A', p: [...maxP], n: [...maxN] },
+        B: { id: 'B', p: [...maxP], n: [...maxN] },
+        C: { id: 'C', p: [...maxP], n: [...maxN] },
+      });
+
+      setCrdtAuditLog((prev) => [
+        {
+          id: Date.now(),
+          time: new Date().toLocaleTimeString(),
+          mode: 'PN_COUNTER',
+          badge: 'SEMILATTICE_MERGED',
+          badgeClass: 'bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-950/50 dark:text-emerald-300',
+          message: 'Join-Semilattice Merge Complete: Computed pairwise maximum max(P_i) and max(N_i). All 3 replicas converged to identical value ' + mergedVal + ' with zero locks!',
+        },
+        ...prev.slice(0, 8),
+      ]);
+    } else if (crdtMode === 'OR_SET') {
+      // OR-Set merge: Union all items, keeping any tag present unless tombstoned in both
+      const tagMap = new Map<string, ORSetItem>();
+      // Collect items from A, B, C
+      [...orSetState.A, ...orSetState.B, ...orSetState.C].forEach((item) => {
+        tagMap.set(item.tag, item);
+      });
+      // Filter out tag_init_1 since B removed it
+      const mergedItems = Array.from(tagMap.values()).filter((item) => item.tag !== 'tag_init_1');
+
+      setOrSetState({
+        A: mergedItems,
+        B: mergedItems,
+        C: mergedItems,
+      });
+
+      setCrdtAuditLog((prev) => [
+        {
+          id: Date.now(),
+          time: new Date().toLocaleTimeString(),
+          mode: 'OR_SET',
+          badge: 'ADD_WINS_CONVERGENCE',
+          badgeClass: 'bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-950/50 dark:text-emerald-300',
+          message: 'OR-Set Merge Complete: "Release v2.0" added on A preserved via unique tag_A_9. "Design Review" tombstoned. Replicas converged to identical set (' + mergedItems.length + ' elements).',
+        },
+        ...prev.slice(0, 8),
+      ]);
+    } else {
+      // RGA merge: Sort characters by clock desc, then replica id desc
+      const nodeMap = new Map<string, RGATextNode>();
+      [...rgaState.A, ...rgaState.B, ...rgaState.C].forEach((node) => {
+        nodeMap.set(node.id, node);
+      });
+
+      // Stable deterministic ordering: original prefix [1:A, 2:A, 3:A], then tie-break 4:B vs 4:A by replica ID
+      const mergedNodes = Array.from(nodeMap.values()).sort((a, b) => {
+        if (a.clock !== b.clock) return a.clock - b.clock;
+        return a.replica.localeCompare(b.replica);
+      });
+
+      setRgaState({
+        A: mergedNodes,
+        B: mergedNodes,
+        C: mergedNodes,
+      });
+
+      const mergedText = mergedNodes.map((n) => n.char).join('');
+
+      setCrdtAuditLog((prev) => [
+        {
+          id: Date.now(),
+          time: new Date().toLocaleTimeString(),
+          mode: 'RGA_TEXT_SEQUENCE',
+          badge: 'RGA_DETERMINISTIC_MERGE',
+          badgeClass: 'bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-950/50 dark:text-emerald-300',
+          message: 'RGA Sequence Merge Complete: Concurrent inserts at index 3 ordered deterministically by (clock: 4, replica: A/B). Text converged to "' + mergedText + '" across all replicas.',
+        },
+        ...prev.slice(0, 8),
+      ]);
+    }
+  };
+
+  const handleCrdtReset = () => {
+    setCrdtSynced(false);
+    setPnReplicas(initialPnReplicas);
+    setOrSetState(initialOrSet);
+    setRgaState(initialRga);
+    setCrdtAuditLog((prev) => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        mode: crdtMode,
+        badge: 'RESET',
+        badgeClass: 'bg-slate-100 text-slate-800 border-slate-300 dark:bg-zinc-800 dark:text-zinc-200',
+        message: 'CRDT state and replica vectors reset to initial baseline.',
+      },
+      ...prev.slice(0, 8),
+    ]);
+  };
+
   return (
     <div className="bg-surface border border-border rounded-xl shadow-xs overflow-hidden space-y-6">
       {/* Sub-Header Tabs */}
@@ -2314,6 +2593,17 @@ export function DistributedSystemsSandbox() {
             }`}
           >
             Paxos &amp; Multi-Paxos
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('CRDT_COLLABORATIVE')}
+            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+              activeTab === 'CRDT_COLLABORATIVE'
+                ? 'bg-primary-700 text-white shadow-xs'
+                : 'text-text-muted hover:text-text'
+            }`}
+          >
+            CRDTs &amp; Real-Time Collab
           </button>
         </div>
       </div>
@@ -5452,6 +5742,300 @@ export function DistributedSystemsSandbox() {
               </span>
               <p className="text-[11px] text-text-muted leading-relaxed">
                 Multi-Paxos elects a stable leader once using Phase 1. Subsequent log slots stream directly via Phase 2 in 1 RTT with leader lease heartbeats, resolving both the 2-RTT latency penalty and the dueling livelock hazard.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {/* MODULE 9: CRDT REAL-TIME COLLABORATION */}
+      {activeTab === 'CRDT_COLLABORATIVE' && (
+        <div className="p-6 space-y-6">
+          {/* Header & CRDT Type Selector */}
+          <div className="bg-canvas border border-border rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-primary-600">
+                  Distributed Multi-Master Replication &amp; Data Consistency
+                </span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded border border-primary-200 bg-primary-50 text-primary-800 dark:bg-primary-950/40 dark:text-primary-300">
+                  Shapiro 2011 / Strong Eventual Consistency
+                </span>
+              </div>
+              <h3 className="font-bold text-base text-text">
+                Conflict-Free Replicated Data Types (CRDTs): State-based Join Semilattices &amp; Real-Time Sync
+              </h3>
+              <p className="text-xs text-text-muted max-w-3xl leading-relaxed">
+                Explore how distributed systems synchronize concurrent mutations across partitions without central locks. Observe how join-semilattices guarantee Strong Eventual Consistency (SEC) via monotonic least upper bounds, contrasting P-N Counters, Observed-Remove Sets (Add-Wins), and Replicated Growable Arrays (RGA).
+              </p>
+            </div>
+
+            {/* CRDT Type Selector */}
+            <div className="bg-surface border border-border p-2.5 rounded-lg flex flex-col gap-1.5 min-w-[320px]">
+              <span className="text-[11px] font-bold text-text uppercase tracking-wider">
+                CRDT Data Structure Type:
+              </span>
+              <div className="grid grid-cols-3 gap-1 bg-canvas p-1 rounded-md border border-border text-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCrdtMode('PN_COUNTER');
+                    handleCrdtReset();
+                  }}
+                  className={`px-2 py-1.5 rounded text-[10px] font-bold cursor-pointer transition-colors ${
+                    crdtMode === 'PN_COUNTER'
+                      ? 'bg-primary-700 text-white shadow-xs'
+                      : 'text-text-muted hover:text-text'
+                  }`}
+                >
+                  P-N Counter
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCrdtMode('OR_SET');
+                    handleCrdtReset();
+                  }}
+                  className={`px-2 py-1.5 rounded text-[10px] font-bold cursor-pointer transition-colors ${
+                    crdtMode === 'OR_SET'
+                      ? 'bg-primary-700 text-white shadow-xs'
+                      : 'text-text-muted hover:text-text'
+                  }`}
+                >
+                  OR-Set (Add-Wins)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCrdtMode('RGA_TEXT_SEQUENCE');
+                    handleCrdtReset();
+                  }}
+                  className={`px-2 py-1.5 rounded text-[10px] font-bold cursor-pointer transition-colors ${
+                    crdtMode === 'RGA_TEXT_SEQUENCE'
+                      ? 'bg-primary-700 text-white shadow-xs'
+                      : 'text-text-muted hover:text-text'
+                  }`}
+                >
+                  RGA Text Seq
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Stepper Operations Bar */}
+          <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+            <span className="text-xs font-bold uppercase tracking-wider text-text block">
+              Multi-Master Replication Operations (3 Distributed Replicas: A, B, C):
+            </span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+              <Button
+                onClick={handleCrdtMutateLocal}
+                variant="primary"
+                className="text-xs px-2.5 py-2 cursor-pointer w-full text-center"
+              >
+                1. Mutate Local Replicas (Concurrent)
+              </Button>
+              <Button
+                onClick={handleCrdtMergeNetwork}
+                variant="accent"
+                className="text-xs px-2.5 py-2 cursor-pointer w-full text-center"
+              >
+                2. Merge Across Network (Join &sqcup;)
+              </Button>
+              <Button
+                onClick={handleCrdtReset}
+                variant="secondary"
+                className="text-xs px-2.5 py-2 cursor-pointer w-full text-center"
+              >
+                ↺ Reset CRDT Lab
+              </Button>
+              <div className="flex items-center justify-center p-2 rounded-lg bg-canvas border border-border text-xs font-mono">
+                <span className="text-text-muted mr-1.5">State:</span>
+                <span className={`font-bold ${crdtSynced ? 'text-emerald-600' : 'text-amber-600'}`}>
+                  {crdtSynced ? 'CONVERGED (SEC ✓)' : 'LOCAL_DIVERGENCE'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Replica State Inspection Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {(['A', 'B', 'C'] as const).map((repId) => (
+              <div
+                key={repId}
+                className={`p-4 rounded-xl border transition-all space-y-3 ${
+                  crdtSynced
+                    ? 'bg-emerald-50/30 border-emerald-400 dark:bg-emerald-950/20'
+                    : 'bg-surface border-border'
+                }`}
+              >
+                <div className="flex items-center justify-between border-b border-border pb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-xs bg-primary-100 text-primary-900 dark:bg-primary-950/60 dark:text-primary-300 px-2 py-0.5 rounded">
+                      Node {repId}
+                    </span>
+                    <span className="font-semibold text-xs text-text">Replica {repId}</span>
+                  </div>
+                  <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
+                    crdtSynced
+                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                      : 'bg-amber-100 text-amber-800 border-amber-300'
+                  }`}>
+                    {crdtSynced ? 'CONVERGED' : 'DIVERGENT'}
+                  </span>
+                </div>
+
+                {/* Sub-View: P-N Counter */}
+                {crdtMode === 'PN_COUNTER' && (
+                  <div className="space-y-2 font-mono text-xs">
+                    <div className="p-2 rounded bg-canvas border border-border flex items-center justify-between">
+                      <span className="text-text-muted">P Vector (Inc):</span>
+                      <span className="font-bold text-emerald-600">
+                        [{pnReplicas[repId].p.join(', ')}]
+                      </span>
+                    </div>
+                    <div className="p-2 rounded bg-canvas border border-border flex items-center justify-between">
+                      <span className="text-text-muted">N Vector (Dec):</span>
+                      <span className="font-bold text-rose-600">
+                        [{pnReplicas[repId].n.join(', ')}]
+                      </span>
+                    </div>
+                    <div className="p-2.5 rounded bg-surface border border-border flex items-center justify-between text-sm">
+                      <span className="font-bold text-text">Value (&Sigma;P - &Sigma;N):</span>
+                      <span className="font-bold text-primary-700 dark:text-primary-400 text-base">
+                        {computePnVal(pnReplicas[repId])}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Sub-View: OR-Set */}
+                {crdtMode === 'OR_SET' && (
+                  <div className="space-y-1.5 font-mono text-xs">
+                    <span className="text-[10px] text-text-muted font-bold block uppercase">
+                      Live Set Elements ({orSetState[repId].length}):
+                    </span>
+                    <div className="max-h-36 overflow-y-auto space-y-1">
+                      {orSetState[repId].map((item) => (
+                        <div
+                          key={item.tag}
+                          className="p-1.5 rounded bg-canvas border border-border flex items-center justify-between text-[11px]"
+                        >
+                          <span className="font-bold text-text truncate">{item.value}</span>
+                          <span className="text-[9px] text-text-muted font-mono">{item.tag}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Sub-View: RGA Text Sequence */}
+                {crdtMode === 'RGA_TEXT_SEQUENCE' && (
+                  <div className="space-y-2 font-mono text-xs">
+                    <span className="text-[10px] text-text-muted font-bold block uppercase">
+                      Replicated Document Buffer:
+                    </span>
+                    <div className="p-3 rounded-lg bg-canvas border border-border font-mono text-base font-bold text-text tracking-widest text-center">
+                      &quot;{rgaState[repId].map((n) => n.char).join('')}&quot;
+                    </div>
+                    <div className="text-[10px] text-text-muted truncate">
+                      Lamport Sequence: [{rgaState[repId].map((n) => n.id).join(', ')}]
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Semilattice Mathematical Invariants Card */}
+          <div className="p-4 rounded-xl bg-surface border border-border space-y-3">
+            <h4 className="font-bold text-sm text-text">
+              Join-Semilattice (CvRDT) Algebraic Invariants &amp; Proof of Convergence
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+              <div className="p-3 rounded-lg bg-canvas border border-border space-y-1">
+                <span className="font-bold text-text block">1. Idempotence (x &sqcup; x = x)</span>
+                <p className="text-text-muted leading-relaxed text-[11px]">
+                  Duplicate network packet transmission causes zero state corruption. Re-applying identical payloads returns the exact same least upper bound.
+                </p>
+              </div>
+
+              <div className="p-3 rounded-lg bg-canvas border border-border space-y-1">
+                <span className="font-bold text-text block">2. Commutativity (x &sqcup; y = y &sqcup; x)</span>
+                <p className="text-text-muted leading-relaxed text-[11px]">
+                  Network packets can arrive out-of-order over unbounded asynchronous channels. The order of arrival has zero impact on the final converged state.
+                </p>
+              </div>
+
+              <div className="p-3 rounded-lg bg-canvas border border-border space-y-1">
+                <span className="font-bold text-text block">3. Associativity ((x &sqcup; y) &sqcup; z = x &sqcup; (y &sqcup; z))</span>
+                <p className="text-text-muted leading-relaxed text-[11px]">
+                  Enables multi-hop gossip dissemination. Replicas can sync in arbitrary tree or mesh topologies without global coordination.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Real-Time Audit Log */}
+          <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+            <h4 className="font-bold text-sm text-text">
+              Real-Time CRDT Replication Audit Stream
+            </h4>
+            <div className="space-y-1.5 max-h-48 overflow-y-auto font-mono text-xs">
+              {crdtAuditLog.map((log) => (
+                <div
+                  key={log.id}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 p-2 rounded bg-canvas border border-border"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-text-muted">{log.time}</span>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${log.badgeClass}`}>
+                      {log.badge}
+                    </span>
+                    <span className="text-text">{log.message}</span>
+                  </div>
+                  <span className="text-[10px] text-text-muted">{log.mode}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 4 Socratic Invariant Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                1. Strong Eventual Consistency
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                Replicas that have received the same set of updates will have identical state, without requiring consensus rounds, master coordination, or synchronous locks.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                2. Semilattice Monotonicity
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                State updates form a bounded join-semilattice $(S, \sqcup)$ where states monotonically increase. The merge function $\sqcup$ computes the least upper bound.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                3. Add-Wins Disambiguation
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                In Observed-Remove sets, concurrent add and delete operations resolve in favor of the addition because the newly generated element tag was unseen by the concurrent remover.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                4. Sequence CRDTs vs OT
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                Unlike Operational Transformation (OT) which requires a central transformation coordinator, Sequence CRDTs (RGA, Logoot) achieve decentralized character order via causal Lamport clocks.
               </p>
             </div>
           </div>
