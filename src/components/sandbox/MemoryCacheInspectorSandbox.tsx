@@ -11,9 +11,47 @@ export type InspectorMode =
   | 'ARIES_RECOVERY'
   | 'CACHE_STAMPEDE_XFETCH'
   | 'BTREE_LOCK_CRABBING'
-  | 'MVCC_SNAPSHOT_ISOLATION';
+  | 'MVCC_SNAPSHOT_ISOLATION'
+  | 'GARBAGE_COLLECTION_TRICOLOR';
 
 
+
+// --- Module 9: Garbage Collection, Generational Tri-Color Marking & Barriers Types ---
+export type TriColorState = 'WHITE' | 'GREY' | 'BLACK';
+export type GcGeneration = 'EDEN' | 'SURVIVOR_S0' | 'SURVIVOR_S1' | 'OLD_TENURED';
+export type GcAlgorithmMode = 'STOP_THE_WORLD_STW' | 'CONCURRENT_MARK_SATB';
+export type BarrierMode = 'NO_BARRIER_HAZARD' | 'SATB_WRITE_BARRIER';
+
+export interface HeapObject {
+  id: string;
+  name: string;
+  sizeKb: number;
+  color: TriColorState;
+  generation: GcGeneration;
+  age: number;
+  references: string[];
+  isRoot: boolean;
+  isMutated?: boolean;
+}
+
+export interface GcMetrics {
+  totalHeapKb: number;
+  liveBytesKb: number;
+  reclaimedKb: number;
+  pauseTimeMs: number;
+  mutatorThroughputPct: number;
+  hazardDetected: boolean;
+  barrierInterceptions: number;
+}
+
+export interface GcAuditEvent {
+  id: number;
+  time: string;
+  phase: string;
+  badge: string;
+  badgeClass: string;
+  message: string;
+}
 
 // --- Module 8: MVCC, Snapshot Isolation & Write Skew Types ---
 export type MvccIsolationLevel = 'SNAPSHOT_ISOLATION' | 'SERIALIZABLE_SNAPSHOT_ISOLATION';
@@ -592,6 +630,274 @@ const STACK_HEAP_SCENARIOS: Record<string, { name: string; description: string; 
 };
 
 export function MemoryCacheInspectorSandbox() {
+  // --- Module 9: Garbage Collection State ---
+  const [gcAlgorithm, setGcAlgorithm] = useState<GcAlgorithmMode>('CONCURRENT_MARK_SATB');
+  const [gcBarrierMode, setGcBarrierMode] = useState<BarrierMode>('SATB_WRITE_BARRIER');
+  const [gcStep, setGcStep] = useState<number>(0);
+  const [gcHazardAlert, setGcHazardAlert] = useState<string | null>(null);
+
+  const initialHeapObjects: HeapObject[] = [
+    { id: 'ROOT', name: 'Stack Frame Local (Root)', sizeKb: 8, color: 'WHITE', generation: 'EDEN', age: 0, references: ['OBJ_A', 'OBJ_C'], isRoot: true },
+    { id: 'OBJ_A', name: 'UserSession (Obj A)', sizeKb: 32, color: 'WHITE', generation: 'EDEN', age: 0, references: ['OBJ_B'], isRoot: false },
+    { id: 'OBJ_B', name: 'AuthToken (Obj B - Target)', sizeKb: 16, color: 'WHITE', generation: 'EDEN', age: 0, references: [], isRoot: false },
+    { id: 'OBJ_C', name: 'GlobalCache (Obj C)', sizeKb: 64, color: 'WHITE', generation: 'SURVIVOR_S0', age: 1, references: [], isRoot: false },
+    { id: 'OBJ_D', name: 'TempFile (Obj D - Unreachable)', sizeKb: 48, color: 'WHITE', generation: 'SURVIVOR_S0', age: 2, references: [], isRoot: false },
+    { id: 'OBJ_E', name: 'DatabasePool (Obj E - Tenured)', sizeKb: 128, color: 'WHITE', generation: 'OLD_TENURED', age: 3, references: [], isRoot: false },
+  ];
+
+  const [heapObjects, setHeapObjects] = useState<HeapObject[]>(initialHeapObjects);
+
+  const [gcMetrics, setGcMetrics] = useState<GcMetrics>({
+    totalHeapKb: 296,
+    liveBytesKb: 248,
+    reclaimedKb: 0,
+    pauseTimeMs: 2.1,
+    mutatorThroughputPct: 98,
+    hazardDetected: false,
+    barrierInterceptions: 0,
+  });
+
+  const [gcAuditLog, setGcAuditLog] = useState<GcAuditEvent[]>([
+    {
+      id: 1,
+      time: '14:40:00',
+      phase: 'INIT',
+      badge: 'GC_INIT',
+      badgeClass: 'bg-slate-100 text-slate-800 border-slate-300 dark:bg-zinc-800 dark:text-zinc-200',
+      message: 'Garbage Collector initialized with Dijkstra Tri-Color Marking and Generational Heap Layout.',
+    },
+  ]);
+
+  const handleGcStep1RootScan = () => {
+    setGcStep(1);
+    setGcHazardAlert(null);
+    setHeapObjects((prev) =>
+      prev.map((obj) => (obj.isRoot ? { ...obj, color: 'GREY' } : obj))
+    );
+    setGcMetrics((prev) => ({
+      ...prev,
+      pauseTimeMs: gcAlgorithm === 'STOP_THE_WORLD_STW' ? 45.0 : 1.2,
+    }));
+    setGcAuditLog((prev) => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        phase: 'ROOT_SCAN',
+        badge: 'INITIAL_MARK',
+        badgeClass: 'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-950/50 dark:text-amber-300',
+        message: 'Root Scanning: Stack frame pointers scanned into Grey set. Direct targets (Obj A, Obj C) queued for tracing.',
+      },
+      ...prev.slice(0, 8),
+    ]);
+  };
+
+  const handleGcStep2TraceGrey = () => {
+    setGcStep(2);
+    setHeapObjects((prev) =>
+      prev.map((obj) => {
+        if (obj.id === 'ROOT') return { ...obj, color: 'BLACK' };
+        if (obj.id === 'OBJ_A') return { ...obj, color: 'GREY' };
+        if (obj.id === 'OBJ_C') return { ...obj, color: 'BLACK' };
+        return obj;
+      })
+    );
+    setGcAuditLog((prev) => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        phase: 'CONCURRENT_TRACE',
+        badge: 'GREY_EXPANSION',
+        badgeClass: 'bg-indigo-100 text-indigo-900 border-indigo-300 dark:bg-indigo-950/50 dark:text-indigo-300',
+        message: 'Concurrent Tracing: ROOT transitioned to BLACK. Obj C scanned (leaf &rarr; BLACK). Obj A transitioned to GREY.',
+      },
+      ...prev.slice(0, 8),
+    ]);
+  };
+
+  const handleGcStep3MutatorMutation = () => {
+    setGcStep(3);
+
+    if (gcBarrierMode === 'NO_BARRIER_HAZARD') {
+      setHeapObjects((prev) =>
+        prev.map((obj) => {
+          if (obj.id === 'OBJ_A') return { ...obj, references: [], isMutated: true };
+          if (obj.id === 'OBJ_C') return { ...obj, references: ['OBJ_B'], isMutated: true };
+          return obj;
+        })
+      );
+      setGcHazardAlert(
+        'CRITICAL TRI-COLOR INVARIANT VIOLATED! Mutator linked White Obj B to Black Obj C and erased pointer from Grey Obj A without write barrier. Obj B is now orphaned from Grey scanning and will be PREMATURELY SWEPT!'
+      );
+      setGcMetrics((prev) => ({ ...prev, hazardDetected: true }));
+      setGcAuditLog((prev) => [
+        {
+          id: Date.now(),
+          time: new Date().toLocaleTimeString(),
+          phase: 'MUTATOR_MUTATION',
+          badge: 'HAZARD_DETECTED',
+          badgeClass: 'bg-rose-100 text-rose-900 border-rose-300 dark:bg-rose-950/50 dark:text-rose-300',
+          message: 'Concurrent Mutation Hazard: Black Obj C -> White Obj B edge added. Grey Obj A -> Obj B pointer detached. Tri-color invariant broken!',
+        },
+        ...prev.slice(0, 8),
+      ]);
+    } else {
+      // SATB Write Barrier
+      setHeapObjects((prev) =>
+        prev.map((obj) => {
+          if (obj.id === 'OBJ_A') return { ...obj, references: [], isMutated: true };
+          if (obj.id === 'OBJ_C') return { ...obj, references: ['OBJ_B'], isMutated: true };
+          if (obj.id === 'OBJ_B') return { ...obj, color: 'GREY', isMutated: true };
+          return obj;
+        })
+      );
+      setGcHazardAlert(null);
+      setGcMetrics((prev) => ({ ...prev, barrierInterceptions: prev.barrierInterceptions + 1 }));
+      setGcAuditLog((prev) => [
+        {
+          id: Date.now(),
+          time: new Date().toLocaleTimeString(),
+          phase: 'WRITE_BARRIER',
+          badge: 'SATB_BARRIER_FIRED',
+          badgeClass: 'bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-950/50 dark:text-emerald-300',
+          message: 'SATB Write Barrier Intercept: Intercepted pointer overwrite on Obj A. Shaded target Obj B to GREY and pushed to marking worklist. Invariant preserved!',
+        },
+        ...prev.slice(0, 8),
+      ]);
+    }
+  };
+
+  const handleGcStep4Sweep = () => {
+    setGcStep(4);
+
+    if (gcBarrierMode === 'NO_BARRIER_HAZARD') {
+      // Obj B was left White, so it gets swept erroneously!
+      setHeapObjects((prev) =>
+        prev.map((obj) => {
+          if (obj.id === 'OBJ_A') return { ...obj, color: 'BLACK' };
+          if (obj.id === 'OBJ_B') return { ...obj, sizeKb: 0, color: 'WHITE' }; // Swept!
+          if (obj.id === 'OBJ_D') return { ...obj, sizeKb: 0, color: 'WHITE' }; // Swept!
+          return obj;
+        })
+      );
+      setGcHazardAlert(
+        'FATAL USE-AFTER-FREE CORRUPTION: Live Object B was erroneously swept because it remained White! Black Object C now contains a dangling reference to freed memory!'
+      );
+      setGcMetrics((prev) => ({
+        ...prev,
+        reclaimedKb: 64, // 16 (B) + 48 (D)
+        liveBytesKb: 232,
+      }));
+      setGcAuditLog((prev) => [
+        {
+          id: Date.now(),
+          time: new Date().toLocaleTimeString(),
+          phase: 'SWEEP',
+          badge: 'HEAP_CORRUPTION',
+          badgeClass: 'bg-rose-100 text-rose-900 border-rose-300 dark:bg-rose-950/50 dark:text-rose-300',
+          message: 'Premature Collection: Obj B swept while still referenced by Obj C! Fatal memory corruption / dangling pointer created.',
+        },
+        ...prev.slice(0, 8),
+      ]);
+    } else {
+      // SATB mode: Obj B was Grey and turns Black; only unreachable Obj D is swept
+      setHeapObjects((prev) =>
+        prev.map((obj) => {
+          if (obj.id === 'OBJ_A' || obj.id === 'OBJ_B') return { ...obj, color: 'BLACK' };
+          if (obj.id === 'OBJ_D') return { ...obj, sizeKb: 0, color: 'WHITE' }; // Only D swept!
+          return obj;
+        })
+      );
+      setGcHazardAlert(null);
+      setGcMetrics((prev) => ({
+        ...prev,
+        reclaimedKb: 48, // only D
+        liveBytesKb: 248,
+      }));
+      setGcAuditLog((prev) => [
+        {
+          id: Date.now(),
+          time: new Date().toLocaleTimeString(),
+          phase: 'SWEEP',
+          badge: 'CLEAN_RECLAMATION',
+          badgeClass: 'bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-950/50 dark:text-emerald-300',
+          message: 'Safe Sweep: All live objects (including mutated Obj B) retained as BLACK. Unreachable Obj D (48KB) cleanly reclaimed.',
+        },
+        ...prev.slice(0, 8),
+      ]);
+    }
+  };
+
+  const handleGcStep5GenerationalMinor = () => {
+    setGcStep(5);
+    setHeapObjects((prev) =>
+      prev.map((obj) => {
+        if (obj.id === 'OBJ_A' || obj.id === 'OBJ_B') {
+          return { ...obj, generation: 'SURVIVOR_S1', age: obj.age + 1, color: 'WHITE', isMutated: false };
+        }
+        if (obj.id === 'OBJ_C') {
+          return { ...obj, generation: 'OLD_TENURED', age: obj.age + 1, color: 'WHITE', isMutated: false };
+        }
+        if (obj.id === 'OBJ_E') {
+          return { ...obj, color: 'WHITE', isMutated: false };
+        }
+        return obj;
+      })
+    );
+    setGcAuditLog((prev) => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        phase: 'GENERATIONAL_COPY',
+        badge: 'MINOR_GC_PROMOTION',
+        badgeClass: 'bg-purple-100 text-purple-900 border-purple-300 dark:bg-purple-950/50 dark:text-purple-300',
+        message: 'Minor Generational GC: Eden survivors (Obj A, Obj B) copied to Survivor S1 (Age 1). Obj C reached tenure threshold (Age 2) and was promoted to Old Gen.',
+      },
+      ...prev.slice(0, 8),
+    ]);
+  };
+
+  const handleToggleGcBarrier = () => {
+    const nextMode: BarrierMode = gcBarrierMode === 'NO_BARRIER_HAZARD' ? 'SATB_WRITE_BARRIER' : 'NO_BARRIER_HAZARD';
+    setGcBarrierMode(nextMode);
+    setGcHazardAlert(null);
+  };
+
+  const handleToggleGcAlgorithm = () => {
+    const nextAlgo: GcAlgorithmMode = gcAlgorithm === 'STOP_THE_WORLD_STW' ? 'CONCURRENT_MARK_SATB' : 'STOP_THE_WORLD_STW';
+    setGcAlgorithm(nextAlgo);
+    setGcMetrics((prev) => ({
+      ...prev,
+      pauseTimeMs: nextAlgo === 'STOP_THE_WORLD_STW' ? 180.0 : 2.1,
+      mutatorThroughputPct: nextAlgo === 'STOP_THE_WORLD_STW' ? 82 : 98,
+    }));
+  };
+
+  const handleResetGc = () => {
+    setGcStep(0);
+    setGcHazardAlert(null);
+    setHeapObjects(initialHeapObjects);
+    setGcMetrics({
+      totalHeapKb: 296,
+      liveBytesKb: 248,
+      reclaimedKb: 0,
+      pauseTimeMs: gcAlgorithm === 'STOP_THE_WORLD_STW' ? 180.0 : 2.1,
+      mutatorThroughputPct: gcAlgorithm === 'STOP_THE_WORLD_STW' ? 82 : 98,
+      hazardDetected: false,
+      barrierInterceptions: 0,
+    });
+    setGcAuditLog((prev) => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        phase: 'RESET',
+        badge: 'RESET',
+        badgeClass: 'bg-slate-100 text-slate-800 border-slate-300 dark:bg-zinc-800 dark:text-zinc-200',
+        message: 'Heap objects, Tri-color states, and generational boundaries reset to initial state.',
+      },
+      ...prev.slice(0, 8),
+    ]);
+  };
+
   const [activeSubTab, setActiveSubTab] = useState<InspectorMode>('STACK_HEAP');
 
   // --- Module 5: Database WAL & ARIES Recovery State ---
@@ -2374,6 +2680,17 @@ export function MemoryCacheInspectorSandbox() {
             }`}
           >
             B-Tree Concurrency &amp; OLC
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveSubTab('GARBAGE_COLLECTION_TRICOLOR')}
+            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+              activeSubTab === 'GARBAGE_COLLECTION_TRICOLOR'
+                ? 'bg-primary-700 text-white shadow-xs'
+                : 'text-text-muted hover:text-text'
+            }`}
+          >
+            Tri-Color GC &amp; Barriers
           </button>
           <button
             type="button"
@@ -5655,6 +5972,379 @@ export function MemoryCacheInspectorSandbox() {
           </div>
         </div>
       )}
+
+      {/* MODULE 9: GARBAGE COLLECTION, GENERATIONAL TRACING & TRI-COLOR BARRIERS */}
+      {activeSubTab === 'GARBAGE_COLLECTION_TRICOLOR' && (
+        <div className="p-6 space-y-6">
+          {/* Header & Configuration Bar */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-canvas border border-border p-5 rounded-xl">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-accent-700">
+                  Runtime Systems &amp; Memory Reclamation
+                </span>
+                <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-primary-100 text-primary-900 border border-primary-300 font-bold">
+                  Dijkstra Tri-Color Marking
+                </span>
+              </div>
+              <h3 className="text-base font-bold text-text">
+                Generational Tracing, Tri-Color Marking &amp; Concurrent Read/Write Barriers
+              </h3>
+              <p className="text-xs text-text-muted max-w-2xl leading-relaxed">
+                Concurrent garbage collectors trace reachable objects while mutator threads continuously modify pointers. Without write barriers, mutator re-linking causes live objects to be missed and erroneously swept, causing catastrophic dangling pointer crashes.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleToggleGcAlgorithm}
+                className="text-xs font-semibold"
+              >
+                {gcAlgorithm === 'CONCURRENT_MARK_SATB' ? '✓ Concurrent SATB' : 'Stop-The-World (STW)'}
+              </Button>
+
+              <Button
+                variant={gcBarrierMode === 'SATB_WRITE_BARRIER' ? 'primary' : 'secondary'}
+                size="sm"
+                onClick={handleToggleGcBarrier}
+                className={`text-xs font-semibold ${
+                  gcBarrierMode === 'NO_BARRIER_HAZARD'
+                    ? 'border-rose-300 text-rose-700 hover:bg-rose-50'
+                    : 'bg-emerald-700 hover:bg-emerald-800 text-white'
+                }`}
+              >
+                {gcBarrierMode === 'SATB_WRITE_BARRIER' ? '✓ SATB Barrier Active' : 'No Barrier (Hazard Mode)'}
+              </Button>
+
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleResetGc}
+                className="text-xs font-semibold"
+              >
+                ↺ Reset Heap Lab
+              </Button>
+            </div>
+          </div>
+
+          {/* Stepper Controls Bar */}
+          <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-text uppercase tracking-wider">
+                Interactive GC Execution Stepper:
+              </span>
+              <div className="flex items-center gap-2 text-xs font-mono">
+                <span>Phase: <strong>{gcStep === 0 ? 'READY' : gcStep === 1 ? 'ROOT_SCAN' : gcStep === 2 ? 'TRACING' : gcStep === 3 ? 'MUTATION' : gcStep === 4 ? 'SWEEP' : 'GENERATIONAL_COPY'}</strong></span>
+                <span className="text-text-muted">|</span>
+                <span>Max Pause: <strong className="text-primary-800">{gcMetrics.pauseTimeMs} ms</strong></span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
+              <button
+                type="button"
+                onClick={handleGcStep1RootScan}
+                className={`p-2.5 rounded-lg border text-left cursor-pointer transition-all ${
+                  gcStep === 1 ? 'bg-primary-50 border-primary-400 text-primary-950 font-bold' : 'bg-canvas border-border text-text hover:border-border-hover'
+                }`}
+              >
+                <div className="text-xs">1. Root Scan</div>
+                <div className="text-[10px] text-text-muted mt-0.5">Stack roots &rarr; GREY</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleGcStep2TraceGrey}
+                className={`p-2.5 rounded-lg border text-left cursor-pointer transition-all ${
+                  gcStep === 2 ? 'bg-primary-50 border-primary-400 text-primary-950 font-bold' : 'bg-canvas border-border text-text hover:border-border-hover'
+                }`}
+              >
+                <div className="text-xs">2. Trace Grey</div>
+                <div className="text-[10px] text-text-muted mt-0.5">Expand children to Grey</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleGcStep3MutatorMutation}
+                className={`p-2.5 rounded-lg border text-left cursor-pointer transition-all ${
+                  gcStep === 3 ? 'bg-primary-50 border-primary-400 text-primary-950 font-bold' : 'bg-canvas border-border text-text hover:border-border-hover'
+                }`}
+              >
+                <div className="text-xs">3. Mutator Mutation</div>
+                <div className="text-[10px] text-text-muted mt-0.5">C &rarr; B, erase A &rarr; B</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleGcStep4Sweep}
+                className={`p-2.5 rounded-lg border text-left cursor-pointer transition-all ${
+                  gcStep === 4 ? 'bg-primary-50 border-primary-400 text-primary-950 font-bold' : 'bg-canvas border-border text-text hover:border-border-hover'
+                }`}
+              >
+                <div className="text-xs">4. Finish &amp; Sweep</div>
+                <div className="text-[10px] text-text-muted mt-0.5">Reclaim White objects</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleGcStep5GenerationalMinor}
+                className={`p-2.5 rounded-lg border text-left cursor-pointer transition-all ${
+                  gcStep === 5 ? 'bg-primary-50 border-primary-400 text-primary-950 font-bold' : 'bg-canvas border-border text-text hover:border-border-hover'
+                }`}
+              >
+                <div className="text-xs">5. Minor GC Copy</div>
+                <div className="text-[10px] text-text-muted mt-0.5">Survivor copy &amp; Tenuring</div>
+              </button>
+            </div>
+          </div>
+
+          {/* Concurrency Hazard Warning Banner */}
+          {gcHazardAlert && (
+            <div className="p-4 rounded-xl border bg-rose-50 border-rose-400 text-rose-950 flex items-start gap-3">
+              <span className="text-xl">⚠️</span>
+              <div className="space-y-1">
+                <div className="text-sm font-bold">Dijkstra Tri-Color Invariant Violation Detected!</div>
+                <div className="text-xs text-rose-900 leading-relaxed">{gcHazardAlert}</div>
+              </div>
+            </div>
+          )}
+
+          {/* Interactive Heap Topography & Object Graph */}
+          <div className="bg-canvas border border-border rounded-xl p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-primary-800 uppercase tracking-wider">
+                  Heap Topography: Eden, Survivor (S0/S1) &amp; Tenured Old Gen
+                </span>
+                <span className="text-[11px] font-mono bg-surface border border-border px-2 py-0.5 rounded font-bold text-text">
+                  Live: {gcMetrics.liveBytesKb} KB / Reclaimed: {gcMetrics.reclaimedKb} KB
+                </span>
+              </div>
+              <div className="flex items-center gap-3 text-xs font-semibold">
+                <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-neutral-200 border border-neutral-400"></span> White (Unvisited)</span>
+                <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-amber-300 border border-amber-500"></span> Grey (Worklist)</span>
+                <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-emerald-400 border border-emerald-600"></span> Black (Live Scanned)</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Eden Space */}
+              <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between border-b border-border pb-2">
+                  <span className="text-xs font-bold text-text font-mono">Eden Space (Young Gen)</span>
+                  <span className="text-[10px] text-text-muted">High Allocation Churn</span>
+                </div>
+                <div className="space-y-2">
+                  {heapObjects.filter((o) => o.generation === 'EDEN').map((obj) => (
+                    <div
+                      key={obj.id}
+                      className={`p-3 rounded-lg border transition-all ${
+                        obj.color === 'BLACK'
+                          ? 'bg-emerald-50/70 border-emerald-400 text-emerald-950 font-semibold'
+                          : obj.color === 'GREY'
+                          ? 'bg-amber-50/70 border-amber-400 text-amber-950 font-semibold shadow-xs'
+                          : obj.sizeKb === 0
+                          ? 'bg-neutral-100 border-neutral-200 text-neutral-400 line-through opacity-50'
+                          : 'bg-canvas border-dashed border-neutral-300 text-text'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-bold">{obj.name}</span>
+                        <span className="font-mono text-[10px]">{obj.sizeKb > 0 ? `${obj.sizeKb} KB` : 'SWEPT'}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-[10px] text-text-muted mt-1">
+                        <span>Refs: {obj.references.length > 0 ? obj.references.join(', ') : 'None'}</span>
+                        <span className="font-mono font-bold">Age: {obj.age}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Survivor Space S0/S1 */}
+              <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between border-b border-border pb-2">
+                  <span className="text-xs font-bold text-text font-mono">Survivor Space (S0 / S1)</span>
+                  <span className="text-[10px] text-text-muted">Ping-Pong Copy Buffer</span>
+                </div>
+                <div className="space-y-2">
+                  {heapObjects.filter((o) => o.generation.startsWith('SURVIVOR')).map((obj) => (
+                    <div
+                      key={obj.id}
+                      className={`p-3 rounded-lg border transition-all ${
+                        obj.color === 'BLACK'
+                          ? 'bg-emerald-50/70 border-emerald-400 text-emerald-950 font-semibold'
+                          : obj.color === 'GREY'
+                          ? 'bg-amber-50/70 border-amber-400 text-amber-950 font-semibold shadow-xs'
+                          : obj.sizeKb === 0
+                          ? 'bg-neutral-100 border-neutral-200 text-neutral-400 line-through opacity-50'
+                          : 'bg-canvas border-dashed border-neutral-300 text-text'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-bold">{obj.name}</span>
+                        <span className="font-mono text-[10px]">{obj.sizeKb > 0 ? `${obj.sizeKb} KB` : 'SWEPT'}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-[10px] text-text-muted mt-1">
+                        <span>Refs: {obj.references.length > 0 ? obj.references.join(', ') : 'None'}</span>
+                        <span className="font-mono font-bold">Age: {obj.age} / 3</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tenured Old Generation */}
+              <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between border-b border-border pb-2">
+                  <span className="text-xs font-bold text-text font-mono">Tenured Old Generation</span>
+                  <span className="text-[10px] text-text-muted">Long-Lived Objects</span>
+                </div>
+                <div className="space-y-2">
+                  {heapObjects.filter((o) => o.generation === 'OLD_TENURED').map((obj) => (
+                    <div
+                      key={obj.id}
+                      className={`p-3 rounded-lg border transition-all ${
+                        obj.color === 'BLACK'
+                          ? 'bg-emerald-50/70 border-emerald-400 text-emerald-950 font-semibold'
+                          : obj.color === 'GREY'
+                          ? 'bg-amber-50/70 border-amber-400 text-amber-950 font-semibold'
+                          : 'bg-canvas border-border text-text'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-bold">{obj.name}</span>
+                        <span className="font-mono text-[10px]">{obj.sizeKb} KB</span>
+                      </div>
+                      <div className="flex items-center justify-between text-[10px] text-text-muted mt-1">
+                        <span>Refs: {obj.references.length > 0 ? obj.references.join(', ') : 'None'}</span>
+                        <span className="font-mono font-bold">Tenured (Age &ge; 3)</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Quantitative Performance Benchmark Table */}
+          <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+            <div className="flex items-center justify-between border-b border-border pb-2">
+              <span className="text-xs font-bold text-text uppercase tracking-wider">
+                Garbage Collection Benchmark: Stop-The-World (STW) vs Concurrent Generational (SATB)
+              </span>
+              <span className="text-xs font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded">
+                85x Pause Time Reduction
+              </span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs text-left">
+                <thead>
+                  <tr className="border-b border-border text-text-muted">
+                    <th className="py-1.5 pr-4 font-semibold">Reclamation Characteristic</th>
+                    <th className="py-1.5 px-4 font-semibold">Stop-The-World (STW) Mark-Sweep</th>
+                    <th className="py-1.5 px-4 font-semibold">Concurrent Generational (SATB)</th>
+                    <th className="py-1.5 pl-4 font-semibold text-right">Advantage</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border font-mono text-[11px]">
+                  <tr>
+                    <td className="py-2 pr-4 font-sans font-medium text-text">Max GC Pause Time (STW)</td>
+                    <td className="py-2 px-4 text-rose-700">180.0 ms (Full heap scan freeze)</td>
+                    <td className="py-2 px-4 text-emerald-700 font-bold">2.1 ms (Root scan only)</td>
+                    <td className="py-2 pl-4 text-right text-emerald-700 font-bold">85x Latency Drop</td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 pr-4 font-sans font-medium text-text">Mutator Thread Throughput</td>
+                    <td className="py-2 px-4 text-text-muted">82% (Frozen during collections)</td>
+                    <td className="py-2 px-4 text-emerald-700 font-bold">98% (Mutators run concurrently)</td>
+                    <td className="py-2 pl-4 text-right text-emerald-700 font-bold">+16% Throughput</td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 pr-4 font-sans font-medium text-text">Write Barrier Overhead</td>
+                    <td className="py-2 px-4 text-emerald-700 font-bold">0% (No mutator barrier required)</td>
+                    <td className="py-2 px-4 text-amber-700 font-semibold">~2-3% CPU on pointer writes</td>
+                    <td className="py-2 pl-4 text-right text-text-muted">STW has zero barrier</td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 pr-4 font-sans font-medium text-text">Live Pointer Safety</td>
+                    <td className="py-2 px-4 text-emerald-700 font-bold">Guaranteed (Heap frozen)</td>
+                    <td className="py-2 px-4 text-emerald-700 font-bold">Guaranteed via SATB Barrier</td>
+                    <td className="py-2 pl-4 text-right text-emerald-700 font-bold">Zero Dangling Pointers</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Real-Time GC Execution Audit Stream */}
+          <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+            <h4 className="font-bold text-sm text-text">
+              Real-Time Garbage Collection Execution Audit Stream
+            </h4>
+            <div className="space-y-1.5 max-h-48 overflow-y-auto font-mono text-xs">
+              {gcAuditLog.map((log) => (
+                <div
+                  key={log.id}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 p-2 rounded bg-canvas border border-border"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-text-muted">{log.time}</span>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${log.badgeClass}`}>
+                      {log.badge}
+                    </span>
+                    <span className="text-text">{log.message}</span>
+                  </div>
+                  <span className="text-[10px] text-text-muted font-mono">{log.phase}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 4 Socratic Invariant Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                1. Weak Generational Law
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                Most allocated objects die shortly after creation. Segregating the heap into Eden, Survivor, and Tenured spaces allows minor collections to reclaim 90%+ of dead bytes without scanning the vast Old Generation.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                2. Tri-Color Invariant
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                Strong Tri-Color Invariant: No Black object holds a direct reference to a White object without an intervening Grey object. Breaking this invariant causes the collector to silently sweep reachable live objects.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                3. SATB Write Barrier
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                Snapshot-At-The-Beginning (SATB) intercepts pointer overwrites. Before pointer A &rarr; B is deleted, SATB shades B to Grey, ensuring any object live at the start of marking remains preserved throughout the concurrent cycle.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                4. Compaction vs Free-Lists
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                Mark-Sweep leaves fragmented free-lists, slowing down subsequent allocations. Generational copying collectors slide surviving objects contiguously, allowing instant pointer-bump allocations in O(1).
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
 
     </div>
   );

@@ -431,4 +431,74 @@ describe('MemoryCacheInspectorSandbox', () => {
     expect(screen.getByText('2 Active Doctor(s)')).toBeInTheDocument();
     expect(screen.queryByText(/SSI Serializability Safety Verified/i)).not.toBeInTheDocument();
   });
+
+  it('switches to Tri-Color GC & Barriers and verifies marking, SATB write barrier safety, and un-barriered mutation hazard', () => {
+    render(<MemoryCacheInspectorSandbox />);
+
+    // Switch to Tri-Color GC subtab
+    const gcTabBtn = screen.getByRole('button', { name: /Tri-Color GC & Barriers/i });
+    fireEvent.click(gcTabBtn);
+
+    // Verify Title & Heap Topography
+    expect(screen.getByText(/Generational Tracing, Tri-Color Marking & Concurrent Read\/Write Barriers/i)).toBeInTheDocument();
+    expect(screen.getByText(/Eden Space \(Young Gen\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/Survivor Space \(S0 \/ S1\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/Tenured Old Generation/i)).toBeInTheDocument();
+
+    // Default mode is Concurrent SATB with SATB Barrier Active
+    expect(screen.getByRole('button', { name: /✓ SATB Barrier Active/i })).toBeInTheDocument();
+
+    const step1Btn = screen.getByRole('button', { name: /1\. Root Scan/i });
+    const step2Btn = screen.getByRole('button', { name: /2\. Trace Grey/i });
+    const step3Btn = screen.getByRole('button', { name: /3\. Mutator Mutation/i });
+    const step4Btn = screen.getByRole('button', { name: /4\. Finish & Sweep/i });
+    const step5Btn = screen.getByRole('button', { name: /5\. Minor GC Copy/i });
+    const resetBtn = screen.getByRole('button', { name: /Reset Heap Lab/i });
+
+    // 1. Step 1: Root Scan
+    fireEvent.click(step1Btn);
+    expect(screen.getAllByText(/INITIAL_MARK/i).length).toBeGreaterThanOrEqual(1);
+
+    // 2. Step 2: Trace Grey
+    fireEvent.click(step2Btn);
+    expect(screen.getAllByText(/GREY_EXPANSION/i).length).toBeGreaterThanOrEqual(1);
+
+    // 3. Step 3: Mutator Mutation with SATB Barrier Active
+    fireEvent.click(step3Btn);
+    expect(screen.getAllByText(/SATB_BARRIER_FIRED/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByText(/CRITICAL TRI-COLOR INVARIANT VIOLATED/i)).not.toBeInTheDocument();
+
+    // 4. Step 4: Finish & Sweep (Obj B preserved, Obj D swept)
+    fireEvent.click(step4Btn);
+    expect(screen.getAllByText(/CLEAN_RECLAMATION/i).length).toBeGreaterThanOrEqual(1);
+
+    // 5. Step 5: Minor GC Copy (Promotion to Survivor S1)
+    fireEvent.click(step5Btn);
+    expect(screen.getAllByText(/MINOR_GC_PROMOTION/i).length).toBeGreaterThanOrEqual(1);
+
+    // 6. Test Un-barriered Hazard Mode
+    fireEvent.click(resetBtn);
+
+    const barrierToggleBtn = screen.getByRole('button', { name: /✓ SATB Barrier Active/i });
+    fireEvent.click(barrierToggleBtn); // Switch to No Barrier (Hazard Mode)
+
+    expect(screen.getByRole('button', { name: /No Barrier \(Hazard Mode\)/i })).toBeInTheDocument();
+
+    fireEvent.click(step1Btn);
+    fireEvent.click(step2Btn);
+    fireEvent.click(step3Btn);
+
+    // Invariant violated warning banner appears!
+    expect(screen.getByText(/Dijkstra Tri-Color Invariant Violation Detected!/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/HAZARD_DETECTED/i).length).toBeGreaterThanOrEqual(1);
+
+    // Step 4 Sweep causes fatal premature collection / dangling reference
+    fireEvent.click(step4Btn);
+    expect(screen.getByText(/FATAL USE-AFTER-FREE CORRUPTION/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/HEAP_CORRUPTION/i).length).toBeGreaterThanOrEqual(1);
+
+    // 7. Reset Heap Lab
+    fireEvent.click(resetBtn);
+    expect(screen.queryByText(/FATAL USE-AFTER-FREE CORRUPTION/i)).not.toBeInTheDocument();
+  });
 });
