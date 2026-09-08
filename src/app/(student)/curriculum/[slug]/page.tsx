@@ -28,6 +28,19 @@ export default function CurriculumArticleDetailPage() {
   const [copiedSnippetIdx, setCopiedSnippetIdx] = useState<number | null>(null);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, number>>({});
   const [showExplanations, setShowExplanations] = useState<Record<string, boolean>>({});
+  const [scrollPercent, setScrollPercent] = useState<number>(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+      if (scrollHeight > 0) {
+        setScrollPercent(Math.min(100, Math.round((scrollTop / scrollHeight) * 100)));
+      }
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   useEffect(() => {
     async function load() {
@@ -84,7 +97,16 @@ export default function CurriculumArticleDetailPage() {
   }
 
   return (
-    <div className="min-h-dvh bg-canvas py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-dvh bg-canvas py-8 px-4 sm:px-6 lg:px-8 relative">
+      {/* Reading Progress Indicator */}
+      <div
+        className="fixed top-0 left-0 h-1 bg-primary-700 z-50 transition-all duration-100"
+        style={{ width: `${scrollPercent}%` }}
+        role="progressbar"
+        aria-valuenow={scrollPercent}
+        aria-valuemin={0}
+        aria-valuemax={100}
+      />
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Breadcrumbs */}
         <div className="flex items-center gap-2 text-xs text-text-muted">
@@ -244,9 +266,16 @@ export default function CurriculumArticleDetailPage() {
             <h2 className="text-xl font-bold text-primary-900">
               4. Socratic Concept Verification (MCQs)
             </h2>
-            <span className="text-xs text-text-muted">
-              {article.practiceMcqs.length} Calibrated Questions
-            </span>
+            <div className="flex items-center gap-2">
+              {Object.keys(selectedAnswers).length > 0 && (
+                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-200">
+                  {article.practiceMcqs.filter((q) => selectedAnswers[q.id] === q.correctIndex).length} / {article.practiceMcqs.length} Correct
+                </span>
+              )}
+              <span className="text-xs text-text-muted">
+                {article.practiceMcqs.length} Calibrated Questions
+              </span>
+            </div>
           </div>
 
           <div className="space-y-4">

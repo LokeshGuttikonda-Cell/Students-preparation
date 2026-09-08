@@ -35,7 +35,7 @@ export const CURRICULUM_DOMAINS: CurriculumDomain[] = [
     "name": "Data Structures & Algorithms",
     "description": "Master asymptotic complexity, linear structures, binary search trees, graph traversals, and dynamic programming.",
     "icon": "⚡",
-    "articlesCount": 3
+    "articlesCount": 8
   },
   {
     "slug": "system-design-architecture",
@@ -49,14 +49,14 @@ export const CURRICULUM_DOMAINS: CurriculumDomain[] = [
     "name": "Operating Systems & Systems Programming",
     "description": "Kernel architectures, process scheduling, virtual memory, paging algorithms, deadlocks, and Linux cgroups.",
     "icon": "💻",
-    "articlesCount": 2
+    "articlesCount": 4
   },
   {
     "slug": "computer-networks-protocols",
     "name": "Computer Networks & Communications",
     "description": "OSI/TCP-IP models, TCP congestion control, UDP/QUIC, DNS hierarchies, TLS 1.3, and modern HTTP/3.",
     "icon": "🌐",
-    "articlesCount": 2
+    "articlesCount": 3
   },
   {
     "slug": "database-storage-engines",
@@ -858,5 +858,239 @@ export const CURRICULUM_SUMMARIES: CurriculumArticleSummary[] = [
       "fullstack-javascript-developer"
     ],
     "practiceMcqsCount": 2
+  }
+,
+  {
+    "id": "art-dsa-dsu-mst",
+    "slug": "disjoint-set-union-and-minimum-spanning-trees",
+    "domainSlug": "data-structures-algorithms",
+    "domainName": "Data Structures & Algorithms",
+    "title": "Disjoint Set Union (DSU) & Minimum Spanning Trees (Kruskal & Prim)",
+    "level": "INTERMEDIATE",
+    "readTimeMinutes": 18,
+    "summary": "Comprehensive mastery of Disjoint Set Union (DSU) with Union-by-Rank and Path Compression achieving near-constant O(alpha(N)) amortized time, alongside Kruskal's and Prim's Minimum Spanning Tree algorithms.",
+    "keyConcepts": [
+      "Union-by-Rank & Path Compression",
+      "Inverse Ackermann Function O(alpha(N))",
+      "Kruskal's Greedy MST with Edge Sorting",
+      "Prim's Cut Property with Priority Queues",
+      "Dynamic Cycle Detection"
+    ],
+    "relatedRoleSlugs": [
+      "backend-systems-engineer",
+      "data-engineer",
+      "python-developer"
+    ],
+    "practiceMcqsCount": 5,
+    "sandboxChallengeId": "code-two-sum"
+  },
+  {
+    "id": "art-dsa-kmp-rabin",
+    "slug": "string-matching-kmp-and-rabin-karp",
+    "domainSlug": "data-structures-algorithms",
+    "domainName": "Data Structures & Algorithms",
+    "title": "String Matching Automata: Knuth-Morris-Pratt (KMP) & Rabin-Karp Rolling Hash",
+    "level": "ADVANCED",
+    "readTimeMinutes": 20,
+    "summary": "Eliminate wasteful backtracking in string search. Deep dive into the KMP Longest Proper Prefix which is also Suffix (LPS/pi table) automaton and the Rabin-Karp polynomial rolling hash technique with Horner's method.",
+    "keyConcepts": [
+      "KMP Prefix Function (pi-table / LPS)",
+      "Finite State Deterministic Automata",
+      "Rabin-Karp Rolling Polynomial Hash",
+      "Modular Arithmetic & Spurious Collisions",
+      "Linear O(N + M) Worst-Case Guarantees"
+    ],
+    "relatedRoleSlugs": [
+      "backend-systems-engineer",
+      "fullstack-javascript-developer",
+      "python-developer"
+    ],
+    "practiceMcqsCount": 5
+  },
+  {
+    "id": "art-dsa-segment-fenwick",
+    "slug": "segment-trees-and-fenwick-trees",
+    "domainSlug": "data-structures-algorithms",
+    "domainName": "Data Structures & Algorithms",
+    "title": "Advanced Range Queries: Segment Trees with Lazy Propagation & Fenwick Trees",
+    "level": "ADVANCED",
+    "readTimeMinutes": 22,
+    "summary": "Solve static and dynamic range queries in O(log N) time. Discover Binary Indexed Trees (Fenwick Trees) using bit twiddling (x & -x), followed by full Segment Trees featuring Lazy Propagation for O(log N) range updates.",
+    "keyConcepts": [
+      "Fenwick Tree (Binary Indexed Tree)",
+      "Bit Twiddling Lowbit (x & -x)",
+      "Segment Tree Canonical Recursive Layout",
+      "Lazy Propagation Postponed Updates",
+      "Point Update vs Range Query Invariants"
+    ],
+    "relatedRoleSlugs": [
+      "backend-systems-engineer",
+      "ml-ai-engineer",
+      "data-engineer"
+    ],
+    "practiceMcqsCount": 5
+  },
+  {
+    "id": "art-dsa-adv-dp",
+    "slug": "dynamic-programming-advanced-optimizations",
+    "domainSlug": "data-structures-algorithms",
+    "domainName": "Data Structures & Algorithms",
+    "title": "Advanced Dynamic Programming: Bitmask State Compression & Convex Hull Optimization",
+    "level": "ADVANCED",
+    "readTimeMinutes": 24,
+    "summary": "Take DP beyond standard memoization into bitmask state compression for NP-hard subset problems (like TSP in O(N^2 * 2^N)), and linear-time Convex Hull Trick (CHT) for eliminating nested loops in quadratic DP recurrences.",
+    "keyConcepts": [
+      "Bitmask State Compression (Subset DP)",
+      "Traveling Salesperson Formulation",
+      "Convex Hull Trick (CHT) Line Envelopes",
+      "Monotonic Slope Optimization",
+      "Subproblem DAG Topological Invariants"
+    ],
+    "relatedRoleSlugs": [
+      "backend-systems-engineer",
+      "ml-ai-engineer",
+      "python-developer"
+    ],
+    "practiceMcqsCount": 5
+  },
+  {
+    "id": "art-dsa-greedy-proofs",
+    "slug": "greedy-algorithms-matroids-and-exchange-proofs",
+    "domainSlug": "data-structures-algorithms",
+    "domainName": "Data Structures & Algorithms",
+    "title": "Greedy Choice Mechanics: Matroid Theory, Exchange Arguments & Huffman Coding",
+    "level": "INTERMEDIATE",
+    "readTimeMinutes": 17,
+    "summary": "Rigorous mathematical proofs for greedy paradigms: understand why greedy fails for 0/1 Knapsack but succeeds in Interval Scheduling and Huffman Prefix-Free Codes. Introduction to Matroid Theory and Rado-Edmonds theorem.",
+    "keyConcepts": [
+      "Greedy Choice Property & Optimal Substructure",
+      "Proof by Exchange Argument",
+      "Matroid Theory & Independent Sets",
+      "Huffman Coding Entropy Optimality",
+      "Interval Scheduling Greedy Sorting"
+    ],
+    "relatedRoleSlugs": [
+      "backend-systems-engineer",
+      "data-engineer",
+      "fullstack-javascript-developer"
+    ],
+    "practiceMcqsCount": 5
+  }
+,
+  {
+    "id": "art-os-concurrency-banker",
+    "slug": "os-concurrency-deadlocks-and-bankers-algorithm",
+    "domainSlug": "operating-systems-internals",
+    "domainName": "Operating Systems & Systems Programming",
+    "title": "Operating Systems Concurrency: Deadlocks, Coffman Conditions & Banker's Algorithm",
+    "level": "INTERMEDIATE",
+    "readTimeMinutes": 19,
+    "summary": "Master concurrency synchronization primitives, the 4 Coffman deadlock conditions, resource allocation graphs, Priority Inversion protocols, and Dijkstra's Banker's Algorithm for safe resource allocation.",
+    "keyConcepts": [
+      "Mutexes, Semaphores & Condition Variables",
+      "Priority Inversion & Priority Inheritance",
+      "4 Coffman Deadlock Conditions",
+      "Resource Allocation Graphs (RAG)",
+      "Banker's Algorithm Safe State Safety Vector"
+    ],
+    "relatedRoleSlugs": [
+      "backend-systems-engineer",
+      "devops-engineer",
+      "python-developer"
+    ],
+    "practiceMcqsCount": 5
+  },
+  {
+    "id": "art-db-transactions-mvcc",
+    "slug": "relational-dbms-isolation-levels-and-anomalies",
+    "domainSlug": "database-storage-engines",
+    "domainName": "Database Storage Engines & Internals",
+    "title": "Relational DBMS Transactions: ACID, ANSI Isolation Levels & Concurrency Anomalies",
+    "level": "ADVANCED",
+    "readTimeMinutes": 21,
+    "summary": "Deconstruct transaction guarantees beyond high-level theory. Master ANSI isolation levels, modern snapshot isolation, write skew, lost updates, Strict 2-Phase Locking (S2PL), and Serializable Snapshot Isolation (SSI).",
+    "keyConcepts": [
+      "ACID Formal First-Principles",
+      "ANSI SQL-92 Isolation Levels",
+      "Concurrency Anomalies: Dirty, Non-Repeatable, Phantom, Write Skew",
+      "Strict Two-Phase Locking (S2PL)",
+      "Serializable Snapshot Isolation (SSI)"
+    ],
+    "relatedRoleSlugs": [
+      "backend-systems-engineer",
+      "data-analyst",
+      "data-engineer"
+    ],
+    "practiceMcqsCount": 5,
+    "sandboxChallengeId": "sql-top-earner"
+  },
+  {
+    "id": "art-net-tcp-transport",
+    "slug": "tcp-transport-internals-handshake-and-flow-control",
+    "domainSlug": "computer-networks-protocols",
+    "domainName": "Computer Networks & Communications",
+    "title": "Computer Networks: TCP Transport Internals, State Machine & Sliding Window Flow Control",
+    "level": "INTERMEDIATE",
+    "readTimeMinutes": 20,
+    "summary": "Demystify TCP transport layer internals: 3-way handshake, graceful teardown, TIME_WAIT socket exhaustion, SYN cookies flood mitigation, and receiver sliding window flow control vs congestion control.",
+    "keyConcepts": [
+      "TCP Segment Header Anatomy",
+      "3-Way Handshake & Sequence Number Negotiation",
+      "TIME_WAIT 2*MSL Rationale & Socket Reuse",
+      "SYN Flood Mitigation with SYN Cookies",
+      "Sliding Window Flow Control (rwnd vs cwnd)"
+    ],
+    "relatedRoleSlugs": [
+      "backend-systems-engineer",
+      "cloud-architect",
+      "devops-engineer"
+    ],
+    "practiceMcqsCount": 5
+  },
+  {
+    "id": "art-os-syscalls-ipc",
+    "slug": "linux-kernel-syscalls-interrupts-and-ipc",
+    "domainSlug": "operating-systems-internals",
+    "domainName": "Operating Systems & Systems Programming",
+    "title": "Linux Kernel Architecture: System Calls, Context Switches, Interrupts & IPC",
+    "level": "ADVANCED",
+    "readTimeMinutes": 22,
+    "summary": "Journey from Ring 3 user space to Ring 0 kernel mode. Understand hardware context switching overhead, interrupt top-half vs bottom-half workqueues, and high-performance POSIX shared memory vs Unix domain sockets.",
+    "keyConcepts": [
+      "User-Kernel Transition (syscall / Ring 0)",
+      "Context Switch CPU Overhead & TLB Invalidation",
+      "Interrupt Top-Half vs Bottom-Half Workqueues",
+      "Unix Domain Sockets vs Anonymous Pipes",
+      "POSIX Shared Memory (shm_open & mmap)"
+    ],
+    "relatedRoleSlugs": [
+      "backend-systems-engineer",
+      "devops-engineer",
+      "cloud-architect"
+    ],
+    "practiceMcqsCount": 5
+  },
+  {
+    "id": "art-db-lsm-trees",
+    "slug": "log-structured-merge-trees-and-storage-engines",
+    "domainSlug": "database-storage-engines",
+    "domainName": "Database Storage Engines & Internals",
+    "title": "Distributed Storage Engines: LSM-Trees, Write-Ahead Logging (WAL) & Leveled Compaction",
+    "level": "ADVANCED",
+    "readTimeMinutes": 23,
+    "summary": "Why modern distributed databases (Cassandra, RocksDB, Bigtable) abandon B+ Trees for write-heavy workloads. Master Log-Structured Merge-Trees, in-memory Memtables, Write-Ahead Logs, SSTables, Bloom filters, and leveled compaction.",
+    "keyConcepts": [
+      "Write Amplification & Random I/O Bottlenecks",
+      "Append-Only Write-Ahead Log (WAL)",
+      "In-Memory Memtable (Concurrent SkipList)",
+      "Immutable SSTables & Block-Level Indexing",
+      "Leveled Compaction & Bloom Filter Read Acceleration"
+    ],
+    "relatedRoleSlugs": [
+      "backend-systems-engineer",
+      "data-engineer",
+      "cloud-architect"
+    ],
+    "practiceMcqsCount": 5
   }
 ];

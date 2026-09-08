@@ -109,14 +109,24 @@ export default function CurriculumHubPage() {
             <div className="flex-1 relative">
               <input
                 type="text"
-                placeholder="Search concepts, algorithms, data structures, protocols, or keywords..."
+                placeholder="Search concepts, algorithms, data structures, protocols, or keywords... (Press '/' to focus)"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border bg-canvas text-sm focus:outline-none focus:ring-2 focus:ring-primary-700/20 focus:border-primary-700"
+                className="w-full pl-10 pr-10 py-2.5 rounded-lg border border-border bg-canvas text-sm focus:outline-none focus:ring-2 focus:ring-primary-700/20 focus:border-primary-700"
               />
               <span className="absolute left-3 top-3 text-text-muted text-sm">
                 🔍
               </span>
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  aria-label="Clear search input"
+                  className="absolute right-3 top-2.5 text-text-muted hover:text-text text-sm px-1.5 py-0.5 rounded-full hover:bg-surface-muted"
+                >
+                  ✕
+                </button>
+              )}
             </div>
             <div className="flex gap-2">
               <select
@@ -131,6 +141,28 @@ export default function CurriculumHubPage() {
                 <option value="ADVANCED">Advanced</option>
               </select>
             </div>
+          </div>
+
+          {/* Guide Match Count Banner */}
+          <div className="flex items-center justify-between text-xs text-text-muted px-1">
+            <span>
+              Showing <strong className="text-text">{filteredArticles.length}</strong> of{' '}
+              <strong className="text-text">{articles.length}</strong> in-depth technical guides across{' '}
+              <strong className="text-text">{domains.length}</strong> engineering disciplines
+            </span>
+            {(searchQuery || selectedDomain !== 'all' || selectedLevel !== 'all') && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery('');
+                  setSelectedDomain('all');
+                  setSelectedLevel('all');
+                }}
+                className="text-primary-700 hover:underline font-medium cursor-pointer"
+              >
+                Reset all filters
+              </button>
+            )}
           </div>
 
           {/* Domain Chips */}

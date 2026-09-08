@@ -22,7 +22,7 @@ describe('Curriculum & Knowledge Base Client Tests', () => {
     expect(domains.length).toBe(14);
 
     const articles = await getCurriculumArticles();
-    expect(articles.length).toBe(32);
+    expect(articles.length).toBe(42);
 
     // Assert that every domain has at least 2 master articles
     for (const domain of domains) {
