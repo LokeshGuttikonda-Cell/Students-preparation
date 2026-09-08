@@ -7,7 +7,65 @@ export type InspectorMode =
   | 'STACK_HEAP'
   | 'CACHE_LINE'
   | 'HASH_TABLE'
-  | 'LSM_TREE_SSTABLE';
+  | 'LSM_TREE_SSTABLE'
+  | 'ARIES_RECOVERY';
+
+export type AriesLogType =
+  | 'BEGIN'
+  | 'UPDATE'
+  | 'COMMIT'
+  | 'ABORT'
+  | 'CLR'
+  | 'CHECKPOINT_BEGIN'
+  | 'CHECKPOINT_END';
+
+export interface AriesLogRecord {
+  lsn: number;
+  prevLsn: number | null;
+  transId?: string;
+  type: AriesLogType;
+  pageId?: string;
+  oldVal?: string;
+  newVal?: string;
+  undoNextLsn?: number | null;
+  description: string;
+}
+
+export interface AriesTransaction {
+  transId: string;
+  status: 'RUNNING' | 'COMMITTED' | 'ABORTED';
+  lastLsn: number;
+}
+
+export interface AriesDirtyPage {
+  pageId: string;
+  recLsn: number;
+  pageLsn: number;
+  data: string;
+}
+
+export interface AriesPage {
+  pageId: string;
+  data: string;
+  pageLsn: number;
+  isDirty?: boolean;
+}
+
+export type AriesRecoveryPhase =
+  | 'IDLE'
+  | 'CRASHED'
+  | 'ANALYSIS_COMPLETE'
+  | 'REDO_COMPLETE'
+  | 'UNDO_COMPLETE';
+
+export interface AriesAuditEvent {
+  id: number;
+  time: string;
+  phase: string;
+  badge: string;
+  badgeClass: string;
+  message: string;
+}
 
 export interface WALRecord {
   id: number;
@@ -420,6 +478,260 @@ const STACK_HEAP_SCENARIOS: Record<string, { name: string; description: string; 
 
 export function MemoryCacheInspectorSandbox() {
   const [activeSubTab, setActiveSubTab] = useState<InspectorMode>('STACK_HEAP');
+
+  // --- Module 5: Database WAL & ARIES Recovery State ---
+  const INITIAL_ARIES_LOGS: AriesLogRecord[] = [
+    { lsn: 10, prevLsn: null, transId: 'T1', type: 'BEGIN', description: 'Transaction T1 begins' },
+    { lsn: 20, prevLsn: 10, transId: 'T1', type: 'UPDATE', pageId: 'Page A', oldVal: 'val: 100', newVal: 'val: 150', description: 'T1 updates Page A (100 -> 150)' },
+    { lsn: 30, prevLsn: 20, transId: 'T1', type: 'COMMIT', description: 'T1 commits successfully' },
+    { lsn: 35, prevLsn: null, type: 'CHECKPOINT_BEGIN', description: 'Fuzzy Checkpoint begins (snapshot active state)' },
+    { lsn: 36, prevLsn: null, type: 'CHECKPOINT_END', description: 'Fuzzy Checkpoint ends: TT=[T1:COMMITTED], DPT=[Page A: recLSN=20]' },
+    { lsn: 38, prevLsn: null, transId: 'T2', type: 'BEGIN', description: 'Transaction T2 begins' },
+    { lsn: 40, prevLsn: 38, transId: 'T2', type: 'UPDATE', pageId: 'Page B', oldVal: 'val: 50', newVal: 'val: 80', description: 'T2 updates Page B (50 -> 80)' },
+    { lsn: 45, prevLsn: null, transId: 'T3', type: 'BEGIN', description: 'Transaction T3 begins' },
+    { lsn: 50, prevLsn: 45, transId: 'T3', type: 'UPDATE', pageId: 'Page A', oldVal: 'val: 150', newVal: 'val: 200', description: 'T3 updates Page A (150 -> 200)' },
+  ];
+
+  const INITIAL_DISK_PAGES: Record<string, AriesPage> = {
+    'Page A': { pageId: 'Page A', data: 'val: 200', pageLsn: 50 }, // Steal policy: flushed to disk before crash!
+    'Page B': { pageId: 'Page B', data: 'val: 50', pageLsn: 0 },   // No-force policy: not yet flushed to disk
+  };
+
+  const INITIAL_BUFFER_PAGES: Record<string, AriesPage> = {
+    'Page A': { pageId: 'Page A', data: 'val: 200', pageLsn: 50, isDirty: true },
+    'Page B': { pageId: 'Page B', data: 'val: 80', pageLsn: 40, isDirty: true },
+  };
+
+  const INITIAL_TRANS_TABLE: Record<string, AriesTransaction> = {
+    T2: { transId: 'T2', status: 'RUNNING', lastLsn: 40 },
+    T3: { transId: 'T3', status: 'RUNNING', lastLsn: 50 },
+  };
+
+  const INITIAL_DIRTY_PAGE_TABLE: Record<string, AriesDirtyPage> = {
+    'Page A': { pageId: 'Page A', recLsn: 20, pageLsn: 50, data: 'val: 200' },
+    'Page B': { pageId: 'Page B', recLsn: 40, pageLsn: 40, data: 'val: 80' },
+  };
+
+  const [ariesPhase, setAriesPhase] = useState<AriesRecoveryPhase>('IDLE');
+  const [ariesLogs, setAriesLogs] = useState<AriesLogRecord[]>(INITIAL_ARIES_LOGS);
+  const [diskPages, setDiskPages] = useState<Record<string, AriesPage>>(INITIAL_DISK_PAGES);
+  const [bufferPages, setBufferPages] = useState<Record<string, AriesPage>>(INITIAL_BUFFER_PAGES);
+  const [transTable, setTransTable] = useState<Record<string, AriesTransaction>>(INITIAL_TRANS_TABLE);
+  const [dirtyPageTable, setDirtyPageTable] = useState<Record<string, AriesDirtyPage>>(INITIAL_DIRTY_PAGE_TABLE);
+  const [analysisLosers, setAnalysisLosers] = useState<string[]>([]);
+  const [redoStartLsn, setRedoStartLsn] = useState<number | null>(null);
+  const [clrRecords, setClrRecords] = useState<AriesLogRecord[]>([]);
+  const [ariesAuditLog, setAriesAuditLog] = useState<AriesAuditEvent[]>([
+    {
+      id: 1,
+      time: '12:00:00',
+      phase: 'STEADY_STATE',
+      badge: 'NORMAL_OPERATION',
+      badgeClass: 'bg-slate-100 text-slate-800 border-slate-300',
+      message: 'Database operating normally under STEAL and NO-FORCE policies. Buffer Pool and WAL synchronized (FlushedLSN=50).',
+    },
+  ]);
+
+  const handleTriggerCrash = () => {
+    setAriesPhase('CRASHED');
+    // Volatile RAM wiped completely
+    setBufferPages({});
+    setTransTable({});
+    setDirtyPageTable({});
+    setAnalysisLosers([]);
+    setRedoStartLsn(null);
+    setClrRecords([]);
+
+    setAriesAuditLog((prev) => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        phase: 'CRASH',
+        badge: 'POWER_FAILURE',
+        badgeClass: 'bg-rose-100 text-rose-900 border-rose-300',
+        message: 'CRITICAL CRASH: Unscheduled power loss! Volatile RAM (Buffer Pool, Transaction Table, Dirty Page Table) obliterated. Persistent disk retains Page A (val: 200, pageLSN: 50 via STEAL) and Page B (val: 50, pageLSN: 0 via NO-FORCE).',
+      },
+      ...prev.slice(0, 8),
+    ]);
+  };
+
+  const handleRunAnalysisPass = () => {
+    // Scans log forward from checkpoint (LSN 35)
+    const reconstructedTT: Record<string, AriesTransaction> = {};
+    const reconstructedDPT: Record<string, AriesDirtyPage> = {
+      'Page A': { pageId: 'Page A', recLsn: 20, pageLsn: 20, data: 'val: 150' }, // from checkpoint
+    };
+
+    // Scan forward from LSN 35
+    for (const log of ariesLogs) {
+      if (log.lsn < 35) continue;
+      if (log.type === 'BEGIN' && log.transId) {
+        reconstructedTT[log.transId] = { transId: log.transId, status: 'RUNNING', lastLsn: log.lsn };
+      }
+      if (log.type === 'UPDATE' && log.transId && log.pageId) {
+        if (reconstructedTT[log.transId]) {
+          reconstructedTT[log.transId].lastLsn = log.lsn;
+        }
+        if (!reconstructedDPT[log.pageId]) {
+          reconstructedDPT[log.pageId] = {
+            pageId: log.pageId,
+            recLsn: log.lsn,
+            pageLsn: log.lsn,
+            data: log.newVal || '',
+          };
+        } else {
+          reconstructedDPT[log.pageId].pageLsn = log.lsn;
+          reconstructedDPT[log.pageId].data = log.newVal || '';
+        }
+      }
+      if (log.type === 'COMMIT' && log.transId && reconstructedTT[log.transId]) {
+        reconstructedTT[log.transId].status = 'COMMITTED';
+      }
+    }
+
+    const losers = Object.values(reconstructedTT)
+      .filter((t) => t.status === 'RUNNING')
+      .map((t) => t.transId);
+
+    const recLsns = Object.values(reconstructedDPT).map((p) => p.recLsn);
+    const minRecLsn = recLsns.length > 0 ? Math.min(...recLsns) : 35;
+
+    setTransTable(reconstructedTT);
+    setDirtyPageTable(reconstructedDPT);
+    setAnalysisLosers(losers);
+    setRedoStartLsn(minRecLsn);
+    setAriesPhase('ANALYSIS_COMPLETE');
+
+    setAriesAuditLog((prev) => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        phase: 'ANALYSIS_PASS',
+        badge: 'ANALYSIS_DONE',
+        badgeClass: 'bg-blue-100 text-blue-900 border-blue-300',
+        message: `Analysis Pass Complete: Scanned log forward from Checkpoint (LSN 35). Identified Loser transactions: [${losers.join(', ')}]. Rebuilt Dirty Page Table (Page A recLSN=20, Page B recLSN=40). Minimum recLSN = ${minRecLsn} marks Redo start point.`,
+      },
+      ...prev.slice(0, 8),
+    ]);
+  };
+
+  const handleRunRedoPass = () => {
+    // Replay log forward from redoStartLsn (20) to end of log (50)
+    // Redo repeating history: re-applies all logged changes if disk pageLSN < log.lsn
+    const nextBuffer: Record<string, AriesPage> = {
+      'Page A': { pageId: 'Page A', data: 'val: 200', pageLsn: 50, isDirty: true },
+      'Page B': { pageId: 'Page B', data: 'val: 80', pageLsn: 40, isDirty: true }, // Reapplied from LSN 40!
+    };
+
+    setBufferPages(nextBuffer);
+    setAriesPhase('REDO_COMPLETE');
+
+    setAriesAuditLog((prev) => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        phase: 'REDO_PASS',
+        badge: 'REPEATING_HISTORY',
+        badgeClass: 'bg-purple-100 text-purple-900 border-purple-300',
+        message: 'Redo Pass Complete: Scanned forward from LSN 20 to 50. Replayed LSN 40 (T2 update to Page B: 50 -> 80) into Buffer Pool because disk pageLSN (0) < log LSN (40). LSN 20 & 50 were already on disk. Buffer Pool state at moment of crash 100% restored!',
+      },
+      ...prev.slice(0, 8),
+    ]);
+  };
+
+  const handleRunUndoPass = () => {
+    // Rollback loser transactions T3 and T2 in reverse LSN order
+    const clr1: AriesLogRecord = {
+      lsn: 60,
+      prevLsn: 50,
+      transId: 'T3',
+      type: 'CLR',
+      pageId: 'Page A',
+      newVal: 'val: 150',
+      undoNextLsn: 45,
+      description: 'CLR: Undo T3 update at LSN 50 (restores Page A val: 150). Next undo LSN: 45',
+    };
+    const abortT3: AriesLogRecord = {
+      lsn: 61,
+      prevLsn: 60,
+      transId: 'T3',
+      type: 'ABORT',
+      description: 'T3 rollback complete (ABORT logged)',
+    };
+    const clr2: AriesLogRecord = {
+      lsn: 62,
+      prevLsn: 40,
+      transId: 'T2',
+      type: 'CLR',
+      pageId: 'Page B',
+      newVal: 'val: 50',
+      undoNextLsn: 38,
+      description: 'CLR: Undo T2 update at LSN 40 (restores Page B val: 50). Next undo LSN: 38',
+    };
+    const abortT2: AriesLogRecord = {
+      lsn: 63,
+      prevLsn: 62,
+      transId: 'T2',
+      type: 'ABORT',
+      description: 'T2 rollback complete (ABORT logged)',
+    };
+
+    const emittedCLRs = [clr1, abortT3, clr2, abortT2];
+    setClrRecords(emittedCLRs);
+    setAriesLogs((prev) => [...prev, ...emittedCLRs]);
+
+    // Update TT
+    setTransTable((prev) => ({
+      ...prev,
+      T2: { transId: 'T2', status: 'ABORTED', lastLsn: 63 },
+      T3: { transId: 'T3', status: 'ABORTED', lastLsn: 61 },
+    }));
+
+    // Clean restored pages
+    const recoveredDisk: Record<string, AriesPage> = {
+      'Page A': { pageId: 'Page A', data: 'val: 150', pageLsn: 60 },
+      'Page B': { pageId: 'Page B', data: 'val: 50', pageLsn: 62 },
+    };
+
+    setDiskPages(recoveredDisk);
+    setBufferPages(recoveredDisk);
+    setDirtyPageTable({});
+    setAriesPhase('UNDO_COMPLETE');
+
+    setAriesAuditLog((prev) => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        phase: 'UNDO_PASS',
+        badge: 'ROLLBACK_DONE',
+        badgeClass: 'bg-emerald-100 text-emerald-900 border-emerald-300',
+        message: 'Undo Pass Complete! Scanned backward from LSN 50. Undid uncommitted changes of T3 on Page A (restored 150) and T2 on Page B (restored 50). Emitted Compensation Log Records (CLRs) with undoNextLSN pointers. Database fully restored to durable ACID consistency!',
+      },
+      ...prev.slice(0, 8),
+    ]);
+  };
+
+  const handleResetAries = () => {
+    setAriesPhase('IDLE');
+    setAriesLogs(INITIAL_ARIES_LOGS);
+    setDiskPages(INITIAL_DISK_PAGES);
+    setBufferPages(INITIAL_BUFFER_PAGES);
+    setTransTable(INITIAL_TRANS_TABLE);
+    setDirtyPageTable(INITIAL_DIRTY_PAGE_TABLE);
+    setAnalysisLosers([]);
+    setRedoStartLsn(null);
+    setClrRecords([]);
+    setAriesAuditLog([
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        phase: 'RESET',
+        badge: 'ENGINE_RESET',
+        badgeClass: 'bg-slate-100 text-slate-800 border-slate-300',
+        message: 'ARIES Recovery Engine reset to initial pre-crash baseline state.',
+      },
+    ]);
+  };
 
   // Module 1: Stack vs Heap State
   const [shScenarioKey, setShScenarioKey] = useState<keyof typeof STACK_HEAP_SCENARIOS>('clean');
@@ -991,6 +1303,17 @@ export function MemoryCacheInspectorSandbox() {
             }`}
           >
             LSM-Tree &amp; SSTables
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveSubTab('ARIES_RECOVERY')}
+            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+              activeSubTab === 'ARIES_RECOVERY'
+                ? 'bg-primary-700 text-white shadow-xs'
+                : 'text-text-muted hover:text-text'
+            }`}
+          >
+            ARIES Database Recovery
           </button>
         </div>
       </div>
@@ -2285,6 +2608,466 @@ export function MemoryCacheInspectorSandbox() {
               </span>
               <p className="text-[11px] text-text-muted leading-relaxed">
                 Deletes are written as tombstone markers. Reclaiming disk space and purging tombstones occurs only during background merge compaction when merging into the oldest storage level.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SUB-TAB 5: ARIES DATABASE CRASH RECOVERY STUDIO */}
+      {activeSubTab === 'ARIES_RECOVERY' && (
+        <div className="p-6 space-y-6">
+          {/* Recovery State Control & Execution Toolbar */}
+          <div className="space-y-4 bg-canvas border border-border p-4 rounded-xl">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-text-muted">
+                    ARIES 3-Pass Recovery Stepper:
+                  </span>
+                  <span
+                    className={`text-[11px] font-mono font-bold px-2 py-0.5 rounded border ${
+                      ariesPhase === 'IDLE'
+                        ? 'bg-slate-100 text-slate-800 border-slate-300'
+                        : ariesPhase === 'CRASHED'
+                        ? 'bg-rose-100 text-rose-900 border-rose-300'
+                        : ariesPhase === 'ANALYSIS_COMPLETE'
+                        ? 'bg-blue-100 text-blue-900 border-blue-300'
+                        : ariesPhase === 'REDO_COMPLETE'
+                        ? 'bg-purple-100 text-purple-900 border-purple-300'
+                        : 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                    }`}
+                  >
+                    STATUS: {ariesPhase}
+                  </span>
+                </div>
+                <p className="text-xs text-text-muted">
+                  Model C. Mohan&apos;s ARIES crash recovery under STEAL (uncommitted updates on disk) and NO-FORCE (committed updates not yet flushed).
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleTriggerCrash}
+                  disabled={ariesPhase !== 'IDLE'}
+                >
+                  ⚡ Trigger Database Crash
+                </Button>
+
+                <Button
+                  variant={ariesPhase === 'CRASHED' ? 'primary' : 'secondary'}
+                  size="sm"
+                  onClick={handleRunAnalysisPass}
+                  disabled={ariesPhase !== 'CRASHED'}
+                >
+                  Pass 1: Analysis
+                </Button>
+
+                <Button
+                  variant={ariesPhase === 'ANALYSIS_COMPLETE' ? 'primary' : 'secondary'}
+                  size="sm"
+                  onClick={handleRunRedoPass}
+                  disabled={ariesPhase !== 'ANALYSIS_COMPLETE'}
+                >
+                  Pass 2: Redo (Repeat History)
+                </Button>
+
+                <Button
+                  variant={ariesPhase === 'REDO_COMPLETE' ? 'primary' : 'secondary'}
+                  size="sm"
+                  onClick={handleRunUndoPass}
+                  disabled={ariesPhase !== 'REDO_COMPLETE'}
+                >
+                  Pass 3: Undo (Rollback Losers)
+                </Button>
+
+                <Button variant="secondary" size="sm" onClick={handleResetAries}>
+                  Reset Engine
+                </Button>
+              </div>
+            </div>
+
+            {/* Stepper Progress Bar */}
+            <div className="grid grid-cols-4 gap-2 pt-2 text-xs">
+              <div
+                className={`p-2.5 rounded-lg border text-center transition-colors ${
+                  ariesPhase === 'CRASHED'
+                    ? 'bg-rose-50 border-rose-400 text-rose-950 font-bold'
+                    : 'bg-surface border-border text-text-muted'
+                }`}
+              >
+                <span className="text-[10px] uppercase block">Step 0</span>
+                <span>Crash Event (RAM Wiped)</span>
+              </div>
+              <div
+                className={`p-2.5 rounded-lg border text-center transition-colors ${
+                  ariesPhase === 'ANALYSIS_COMPLETE'
+                    ? 'bg-blue-50 border-blue-400 text-blue-950 font-bold'
+                    : 'bg-surface border-border text-text-muted'
+                }`}
+              >
+                <span className="text-[10px] uppercase block">Pass 1</span>
+                <span>Analysis (Find Losers &amp; recLSN)</span>
+              </div>
+              <div
+                className={`p-2.5 rounded-lg border text-center transition-colors ${
+                  ariesPhase === 'REDO_COMPLETE'
+                    ? 'bg-purple-50 border-purple-400 text-purple-950 font-bold'
+                    : 'bg-surface border-border text-text-muted'
+                }`}
+              >
+                <span className="text-[10px] uppercase block">Pass 2</span>
+                <span>Redo (Repeating History)</span>
+              </div>
+              <div
+                className={`p-2.5 rounded-lg border text-center transition-colors ${
+                  ariesPhase === 'UNDO_COMPLETE'
+                    ? 'bg-emerald-50 border-emerald-400 text-emerald-950 font-bold'
+                    : 'bg-surface border-border text-text-muted'
+                }`}
+              >
+                <span className="text-[10px] uppercase block">Pass 3</span>
+                <span>Undo (CLRs &amp; Rollback)</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Left Column: Storage Tier & RAM Tier */}
+            <div className="lg:col-span-7 space-y-4">
+              {/* Physiological Disk Log Stream */}
+              <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between border-b border-border pb-2">
+                  <div>
+                    <h3 className="font-bold text-sm text-text">
+                      Durable Disk Write-Ahead Log (WAL Stream)
+                    </h3>
+                    <p className="text-[11px] text-text-muted">
+                      Append-only log containing forward actions, checkpoints, and compensation log records (CLRs).
+                    </p>
+                  </div>
+                  <span className="text-[11px] font-mono text-text-muted">
+                    FlushedLSN: <strong>50</strong>
+                  </span>
+                </div>
+
+                <div className="space-y-1.5 max-h-[260px] overflow-y-auto pr-1">
+                  {ariesLogs.map((log) => {
+                    const isCheckpoint = log.type.startsWith('CHECKPOINT');
+                    const isClr = log.type === 'CLR';
+                    const isCommit = log.type === 'COMMIT';
+                    const isAbort = log.type === 'ABORT';
+
+                    return (
+                      <div
+                        key={log.lsn}
+                        className={`p-2 rounded border text-xs flex items-center justify-between font-mono ${
+                          isClr
+                            ? 'bg-purple-50 border-purple-300 text-purple-950 dark:bg-purple-950/20'
+                            : isCheckpoint
+                            ? 'bg-amber-50 border-amber-300 text-amber-950 dark:bg-amber-950/20'
+                            : isCommit
+                            ? 'bg-emerald-50 border-emerald-300 text-emerald-950 dark:bg-emerald-950/20'
+                            : isAbort
+                            ? 'bg-rose-50 border-rose-300 text-rose-950 dark:bg-rose-950/20'
+                            : 'bg-canvas border-border text-text'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-text-muted">LSN {log.lsn}</span>
+                          <span
+                            className={`px-1.5 py-0.2 rounded text-[10px] font-bold border ${
+                              isClr
+                                ? 'bg-purple-200 text-purple-900 border-purple-400'
+                                : isCheckpoint
+                                ? 'bg-amber-200 text-amber-900 border-amber-400'
+                                : isCommit
+                                ? 'bg-emerald-200 text-emerald-900 border-emerald-400'
+                                : isAbort
+                                ? 'bg-rose-200 text-rose-900 border-rose-400'
+                                : 'bg-slate-200 text-slate-800 border-slate-300'
+                            }`}
+                          >
+                            {log.type}
+                          </span>
+                          {log.transId && <span className="font-bold text-text">[{log.transId}]</span>}
+                          <span className="text-[11px] text-text font-sans">{log.description}</span>
+                        </div>
+                        <div className="text-[10px] text-text-muted flex items-center gap-2">
+                          {log.prevLsn !== null && <span>prevLSN: {log.prevLsn}</span>}
+                          {log.undoNextLsn !== undefined && log.undoNextLsn !== null && (
+                            <span className="text-purple-700 font-bold">undoNext: {log.undoNextLsn}</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Buffer Pool vs Persistent Disk Pages */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Volatile RAM Buffer Pool */}
+                <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+                  <div className="flex items-center justify-between border-b border-border pb-2">
+                    <span className="font-bold text-xs text-text">
+                      Volatile Buffer Pool (RAM)
+                    </span>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${ariesPhase === 'CRASHED' ? 'bg-rose-100 text-rose-800' : 'bg-emerald-100 text-emerald-800'}`}>
+                      {ariesPhase === 'CRASHED' ? 'WIPED ON CRASH ✕' : 'ACTIVE IN RAM ✓'}
+                    </span>
+                  </div>
+
+                  {Object.keys(bufferPages).length === 0 ? (
+                    <div className="p-4 rounded-lg bg-canvas border border-dashed border-border text-center text-xs text-text-muted">
+                      Buffer Pool is completely empty (RAM lost during crash).
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {Object.values(bufferPages).map((p) => (
+                        <div
+                          key={p.pageId}
+                          className="p-2.5 rounded-lg bg-canvas border border-border flex items-center justify-between text-xs font-mono"
+                        >
+                          <div>
+                            <span className="font-bold text-text block">{p.pageId}</span>
+                            <span className="text-[11px] text-text-muted">Data: {p.data}</span>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-[10px] bg-primary-100 text-primary-900 border border-primary-300 px-1.5 py-0.5 rounded font-bold block">
+                              PageLSN: {p.pageLsn}
+                            </span>
+                            {p.isDirty && <span className="text-[10px] text-amber-600 font-bold">DIRTY</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Persistent Disk Pages */}
+                <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+                  <div className="flex items-center justify-between border-b border-border pb-2">
+                    <span className="font-bold text-xs text-text">
+                      Persistent Disk Pages (Non-Volatile)
+                    </span>
+                    <span className="text-[10px] font-bold bg-slate-100 text-slate-800 px-1.5 py-0.5 rounded">
+                      DURABLE DISK
+                    </span>
+                  </div>
+
+                  <div className="space-y-2">
+                    {Object.values(diskPages).map((p) => (
+                      <div
+                        key={p.pageId}
+                        className="p-2.5 rounded-lg bg-canvas border border-border flex items-center justify-between text-xs font-mono"
+                      >
+                        <div>
+                          <span className="font-bold text-text block">{p.pageId}</span>
+                          <span className="text-[11px] text-text-muted">Data: {p.data}</span>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-[10px] bg-slate-200 text-slate-900 border border-slate-300 px-1.5 py-0.5 rounded font-bold block">
+                            PageLSN: {p.pageLsn}
+                          </span>
+                          <span className="text-[10px] text-text-muted">
+                            {p.pageLsn === 50 && '(Stolen by T3)'}
+                            {p.pageLsn === 0 && '(Unwritten by T2)'}
+                            {p.pageLsn > 50 && '(Recovered)'}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column: In-Memory Tables & Recovery HUD */}
+            <div className="lg:col-span-5 space-y-4">
+              {/* In-Memory Transaction Table & Dirty Page Table */}
+              <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between border-b border-border pb-2">
+                  <h3 className="font-bold text-sm text-text">
+                    In-Memory Metadata Tables
+                  </h3>
+                  <span className="text-[11px] font-mono text-text-muted">
+                    {ariesPhase === 'CRASHED' ? 'Lost on Crash' : 'Reconstructed in RAM'}
+                  </span>
+                </div>
+
+                {/* Transaction Table */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs font-bold text-text-muted">
+                    <span>Transaction Table (TT)</span>
+                    {analysisLosers.length > 0 && (
+                      <span className="text-rose-600 font-bold">Losers: [{analysisLosers.join(', ')}]</span>
+                    )}
+                  </div>
+
+                  {Object.keys(transTable).length === 0 ? (
+                    <div className="p-2.5 rounded bg-canvas border border-dashed border-border text-center text-xs text-text-muted">
+                      No active transactions (wiped or pre-analysis).
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      {Object.values(transTable).map((t) => (
+                        <div
+                          key={t.transId}
+                          className="p-2 rounded bg-canvas border border-border flex items-center justify-between text-xs font-mono"
+                        >
+                          <span className="font-bold text-text">{t.transId}</span>
+                          <span
+                            className={`px-1.5 py-0.2 rounded text-[10px] font-bold border ${
+                              t.status === 'RUNNING'
+                                ? 'bg-rose-100 text-rose-900 border-rose-300'
+                                : t.status === 'COMMITTED'
+                                ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                                : 'bg-slate-100 text-slate-800 border-slate-300'
+                            }`}
+                          >
+                            {t.status}
+                          </span>
+                          <span className="text-text-muted text-[11px]">lastLSN: {t.lastLsn}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Dirty Page Table */}
+                <div className="space-y-1.5 pt-2 border-t border-border">
+                  <div className="flex items-center justify-between text-xs font-bold text-text-muted">
+                    <span>Dirty Page Table (DPT)</span>
+                    {redoStartLsn !== null && (
+                      <span className="text-purple-600 font-bold font-mono">RedoStartLSN: {redoStartLsn}</span>
+                    )}
+                  </div>
+
+                  {Object.keys(dirtyPageTable).length === 0 ? (
+                    <div className="p-2.5 rounded bg-canvas border border-dashed border-border text-center text-xs text-text-muted">
+                      Dirty Page Table is empty (all pages clean).
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      {Object.values(dirtyPageTable).map((d) => (
+                        <div
+                          key={d.pageId}
+                          className="p-2 rounded bg-canvas border border-border flex items-center justify-between text-xs font-mono"
+                        >
+                          <span className="font-bold text-text">{d.pageId}</span>
+                          <span className="text-[11px] text-amber-700 font-bold">recLSN: {d.recLsn}</span>
+                          <span className="text-text-muted text-[11px]">pageLSN: {d.pageLsn}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Compensation Log Records (CLRs) Inspector */}
+              <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between border-b border-border pb-2">
+                  <h3 className="font-bold text-sm text-text">
+                    Compensation Log Records (CLRs)
+                  </h3>
+                  <span className="text-[11px] font-mono text-purple-700 font-bold">
+                    {clrRecords.length} CLRs Emitted
+                  </span>
+                </div>
+
+                {clrRecords.length === 0 ? (
+                  <p className="text-xs text-text-muted">
+                    No CLRs emitted yet. During Pass 3 (Undo), every rolled-back update writes a CLR with an undoNextLSN pointer to guarantee crash-during-recovery idempotency.
+                  </p>
+                ) : (
+                  <div className="space-y-1.5 max-h-[140px] overflow-y-auto pr-1">
+                    {clrRecords.map((clr) => (
+                      <div
+                        key={clr.lsn}
+                        className="p-2 rounded bg-purple-50 border border-purple-200 text-xs font-mono space-y-0.5"
+                      >
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="font-bold text-purple-900">LSN {clr.lsn} · {clr.type}</span>
+                          <span className="text-purple-700 font-bold">undoNextLSN: {clr.undoNextLsn}</span>
+                        </div>
+                        <p className="text-[11px] text-text font-sans leading-tight">{clr.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Recovery Event Audit Log */}
+              <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between border-b border-border pb-2">
+                  <h3 className="font-bold text-sm text-text">
+                    Recovery Pipeline Audit Log
+                  </h3>
+                  <span className="text-[11px] text-text-muted font-mono">Live Timeline</span>
+                </div>
+
+                <div className="space-y-1.5 max-h-[140px] overflow-y-auto pr-1">
+                  {ariesAuditLog.map((ev) => (
+                    <div
+                      key={ev.id}
+                      className="p-2 rounded bg-canvas border border-border text-[11px] space-y-0.5"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className={`px-1.5 py-0.2 rounded font-mono font-bold text-[10px] border ${ev.badgeClass}`}>
+                          {ev.badge}
+                        </span>
+                        <span className="text-text-muted font-mono text-[10px]">{ev.time}</span>
+                      </div>
+                      <p className="text-text leading-tight">{ev.message}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Socratic Invariant Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="p-4 rounded-xl bg-surface border border-border space-y-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-accent-700">
+                Core WAL Invariant
+              </span>
+              <h4 className="font-bold text-sm text-text">PageLSN ≤ FlushedLSN</h4>
+              <p className="text-xs text-text-muted leading-relaxed">
+                A dirty buffer pool page P can never be written to non-volatile disk until all log records describing modifications up to PageLSN(P) have been flushed to persistent storage. This guarantees that uncommitted changes on disk can always be rolled back.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-xl bg-surface border border-border space-y-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-accent-700">
+                Redo Invariant
+              </span>
+              <h4 className="font-bold text-sm text-text">Repeating History</h4>
+              <p className="text-xs text-text-muted leading-relaxed">
+                Under STEAL/NO-FORCE policies, ARIES Redo reapplies ALL logged changes forward from min(recLSN) up to the crash point, including uncommitted loser transactions. This restores the database to the exact state at the crash moment before undoing losers.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-xl bg-surface border border-border space-y-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-accent-700">
+                Idempotency Invariant
+              </span>
+              <h4 className="font-bold text-sm text-text">Compensation Log Records (CLRs)</h4>
+              <p className="text-xs text-text-muted leading-relaxed">
+                When undoing an operation, ARIES writes a CLR containing an undoNextLSN pointer to the previous record that needs rolling back. Because CLRs are never undone, if the system crashes again during recovery, work is never repeated.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-xl bg-surface border border-border space-y-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-accent-700">
+                Checkpoint Invariant
+              </span>
+              <h4 className="font-bold text-sm text-text">Fuzzy Checkpointing</h4>
+              <p className="text-xs text-text-muted leading-relaxed">
+                Fuzzy checkpointing does not flush dirty data pages or freeze active transactions. It simply records a snapshot of the Transaction Table and Dirty Page Table into the log, bounding how far back Pass 1 (Analysis) and Pass 2 (Redo) must scan.
               </p>
             </div>
           </div>

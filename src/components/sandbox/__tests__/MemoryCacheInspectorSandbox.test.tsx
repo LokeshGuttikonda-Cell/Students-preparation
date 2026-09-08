@@ -183,4 +183,54 @@ describe('MemoryCacheInspectorSandbox', () => {
     expect(screen.getByText('1 / 4 Entries')).toBeInTheDocument();
     expect(screen.getAllByText('1 Tables').length).toBeGreaterThanOrEqual(1); // L0 restored to 1 table
   });
+
+  it('switches to ARIES Database Recovery and tests Crash, Analysis, Redo, and Undo passes with CLRs', () => {
+    render(<MemoryCacheInspectorSandbox />);
+
+    const ariesTab = screen.getByRole('button', { name: /ARIES Database Recovery/i });
+    fireEvent.click(ariesTab);
+
+    // Initial steady state
+    expect(screen.getByText('Durable Disk Write-Ahead Log (WAL Stream)')).toBeInTheDocument();
+    expect(screen.getByText('STATUS: IDLE')).toBeInTheDocument();
+    expect(screen.getAllByText(/PageLSN: 50/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('ACTIVE IN RAM ✓').length).toBeGreaterThanOrEqual(1);
+
+    // 1. Trigger Database Crash
+    const crashBtn = screen.getByRole('button', { name: /⚡ Trigger Database Crash/i });
+    fireEvent.click(crashBtn);
+
+    expect(screen.getByText('STATUS: CRASHED')).toBeInTheDocument();
+    expect(screen.getAllByText('WIPED ON CRASH ✕').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/Buffer Pool is completely empty/i)).toBeInTheDocument();
+
+    // 2. Pass 1: Analysis Pass
+    const analysisBtn = screen.getByRole('button', { name: /Pass 1: Analysis/i });
+    fireEvent.click(analysisBtn);
+
+    expect(screen.getByText('STATUS: ANALYSIS_COMPLETE')).toBeInTheDocument();
+    expect(screen.getByText(/Losers: \[T2, T3\]/i)).toBeInTheDocument();
+    expect(screen.getByText(/RedoStartLSN: 20/i)).toBeInTheDocument();
+
+    // 3. Pass 2: Redo Pass (Repeating History)
+    const redoBtn = screen.getByRole('button', { name: /Pass 2: Redo \(Repeat History\)/i });
+    fireEvent.click(redoBtn);
+
+    expect(screen.getByText('STATUS: REDO_COMPLETE')).toBeInTheDocument();
+    expect(screen.getAllByText('REPEATING_HISTORY').length).toBeGreaterThanOrEqual(1);
+
+    // 4. Pass 3: Undo Pass (Rollback Losers and emit CLRs)
+    const undoBtn = screen.getByRole('button', { name: /Pass 3: Undo \(Rollback Losers\)/i });
+    fireEvent.click(undoBtn);
+
+    expect(screen.getByText('STATUS: UNDO_COMPLETE')).toBeInTheDocument();
+    expect(screen.getAllByText('ROLLBACK_DONE').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/4 CLRs Emitted/i)).toBeInTheDocument();
+    expect(screen.getAllByText('CLR').length).toBeGreaterThanOrEqual(2);
+
+    // 5. Reset Engine
+    const resetBtn = screen.getByRole('button', { name: /Reset Engine/i });
+    fireEvent.click(resetBtn);
+    expect(screen.getByText('STATUS: IDLE')).toBeInTheDocument();
+  });
 });
