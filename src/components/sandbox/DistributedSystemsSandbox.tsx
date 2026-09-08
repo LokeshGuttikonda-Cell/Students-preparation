@@ -9,9 +9,48 @@ export type DistributedMode =
   | 'CIRCUIT_BREAKER'
   | 'RAFT_CONSENSUS'
   | 'VECTOR_CLOCKS'
-  | 'TWO_PHASE_COMMIT_SAGA';
+  | 'TWO_PHASE_COMMIT_SAGA'
+  | 'FENCING_TOKENS_JEPSEN';
 
 export type TxArchitecture = 'TWO_PHASE_COMMIT' | 'DISTRIBUTED_SAGA';
+
+
+// --- Module 7: Distributed Lock Fencing Tokens & Split-Brain Storage Types ---
+export type FencingClientStatus =
+  | 'IDLE'
+  | 'ACQUIRED_LOCK'
+  | 'STW_PAUSED'
+  | 'COMMITTING_WRITE'
+  | 'WRITE_COMMITTED'
+  | 'WRITE_REJECTED';
+
+export type FencingStorageMode = 'UNFENCED_NAIVE' | 'FENCING_TOKEN_GATED';
+
+export interface FencingClient {
+  id: 'client-1' | 'client-2';
+  name: string;
+  heldToken: number | null;
+  status: FencingClientStatus;
+  leaseSecondsRemaining: number;
+  dataPayload: string;
+  statusMessage: string;
+}
+
+export interface FencingStorageState {
+  currentData: string;
+  maxCommittedToken: number;
+  committedBy: string;
+  isCorrupted: boolean;
+  integrityMessage: string;
+}
+
+export interface FencingAuditEvent {
+  id: number;
+  time: string;
+  badge: string;
+  badgeClass: string;
+  message: string;
+}
 
 export type TwoPhaseCoordinatorState =
   | 'IDLE'
@@ -1657,6 +1696,250 @@ export function DistributedSystemsSandbox() {
     ]);
   };
 
+
+  // --- Module 7: Distributed Lock Fencing Tokens & Split-Brain State ---
+  const [fencingStorageMode, setFencingStorageMode] = useState<FencingStorageMode>('FENCING_TOKEN_GATED');
+  const [fencingStep, setFencingStep] = useState<number>(0);
+  const [fencingLockManager, setFencingLockManager] = useState<{
+    currentHolder: 'client-1' | 'client-2' | null;
+    currentToken: number;
+    leaseSeconds: number;
+    isExpired: boolean;
+  }>({
+    currentHolder: null,
+    currentToken: 32,
+    leaseSeconds: 10,
+    isExpired: false,
+  });
+
+  const [fencingClient1, setFencingClient1] = useState<FencingClient>({
+    id: 'client-1',
+    name: 'Client 1 (Batch Invoice Settler)',
+    heldToken: null,
+    status: 'IDLE',
+    leaseSecondsRemaining: 0,
+    dataPayload: '{"invoiceId": 901, "status": "SETTLED", "amount": 1500}',
+    statusMessage: 'Process idle. Awaiting lock acquisition to settle invoice.',
+  });
+
+  const [fencingClient2, setFencingClient2] = useState<FencingClient>({
+    id: 'client-2',
+    name: 'Client 2 (Dispute Revocation Worker)',
+    heldToken: null,
+    status: 'IDLE',
+    leaseSecondsRemaining: 0,
+    dataPayload: '{"invoiceId": 901, "status": "REVOKED", "amount": 0}',
+    statusMessage: 'Process idle. Awaiting lock acquisition to revoke disputed invoice.',
+  });
+
+  const [fencingStorage, setFencingStorage] = useState<FencingStorageState>({
+    currentData: '{"invoiceId": 901, "status": "PENDING", "amount": 1500}',
+    maxCommittedToken: 32,
+    committedBy: 'Initial Seed State',
+    isCorrupted: false,
+    integrityMessage: 'Storage engine consistent. Monotonic token watermark = 32.',
+  });
+
+  const [fencingAuditLog, setFencingAuditLog] = useState<FencingAuditEvent[]>([
+    {
+      id: 1,
+      time: '00:00:00',
+      badge: 'INIT',
+      badgeClass: 'bg-slate-100 text-slate-800 border-slate-300 dark:bg-zinc-800 dark:text-zinc-200',
+      message: 'Lock Coordinator active. Storage engine initialized at token watermark 32. Mode: FENCING_TOKEN_GATED.',
+    },
+  ]);
+
+  const handleFencingStep1AcquireClient1 = () => {
+    const newToken = 33;
+    setFencingLockManager({
+      currentHolder: 'client-1',
+      currentToken: newToken,
+      leaseSeconds: 10,
+      isExpired: false,
+    });
+    setFencingClient1((prev) => ({
+      ...prev,
+      heldToken: newToken,
+      status: 'ACQUIRED_LOCK',
+      leaseSecondsRemaining: 10,
+      statusMessage: 'Acquired lock lease! Granted fencing token = 33. Pre-computation starting.',
+    }));
+    setFencingStep(1);
+    setFencingAuditLog((prev) => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        badge: 'LOCK_GRANTED',
+        badgeClass: 'bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-950/50 dark:text-emerald-300',
+        message: 'Lock Manager granted lease (10s) to Client 1 with Monotonic Fencing Token = 33.',
+      },
+      ...prev.slice(0, 9),
+    ]);
+  };
+
+  const handleFencingStep2InjectGCPause = () => {
+    // Client 1 freezes in GC pause; time passes (10s); lock manager expires lease
+    setFencingLockManager((prev) => ({
+      ...prev,
+      currentHolder: null,
+      isExpired: true,
+      leaseSeconds: 0,
+    }));
+    setFencingClient1((prev) => ({
+      ...prev,
+      status: 'STW_PAUSED',
+      leaseSecondsRemaining: 0,
+      statusMessage: 'FROZEN: Stop-the-World GC pause (15s). Thread suspended; lease expired on coordinator without client knowledge!',
+    }));
+    setFencingStep(2);
+    setFencingAuditLog((prev) => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        badge: 'STW_GC_PAUSE',
+        badgeClass: 'bg-purple-100 text-purple-900 border-purple-300 dark:bg-purple-950/50 dark:text-purple-300',
+        message: 'SIMULATION: Injected 15s Stop-the-World GC pause on Client 1! Lease expired at t=10s on Coordinator.',
+      },
+      ...prev.slice(0, 9),
+    ]);
+  };
+
+  const handleFencingStep3AcquireClient2 = () => {
+    const newToken = 34;
+    setFencingLockManager({
+      currentHolder: 'client-2',
+      currentToken: newToken,
+      leaseSeconds: 10,
+      isExpired: false,
+    });
+    setFencingClient2((prev) => ({
+      ...prev,
+      heldToken: newToken,
+      status: 'WRITE_COMMITTED',
+      leaseSecondsRemaining: 8,
+      statusMessage: 'Acquired lock (token=34) and immediately committed REVOKED write to storage engine!',
+    }));
+    // Storage accepts Client 2 write
+    setFencingStorage({
+      currentData: '{"invoiceId": 901, "status": "REVOKED", "amount": 0}',
+      maxCommittedToken: newToken,
+      committedBy: 'Client 2 (Dispute Revocation Worker)',
+      isCorrupted: false,
+      integrityMessage: 'Storage updated by Client 2 (token=34). High-watermark advanced to 34.',
+    });
+    setFencingStep(3);
+    setFencingAuditLog((prev) => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        badge: 'WRITE_COMMITTED',
+        badgeClass: 'bg-sky-100 text-sky-900 border-sky-300 dark:bg-sky-950/50 dark:text-sky-300',
+        message: 'Client 2 acquired lock with Token 34 and successfully committed REVOKED payload to storage (watermark=34).',
+      },
+      ...prev.slice(0, 9),
+    ]);
+  };
+
+  const handleFencingStep4AwakenClient1 = () => {
+    const client1Token = fencingClient1.heldToken || 33;
+    const client1Payload = fencingClient1.dataPayload;
+
+    if (fencingStorageMode === 'UNFENCED_NAIVE') {
+      // NAIVE MODE: Storage blindly accepts stale write!
+      setFencingStorage({
+        currentData: client1Payload,
+        maxCommittedToken: fencingStorage.maxCommittedToken, // naive storage does not track tokens
+        committedBy: 'Client 1 (STALE LEASE OVERWRITE)',
+        isCorrupted: true,
+        integrityMessage: 'CRITICAL CORRUPTION: Split-Brain Lost Update! Client 1 overwrote Client 2 valid data using an expired lease!',
+      });
+      setFencingClient1((prev) => ({
+        ...prev,
+        status: 'WRITE_COMMITTED',
+        statusMessage: 'Client 1 awoke and committed stale write without error! (CORRUPTED STORAGE)',
+      }));
+      setFencingAuditLog((prev) => [
+        {
+          id: Date.now(),
+          time: new Date().toLocaleTimeString(),
+          badge: 'SPLIT_BRAIN_CORRUPTED',
+          badgeClass: 'bg-rose-100 text-rose-900 border-rose-300 dark:bg-rose-950/50 dark:text-rose-300 animate-pulse',
+          message: 'CRITICAL CORRUPTION: Naive storage accepted stale write from Client 1! Client 2 dispute revocation was overwritten!',
+        },
+        ...prev.slice(0, 9),
+      ]);
+    } else {
+      // FENCING TOKEN GATED MODE: Storage rejects stale write!
+      setFencingClient1((prev) => ({
+        ...prev,
+        status: 'WRITE_REJECTED',
+        statusMessage: `WRITE REJECTED: HTTP 409 Stale Fencing Token ${client1Token} < ${fencingStorage.maxCommittedToken}! Storage safe.`,
+      }));
+      setFencingStorage((prev) => ({
+        ...prev,
+        isCorrupted: false,
+        integrityMessage: `STORAGE SECURE: Rejected write from Client 1. Stale token ${client1Token} < current watermark ${prev.maxCommittedToken}.`,
+      }));
+      setFencingAuditLog((prev) => [
+        {
+          id: Date.now(),
+          time: new Date().toLocaleTimeString(),
+          badge: 'FENCING_REJECTED',
+          badgeClass: 'bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-950/50 dark:text-emerald-300',
+          message: `FENCING INTEGRITY ENFORCED: Storage rejected Client 1 write! Stale token ${client1Token} < high-watermark ${fencingStorage.maxCommittedToken}.`,
+        },
+        ...prev.slice(0, 9),
+      ]);
+    }
+    setFencingStep(4);
+  };
+
+  const handleFencingReset = () => {
+    setFencingStep(0);
+    setFencingLockManager({
+      currentHolder: null,
+      currentToken: 32,
+      leaseSeconds: 10,
+      isExpired: false,
+    });
+    setFencingClient1({
+      id: 'client-1',
+      name: 'Client 1 (Batch Invoice Settler)',
+      heldToken: null,
+      status: 'IDLE',
+      leaseSecondsRemaining: 0,
+      dataPayload: '{"invoiceId": 901, "status": "SETTLED", "amount": 1500}',
+      statusMessage: 'Process idle. Awaiting lock acquisition to settle invoice.',
+    });
+    setFencingClient2({
+      id: 'client-2',
+      name: 'Client 2 (Dispute Revocation Worker)',
+      heldToken: null,
+      status: 'IDLE',
+      leaseSecondsRemaining: 0,
+      dataPayload: '{"invoiceId": 901, "status": "REVOKED", "amount": 0}',
+      statusMessage: 'Process idle. Awaiting lock acquisition to revoke disputed invoice.',
+    });
+    setFencingStorage({
+      currentData: '{"invoiceId": 901, "status": "PENDING", "amount": 1500}',
+      maxCommittedToken: 32,
+      committedBy: 'Initial Seed State',
+      isCorrupted: false,
+      integrityMessage: 'Storage engine consistent. Monotonic token watermark = 32.',
+    });
+    setFencingAuditLog((prev) => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        badge: 'RESET',
+        badgeClass: 'bg-slate-100 text-slate-800 border-slate-300 dark:bg-zinc-800 dark:text-zinc-200',
+        message: 'Cluster and storage state reset to initial baseline (token watermark 32).',
+      },
+      ...prev.slice(0, 9),
+    ]);
+  };
+
   return (
     <div className="bg-surface border border-border rounded-xl shadow-xs overflow-hidden space-y-6">
       {/* Sub-Header Tabs */}
@@ -1741,6 +2024,17 @@ export function DistributedSystemsSandbox() {
             }`}
           >
             2PC vs Saga Coordinator
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('FENCING_TOKENS_JEPSEN')}
+            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+              activeTab === 'FENCING_TOKENS_JEPSEN'
+                ? 'bg-primary-700 text-white shadow-xs'
+                : 'text-text-muted hover:text-text'
+            }`}
+          >
+            Lock Fencing &amp; Split-Brain
           </button>
         </div>
       </div>
@@ -4029,6 +4323,501 @@ export function DistributedSystemsSandbox() {
           </div>
         </div>
       )}
+      {/* MODULE 7: DISTRIBUTED LOCK FENCING TOKENS & JEPSEN SPLIT-BRAIN STORAGE SIMULATION */}
+      {activeTab === 'FENCING_TOKENS_JEPSEN' && (
+        <div className="p-6 space-y-6">
+          {/* Header Banner */}
+          <div className="bg-canvas border border-border p-4 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-primary-600">
+                  Distributed Concurrency &amp; Storage Safety
+                </span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded border border-amber-300 bg-amber-50 text-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
+                  Kleppmann Invariant
+                </span>
+              </div>
+              <h3 className="font-bold text-base text-text">
+                Distributed Lock Fencing Tokens &amp; Asynchronous Split-Brain Storage Simulation
+              </h3>
+              <p className="text-xs text-text-muted max-w-3xl leading-relaxed">
+                Proves why distributed lock leases (TTL timeouts) cannot guarantee mutual exclusion in asynchronous distributed systems subject to Stop-the-World GC pauses, packet delays, or virtual machine stalls. Without monotonically increasing fencing tokens checked by the storage engine, split-brain overwrites and lost updates are mathematically inevitable.
+              </p>
+            </div>
+
+            {/* Storage Gating Mode Selector */}
+            <div className="bg-surface border border-border p-2.5 rounded-lg flex flex-col gap-1.5 min-w-[260px]">
+              <span className="text-[11px] font-bold text-text uppercase tracking-wider">
+                Storage Engine Gating Mode:
+              </span>
+              <div className="grid grid-cols-2 gap-1 bg-canvas p-1 rounded-md border border-border">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFencingStorageMode('UNFENCED_NAIVE');
+                    handleFencingReset();
+                  }}
+                  className={`px-2 py-1.5 rounded text-[11px] font-bold cursor-pointer transition-colors ${
+                    fencingStorageMode === 'UNFENCED_NAIVE'
+                      ? 'bg-rose-600 text-white shadow-xs'
+                      : 'text-text-muted hover:text-text'
+                  }`}
+                >
+                  Naive (Unfenced)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFencingStorageMode('FENCING_TOKEN_GATED');
+                    handleFencingReset();
+                  }}
+                  className={`px-2 py-1.5 rounded text-[11px] font-bold cursor-pointer transition-colors ${
+                    fencingStorageMode === 'FENCING_TOKEN_GATED'
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'text-text-muted hover:text-text'
+                  }`}
+                >
+                  Fencing Token Gated
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Stepper Workflow Controls */}
+          <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border pb-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-text">
+                Asynchronous Split-Brain Execution Steps:
+              </span>
+              <span className="text-xs font-mono text-text-muted">
+                Current Step: <strong>{fencingStep} / 4</strong>
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 pt-1">
+              <Button
+                onClick={handleFencingStep1AcquireClient1}
+                disabled={fencingStep !== 0}
+                variant={fencingStep === 0 ? 'primary' : 'secondary'}
+                className="text-xs px-2.5 py-2 cursor-pointer w-full text-center"
+              >
+                1. Client 1 Acquires Lock (Token 33)
+              </Button>
+
+              <Button
+                onClick={handleFencingStep2InjectGCPause}
+                disabled={fencingStep !== 1}
+                variant={fencingStep === 1 ? 'accent' : 'secondary'}
+                className="text-xs px-2.5 py-2 cursor-pointer w-full text-center"
+              >
+                2. Inject 15s STW GC Pause
+              </Button>
+
+              <Button
+                onClick={handleFencingStep3AcquireClient2}
+                disabled={fencingStep !== 2}
+                variant={fencingStep === 2 ? 'primary' : 'secondary'}
+                className="text-xs px-2.5 py-2 cursor-pointer w-full text-center"
+              >
+                3. Client 2 Acquires &amp; Writes (Token 34)
+              </Button>
+
+              <Button
+                onClick={handleFencingStep4AwakenClient1}
+                disabled={fencingStep !== 3}
+                variant={fencingStep === 3 ? (fencingStorageMode === 'UNFENCED_NAIVE' ? 'destructive' : 'accent') : 'secondary'}
+                className="text-xs px-2.5 py-2 cursor-pointer w-full text-center"
+              >
+                4. Client 1 Wakes &amp; Writes (Token 33)
+              </Button>
+
+              <Button
+                onClick={handleFencingReset}
+                variant="secondary"
+                className="text-xs px-2.5 py-2 cursor-pointer w-full text-center"
+              >
+                ↺ Reset Cluster
+              </Button>
+            </div>
+          </div>
+
+          {/* Main Visual Topology: Lock Coordinator -> 2 Clients -> Shared Storage Engine */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            {/* Top Tier / Left: Distributed Lock Coordinator */}
+            <div className="lg:col-span-4 bg-surface border border-border rounded-xl p-4 space-y-3">
+              <div className="flex items-center justify-between border-b border-border pb-2">
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full bg-amber-500 animate-pulse" />
+                  <h4 className="font-bold text-sm text-text">Distributed Lock Coordinator</h4>
+                </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded border border-border bg-canvas">
+                  Lease TTL = 10s
+                </span>
+              </div>
+
+              <div className="space-y-2 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-text-muted">Current Lock Holder:</span>
+                  <span className="font-mono font-bold">
+                    {fencingLockManager.currentHolder ? (
+                      <span className="text-primary-600 bg-primary-50 dark:bg-primary-950/40 px-2 py-0.5 rounded border border-primary-200">
+                        {fencingLockManager.currentHolder === 'client-1' ? 'Client 1' : 'Client 2'}
+                      </span>
+                    ) : fencingLockManager.isExpired ? (
+                      <span className="text-rose-600 bg-rose-50 dark:bg-rose-950/40 px-2 py-0.5 rounded border border-rose-200">
+                        LEASE EXPIRED (REVOKED)
+                      </span>
+                    ) : (
+                      <span className="text-text-muted">NONE (FREE)</span>
+                    )}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span className="text-text-muted">Monotonic Fencing Counter:</span>
+                  <span className="font-mono font-bold text-sm bg-canvas px-2.5 py-0.5 rounded border border-border text-amber-700 dark:text-amber-400">
+                    Token #{fencingLockManager.currentToken}
+                  </span>
+                </div>
+
+                <div className="space-y-1 pt-1">
+                  <div className="flex items-center justify-between text-[11px] text-text-muted">
+                    <span>Lease Expiry Timer:</span>
+                    <span>{fencingLockManager.leaseSeconds}s remaining</span>
+                  </div>
+                  <div className="w-full bg-slate-100 dark:bg-zinc-800 rounded-full h-2 overflow-hidden">
+                    <div
+                      className={`h-full transition-all duration-300 ${
+                        fencingLockManager.leaseSeconds > 0 ? 'bg-amber-500' : 'bg-rose-500'
+                      }`}
+                      style={{ width: `${(fencingLockManager.leaseSeconds / 10) * 100}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-lg bg-canvas border border-border text-[11px] text-text-muted space-y-1">
+                  <span className="font-bold text-text block">Lease Invariant:</span>
+                  <p>
+                    Every time a lock is acquired, coordinator increments integer epoch by +1. When 10s lease expires, coordinator permits new client acquisition regardless of whether previous client acknowledged release.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Middle Tier / Center: Client 1 & Client 2 Side-by-Side */}
+            <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Client 1 Box */}
+              <div
+                className={`bg-surface border rounded-xl p-4 space-y-3 relative overflow-hidden ${
+                  fencingClient1.status === 'STW_PAUSED'
+                    ? 'border-purple-400 bg-purple-50/20 dark:bg-purple-950/20'
+                    : fencingClient1.status === 'WRITE_COMMITTED'
+                    ? 'border-emerald-400'
+                    : fencingClient1.status === 'WRITE_REJECTED'
+                    ? 'border-rose-400'
+                    : 'border-border'
+                }`}
+              >
+                {fencingClient1.status === 'STW_PAUSED' && (
+                  <div className="absolute top-2 right-2 px-2 py-0.5 rounded text-[10px] font-bold bg-purple-600 text-white uppercase tracking-wider animate-pulse">
+                    ❄️ Stop-The-World Freeze
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between border-b border-border pb-2">
+                  <div>
+                    <h4 className="font-bold text-sm text-text">Client 1</h4>
+                    <span className="text-[11px] text-text-muted">Batch Invoice Settler</span>
+                  </div>
+                  <span
+                    className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
+                      fencingClient1.status === 'STW_PAUSED'
+                        ? 'bg-purple-100 text-purple-900 border-purple-300'
+                        : fencingClient1.status === 'ACQUIRED_LOCK'
+                        ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                        : fencingClient1.status === 'WRITE_REJECTED'
+                        ? 'bg-rose-100 text-rose-900 border-rose-300'
+                        : 'bg-canvas text-text-muted border-border'
+                    }`}
+                  >
+                    {fencingClient1.status}
+                  </span>
+                </div>
+
+                <div className="space-y-2 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-text-muted">Held Fencing Token:</span>
+                    <span className="font-mono font-bold">
+                      {fencingClient1.heldToken ? (
+                        <span className="text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-300">
+                          #{fencingClient1.heldToken}
+                        </span>
+                      ) : (
+                        'None'
+                      )}
+                    </span>
+                  </div>
+
+                  <div className="space-y-1">
+                    <span className="text-text-muted block text-[11px]">Write Buffer Payload:</span>
+                    <pre className="font-mono text-[11px] p-2 rounded bg-canvas border border-border text-text overflow-x-auto">
+                      {fencingClient1.dataPayload}
+                    </pre>
+                  </div>
+
+                  <div className="p-2 rounded bg-canvas border border-border text-[11px] text-text leading-tight">
+                    <span className="font-semibold block text-text-muted mb-0.5">Status:</span>
+                    {fencingClient1.statusMessage}
+                  </div>
+                </div>
+              </div>
+
+              {/* Client 2 Box */}
+              <div
+                className={`bg-surface border rounded-xl p-4 space-y-3 relative overflow-hidden ${
+                  fencingClient2.status === 'WRITE_COMMITTED'
+                    ? 'border-sky-400 bg-sky-50/20 dark:bg-sky-950/20'
+                    : fencingClient2.status === 'ACQUIRED_LOCK'
+                    ? 'border-emerald-400'
+                    : 'border-border'
+                }`}
+              >
+                <div className="flex items-center justify-between border-b border-border pb-2">
+                  <div>
+                    <h4 className="font-bold text-sm text-text">Client 2</h4>
+                    <span className="text-[11px] text-text-muted">Dispute Revocation Worker</span>
+                  </div>
+                  <span
+                    className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
+                      fencingClient2.status === 'WRITE_COMMITTED'
+                        ? 'bg-sky-100 text-sky-900 border-sky-300'
+                        : fencingClient2.status === 'ACQUIRED_LOCK'
+                        ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                        : 'bg-canvas text-text-muted border-border'
+                    }`}
+                  >
+                    {fencingClient2.status}
+                  </span>
+                </div>
+
+                <div className="space-y-2 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-text-muted">Held Fencing Token:</span>
+                    <span className="font-mono font-bold">
+                      {fencingClient2.heldToken ? (
+                        <span className="text-sky-700 bg-sky-50 dark:bg-sky-950/40 px-2 py-0.5 rounded border border-sky-300">
+                          #{fencingClient2.heldToken}
+                        </span>
+                      ) : (
+                        'None'
+                      )}
+                    </span>
+                  </div>
+
+                  <div className="space-y-1">
+                    <span className="text-text-muted block text-[11px]">Write Buffer Payload:</span>
+                    <pre className="font-mono text-[11px] p-2 rounded bg-canvas border border-border text-text overflow-x-auto">
+                      {fencingClient2.dataPayload}
+                    </pre>
+                  </div>
+
+                  <div className="p-2 rounded bg-canvas border border-border text-[11px] text-text leading-tight">
+                    <span className="font-semibold block text-text-muted mb-0.5">Status:</span>
+                    {fencingClient2.statusMessage}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Tier: Shared Persistent Storage Engine */}
+          <div
+            className={`bg-surface border-2 rounded-xl p-4 space-y-3 transition-colors ${
+              fencingStorage.isCorrupted
+                ? 'border-rose-500 bg-rose-50/20 dark:bg-rose-950/30'
+                : fencingStep === 4 && !fencingStorage.isCorrupted
+                ? 'border-emerald-500 bg-emerald-50/20 dark:bg-emerald-950/30'
+                : 'border-border'
+            }`}
+          >
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-border pb-2">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-sm text-text">Shared Persistent Storage Engine</span>
+                <span
+                  className={`text-[10px] font-mono px-2 py-0.5 rounded border font-bold ${
+                    fencingStorageMode === 'UNFENCED_NAIVE'
+                      ? 'bg-rose-100 text-rose-900 border-rose-300'
+                      : 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                  }`}
+                >
+                  Mode: {fencingStorageMode === 'UNFENCED_NAIVE' ? 'UNFENCED (NAIVE)' : 'FENCING TOKEN GATED'}
+                </span>
+              </div>
+              <div className="flex items-center gap-3 text-xs">
+                <span className="text-text-muted">Storage Token Watermark:</span>
+                <span className="font-mono font-bold bg-canvas px-2 py-0.5 rounded border border-border text-primary-600">
+                  maxToken = {fencingStorage.maxCommittedToken}
+                </span>
+              </div>
+            </div>
+
+            {/* Split-Brain Hazard or Protection Alert Banner */}
+            {fencingStorage.isCorrupted ? (
+              <div className="p-3 rounded-lg bg-rose-100 border border-rose-300 text-rose-950 dark:bg-rose-950/50 dark:border-rose-800 dark:text-rose-200 text-xs space-y-1">
+                <span className="font-bold text-sm block">⚠️ CRITICAL SPLIT-BRAIN CORRUPTION DETECTED</span>
+                <p>
+                  Client 1 woke up after a 15-second Stop-the-World GC pause and executed its write with expired Token 33! Because the storage engine is UNFENCED, it blindly accepted the write, overwriting Client 2&apos;s dispute revocation! This is the classic Kleppmann Split-Brain Lost Update Anomaly.
+                </p>
+              </div>
+            ) : fencingStep === 4 && !fencingStorage.isCorrupted ? (
+              <div className="p-3 rounded-lg bg-emerald-100 border border-emerald-300 text-emerald-950 dark:bg-emerald-950/50 dark:border-emerald-800 dark:text-emerald-200 text-xs space-y-1">
+                <span className="font-bold text-sm block">🛡️ STORAGE INTEGRITY PRESERVED VIA FENCING TOKEN</span>
+                <p>
+                  Client 1 attempted to write with stale Token 33. The storage engine checked: <strong>Token 33 &lt; Watermark 34</strong> and rejected the write with HTTP 409 Conflict! Client 2&apos;s legitimate REVOKED state remains intact. Zero data loss!
+                </p>
+              </div>
+            ) : null}
+
+            {/* Storage Data Inspection */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs pt-1">
+              <div className="space-y-1">
+                <span className="text-text-muted block text-[11px] font-semibold">
+                  Current Committed Disk Record:
+                </span>
+                <pre className="font-mono text-xs p-3 rounded bg-canvas border border-border text-text overflow-x-auto">
+                  {fencingStorage.currentData}
+                </pre>
+              </div>
+
+              <div className="space-y-2 bg-canvas p-3 rounded border border-border">
+                <div className="flex items-center justify-between">
+                  <span className="text-text-muted">Last Written By:</span>
+                  <span className="font-bold text-text">{fencingStorage.committedBy}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-text-muted">Monotonic Watermark:</span>
+                  <span className="font-mono font-bold text-primary-600">
+                    {fencingStorage.maxCommittedToken}
+                  </span>
+                </div>
+                <div className="text-[11px] text-text-muted pt-1 border-t border-border">
+                  <span className="font-semibold block text-text mb-0.5">Integrity State:</span>
+                  {fencingStorage.integrityMessage}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Comparative Benchmark Matrix */}
+          <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+            <h4 className="font-bold text-sm text-text">
+              Comparative Analysis: Distributed Lock Leases vs Monotonic Fencing Tokens
+            </h4>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-border bg-canvas text-text font-bold">
+                    <th className="p-2">Fault Vector</th>
+                    <th className="p-2">Naive Distributed Lock (TTL Lease Only)</th>
+                    <th className="p-2">Fencing Token Gated Storage Engine</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  <tr>
+                    <td className="p-2 font-semibold text-text">Stop-the-World GC Pause (15s)</td>
+                    <td className="p-2 text-rose-600 font-semibold">Vulnerable to Split-Brain Corruption</td>
+                    <td className="p-2 text-emerald-600 font-semibold">Provably Safe (Stale token rejected)</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2 font-semibold text-text">Asynchronous Network Latency / Stall</td>
+                    <td className="p-2 text-rose-600 font-semibold">Vulnerable (Delayed packets arrive after lease expiry)</td>
+                    <td className="p-2 text-emerald-600 font-semibold">Provably Safe (Arriving packet has lower token)</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2 font-semibold text-text">Physical Clock Drift / NTP Jumps</td>
+                    <td className="p-2 text-rose-600 font-semibold">Catastrophic (Clock jump prematurely expires lease)</td>
+                    <td className="p-2 text-emerald-600 font-semibold">Immune (Relies on integer monotonicity, not time)</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2 font-semibold text-text">Storage Engine Requirements</td>
+                    <td className="p-2 text-text-muted">Blind key-value storage (no token verification)</td>
+                    <td className="p-2 text-text-muted font-mono">Requires atomic check: writeToken &gt; maxToken</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Real-Time Audit Log */}
+          <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-bold text-text uppercase tracking-wider">
+                Fencing Token &amp; Cluster Event Audit Stream:
+              </span>
+              <span className="text-text-muted font-mono text-[11px]">
+                {fencingAuditLog.length} Events Logged
+              </span>
+            </div>
+
+            <div className="space-y-2">
+              {fencingAuditLog.map((ev) => (
+                <div
+                  key={ev.id}
+                  className="p-2.5 rounded-lg bg-canvas border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-text-muted text-[11px]">{ev.time}</span>
+                    <span className={`font-mono font-bold text-[10px] px-2 py-0.5 rounded border ${ev.badgeClass}`}>
+                      {ev.badge}
+                    </span>
+                    <span className="text-text font-medium">{ev.message}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 4 Socratic Invariant Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                1. Kleppmann&apos;s Distributed Lock Flaw
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                In an asynchronous distributed system with unbounded network delays and Stop-the-World GC pauses, lock leases relying on physical time cannot guarantee mutual exclusion without storage cooperation.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                2. Monotonic Fencing Epochs
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                Every successful lock acquisition must return a strictly monotonically increasing integer token (token_k+1 &gt; token_k). The token acts as an epoch number for all storage mutations.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                3. The Asynchronous Pause Invariant
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                A client thread cannot know whether its lease has expired while it was paused. Checking lease validity before writing creates an unavoidable time-of-check to time-of-use (TOCTOU) race condition.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                4. Storage Engine Gating
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                Mutual exclusion can only be finalized at the shared resource (storage engine). The storage layer must atomically reject any write where token_write &le; token_max.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

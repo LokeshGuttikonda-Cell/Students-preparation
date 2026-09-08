@@ -305,4 +305,84 @@ describe('DistributedSystemsSandbox', () => {
     fireEvent.click(resetClusterBtn);
     expect(screen.getAllByText('CLUSTER_RESET').length).toBeGreaterThanOrEqual(1);
   });
+
+  it('verifies Distributed Lock Fencing Tokens, Stop-the-World GC pauses, and Split-Brain storage prevention', () => {
+    render(<DistributedSystemsSandbox />);
+
+    // 1. Switch to Lock Fencing & Split-Brain tab
+    const fencingTabBtn = screen.getByRole('button', { name: /Lock Fencing & Split-Brain/i });
+    fireEvent.click(fencingTabBtn);
+
+    expect(screen.getByText('Distributed Lock Fencing Tokens & Asynchronous Split-Brain Storage Simulation')).toBeInTheDocument();
+    expect(screen.getByText(/Token #32/i)).toBeInTheDocument();
+    expect(screen.getByText('Shared Persistent Storage Engine')).toBeInTheDocument();
+    expect(screen.getByText('maxToken = 32')).toBeInTheDocument();
+
+    // Default mode is Fencing Token Gated
+    expect(screen.getByRole('button', { name: 'Fencing Token Gated' })).toHaveClass('bg-emerald-600');
+
+    // Step 1: Client 1 Acquires Lock
+    const step1Btn = screen.getByRole('button', { name: /1. Client 1 Acquires Lock/i });
+    fireEvent.click(step1Btn);
+
+    expect(screen.getByText(/Token #33/i)).toBeInTheDocument();
+    expect(screen.getByText('#33')).toBeInTheDocument();
+    expect(screen.getByText('ACQUIRED_LOCK')).toBeInTheDocument();
+
+    // Step 2: Inject Stop-the-World GC Pause (15s)
+    const step2Btn = screen.getByRole('button', { name: /2. Inject 15s STW GC Pause/i });
+    fireEvent.click(step2Btn);
+
+    expect(screen.getByText('STW_PAUSED')).toBeInTheDocument();
+    expect(screen.getByText(/Stop-The-World Freeze/i)).toBeInTheDocument();
+    expect(screen.getByText('LEASE EXPIRED (REVOKED)')).toBeInTheDocument();
+
+    // Step 3: Client 2 Acquires Lock & Writes
+    const step3Btn = screen.getByRole('button', { name: /3. Client 2 Acquires & Writes/i });
+    fireEvent.click(step3Btn);
+
+    expect(screen.getByText(/Token #34/i)).toBeInTheDocument();
+    expect(screen.getByText('#34')).toBeInTheDocument();
+    expect(screen.getByText('maxToken = 34')).toBeInTheDocument();
+    expect(screen.getAllByText(/"status": "REVOKED"/i).length).toBeGreaterThanOrEqual(1);
+
+    // Step 4: Client 1 Wakes & Submits Stale Write (Fencing Token Gated Mode)
+    const step4Btn = screen.getByRole('button', { name: /4. Client 1 Wakes & Writes/i });
+    fireEvent.click(step4Btn);
+
+    expect(screen.getByText('WRITE_REJECTED')).toBeInTheDocument();
+    expect(screen.getByText(/STORAGE INTEGRITY PRESERVED VIA FENCING TOKEN/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/"status": "REVOKED"/i).length).toBeGreaterThanOrEqual(1);
+
+    // 2. Test Naive Unfenced Storage Mode (Vulnerable to Split-Brain)
+    const naiveModeBtn = screen.getByRole('button', { name: 'Naive (Unfenced)' });
+    fireEvent.click(naiveModeBtn);
+
+    expect(naiveModeBtn).toHaveClass('bg-rose-600');
+    expect(screen.getByText('Mode: UNFENCED (NAIVE)')).toBeInTheDocument();
+
+    // Re-run the 4 steps under Naive mode
+    const step1NaiveBtn = screen.getByRole('button', { name: /1. Client 1 Acquires Lock/i });
+    fireEvent.click(step1NaiveBtn);
+
+    const step2NaiveBtn = screen.getByRole('button', { name: /2. Inject 15s STW GC Pause/i });
+    fireEvent.click(step2NaiveBtn);
+
+    const step3NaiveBtn = screen.getByRole('button', { name: /3. Client 2 Acquires & Writes/i });
+    fireEvent.click(step3NaiveBtn);
+
+    const step4NaiveBtn = screen.getByRole('button', { name: /4. Client 1 Wakes & Writes/i });
+    fireEvent.click(step4NaiveBtn);
+
+    // Naive mode permits the stale write, leading to split-brain corruption!
+    expect(screen.getByText(/CRITICAL SPLIT-BRAIN CORRUPTION DETECTED/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/"status": "SETTLED"/i).length).toBeGreaterThanOrEqual(1);
+
+    // 3. Reset Cluster
+    const resetBtn = screen.getByRole('button', { name: /Reset Cluster/i });
+    fireEvent.click(resetBtn);
+
+    expect(screen.getByText('maxToken = 32')).toBeInTheDocument();
+    expect(screen.queryByText(/CRITICAL SPLIT-BRAIN CORRUPTION DETECTED/i)).not.toBeInTheDocument();
+  });
 });
