@@ -12,12 +12,46 @@ export type DistributedMode =
   | 'TWO_PHASE_COMMIT_SAGA'
   | 'FENCING_TOKENS_JEPSEN'
   | 'PAXOS_CONSENSUS'
-  | 'CRDT_COLLABORATIVE';
+  | 'CRDT_COLLABORATIVE'
+  | 'GOSSIP_SWIM_MEMBERSHIP';
 
 export type TxArchitecture = 'TWO_PHASE_COMMIT' | 'DISTRIBUTED_SAGA';
 
 
 
+
+// --- Module 10: Distributed Gossip, Anti-Entropy & SWIM Failure Detector Types ---
+export type SwimNodeState = 'ALIVE' | 'SUSPECT' | 'DEAD';
+
+export interface ClusterNode {
+  id: string;
+  name: string;
+  ip: string;
+  status: SwimNodeState;
+  incarnation: number;
+  gossipRumors: string[];
+  isProber: boolean;
+  isTarget: boolean;
+  isIndirectProxy: boolean;
+  packetLossPct: number;
+}
+
+export interface SwimMetrics {
+  activeNodes: number;
+  suspectNodes: number;
+  deadNodes: number;
+  networkMessagesSent: number;
+  falsePositivesAvoided: number;
+  disseminationRounds: number;
+}
+
+export interface SwimAuditEvent {
+  id: number;
+  time: string;
+  badge: string;
+  badgeClass: string;
+  message: string;
+}
 
 // --- Module 9: Distributed CRDT & Collaborative Replication Types ---
 export type CrdtArchitectureMode = 'PN_COUNTER' | 'OR_SET' | 'RGA_TEXT_SEQUENCE';
@@ -383,6 +417,214 @@ const INITIAL_RAFT_NODES: RaftNode[] = [
 ];
 
 export function DistributedSystemsSandbox() {
+  // --- Module 10: Gossip & SWIM State ---
+  const initialClusterNodes: ClusterNode[] = [
+    { id: 'N1', name: 'Node 1 (Local Leader)', ip: '10.0.0.1', status: 'ALIVE', incarnation: 0, gossipRumors: ['N1:ALIVE:inc0', 'N2:ALIVE:inc0', 'N3:ALIVE:inc0', 'N4:ALIVE:inc0', 'N5:ALIVE:inc0', 'N6:ALIVE:inc0'], isProber: false, isTarget: false, isIndirectProxy: false, packetLossPct: 0 },
+    { id: 'N2', name: 'Node 2 (Peer Worker)', ip: '10.0.0.2', status: 'ALIVE', incarnation: 0, gossipRumors: ['N2:ALIVE:inc0'], isProber: false, isTarget: false, isIndirectProxy: false, packetLossPct: 0 },
+    { id: 'N3', name: 'Node 3 (Flaky Edge Link)', ip: '10.0.0.3', status: 'ALIVE', incarnation: 0, gossipRumors: ['N3:ALIVE:inc0'], isProber: false, isTarget: false, isIndirectProxy: false, packetLossPct: 40 },
+    { id: 'N4', name: 'Node 4 (SWIM Proxy A)', ip: '10.0.0.4', status: 'ALIVE', incarnation: 0, gossipRumors: ['N4:ALIVE:inc0'], isProber: false, isTarget: false, isIndirectProxy: false, packetLossPct: 0 },
+    { id: 'N5', name: 'Node 5 (SWIM Proxy B)', ip: '10.0.0.5', status: 'ALIVE', incarnation: 0, gossipRumors: ['N5:ALIVE:inc0'], isProber: false, isTarget: false, isIndirectProxy: false, packetLossPct: 0 },
+    { id: 'N6', name: 'Node 6 (Crash Candidate)', ip: '10.0.0.6', status: 'ALIVE', incarnation: 0, gossipRumors: ['N6:ALIVE:inc0'], isProber: false, isTarget: false, isIndirectProxy: false, packetLossPct: 0 },
+  ];
+
+  const [clusterNodes, setClusterNodes] = useState<ClusterNode[]>(initialClusterNodes);
+  const [swimStep, setSwimStep] = useState<number>(0);
+  const [swimMetrics, setSwimMetrics] = useState<SwimMetrics>({
+    activeNodes: 6,
+    suspectNodes: 0,
+    deadNodes: 0,
+    networkMessagesSent: 12,
+    falsePositivesAvoided: 0,
+    disseminationRounds: 1,
+  });
+
+  const [swimAuditLog, setSwimAuditLog] = useState<SwimAuditEvent[]>([
+    {
+      id: 1,
+      time: '14:50:00',
+      badge: 'SWIM_BOOT',
+      badgeClass: 'bg-slate-100 text-slate-800 border-slate-300 dark:bg-zinc-800 dark:text-zinc-200',
+      message: 'SWIM protocol initialized across 6-node mesh. Period T = 1000ms, k = 2 indirect proxies.',
+    },
+  ]);
+
+  const handleSwimStep1DirectPing = () => {
+    setSwimStep(1);
+    setClusterNodes((prev) =>
+      prev.map((n) => {
+        if (n.id === 'N1') return { ...n, isProber: true, isTarget: false, isIndirectProxy: false };
+        if (n.id === 'N2') return { ...n, isProber: false, isTarget: true, isIndirectProxy: false };
+        return { ...n, isProber: false, isTarget: false, isIndirectProxy: false };
+      })
+    );
+    setSwimMetrics((prev) => ({
+      ...prev,
+      networkMessagesSent: prev.networkMessagesSent + 2, // ping + ack
+    }));
+    setSwimAuditLog((prev) => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        badge: 'DIRECT_PING_ACK',
+        badgeClass: 'bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-950/50 dark:text-emerald-300',
+        message: 'Direct Probe: Node 1 pinged Node 2. Direct ack received in 18ms with piggybacked gossip rumors. Node 2 confirmed ALIVE.',
+      },
+      ...prev.slice(0, 8),
+    ]);
+  };
+
+  const handleSwimStep2DirectDrop = () => {
+    setSwimStep(2);
+    setClusterNodes((prev) =>
+      prev.map((n) => {
+        if (n.id === 'N1') return { ...n, isProber: true, isTarget: false, isIndirectProxy: false };
+        if (n.id === 'N3') return { ...n, isProber: false, isTarget: true, isIndirectProxy: false };
+        return { ...n, isProber: false, isTarget: false, isIndirectProxy: false };
+      })
+    );
+    setSwimMetrics((prev) => ({
+      ...prev,
+      networkMessagesSent: prev.networkMessagesSent + 1, // dropped ping
+    }));
+    setSwimAuditLog((prev) => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        badge: 'PROBE_TIMEOUT',
+        badgeClass: 'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-950/50 dark:text-amber-300',
+        message: 'Direct Probe Timeout: Node 1 pinged Node 3 (flaky link), but ack timed out after 200ms. Node 1 refrains from declaring Node 3 dead; invoking indirect ping-req.',
+      },
+      ...prev.slice(0, 8),
+    ]);
+  };
+
+  const handleSwimStep3IndirectPingReq = () => {
+    setSwimStep(3);
+    setClusterNodes((prev) =>
+      prev.map((n) => {
+        if (n.id === 'N1') return { ...n, isProber: true, isTarget: false, isIndirectProxy: false };
+        if (n.id === 'N3') return { ...n, isProber: false, isTarget: true, isIndirectProxy: false, status: 'ALIVE' };
+        if (n.id === 'N4' || n.id === 'N5') return { ...n, isProber: false, isTarget: false, isIndirectProxy: true };
+        return { ...n, isProber: false, isTarget: false, isIndirectProxy: false };
+      })
+    );
+    setSwimMetrics((prev) => ({
+      ...prev,
+      networkMessagesSent: prev.networkMessagesSent + 6, // 2 ping-req + 2 pings + 2 acks
+      falsePositivesAvoided: prev.falsePositivesAvoided + 1,
+    }));
+    setSwimAuditLog((prev) => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        badge: 'PING_REQ_SUCCESS',
+        badgeClass: 'bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-950/50 dark:text-emerald-300',
+        message: 'Indirect Probe (ping-req): Node 1 requested Node 4 & Node 5 to probe Node 3. Node 4 successfully reached Node 3 and forwarded ack back to Node 1! False positive prevented.',
+      },
+      ...prev.slice(0, 8),
+    ]);
+  };
+
+  const handleSwimStep4CrashSuspicion = () => {
+    setSwimStep(4);
+    setClusterNodes((prev) =>
+      prev.map((n) => {
+        if (n.id === 'N6') return { ...n, status: 'SUSPECT', isTarget: true };
+        if (n.id === 'N1') return { ...n, isProber: true };
+        return { ...n, isProber: false, isTarget: false, isIndirectProxy: false };
+      })
+    );
+    setSwimMetrics((prev) => ({
+      ...prev,
+      suspectNodes: 1,
+      networkMessagesSent: prev.networkMessagesSent + 5,
+    }));
+    setSwimAuditLog((prev) => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        badge: 'NODE_SUSPECT',
+        badgeClass: 'bg-rose-100 text-rose-900 border-rose-300 dark:bg-rose-950/50 dark:text-rose-300',
+        message: 'Failure Detected: Node 6 unresponsive to direct and indirect probes. Transitioned to SUSPECT with incarnation 0. Rumor infected into gossip queue.',
+      },
+      ...prev.slice(0, 8),
+    ]);
+  };
+
+  const handleSwimStep5DeclareDead = () => {
+    setSwimStep(5);
+    setClusterNodes((prev) =>
+      prev.map((n) => {
+        if (n.id === 'N6') return { ...n, status: 'DEAD', isTarget: false };
+        return n;
+      })
+    );
+    setSwimMetrics((prev) => ({
+      ...prev,
+      activeNodes: 5,
+      suspectNodes: 0,
+      deadNodes: 1,
+    }));
+    setSwimAuditLog((prev) => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        badge: 'DECLARED_DEAD',
+        badgeClass: 'bg-neutral-200 text-neutral-900 border-neutral-400 dark:bg-zinc-800 dark:text-zinc-200',
+        message: 'Suspicion Timeout Expired: T_suspect (3000ms) elapsed without refutation from Node 6. Node 6 declared DEAD and removed from cluster routing table.',
+      },
+      ...prev.slice(0, 8),
+    ]);
+  };
+
+  const handleSwimStep6GossipDisseminate = () => {
+    setSwimStep(6);
+    setClusterNodes((prev) =>
+      prev.map((n) => ({
+        ...n,
+        gossipRumors: ['N6:DEAD:inc0', 'N1:ALIVE:inc0', 'N2:ALIVE:inc0', 'N3:ALIVE:inc0', 'N4:ALIVE:inc0', 'N5:ALIVE:inc0'],
+      }))
+    );
+    setSwimMetrics((prev) => ({
+      ...prev,
+      disseminationRounds: prev.disseminationRounds + 1,
+      networkMessagesSent: prev.networkMessagesSent + 8,
+    }));
+    setSwimAuditLog((prev) => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        badge: 'GOSSIP_CONVERGED',
+        badgeClass: 'bg-purple-100 text-purple-900 border-purple-300 dark:bg-purple-950/50 dark:text-purple-300',
+        message: 'Epidemic Gossip Convergence: Rumor {Node 6: DEAD} infected 100% of cluster in O(log N) rounds with zero broadcast storms.',
+      },
+      ...prev.slice(0, 8),
+    ]);
+  };
+
+  const handleSwimReset = () => {
+    setSwimStep(0);
+    setClusterNodes(initialClusterNodes);
+    setSwimMetrics({
+      activeNodes: 6,
+      suspectNodes: 0,
+      deadNodes: 0,
+      networkMessagesSent: 12,
+      falsePositivesAvoided: 0,
+      disseminationRounds: 1,
+    });
+    setSwimAuditLog((prev) => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        badge: 'RESET',
+        badgeClass: 'bg-slate-100 text-slate-800 border-slate-300 dark:bg-zinc-800 dark:text-zinc-200',
+        message: 'SWIM cluster membership, incarnation counters, and gossip queues reset to initial state.',
+      },
+      ...prev.slice(0, 8),
+    ]);
+  };
+
   const [activeTab, setActiveTab] = useState<DistributedMode>('CONSISTENT_HASHING');
 
   // --- Vector Clocks & Causality State ---
@@ -2593,6 +2835,17 @@ export function DistributedSystemsSandbox() {
             }`}
           >
             Paxos &amp; Multi-Paxos
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('GOSSIP_SWIM_MEMBERSHIP')}
+            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+              activeTab === 'GOSSIP_SWIM_MEMBERSHIP'
+                ? 'bg-primary-700 text-white shadow-xs'
+                : 'text-text-muted hover:text-text'
+            }`}
+          >
+            Gossip &amp; SWIM Protocol
           </button>
           <button
             type="button"
@@ -6041,6 +6294,322 @@ export function DistributedSystemsSandbox() {
           </div>
         </div>
       )}
+
+      {/* MODULE 10: DISTRIBUTED GOSSIP, ANTI-ENTROPY & SWIM FAILURE DETECTOR */}
+      {activeTab === 'GOSSIP_SWIM_MEMBERSHIP' && (
+        <div className="p-6 space-y-6">
+          {/* Header & Metric Summary */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-canvas border border-border p-5 rounded-xl">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-accent-700">
+                  Decentralized Consensus &amp; Membership
+                </span>
+                <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-primary-100 text-primary-900 border border-primary-300 font-bold">
+                  SWIM Failure Detector (DSN 2002)
+                </span>
+              </div>
+              <h3 className="text-base font-bold text-text">
+                Distributed Gossip Protocol, Anti-Entropy &amp; SWIM Failure Detector Studio
+              </h3>
+              <p className="text-xs text-text-muted max-w-2xl leading-relaxed">
+                Full-mesh heartbeats scale as O(N&sup2;), choking network capacity. The SWIM protocol decouples randomized direct probes from indirect ping-req proxies, eliminating false positives caused by edge link flakiness while disseminating cluster state in O(log N) epidemic rounds.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-3 bg-surface border border-border px-3 py-1.5 rounded-lg text-xs font-mono">
+                <span>Active: <strong className="text-emerald-700">{swimMetrics.activeNodes}</strong></span>
+                <span>Suspect: <strong className="text-amber-700">{swimMetrics.suspectNodes}</strong></span>
+                <span>Dead: <strong className="text-rose-700">{swimMetrics.deadNodes}</strong></span>
+                <span>Saved False Pos: <strong className="text-primary-800">{swimMetrics.falsePositivesAvoided}</strong></span>
+              </div>
+
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleSwimReset}
+                className="text-xs font-semibold"
+              >
+                ↺ Reset Cluster Lab
+              </Button>
+            </div>
+          </div>
+
+          {/* Stepper Controls Bar */}
+          <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-text uppercase tracking-wider">
+                SWIM Failure Detection &amp; Gossip Stepper:
+              </span>
+              <span className="text-xs font-mono text-text-muted">
+                Step: <strong>{swimStep === 0 ? 'READY' : `Step ${swimStep} of 6`}</strong>
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2">
+              <button
+                type="button"
+                onClick={handleSwimStep1DirectPing}
+                className={`p-2.5 rounded-lg border text-left cursor-pointer transition-all ${
+                  swimStep === 1 ? 'bg-primary-50 border-primary-400 text-primary-950 font-bold shadow-xs' : 'bg-canvas border-border text-text hover:border-border-hover'
+                }`}
+              >
+                <div className="text-xs">1. Direct Ping</div>
+                <div className="text-[10px] text-text-muted mt-0.5">N1 &rarr; N2 Direct Ack</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSwimStep2DirectDrop}
+                className={`p-2.5 rounded-lg border text-left cursor-pointer transition-all ${
+                  swimStep === 2 ? 'bg-primary-50 border-primary-400 text-primary-950 font-bold shadow-xs' : 'bg-canvas border-border text-text hover:border-border-hover'
+                }`}
+              >
+                <div className="text-xs">2. Packet Loss</div>
+                <div className="text-[10px] text-text-muted mt-0.5">N1 &rarr; N3 Direct Timeout</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSwimStep3IndirectPingReq}
+                className={`p-2.5 rounded-lg border text-left cursor-pointer transition-all ${
+                  swimStep === 3 ? 'bg-primary-50 border-primary-400 text-primary-950 font-bold shadow-xs' : 'bg-canvas border-border text-text hover:border-border-hover'
+                }`}
+              >
+                <div className="text-xs">3. Indirect ping-req</div>
+                <div className="text-[10px] text-text-muted mt-0.5">N4/N5 Proxy Probe</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSwimStep4CrashSuspicion}
+                className={`p-2.5 rounded-lg border text-left cursor-pointer transition-all ${
+                  swimStep === 4 ? 'bg-primary-50 border-primary-400 text-primary-950 font-bold shadow-xs' : 'bg-canvas border-border text-text hover:border-border-hover'
+                }`}
+              >
+                <div className="text-xs">4. Suspicion State</div>
+                <div className="text-[10px] text-text-muted mt-0.5">N6 Transition to SUSPECT</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSwimStep5DeclareDead}
+                className={`p-2.5 rounded-lg border text-left cursor-pointer transition-all ${
+                  swimStep === 5 ? 'bg-primary-50 border-primary-400 text-primary-950 font-bold shadow-xs' : 'bg-canvas border-border text-text hover:border-border-hover'
+                }`}
+              >
+                <div className="text-xs">5. Declare DEAD</div>
+                <div className="text-[10px] text-text-muted mt-0.5">T_suspect Timeout Expired</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSwimStep6GossipDisseminate}
+                className={`p-2.5 rounded-lg border text-left cursor-pointer transition-all ${
+                  swimStep === 6 ? 'bg-primary-50 border-primary-400 text-primary-950 font-bold shadow-xs' : 'bg-canvas border-border text-text hover:border-border-hover'
+                }`}
+              >
+                <div className="text-xs">6. Epidemic Gossip</div>
+                <div className="text-[10px] text-text-muted mt-0.5">O(log N) Rumor Dissemination</div>
+              </button>
+            </div>
+          </div>
+
+          {/* Cluster Node Mesh Cards */}
+          <div className="bg-canvas border border-border rounded-xl p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-primary-800 uppercase tracking-wider">
+                SWIM Protocol Node Mesh Topology (N = 6 Nodes)
+              </span>
+              <span className="text-[11px] font-mono text-text-muted">
+                Messages: {swimMetrics.networkMessagesSent} Sent | Dissemination Round: {swimMetrics.disseminationRounds}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {clusterNodes.map((node) => {
+                let badgeClass = 'bg-emerald-100 text-emerald-900 border-emerald-300';
+                if (node.status === 'SUSPECT') badgeClass = 'bg-amber-100 text-amber-900 border-amber-300 animate-pulse';
+                if (node.status === 'DEAD') badgeClass = 'bg-rose-100 text-rose-900 border-rose-300 line-through';
+
+                return (
+                  <div
+                    key={node.id}
+                    className={`rounded-xl border p-4 space-y-3 transition-all ${
+                      node.isTarget
+                        ? 'border-amber-400 bg-amber-50/50 shadow-xs'
+                        : node.isIndirectProxy
+                        ? 'border-indigo-400 bg-indigo-50/50 shadow-xs'
+                        : node.isProber
+                        ? 'border-primary-400 bg-primary-50/50 shadow-xs'
+                        : 'bg-surface border-border'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-xs font-bold text-text flex items-center gap-1.5">
+                          <span>{node.name}</span>
+                          {node.isProber && <span className="text-[10px] bg-primary-700 text-white px-1.5 py-0.2 rounded font-mono">PROBER</span>}
+                          {node.isTarget && <span className="text-[10px] bg-amber-700 text-white px-1.5 py-0.2 rounded font-mono">TARGET</span>}
+                          {node.isIndirectProxy && <span className="text-[10px] bg-indigo-700 text-white px-1.5 py-0.2 rounded font-mono">PROXY</span>}
+                        </div>
+                        <div className="text-[11px] font-mono text-text-muted">{node.ip}</div>
+                      </div>
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded border ${badgeClass}`}>
+                        {node.status}
+                      </span>
+                    </div>
+
+                    <div className="text-xs font-mono space-y-1 bg-canvas p-2.5 rounded-lg border border-border">
+                      <div className="flex items-center justify-between">
+                        <span className="text-text-muted">Incarnation:</span>
+                        <span className="font-bold text-primary-800">#{node.incarnation}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-text-muted">Edge Packet Loss:</span>
+                        <span className={`font-bold ${node.packetLossPct > 0 ? 'text-amber-700' : 'text-emerald-700'}`}>
+                          {node.packetLossPct}%
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">
+                        Infected Gossip Rumors:
+                      </span>
+                      <div className="flex flex-wrap gap-1">
+                        {node.gossipRumors.slice(0, 3).map((rumor, rIdx) => (
+                          <span
+                            key={rIdx}
+                            className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-surface border border-border text-text truncate max-w-[160px]"
+                          >
+                            {rumor}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Quantitative Protocol Comparison Table */}
+          <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+            <div className="flex items-center justify-between border-b border-border pb-2">
+              <span className="text-xs font-bold text-text uppercase tracking-wider">
+                Cluster Membership Protocol Scaling: Full-Mesh Heartbeats vs SWIM Gossip
+              </span>
+              <span className="text-xs font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded">
+                O(1) Per-Node Network Overhead
+              </span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs text-left">
+                <thead>
+                  <tr className="border-b border-border text-text-muted">
+                    <th className="py-1.5 pr-4 font-semibold">Scaling Characteristic</th>
+                    <th className="py-1.5 px-4 font-semibold">Full-Mesh Heartbeats (Naive)</th>
+                    <th className="py-1.5 px-4 font-semibold">SWIM Protocol (Gupta et al.)</th>
+                    <th className="py-1.5 pl-4 font-semibold text-right">Advantage</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border font-mono text-[11px]">
+                  <tr>
+                    <td className="py-2 pr-4 font-sans font-medium text-text">Message Complexity per Period</td>
+                    <td className="py-2 px-4 text-rose-700">O(N&sup2;) quadratic broadcast</td>
+                    <td className="py-2 px-4 text-emerald-700 font-bold">O(N) total (O(1) per node)</td>
+                    <td className="py-2 pl-4 text-right text-emerald-700 font-bold">Linear Scale to 10k Nodes</td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 pr-4 font-sans font-medium text-text">Edge Flakiness Resilience</td>
+                    <td className="py-2 px-4 text-amber-700">Poor (False death alerts on loss)</td>
+                    <td className="py-2 px-4 text-emerald-700 font-bold">High (Indirect ping-req via k proxies)</td>
+                    <td className="py-2 pl-4 text-right text-emerald-700 font-bold">Zero False Partitions</td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 pr-4 font-sans font-medium text-text">Dissemination Speed</td>
+                    <td className="py-2 px-4 text-text-muted">O(1) Broadcast (Network bottleneck)</td>
+                    <td className="py-2 px-4 text-emerald-700 font-bold">O(log N) Epidemic infection</td>
+                    <td className="py-2 pl-4 text-right text-emerald-700 font-bold">Fast &amp; Bounded Traffic</td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 pr-4 font-sans font-medium text-text">Transient Stall Handling</td>
+                    <td className="py-2 px-4 text-rose-700">Nodes immediately evicted</td>
+                    <td className="py-2 px-4 text-emerald-700 font-bold">Suspicion timer + Incarnation refutation</td>
+                    <td className="py-2 pl-4 text-right text-emerald-700 font-bold">Survives GC Pauses</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Real-Time Audit Log Stream */}
+          <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+            <h4 className="font-bold text-sm text-text">
+              Real-Time SWIM Protocol &amp; Gossip Dissemination Audit Stream
+            </h4>
+            <div className="space-y-1.5 max-h-48 overflow-y-auto font-mono text-xs">
+              {swimAuditLog.map((log) => (
+                <div
+                  key={log.id}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 p-2 rounded bg-canvas border border-border"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-text-muted">{log.time}</span>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${log.badgeClass}`}>
+                      {log.badge}
+                    </span>
+                    <span className="text-text">{log.message}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 4 Socratic Invariant Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                1. Decoupled Architecture
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                SWIM decouples failure detection from state dissemination. Random point-to-point probes detect failures with O(1) messages per node, while epidemic gossip piggybacks on probe acks.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                2. Indirect ping-req Proxies
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                Direct ping drops can occur due to single-edge link congestion. Asking k random peers to probe the target via independent network routes suppresses false positive failure declarations.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                3. Monotonic Incarnation
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                A suspected node can refute false death rumors by broadcasting a higher incarnation number. Since inc_new &gt; inc_old, all peers immediately accept the refutation and restore ALIVE state.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                4. Epidemic Gossip Convergence
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                Rumors spread like biological infections. Each node gossips rumors to random peers, achieving guaranteed cluster-wide convergence in O(log N) periods without broadcast storms.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
 
     </div>
   );

@@ -490,4 +490,58 @@ describe('DistributedSystemsSandbox', () => {
 
     expect(screen.getAllByText(/"SYS"/i).length).toBe(3);
   });
+
+  it('switches to Gossip & SWIM Protocol and tests direct ping, timeout drop, indirect ping-req proxy, suspicion, and gossip convergence', () => {
+    render(<DistributedSystemsSandbox />);
+
+    // Switch to Gossip & SWIM Protocol subtab
+    const swimTabBtn = screen.getByRole('button', { name: /Gossip & SWIM Protocol/i });
+    fireEvent.click(swimTabBtn);
+
+    // Verify Title & Initial Cluster Nodes
+    expect(screen.getByText(/Distributed Gossip Protocol, Anti-Entropy & SWIM Failure Detector Studio/i)).toBeInTheDocument();
+    expect(screen.getByText(/Node 1 \(Local Leader\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/Node 2 \(Peer Worker\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/Node 3 \(Flaky Edge Link\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/Node 6 \(Crash Candidate\)/i)).toBeInTheDocument();
+
+    const step1Btn = screen.getByRole('button', { name: /1\. Direct Ping/i });
+    const step2Btn = screen.getByRole('button', { name: /2\. Packet Loss/i });
+    const step3Btn = screen.getByRole('button', { name: /3\. Indirect ping-req/i });
+    const step4Btn = screen.getByRole('button', { name: /4\. Suspicion State/i });
+    const step5Btn = screen.getByRole('button', { name: /5\. Declare DEAD/i });
+    const step6Btn = screen.getByRole('button', { name: /6\. Epidemic Gossip/i });
+    const resetBtn = screen.getByRole('button', { name: /Reset Cluster Lab/i });
+
+    // 1. Step 1: Direct Ping (N1 -> N2)
+    fireEvent.click(step1Btn);
+    expect(screen.getAllByText(/DIRECT_PING_ACK/i).length).toBeGreaterThanOrEqual(1);
+
+    // 2. Step 2: Direct Drop (N1 -> N3)
+    fireEvent.click(step2Btn);
+    expect(screen.getAllByText(/PROBE_TIMEOUT/i).length).toBeGreaterThanOrEqual(1);
+
+    // 3. Step 3: Indirect ping-req (via N4, N5 -> N3)
+    fireEvent.click(step3Btn);
+    expect(screen.getAllByText(/PING_REQ_SUCCESS/i).length).toBeGreaterThanOrEqual(1);
+
+    // 4. Step 4: True failure -> Suspicion State (N6)
+    fireEvent.click(step4Btn);
+    expect(screen.getAllByText(/NODE_SUSPECT/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('SUSPECT').length).toBeGreaterThanOrEqual(1);
+
+    // 5. Step 5: Suspicion timer expires -> Declare DEAD
+    fireEvent.click(step5Btn);
+    expect(screen.getAllByText(/DECLARED_DEAD/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('DEAD').length).toBeGreaterThanOrEqual(1);
+
+    // 6. Step 6: Epidemic Gossip dissemination converges
+    fireEvent.click(step6Btn);
+    expect(screen.getAllByText(/GOSSIP_CONVERGED/i).length).toBeGreaterThanOrEqual(1);
+
+    // 7. Reset Cluster Lab
+    fireEvent.click(resetBtn);
+    expect(screen.queryByText('DEAD')).not.toBeInTheDocument();
+    expect(screen.queryByText('SUSPECT')).not.toBeInTheDocument();
+  });
 });
