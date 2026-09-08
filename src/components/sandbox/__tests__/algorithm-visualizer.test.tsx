@@ -620,4 +620,75 @@ describe('AlgorithmVisualizerSandbox', () => {
     expect(screen.getByText(/Search Relevance Architecture Proven/)).toBeInTheDocument();
     expect(nextBtn).toBeDisabled();
   });
+
+  it('renders Inverted Index Skip Lists & Elias-Fano Quasi-Succinct Compression stepping through skip leaps, intersections, and O(1) bit decoding', () => {
+    render(<AlgorithmVisualizerSandbox />);
+
+    // Select Inverted Index Skip Lists & Elias-Fano
+    const algoBtn = screen.getByRole('button', { name: /Inverted Index Skip Lists & Elias-Fano/i });
+    fireEvent.click(algoBtn);
+
+    // Verify Title
+    expect(
+      screen.getByRole('heading', {
+        name: 'Inverted Index Skip Lists & Elias-Fano Quasi-Succinct Compression Studio',
+        level: 3,
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText(/O\(L_B · √L_A\)/).length).toBeGreaterThanOrEqual(1);
+
+    // Verify Initial Step 1 of 8
+    expect(screen.getByText('Step 1 of 8')).toBeInTheDocument();
+    expect(screen.getByText('Initial State: Inverted Posting Lists & √L Skip Block Partitioning')).toBeInTheDocument();
+    expect(screen.getByText(/Skip Blocks Initialized: k = 4/i)).toBeInTheDocument();
+    expect(screen.getByText('Block 0')).toBeInTheDocument();
+    expect(screen.getByText('Block 1')).toBeInTheDocument();
+    expect(screen.getByText('Block 2')).toBeInTheDocument();
+    expect(screen.getByText('Block 3')).toBeInTheDocument();
+
+    const nextBtn = screen.getByRole('button', { name: /Next Step/i });
+
+    // Step 2: Skip Jump over Block 0
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 2 of 8')).toBeInTheDocument();
+    expect(screen.getByText(/Target DocID 42: Skip Pointer Leapfrog Bypasses Block 0/)).toBeInTheDocument();
+    expect(screen.getAllByText(/Skip Jump Executed: Block 0 Bypassed/i).length).toBeGreaterThanOrEqual(1);
+
+    // Step 3: Match DocID 42 in Block 1
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 3 of 8')).toBeInTheDocument();
+    expect(screen.getByText(/Candidate Block 1 Scan & Match: DocID 42 Found/)).toBeInTheDocument();
+    expect(screen.getAllByText(/Conjunctive Match: DocID 42/i).length).toBeGreaterThanOrEqual(1);
+
+    // Step 4: Skip Jump Boundary Match DocID 95
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 4 of 8')).toBeInTheDocument();
+    expect(screen.getByText(/Target DocID 95: Skip Pointer Direct Match at Block 2 Boundary/)).toBeInTheDocument();
+
+    // Step 5: Match 160 & Intersection Complete
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 5 of 8')).toBeInTheDocument();
+    expect(screen.getByText(/Target DocID 160: Intersection Complete/)).toBeInTheDocument();
+    expect(screen.getByText(/Full Intersection Complete: \[42, 95, 160\]/)).toBeInTheDocument();
+
+    // Step 6: Elias-Fano Compression Setup (L = 3 bits)
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 6 of 8')).toBeInTheDocument();
+    expect(screen.getByText(/Elias-Fano Quasi-Succinct Compression: Mathematical Partitioning/)).toBeInTheDocument();
+    expect(screen.getByText('Elias-Fano Partitioning: L = 3 Bits')).toBeInTheDocument();
+    expect(screen.getByText('83.8% Space Savings')).toBeInTheDocument();
+
+    // Step 7: Bit Vector Encoding (31 bits vs 192 bits)
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 7 of 8')).toBeInTheDocument();
+    expect(screen.getByText(/Elias-Fano Bit Vector Encoding: 31 Bits vs 192 Bits/)).toBeInTheDocument();
+    expect(screen.getByText('1010100101001')).toBeInTheDocument();
+
+    // Step 8: O(1) Random Access via Hardware POPCNT
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 8 of 8')).toBeInTheDocument();
+    expect(screen.getByText(/Constant-Time O\(1\) Random Access via Hardware POPCNT & select₁/)).toBeInTheDocument();
+    expect(screen.getByText(/O\(1\) Random Access: Reconstructed DocID 42/)).toBeInTheDocument();
+    expect(nextBtn).toBeDisabled();
+  });
 });

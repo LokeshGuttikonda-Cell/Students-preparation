@@ -19,7 +19,8 @@ export type VisualizerAlgorithm =
   | 'B_PLUS_TREE_RANGE_SCAN'
   | 'BLOOM_FILTER_HASHING'
   | 'TRIE_PREFIX_TREE'
-  | 'INVERTED_INDEX_BM25';
+  | 'INVERTED_INDEX_BM25'
+  | 'POSTING_SKIP_LIST_ELIAS_FANO';
 
 export interface InvertedIndexPosting {
   docId: string;
@@ -43,6 +44,56 @@ export interface BM25DocScore {
   termScores: Record<string, { tf: number; idf: number; tfNorm: number; score: number }>;
   totalScore: number;
   rank: number;
+}
+
+export interface SkipBlock {
+  blockIndex: number;
+  startIndex: number;
+  endIndex: number;
+  skipDocId: number;
+  docIds: number[];
+  isSkipped?: boolean;
+  isActive?: boolean;
+  isInspected?: boolean;
+}
+
+export interface EliasFanoEncoding {
+  universeU: number;
+  m: number;
+  lowBitsL: number;
+  elements: Array<{
+    docId: number;
+    highBits: number;
+    lowBits: number;
+    lowBitsBinary: string;
+    unaryGap: string;
+  }>;
+  lowBitsArray: string[];
+  highBitsVector: string;
+  totalBits: number;
+  rawBits: number;
+  compressionRatio: string;
+}
+
+export interface VisualizerPostingSkipState {
+  postingListA: number[];
+  postingListB: number[];
+  skipBlocksA: SkipBlock[];
+  activeStep?: {
+    ptrA: number;
+    ptrB: number;
+    targetDocId: number;
+    action: 'CHECK_SKIP' | 'SKIP_JUMP' | 'LINEAR_SCAN' | 'MATCH' | 'ADVANCE';
+    skipJumpCount: number;
+    linearScanCount: number;
+  };
+  matchedDocIds: number[];
+  eliasFano?: EliasFanoEncoding;
+  banner?: {
+    type: 'SKIP_JUMP' | 'MATCH' | 'ELIAS_FANO_ENCODED' | 'SUMMARY';
+    title: string;
+    description: string;
+  };
 }
 
 export interface VisualizerInvertedIndexState {
@@ -252,6 +303,7 @@ interface StepFrame {
   bloomFilterState?: VisualizerBloomFilterState;
   trieState?: VisualizerTrieState;
   invertedIndexState?: VisualizerInvertedIndexState;
+  postingSkipState?: VisualizerPostingSkipState;
   metrics?: Record<string, string | number | undefined>;
 }
 
@@ -2977,6 +3029,235 @@ const ALGORITHM_CONFIGS: AlgorithmConfig[] = [
     },
   },
 
+  {
+    id: 'POSTING_SKIP_LIST_ELIAS_FANO',
+    name: 'Inverted Index Skip Lists & Elias-Fano Quasi-Succinct Compression Studio',
+    category: 'Information Retrieval & Search Engine Storage Internals',
+    timeComplexity: 'Intersection: O(L_B · √L_A), Decode: O(1) select/rank',
+    spaceComplexity: 'Elias-Fano: m·(2 + ⌈log₂(U/m)⌉) bits (≤ 2 bits from Shannon lower bound)',
+    description:
+      'Search engine posting lists divide sorted document IDs into blocks of √L with skip pointers to bypass non-matching postings during multi-term intersections. Elias-Fano quasi-succinct encoding compresses sorted sequences into lower fixed-width bit arrays and high-bit unary vectors, enabling O(1) random access via CPU POPCNT with near-optimal information-theoretic compression.',
+    generateFrames: () => {
+      const listA = [3, 8, 14, 19, 27, 34, 42, 58, 65, 78, 89, 95, 112, 128, 145, 160];
+      const listB = [42, 95, 160];
+
+      const initialBlocks: SkipBlock[] = [
+        { blockIndex: 0, startIndex: 0, endIndex: 3, skipDocId: 19, docIds: [3, 8, 14, 19] },
+        { blockIndex: 1, startIndex: 4, endIndex: 7, skipDocId: 58, docIds: [27, 34, 42, 58] },
+        { blockIndex: 2, startIndex: 8, endIndex: 11, skipDocId: 95, docIds: [65, 78, 89, 95] },
+        { blockIndex: 3, startIndex: 12, endIndex: 15, skipDocId: 160, docIds: [112, 128, 145, 160] },
+      ];
+
+      const efSample: EliasFanoEncoding = {
+        universeU: 64,
+        m: 6,
+        lowBitsL: 3,
+        elements: [
+          { docId: 3, highBits: 0, lowBits: 3, lowBitsBinary: '011', unaryGap: '1' },
+          { docId: 11, highBits: 1, lowBits: 3, lowBitsBinary: '011', unaryGap: '01' },
+          { docId: 19, highBits: 2, lowBits: 3, lowBitsBinary: '011', unaryGap: '01' },
+          { docId: 34, highBits: 4, lowBits: 2, lowBitsBinary: '010', unaryGap: '001' },
+          { docId: 42, highBits: 5, lowBits: 2, lowBitsBinary: '010', unaryGap: '01' },
+          { docId: 58, highBits: 7, lowBits: 2, lowBitsBinary: '010', unaryGap: '001' },
+        ],
+        lowBitsArray: ['011', '011', '011', '010', '010', '010'],
+        highBitsVector: '1010100101001',
+        totalBits: 31,
+        rawBits: 192,
+        compressionRatio: '83.8% Space Savings',
+      };
+
+      return [
+        {
+          stepIndex: 0,
+          title: 'Initial State: Inverted Posting Lists & √L Skip Block Partitioning',
+          explanation:
+            'Sorted document ID list L_A (length N = 16) is partitioned into intervals of size k = ⌊√16⌋ = 4. Each block maintains a skip pointer storing the maximum docID in the block. Conjunctive search query intersects L_A with query term posting list L_B = [42, 95, 160].',
+          status: 'IN_PROGRESS',
+          postingSkipState: {
+            postingListA: listA,
+            postingListB: listB,
+            skipBlocksA: initialBlocks,
+            matchedDocIds: [],
+            banner: {
+              type: 'SUMMARY',
+              title: 'Skip Blocks Initialized: k = 4 (√16)',
+              description: '4 blocks created. Skip pointers link max docIDs: [19, 58, 95, 160].',
+            },
+          },
+          metrics: { 'List A Size': 16, 'List B Size': 3, 'Block Size (√L)': 4, 'Skip Blocks': 4 },
+        },
+        {
+          stepIndex: 1,
+          title: 'Target DocID 42: Skip Pointer Leapfrog Bypasses Block 0',
+          explanation:
+            'Searching for target docID 42 in L_A. The iterator evaluates Block 0 skip pointer: skipDocId = 19 < 42. Because all postings in Block 0 are ≤ 19, docID 42 cannot exist in Block 0! The iterator executes a skip jump in O(1) directly to Block 1, bypassing 4 linear element comparisons.',
+          status: 'SUCCESS',
+          postingSkipState: {
+            postingListA: listA,
+            postingListB: listB,
+            skipBlocksA: initialBlocks.map((b) => (b.blockIndex === 0 ? { ...b, isSkipped: true } : b.blockIndex === 1 ? { ...b, isActive: true } : b)),
+            activeStep: {
+              ptrA: 4,
+              ptrB: 0,
+              targetDocId: 42,
+              action: 'SKIP_JUMP',
+              skipJumpCount: 1,
+              linearScanCount: 1,
+            },
+            matchedDocIds: [],
+            banner: {
+              type: 'SKIP_JUMP',
+              title: '⚡ Skip Jump Executed: Block 0 Bypassed',
+              description: 'Evaluated skipDocId 19 < 42. Bypassed docIDs [3, 8, 14, 19] in O(1) time.',
+            },
+          },
+          metrics: { 'Target DocID': 42, 'Skip Pointer': 19, 'Skip Result': 'Jump to Block 1', 'Comparisons Saved': 3 },
+        },
+        {
+          stepIndex: 2,
+          title: 'Candidate Block 1 Scan & Match: DocID 42 Found',
+          explanation:
+            'In Block 1, the iterator inspects skip pointer: skipDocId = 58 ≥ 42. The target must reside within Block 1. Linear scan checks: 27 < 42, 34 < 42, 42 == 42 -> Match found! DocID 42 is added to the conjunctive result set. Pointer B advances to next target 95.',
+          status: 'SUCCESS',
+          postingSkipState: {
+            postingListA: listA,
+            postingListB: listB,
+            skipBlocksA: initialBlocks.map((b) => (b.blockIndex === 0 ? { ...b, isSkipped: true } : b.blockIndex === 1 ? { ...b, isInspected: true } : b)),
+            activeStep: {
+              ptrA: 6,
+              ptrB: 1,
+              targetDocId: 42,
+              action: 'MATCH',
+              skipJumpCount: 1,
+              linearScanCount: 4,
+            },
+            matchedDocIds: [42],
+            banner: {
+              type: 'MATCH',
+              title: '✓ Conjunctive Match: DocID 42',
+              description: 'Scanned Block 1: matched docID 42 in 3 comparisons instead of 7.',
+            },
+          },
+          metrics: { 'Matched DocID': 42, 'Next Target': 95, 'Cumulative Matches': 1, 'Search Work': '4 steps total' },
+        },
+        {
+          stepIndex: 3,
+          title: 'Target DocID 95: Skip Pointer Direct Match at Block 2 Boundary',
+          explanation:
+            'Next target docID is 95. Advancing from Block 1, iterator inspects Block 2 skip pointer: skipDocId = 95 ≥ 95. Because the skip pointer exactly equals target 95, the iterator lands directly on the boundary element without scanning [65, 78, 89]! DocID 95 is emitted.',
+          status: 'SUCCESS',
+          postingSkipState: {
+            postingListA: listA,
+            postingListB: listB,
+            skipBlocksA: initialBlocks.map((b) => (b.blockIndex < 2 ? { ...b, isSkipped: true } : b.blockIndex === 2 ? { ...b, isInspected: true } : b)),
+            activeStep: {
+              ptrA: 11,
+              ptrB: 2,
+              targetDocId: 95,
+              action: 'MATCH',
+              skipJumpCount: 2,
+              linearScanCount: 5,
+            },
+            matchedDocIds: [42, 95],
+            banner: {
+              type: 'MATCH',
+              title: '✓ Boundary Match: DocID 95',
+              description: 'Skip pointer 95 directly matched target! Bypassed internal postings [65, 78, 89].',
+            },
+          },
+          metrics: { 'Matched DocID': 95, 'Next Target': 160, 'Cumulative Matches': 2, 'Comparisons Saved': 6 },
+        },
+        {
+          stepIndex: 4,
+          title: 'Target DocID 160: Intersection Complete (60% Comparisons Saved)',
+          explanation:
+            'Final target docID 160. Iterator checks Block 3 skip pointer: skipDocId = 160 ≥ 160 -> Direct match at Block 3 boundary! Conjunctive query evaluation complete. Matches: [42, 95, 160]. Total comparisons: 6 steps vs 16 steps in raw linear traversal (62.5% reduction).',
+          status: 'COMPLETE',
+          postingSkipState: {
+            postingListA: listA,
+            postingListB: listB,
+            skipBlocksA: initialBlocks.map((b) => ({ ...b, isInspected: true })),
+            activeStep: {
+              ptrA: 15,
+              ptrB: 3,
+              targetDocId: 160,
+              action: 'MATCH',
+              skipJumpCount: 3,
+              linearScanCount: 6,
+            },
+            matchedDocIds: [42, 95, 160],
+            banner: {
+              type: 'SUMMARY',
+              title: '✓ Full Intersection Complete: [42, 95, 160]',
+              description: '6 total comparisons vs 16 linear scans. Skip lists achieved 62.5% traversal savings.',
+            },
+          },
+          metrics: { 'Final Match Set': '[42, 95, 160]', 'Total Comparisons': 6, 'Linear Traversal': 16, 'Work Reduction': '62.5%' },
+        },
+        {
+          stepIndex: 5,
+          title: 'Elias-Fano Quasi-Succinct Compression: Mathematical Partitioning',
+          explanation:
+            'Production search engines cannot store raw 32-bit integers. Elias-Fano encoding (1974) represents m = 6 sorted integers bounded by universe U = 64: [3, 11, 19, 34, 42, 58]. Lower bit width L = ⌊log₂(U / m)⌋ = ⌊log₂(64 / 6)⌋ = 3 bits. Each docID is split into low 3 bits (x & 7) and high quotient (x >> 3).',
+          status: 'SUCCESS',
+          postingSkipState: {
+            postingListA: listA,
+            postingListB: listB,
+            skipBlocksA: initialBlocks,
+            matchedDocIds: [42, 95, 160],
+            eliasFano: efSample,
+            banner: {
+              type: 'ELIAS_FANO_ENCODED',
+              title: 'Elias-Fano Partitioning: L = 3 Bits',
+              description: 'Universe U = 64, m = 6 integers. Lower bits L = ⌊log₂(64/6)⌋ = 3 bits per integer.',
+            },
+          },
+          metrics: { 'Universe (U)': 64, 'Elements (m)': 6, 'Lower Bits (L)': 3, 'Theoretical Bound': 'Near-Shannon Optimal' },
+        },
+        {
+          stepIndex: 6,
+          title: 'Elias-Fano Bit Vector Encoding: 31 Bits vs 192 Bits (83.8% Savings)',
+          explanation:
+            'Lower bits stored in fixed 3-bit array: [011, 011, 011, 010, 010, 010] (18 bits total). High quotients [0, 1, 2, 4, 5, 7] stored via unary differences: write (h_i - h_{i-1}) zeros followed by a 1. High bit vector: "1 01 01 001 01 001" (13 bits). Total size: 18 + 13 = 31 bits vs 192 bits raw (83.8% compression).',
+          status: 'SUCCESS',
+          postingSkipState: {
+            postingListA: listA,
+            postingListB: listB,
+            skipBlocksA: initialBlocks,
+            matchedDocIds: [42, 95, 160],
+            eliasFano: efSample,
+            banner: {
+              type: 'ELIAS_FANO_ENCODED',
+              title: '✓ Quasi-Succinct Compression: 31 Bits Total',
+              description: '18 bits lower array + 13 bits unary vector. Compresses within 2 bits of Shannon lower bound.',
+            },
+          },
+          metrics: { 'Raw Size': '192 bits (6×32b)', 'Compressed Size': '31 bits', 'Space Savings': '83.8%', 'Overhead': '0 bytes metadata' },
+        },
+        {
+          stepIndex: 7,
+          title: 'Constant-Time O(1) Random Access via Hardware POPCNT & select₁',
+          explanation:
+            'To read element index 4 (docID 42) without decompressing: 1. Read 3 bits at offset 4 × 3 = 12 in low bit array -> 010₂ = 2. 2. Locate 4th set bit in high vector using select₁(H, 4) via hardware POPCNT. Count preceding zeros -> high quotient = 5. Reconstruct: (5 << 3) + 2 = 40 + 2 = 42! O(1) random access proven.',
+          status: 'COMPLETE',
+          postingSkipState: {
+            postingListA: listA,
+            postingListB: listB,
+            skipBlocksA: initialBlocks,
+            matchedDocIds: [42, 95, 160],
+            eliasFano: efSample,
+            banner: {
+              type: 'SUMMARY',
+              title: '✓ O(1) Random Access: Reconstructed DocID 42',
+              description: 'select₁(H, 4) yields high=5, low=2. (5 << 3) + 2 = 42 in O(1) hardware instructions.',
+            },
+          },
+          metrics: { 'Random Access': 'O(1) CPU select', 'Decode Instructions': 'POPCNT + bitshift', 'Shannon Proximity': '≤ 2 bits/elem', 'Invariants': 'Proven' },
+        },
+      ];
+    },
+  },
 ];
 
 export function AlgorithmVisualizerSandbox() {
@@ -4886,6 +5167,258 @@ export function AlgorithmVisualizerSandbox() {
                 </span>
                 <p className="text-[11px] text-text-muted leading-relaxed">
                   Lucene posting lists contain skip pointers spaced at √L, turning linear scans into O(√L) fast logarithmic seeks.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* SUB-MODULE: POSTING SKIP LISTS & ELIAS-FANO QUASI-SUCCINCT COMPRESSION */}
+        {currentFrame.postingSkipState && (
+          <div className="space-y-4">
+            {/* Active Action Banner */}
+            {currentFrame.postingSkipState.banner && (
+              <div
+                className={`p-4 rounded-xl border flex items-start gap-3 ${
+                  currentFrame.postingSkipState.banner.type === 'MATCH'
+                    ? 'bg-emerald-50/70 border-emerald-300 text-emerald-950'
+                    : currentFrame.postingSkipState.banner.type === 'SKIP_JUMP'
+                    ? 'bg-indigo-50/70 border-indigo-300 text-indigo-950'
+                    : currentFrame.postingSkipState.banner.type === 'ELIAS_FANO_ENCODED'
+                    ? 'bg-purple-50/70 border-purple-300 text-purple-950'
+                    : 'bg-canvas border-border text-text'
+                }`}
+              >
+                <div className="text-sm font-bold mt-0.5">
+                  {currentFrame.postingSkipState.banner.title}
+                </div>
+                <div className="text-xs text-text-muted flex-1 leading-relaxed">
+                  {currentFrame.postingSkipState.banner.description}
+                </div>
+              </div>
+            )}
+
+            {/* Visual Skip Blocks & Posting List A */}
+            <div className="bg-canvas border border-border rounded-xl p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-primary-800 uppercase tracking-wider">
+                  Posting List A: N = 16 Documents (Interval k = 4 Blocks)
+                </span>
+                <span className="text-[11px] font-mono text-text-muted">
+                  Skip Complexity: O(L_B · √L_A)
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {currentFrame.postingSkipState.skipBlocksA.map((block) => (
+                  <div
+                    key={block.blockIndex}
+                    className={`p-3 rounded-lg border text-xs space-y-2 transition-all ${
+                      block.isSkipped
+                        ? 'bg-slate-100/70 border-slate-300 opacity-60'
+                        : block.isInspected
+                        ? 'bg-emerald-50/80 border-emerald-400 ring-1 ring-emerald-400'
+                        : block.isActive
+                        ? 'bg-indigo-50/80 border-indigo-400 ring-1 ring-indigo-400'
+                        : 'bg-surface border-border'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between font-mono text-[11px]">
+                      <span className="font-bold text-text">Block {block.blockIndex}</span>
+                      <span className="px-1.5 py-0.5 rounded bg-slate-200 text-slate-800 font-bold text-[10px]">
+                        skip → {block.skipDocId}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1 flex-wrap font-mono">
+                      {block.docIds.map((docId) => {
+                        const isMatch = currentFrame.postingSkipState?.matchedDocIds.includes(docId);
+                        return (
+                          <span
+                            key={docId}
+                            className={`px-2 py-0.5 rounded border text-[11px] font-bold ${
+                              isMatch
+                                ? 'bg-emerald-200 text-emerald-950 border-emerald-400'
+                                : 'bg-canvas text-text border-border'
+                            }`}
+                          >
+                            {docId}
+                          </span>
+                        );
+                      })}
+                    </div>
+
+                    <div className="text-[10px] text-text-muted font-medium">
+                      {block.isSkipped
+                        ? '⚡ Bypassed in O(1)'
+                        : block.isInspected
+                        ? '✓ Target Found Inside'
+                        : block.isActive
+                        ? '→ Active Candidate Block'
+                        : 'Pending Evaluation'}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Posting List B & Conjunctive Matches */}
+            <div className="bg-surface border border-border rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <span className="text-xs font-bold text-text uppercase tracking-wider">
+                  Query Conjunct Posting List B:
+                </span>
+                <div className="flex items-center gap-2 font-mono text-xs">
+                  {currentFrame.postingSkipState.postingListB.map((docId) => (
+                    <span
+                      key={docId}
+                      className="px-2.5 py-1 rounded bg-indigo-50 text-indigo-900 border border-indigo-200 font-bold"
+                    >
+                      DocID {docId}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider">
+                  Conjunctive Matches Emitted:
+                </span>
+                <div className="flex items-center gap-1.5 font-mono text-xs">
+                  {currentFrame.postingSkipState.matchedDocIds.length === 0 ? (
+                    <span className="text-text-muted text-[11px]">No matches yet</span>
+                  ) : (
+                    currentFrame.postingSkipState.matchedDocIds.map((docId) => (
+                      <span
+                        key={docId}
+                        className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold"
+                      >
+                        ✓ {docId}
+                      </span>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Elias-Fano Compression Inspector (if active in frames 5-7) */}
+            {currentFrame.postingSkipState.eliasFano && (
+              <div className="bg-canvas border border-border rounded-xl p-5 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border pb-3">
+                  <div>
+                    <span className="text-xs font-bold uppercase tracking-wider text-purple-800">
+                      Quasi-Succinct Storage Encoding
+                    </span>
+                    <h4 className="font-bold text-sm text-text mt-0.5">
+                      Elias-Fano Bit Vector Representation (Peter Elias &amp; Robert Fano 1974)
+                    </h4>
+                  </div>
+                  <span className="text-xs font-mono font-bold px-2.5 py-1 rounded bg-purple-100 text-purple-900 border border-purple-200">
+                    {currentFrame.postingSkipState.eliasFano.compressionRatio}
+                  </span>
+                </div>
+
+                {/* Elements Breakdown Table */}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse font-mono">
+                    <thead>
+                      <tr className="border-b border-border text-text-muted text-[10px] uppercase">
+                        <th className="py-2 px-3">Index</th>
+                        <th className="py-2 px-3">DocID (x)</th>
+                        <th className="py-2 px-3">High Quotient (x &gt;&gt; 3)</th>
+                        <th className="py-2 px-3">Low Bits (x &amp; 7)</th>
+                        <th className="py-2 px-3">3-Bit Binary Array</th>
+                        <th className="py-2 px-3">Unary Gap Vector</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border text-xs">
+                      {currentFrame.postingSkipState.eliasFano.elements.map((el, idx) => (
+                        <tr key={idx} className="hover:bg-surface transition-colors">
+                          <td className="py-2 px-3 text-text-muted">[{idx}]</td>
+                          <td className="py-2 px-3 font-bold text-primary-700">{el.docId}</td>
+                          <td className="py-2 px-3 text-purple-800 font-bold">{el.highBits}</td>
+                          <td className="py-2 px-3 text-indigo-700">{el.lowBits}</td>
+                          <td className="py-2 px-3 text-text font-bold bg-indigo-50/40">{el.lowBitsBinary}</td>
+                          <td className="py-2 px-3 text-emerald-700 font-bold bg-emerald-50/40">{el.unaryGap}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Continuous Bit Vector Displays */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                  <div className="p-3.5 rounded-lg bg-surface border border-border space-y-2">
+                    <div className="flex justify-between text-xs font-semibold">
+                      <span className="text-text">Lower Bits Contiguous Array (18 bits):</span>
+                      <span className="font-mono text-indigo-700">m × L = 6 × 3 = 18b</span>
+                    </div>
+                    <div className="flex items-center gap-1 font-mono text-xs flex-wrap">
+                      {currentFrame.postingSkipState.eliasFano.lowBitsArray.map((bits, bIdx) => (
+                        <span
+                          key={bIdx}
+                          className="px-2 py-1 rounded bg-indigo-50 text-indigo-900 border border-indigo-200 font-bold"
+                        >
+                          {bits}
+                        </span>
+                      ))}
+                    </div>
+                    <p className="text-[11px] text-text-muted">
+                      Direct indexing: read bits at [i × 3 .. i × 3 + 2] in O(1) time.
+                    </p>
+                  </div>
+
+                  <div className="p-3.5 rounded-lg bg-surface border border-border space-y-2">
+                    <div className="flex justify-between text-xs font-semibold">
+                      <span className="text-text">High Bits Unary Vector (13 bits):</span>
+                      <span className="font-mono text-emerald-700">m + max(h) = 13b</span>
+                    </div>
+                    <div className="p-2 rounded bg-emerald-50 border border-emerald-200 font-mono text-xs font-bold text-emerald-950 tracking-widest break-all">
+                      {currentFrame.postingSkipState.eliasFano.highBitsVector}
+                    </div>
+                    <p className="text-[11px] text-text-muted">
+                      select₁(H, i) locates i-th set bit; count of preceding 0s yields high quotient in O(1) via CPU POPCNT.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 4 Socratic Invariant Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+              <div className="p-3.5 rounded-lg bg-surface border border-border space-y-1 text-xs">
+                <span className="font-bold text-text block text-[11px]">
+                  1. Optimal Interval (k = √L)
+                </span>
+                <p className="text-[11px] text-text-muted leading-relaxed">
+                  Spacing skip pointers at ⌊√L⌋ minimizes total comparisons: at most √L skip checks plus at most √L elements scanned inside the target block, yielding O(√L) time.
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded-lg bg-surface border border-border space-y-1 text-xs">
+                <span className="font-bold text-text block text-[11px]">
+                  2. Quasi-Succinct Storage
+                </span>
+                <p className="text-[11px] text-text-muted leading-relaxed">
+                  Elias-Fano encodes m sorted integers in at most m × (2 + ⌈log₂(U/m)⌉) bits, within 2 bits per element of the Shannon information-theoretic lower bound.
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded-lg bg-surface border border-border space-y-1 text-xs">
+                <span className="font-bold text-text block text-[11px]">
+                  3. O(1) Random Access via select₁
+                </span>
+                <p className="text-[11px] text-text-muted leading-relaxed">
+                  Unlike delta or variable-byte compression requiring full decompression from index 0, Elias-Fano enables direct O(1) random access using hardware POPCNT bit instructions.
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded-lg bg-surface border border-border space-y-1 text-xs">
+                <span className="font-bold text-text block text-[11px]">
+                  4. Search Engine Index Cores
+                </span>
+                <p className="text-[11px] text-text-muted leading-relaxed">
+                  Information retrieval platforms leverage Elias-Fano and skip lists across posting lists, allowing billion-document full-text queries to resolve in sub-millisecond latencies.
                 </p>
               </div>
             </div>
