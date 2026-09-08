@@ -298,4 +298,72 @@ describe('MemoryCacheInspectorSandbox', () => {
     fireEvent.click(resetBtn);
     expect(screen.getAllByText(/remaining TTL = 1.5s/i).length).toBeGreaterThanOrEqual(1);
   });
+
+  it('switches to B-Tree Concurrency & OLC and tests Lock Crabbing, OLC versioning, split contention, and optimistic restarts', () => {
+    render(<MemoryCacheInspectorSandbox />);
+
+    // Switch to B-Tree Concurrency & OLC subtab
+    const bTreeTab = screen.getByRole('button', { name: /B-Tree Concurrency & OLC/i });
+    fireEvent.click(bTreeTab);
+
+    // Initial steady state
+    expect(screen.getByText('B-Tree Storage Engine Concurrency: Pessimistic Lock Crabbing vs Optimistic Lock Coupling (OLC)')).toBeInTheDocument();
+    expect(screen.getByText('ROOT NODE')).toBeInTheDocument();
+    expect(screen.getByText('Internal I1')).toBeInTheDocument();
+    expect(screen.getByText('Internal I2')).toBeInTheDocument();
+    expect(screen.getByText('Leaf L1 [10-24]')).toBeInTheDocument();
+    expect(screen.getByText('Leaf L2 [25-49]')).toBeInTheDocument();
+
+    // Default strategy is OLC
+    expect(screen.getByRole('button', { name: 'Optimistic Coupling (OLC)' })).toHaveClass('bg-emerald-600');
+
+    // 1. Run Clean Reader Traversal (OLC)
+    const readBtn = screen.getByRole('button', { name: /Clean Read/i });
+    fireEvent.click(readBtn);
+
+    expect(screen.getAllByText('COMMITTED').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/Traversed Root.*zero locks/i)).toBeInTheDocument();
+    expect(screen.getAllByText('OLC_READ_LOCK_FREE').length).toBeGreaterThanOrEqual(1);
+
+    // 2. Run Writer Mutation (Insert 45) under OLC
+    const writeBtn = screen.getByRole('button', { name: /Writer Mutation/i });
+    fireEvent.click(writeBtn);
+
+    expect(screen.getByText('45')).toBeInTheDocument();
+    expect(screen.getAllByText('OLC_WRITE_VERSION_BUMP').length).toBeGreaterThanOrEqual(1);
+
+    // 3. Simulate Reader Collision & Optimistic Restart (OLC)
+    const collisionBtn = screen.getByRole('button', { name: /Simulate OLC Collision/i });
+    fireEvent.click(collisionBtn);
+
+    expect(screen.getByText('RESTARTED_COLLISION')).toBeInTheDocument();
+    expect(screen.getByText(/OPTIMISTIC RESTART: Reader observed v_start = 102/i)).toBeInTheDocument();
+    expect(screen.getAllByText('OPTIMISTIC_RESTART').length).toBeGreaterThanOrEqual(1);
+
+    // 4. Switch to Pessimistic Lock Crabbing
+    const crabbingBtn = screen.getByRole('button', { name: 'Pessimistic Crabbing' });
+    fireEvent.click(crabbingBtn);
+
+    expect(crabbingBtn).toHaveClass('bg-sky-700');
+
+    // 5. Simulate Node Split Hazard under Pessimistic Crabbing
+    const splitBtn = screen.getByRole('button', { name: /Node Split Hazard/i });
+    fireEvent.click(splitBtn);
+
+    expect(screen.getByText(/ROOT CONTENTION COLLAPSE/i)).toBeInTheDocument();
+    expect(screen.getByText('BLOCKED_LOCK')).toBeInTheDocument();
+    expect(screen.getAllByText('ROOT_X_LOCK_BLOCKING').length).toBeGreaterThanOrEqual(1);
+
+    // 6. Run Reader Traversal under Pessimistic Crabbing
+    fireEvent.click(readBtn);
+    expect(screen.getByText(/S-lock Root -> S-lock I1/i)).toBeInTheDocument();
+    expect(screen.getAllByText('S_LOCK_CRAB').length).toBeGreaterThanOrEqual(1);
+
+    // 7. Reset B-Tree
+    const resetBtn = screen.getByRole('button', { name: /Reset B-Tree/i });
+    fireEvent.click(resetBtn);
+
+    expect(screen.queryByText(/ROOT CONTENTION COLLAPSE/i)).not.toBeInTheDocument();
+    expect(screen.getAllByText('IDLE').length).toBe(2);
+  });
 });

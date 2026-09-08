@@ -9,7 +9,45 @@ export type InspectorMode =
   | 'HASH_TABLE'
   | 'LSM_TREE_SSTABLE'
   | 'ARIES_RECOVERY'
-  | 'CACHE_STAMPEDE_XFETCH';
+  | 'CACHE_STAMPEDE_XFETCH'
+  | 'BTREE_LOCK_CRABBING';
+
+
+// --- Module 7: B-Tree Concurrency & Optimistic Lock Coupling (OLC) Types ---
+export type BTreeConcurrencyMode = 'PESSIMISTIC_CRABBING' | 'OPTIMISTIC_LOCK_COUPLING';
+export type BTreeNodeLock = 'UNLOCKED' | 'S_LOCKED' | 'X_LOCKED';
+
+export interface BTreeNode {
+  id: string;
+  name: string;
+  level: 'ROOT' | 'INTERNAL' | 'LEAF';
+  keys: number[];
+  capacity: number;
+  childrenIds?: string[];
+  lockState: BTreeNodeLock;
+  lockedByThread?: string;
+  version: number;
+}
+
+export interface BTreeThread {
+  id: string;
+  name: string;
+  type: 'READER' | 'WRITER';
+  currentNodeId: string | null;
+  targetKey: number;
+  heldLocks: string[];
+  status: 'IDLE' | 'TRAVERSING' | 'VERIFYING' | 'COMMITTED' | 'RESTARTED_COLLISION' | 'BLOCKED_LOCK';
+  statusMessage: string;
+}
+
+export interface BTreeAuditEvent {
+  id: number;
+  time: string;
+  strategy: string;
+  badge: string;
+  badgeClass: string;
+  message: string;
+}
 
 export type CacheStampedeStrategy = 'NAIVE_TTL' | 'MUTEX_LOCK' | 'XFETCH_PROBABILISTIC';
 
@@ -1688,6 +1726,320 @@ export function MemoryCacheInspectorSandbox() {
 
   const hashState = computeHashTable();
 
+
+  // --- Module 7: B-Tree Concurrency State ---
+  const [bTreeStrategy, setBTreeStrategy] = useState<BTreeConcurrencyMode>('OPTIMISTIC_LOCK_COUPLING');
+
+  const initialBTreeNodes: Record<string, BTreeNode> = {
+    root: { id: 'root', name: 'Root Node', level: 'ROOT', keys: [50], capacity: 3, childrenIds: ['int-1', 'int-2'], lockState: 'UNLOCKED', version: 10 },
+    'int-1': { id: 'int-1', name: 'Internal I1', level: 'INTERNAL', keys: [25], capacity: 3, childrenIds: ['leaf-1', 'leaf-2'], lockState: 'UNLOCKED', version: 20 },
+    'int-2': { id: 'int-2', name: 'Internal I2', level: 'INTERNAL', keys: [75], capacity: 3, childrenIds: ['leaf-3', 'leaf-4'], lockState: 'UNLOCKED', version: 30 },
+    'leaf-1': { id: 'leaf-1', name: 'Leaf L1 [10-24]', level: 'LEAF', keys: [10, 20], capacity: 3, lockState: 'UNLOCKED', version: 100 },
+    'leaf-2': { id: 'leaf-2', name: 'Leaf L2 [25-49]', level: 'LEAF', keys: [30, 40], capacity: 3, lockState: 'UNLOCKED', version: 102 },
+    'leaf-3': { id: 'leaf-3', name: 'Leaf L3 [50-74]', level: 'LEAF', keys: [60, 70], capacity: 3, lockState: 'UNLOCKED', version: 104 },
+    'leaf-4': { id: 'leaf-4', name: 'Leaf L4 [75-99]', level: 'LEAF', keys: [80, 90], capacity: 3, lockState: 'UNLOCKED', version: 106 },
+  };
+
+  const [bTreeNodes, setBTreeNodes] = useState<Record<string, BTreeNode>>(initialBTreeNodes);
+
+  const [bTreeThreadReader, setBTreeThreadReader] = useState<BTreeThread>({
+    id: 't-reader',
+    name: 'Reader 1 (Search Key 40)',
+    type: 'READER',
+    currentNodeId: null,
+    targetKey: 40,
+    heldLocks: [],
+    status: 'IDLE',
+    statusMessage: 'Thread idle. Ready to traverse tree to locate Key 40.',
+  });
+
+  const [bTreeThreadWriter, setBTreeThreadWriter] = useState<BTreeThread>({
+    id: 't-writer',
+    name: 'Writer 1 (Insert Key 45)',
+    type: 'WRITER',
+    currentNodeId: null,
+    targetKey: 45,
+    heldLocks: [],
+    status: 'IDLE',
+    statusMessage: 'Thread idle. Ready to insert Key 45 into Leaf L2.',
+  });
+
+  const [bTreeRootContentionAlert, setBTreeRootContentionAlert] = useState<string | null>(null);
+
+  const [bTreeAuditLog, setBTreeAuditLog] = useState<BTreeAuditEvent[]>([
+    {
+      id: 1,
+      time: '00:00:00',
+      strategy: 'INIT',
+      badge: 'INIT',
+      badgeClass: 'bg-slate-100 text-slate-800 border-slate-300 dark:bg-zinc-800 dark:text-zinc-200',
+      message: '3-level B+ Tree initialized (Root -> 2 Internal -> 4 Leaves). Strategy: OPTIMISTIC_LOCK_COUPLING.',
+    },
+  ]);
+
+  const handleBTreeRunReaderTraversal = () => {
+    setBTreeRootContentionAlert(null);
+    if (bTreeStrategy === 'PESSIMISTIC_CRABBING') {
+      // Pessimistic Lock Crabbing:
+      // S-lock root -> S-lock I1, release root -> S-lock L2, release I1 -> Read key 40 -> Release L2
+      setBTreeNodes((prev) => ({
+        ...prev,
+        root: { ...prev.root, lockState: 'UNLOCKED' },
+        'int-1': { ...prev['int-1'], lockState: 'UNLOCKED' },
+        'leaf-2': { ...prev['leaf-2'], lockState: 'UNLOCKED' },
+      }));
+      setBTreeThreadReader({
+        id: 't-reader',
+        name: 'Reader 1 (Search Key 40)',
+        type: 'READER',
+        currentNodeId: 'leaf-2',
+        targetKey: 40,
+        heldLocks: [],
+        status: 'COMMITTED',
+        statusMessage: 'Success: S-lock Root -> S-lock I1 (unlocked Root) -> S-lock L2 (unlocked I1). Read Key 40 successfully. All locks released.',
+      });
+      setBTreeAuditLog((prev) => [
+        {
+          id: Date.now(),
+          time: new Date().toLocaleTimeString(),
+          strategy: 'CRABBING',
+          badge: 'S_LOCK_CRAB',
+          badgeClass: 'bg-sky-100 text-sky-900 border-sky-300 dark:bg-sky-950/40 dark:text-sky-300',
+          message: 'Reader traversed Root -> I1 -> L2 with shared lock crabbing. 3 atomic lock acquisitions/releases executed.',
+        },
+        ...prev.slice(0, 9),
+      ]);
+    } else {
+      // Optimistic Lock Coupling:
+      // Read v_root (10) -> Read v_I1 (20) -> Verify v_root (10) -> Read v_L2 (102) -> Verify v_I1 (20) -> Read key 40 -> Verify v_L2 (102)
+      setBTreeThreadReader({
+        id: 't-reader',
+        name: 'Reader 1 (Search Key 40)',
+        type: 'READER',
+        currentNodeId: 'leaf-2',
+        targetKey: 40,
+        heldLocks: [],
+        status: 'COMMITTED',
+        statusMessage: 'Success: Traversed Root(v:10) -> I1(v:20) -> L2(v:102) with zero locks! Re-verified versions match and lock bit is 0. Key 40 read cleanly.',
+      });
+      setBTreeAuditLog((prev) => [
+        {
+          id: Date.now(),
+          time: new Date().toLocaleTimeString(),
+          strategy: 'OLC',
+          badge: 'OLC_READ_LOCK_FREE',
+          badgeClass: 'bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300',
+          message: 'Reader completed traversal lock-free: 0 locks held, 0 atomic writes executed. Linear multi-core scaling preserved!',
+        },
+        ...prev.slice(0, 9),
+      ]);
+    }
+  };
+
+  const handleBTreeRunWriterMutation = () => {
+    setBTreeRootContentionAlert(null);
+    if (bTreeStrategy === 'PESSIMISTIC_CRABBING') {
+      // Writer crabs with X-locks down to L2, inserts 45
+      setBTreeNodes((prev) => ({
+        ...prev,
+        'leaf-2': {
+          ...prev['leaf-2'],
+          keys: [30, 40, 45],
+          lockState: 'UNLOCKED',
+        },
+      }));
+      setBTreeThreadWriter({
+        id: 't-writer',
+        name: 'Writer 1 (Insert Key 45)',
+        type: 'WRITER',
+        currentNodeId: 'leaf-2',
+        targetKey: 45,
+        heldLocks: [],
+        status: 'COMMITTED',
+        statusMessage: 'Writer acquired X-lock on Root -> X-lock on I1 (Root safe, released) -> X-lock on L2 (I1 released) -> Inserted 45 -> Released L2.',
+      });
+      setBTreeAuditLog((prev) => [
+        {
+          id: Date.now(),
+          time: new Date().toLocaleTimeString(),
+          strategy: 'CRABBING',
+          badge: 'X_LOCK_WRITE',
+          badgeClass: 'bg-purple-100 text-purple-900 border-purple-300 dark:bg-purple-950/40 dark:text-purple-300',
+          message: 'Writer inserted Key 45 into L2 using X-lock crabbing. Keys: [30, 40, 45].',
+        },
+        ...prev.slice(0, 9),
+      ]);
+    } else {
+      // OLC: Optimistic traversal to L2 -> atomic lock L2 (v=103) -> mutate -> unlock L2 (v=104)
+      setBTreeNodes((prev) => ({
+        ...prev,
+        'leaf-2': {
+          ...prev['leaf-2'],
+          keys: [30, 40, 45],
+          version: prev['leaf-2'].version + 2, // 102 -> 104
+        },
+      }));
+      setBTreeThreadWriter({
+        id: 't-writer',
+        name: 'Writer 1 (Insert Key 45)',
+        type: 'WRITER',
+        currentNodeId: 'leaf-2',
+        targetKey: 45,
+        heldLocks: [],
+        status: 'COMMITTED',
+        statusMessage: 'Writer traversed optimistically without root/internal locks. Acquired lock bit on L2 (103), inserted 45, incremented version to 104 (unlocked).',
+      });
+      setBTreeAuditLog((prev) => [
+        {
+          id: Date.now(),
+          time: new Date().toLocaleTimeString(),
+          strategy: 'OLC',
+          badge: 'OLC_WRITE_VERSION_BUMP',
+          badgeClass: 'bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300',
+          message: 'Writer inserted Key 45 with localized leaf version bump (102 -> 104). Zero contention on Root and Internal nodes!',
+        },
+        ...prev.slice(0, 9),
+      ]);
+    }
+  };
+
+  const handleBTreeSimulateSplitContention = () => {
+    if (bTreeStrategy === 'PESSIMISTIC_CRABBING') {
+      // Unsafe split: child L2 is full ([30, 40, 45], capacity 3). Writer MUST hold X-lock on Root and I1!
+      setBTreeNodes((prev) => ({
+        ...prev,
+        root: { ...prev.root, lockState: 'X_LOCKED', lockedByThread: 'Writer (Split)' },
+        'int-1': { ...prev['int-1'], lockState: 'X_LOCKED', lockedByThread: 'Writer (Split)' },
+        'leaf-2': { ...prev['leaf-2'], lockState: 'X_LOCKED', lockedByThread: 'Writer (Split)' },
+      }));
+      setBTreeThreadReader({
+        id: 't-reader',
+        name: 'Reader 1 (Search Key 40)',
+        type: 'READER',
+        currentNodeId: 'root',
+        targetKey: 40,
+        heldLocks: [],
+        status: 'BLOCKED_LOCK',
+        statusMessage: 'BLOCKED: Reader attempted to acquire S-lock on Root, but Root is held under Exclusive X-lock by Writer! Reader stalled!',
+      });
+      setBTreeRootContentionAlert('ROOT CONTENTION COLLAPSE: In Pessimistic Lock Crabbing, splitting an unsafe child forces the writer to retain Exclusive X-locks on Root and Internal nodes! All parallel readers across all cores are blocked!');
+      setBTreeAuditLog((prev) => [
+        {
+          id: Date.now(),
+          time: new Date().toLocaleTimeString(),
+          strategy: 'CRABBING',
+          badge: 'ROOT_X_LOCK_BLOCKING',
+          badgeClass: 'bg-rose-100 text-rose-900 border-rose-300 dark:bg-rose-950/40 dark:text-rose-300 animate-pulse',
+          message: 'CRITICAL CONTENTION: Writer locked Root and I1 for split! Reader 1 blocked at Root. Multicore throughput collapses to 0.',
+        },
+        ...prev.slice(0, 9),
+      ]);
+    } else {
+      // OLC Split: Writer locks only I1 and L2. Root is NEVER locked!
+      setBTreeNodes((prev) => ({
+        ...prev,
+        'int-1': { ...prev['int-1'], keys: [25, 40], version: prev['int-1'].version + 2 },
+        'leaf-2': { ...prev['leaf-2'], keys: [30, 35], version: prev['leaf-2'].version + 2 },
+      }));
+      setBTreeRootContentionAlert(null);
+      setBTreeThreadReader({
+        id: 't-reader',
+        name: 'Reader 1 (Search Key 40)',
+        type: 'READER',
+        currentNodeId: 'leaf-2',
+        targetKey: 40,
+        heldLocks: [],
+        status: 'COMMITTED',
+        statusMessage: 'Reader traversed cleanly during split! Root was never locked. Reader validated versions and completed unhindered.',
+      });
+      setBTreeAuditLog((prev) => [
+        {
+          id: Date.now(),
+          time: new Date().toLocaleTimeString(),
+          strategy: 'OLC',
+          badge: 'OLC_SPLIT_UNBLOCKED',
+          badgeClass: 'bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300',
+          message: 'OLC Node Split completed with localized version increments. Root remained 100% unlocked and available for concurrent readers!',
+        },
+        ...prev.slice(0, 9),
+      ]);
+    }
+  };
+
+  const handleBTreeSimulateReaderCollision = () => {
+    setBTreeRootContentionAlert(null);
+    if (bTreeStrategy === 'OPTIMISTIC_LOCK_COUPLING') {
+      // Reader observed version 102 at start; writer bumped to 104; reader detects 104 != 102 and restarts from root!
+      setBTreeNodes((prev) => ({
+        ...prev,
+        'leaf-2': {
+          ...prev['leaf-2'],
+          keys: [30, 40, 48],
+          version: 104,
+        },
+      }));
+      setBTreeThreadReader({
+        id: 't-reader',
+        name: 'Reader 1 (Search Key 40)',
+        type: 'READER',
+        currentNodeId: 'root',
+        targetKey: 40,
+        heldLocks: [],
+        status: 'RESTARTED_COLLISION',
+        statusMessage: 'OPTIMISTIC RESTART: Reader observed v_start = 102, but post-read check detected version = 104! Stale read discarded. Restarted traversal from Root.',
+      });
+      setBTreeAuditLog((prev) => [
+        {
+          id: Date.now(),
+          time: new Date().toLocaleTimeString(),
+          strategy: 'OLC',
+          badge: 'OPTIMISTIC_RESTART',
+          badgeClass: 'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300',
+          message: 'Reader detected concurrent write collision (v_start 102 != v_end 104). Safely aborted dirty read and restarted from Root.',
+        },
+        ...prev.slice(0, 9),
+      ]);
+    } else {
+      handleBTreeRunReaderTraversal();
+    }
+  };
+
+  const handleBTreeReset = () => {
+    setBTreeNodes(initialBTreeNodes);
+    setBTreeRootContentionAlert(null);
+    setBTreeThreadReader({
+      id: 't-reader',
+      name: 'Reader 1 (Search Key 40)',
+      type: 'READER',
+      currentNodeId: null,
+      targetKey: 40,
+      heldLocks: [],
+      status: 'IDLE',
+      statusMessage: 'Thread idle. Ready to traverse tree to locate Key 40.',
+    });
+    setBTreeThreadWriter({
+      id: 't-writer',
+      name: 'Writer 1 (Insert Key 45)',
+      type: 'WRITER',
+      currentNodeId: null,
+      targetKey: 45,
+      heldLocks: [],
+      status: 'IDLE',
+      statusMessage: 'Thread idle. Ready to insert Key 45 into Leaf L2.',
+    });
+    setBTreeAuditLog((prev) => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        strategy: 'RESET',
+        badge: 'RESET',
+        badgeClass: 'bg-slate-100 text-slate-800 border-slate-300 dark:bg-zinc-800 dark:text-zinc-200',
+        message: 'B-Tree structure, locks, versions, and thread states reset to clean baseline.',
+      },
+      ...prev.slice(0, 9),
+    ]);
+  };
+
   return (
     <div className="bg-surface border border-border rounded-xl shadow-xs overflow-hidden space-y-6">
       {/* Sub-Header Tabs */}
@@ -1772,6 +2124,17 @@ export function MemoryCacheInspectorSandbox() {
             }`}
           >
             Cache Stampede &amp; XFetch
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveSubTab('BTREE_LOCK_CRABBING')}
+            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+              activeSubTab === 'BTREE_LOCK_CRABBING'
+                ? 'bg-primary-700 text-white shadow-xs'
+                : 'text-text-muted hover:text-text'
+            }`}
+          >
+            B-Tree Concurrency &amp; OLC
           </button>
         </div>
       </div>
@@ -4197,6 +4560,464 @@ export function MemoryCacheInspectorSandbox() {
           </div>
         </div>
       )}
+      {/* SUB-TAB 7: B-TREE STORAGE ENGINE CONCURRENCY: LOCK CRABBING VS OPTIMISTIC LOCK COUPLING (OLC) */}
+      {activeSubTab === 'BTREE_LOCK_CRABBING' && (
+        <div className="p-6 space-y-6">
+          {/* Header & Strategy Selector */}
+          <div className="bg-canvas border border-border rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-primary-600">
+                  Storage Engine Concurrency &amp; Index Synchronization
+                </span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded border border-primary-200 bg-primary-50 text-primary-800 dark:bg-primary-950/40 dark:text-primary-300">
+                  SIGMOD 2016
+                </span>
+              </div>
+              <h3 className="font-bold text-base text-text">
+                B-Tree Storage Engine Concurrency: Pessimistic Lock Crabbing vs Optimistic Lock Coupling (OLC)
+              </h3>
+              <p className="text-xs text-text-muted max-w-3xl leading-relaxed">
+                Contrast traditional Pessimistic Lock Crabbing (Bayer &amp; Schkolnick 1977), where root and internal node locks bottleneck multi-core read concurrency, against state-of-the-art Optimistic Lock Coupling (Leis et al., SIGMOD 2016), which uses 64-bit atomic version counters to achieve 100% lock-free reader traversal and linear multicore scalability.
+              </p>
+            </div>
+
+            {/* Strategy Pill Switcher */}
+            <div className="bg-surface border border-border p-2.5 rounded-lg flex flex-col gap-1.5 min-w-[280px]">
+              <span className="text-[11px] font-bold text-text uppercase tracking-wider">
+                Concurrency Protocol:
+              </span>
+              <div className="grid grid-cols-2 gap-1 bg-canvas p-1 rounded-md border border-border">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBTreeStrategy('PESSIMISTIC_CRABBING');
+                    handleBTreeReset();
+                  }}
+                  className={`px-2 py-1.5 rounded text-[11px] font-bold cursor-pointer transition-colors ${
+                    bTreeStrategy === 'PESSIMISTIC_CRABBING'
+                      ? 'bg-sky-700 text-white shadow-xs'
+                      : 'text-text-muted hover:text-text'
+                  }`}
+                >
+                  Pessimistic Crabbing
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBTreeStrategy('OPTIMISTIC_LOCK_COUPLING');
+                    handleBTreeReset();
+                  }}
+                  className={`px-2 py-1.5 rounded text-[11px] font-bold cursor-pointer transition-colors ${
+                    bTreeStrategy === 'OPTIMISTIC_LOCK_COUPLING'
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'text-text-muted hover:text-text'
+                  }`}
+                >
+                  Optimistic Coupling (OLC)
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Root Contention Alert (if triggered) */}
+          {bTreeRootContentionAlert && (
+            <div className="p-3.5 rounded-xl bg-rose-100 border border-rose-300 text-rose-950 dark:bg-rose-950/50 dark:border-rose-800 dark:text-rose-200 text-xs space-y-1 animate-pulse">
+              <span className="font-bold text-sm block">⚠️ CRITICAL ROOT LOCK CONTENTION COLLAPSE</span>
+              <p>{bTreeRootContentionAlert}</p>
+            </div>
+          )}
+
+          {/* Interactive Operational Controls */}
+          <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+            <span className="text-xs font-bold uppercase tracking-wider text-text block">
+              Interactive Concurrency Scenarios:
+            </span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
+              <Button
+                onClick={handleBTreeRunReaderTraversal}
+                variant="primary"
+                className="text-xs px-2.5 py-2 cursor-pointer w-full text-center"
+              >
+                1. Run Clean Read (Key 40)
+              </Button>
+              <Button
+                onClick={handleBTreeRunWriterMutation}
+                variant="accent"
+                className="text-xs px-2.5 py-2 cursor-pointer w-full text-center"
+              >
+                2. Run Writer Mutation (Insert 45)
+              </Button>
+              <Button
+                onClick={handleBTreeSimulateSplitContention}
+                variant={bTreeStrategy === 'PESSIMISTIC_CRABBING' ? 'destructive' : 'primary'}
+                className="text-xs px-2.5 py-2 cursor-pointer w-full text-center"
+              >
+                3. Simulate Node Split Hazard
+              </Button>
+              <Button
+                onClick={handleBTreeSimulateReaderCollision}
+                variant="secondary"
+                className="text-xs px-2.5 py-2 cursor-pointer w-full text-center"
+              >
+                4. Simulate OLC Collision &amp; Restart
+              </Button>
+              <Button
+                onClick={handleBTreeReset}
+                variant="secondary"
+                className="text-xs px-2.5 py-2 cursor-pointer w-full text-center"
+              >
+                ↺ Reset B-Tree
+              </Button>
+            </div>
+          </div>
+
+          {/* 3-Level B+ Tree Visualization Canvas */}
+          <div className="bg-surface border border-border rounded-xl p-5 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border pb-3">
+              <div>
+                <h4 className="font-bold text-sm text-text">B+ Tree Hierarchical Index Topology</h4>
+                <span className="text-xs text-text-muted">
+                  Order M = 4 (Max 3 keys per node). Green = Unlocked/Even Version, Blue = Shared Lock, Red = Exclusive Lock / Odd Version.
+                </span>
+              </div>
+              <div className="flex items-center gap-2 font-mono text-xs">
+                <span className="text-text-muted">Active Protocol:</span>
+                <span className={`px-2 py-0.5 rounded font-bold border ${
+                  bTreeStrategy === 'OPTIMISTIC_LOCK_COUPLING'
+                    ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                    : 'bg-sky-100 text-sky-900 border-sky-300'
+                }`}>
+                  {bTreeStrategy === 'OPTIMISTIC_LOCK_COUPLING' ? 'OPTIMISTIC LOCK COUPLING (OLC)' : 'PESSIMISTIC LOCK CRABBING'}
+                </span>
+              </div>
+            </div>
+
+            {/* Level 1: ROOT */}
+            <div className="flex justify-center">
+              <div
+                className={`w-64 p-3.5 rounded-xl border-2 transition-all space-y-2 ${
+                  bTreeNodes.root.lockState === 'X_LOCKED'
+                    ? 'border-rose-500 bg-rose-50/30 dark:bg-rose-950/30 ring-2 ring-rose-500/50'
+                    : bTreeNodes.root.lockState === 'S_LOCKED'
+                    ? 'border-sky-500 bg-sky-50/30 dark:bg-sky-950/30'
+                    : 'border-border bg-canvas'
+                }`}
+              >
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold text-text">ROOT NODE</span>
+                  <span className="font-mono text-[11px] text-text-muted">ID: root</span>
+                </div>
+                <div className="flex items-center justify-center gap-1.5 py-1">
+                  {bTreeNodes.root.keys.map((k) => (
+                    <span key={k} className="px-3 py-1 rounded bg-surface border border-border font-mono font-bold text-sm text-text">
+                      {k}
+                    </span>
+                  ))}
+                </div>
+                <div className="flex items-center justify-between text-[11px] font-mono border-t border-border pt-1.5">
+                  <span className="text-text-muted">
+                    {bTreeStrategy === 'PESSIMISTIC_CRABBING' ? 'Lock:' : 'Version (v):'}
+                  </span>
+                  <span className={`font-bold ${
+                    bTreeNodes.root.lockState === 'X_LOCKED'
+                      ? 'text-rose-600'
+                      : bTreeNodes.root.lockState === 'S_LOCKED'
+                      ? 'text-sky-600'
+                      : 'text-emerald-600'
+                  }`}>
+                    {bTreeStrategy === 'PESSIMISTIC_CRABBING'
+                      ? bTreeNodes.root.lockState
+                      : `v: ${bTreeNodes.root.version} (Lock: ${bTreeNodes.root.version % 2 === 1 ? '1 LOCKED' : '0 FREE'})`}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Connection Arrows Level 1 -> Level 2 */}
+            <div className="text-center font-mono text-xs text-text-muted">
+              ↓ Child Pointer Branching (Keys &lt; 50 → I1, Keys &ge; 50 → I2) ↓
+            </div>
+
+            {/* Level 2: INTERNAL NODES */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-2xl mx-auto">
+              {['int-1', 'int-2'].map((nodeId) => {
+                const node = bTreeNodes[nodeId];
+                return (
+                  <div
+                    key={nodeId}
+                    className={`p-3.5 rounded-xl border-2 transition-all space-y-2 ${
+                      node.lockState === 'X_LOCKED'
+                        ? 'border-rose-500 bg-rose-50/30 dark:bg-rose-950/30'
+                        : node.lockState === 'S_LOCKED'
+                        ? 'border-sky-500 bg-sky-50/30 dark:bg-sky-950/30'
+                        : 'border-border bg-canvas'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-text">{node.name}</span>
+                      <span className="font-mono text-[11px] text-text-muted">Level: Internal</span>
+                    </div>
+                    <div className="flex items-center justify-center gap-1.5 py-1">
+                      {node.keys.map((k) => (
+                        <span key={k} className="px-2.5 py-0.5 rounded bg-surface border border-border font-mono font-bold text-xs text-text">
+                          {k}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] font-mono border-t border-border pt-1.5">
+                      <span className="text-text-muted">
+                        {bTreeStrategy === 'PESSIMISTIC_CRABBING' ? 'Lock:' : 'Version:'}
+                      </span>
+                      <span className={`font-bold ${
+                        node.lockState === 'X_LOCKED' ? 'text-rose-600' : node.lockState === 'S_LOCKED' ? 'text-sky-600' : 'text-emerald-600'
+                      }`}>
+                        {bTreeStrategy === 'PESSIMISTIC_CRABBING'
+                          ? node.lockState
+                          : `v: ${node.version} (Lock: ${node.version % 2 === 1 ? '1' : '0'})`}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Connection Arrows Level 2 -> Level 3 */}
+            <div className="text-center font-mono text-xs text-text-muted">
+              ↓ Leaf Sibling Chain (Continuous Ordered Doubly-Linked Sequence) ↓
+            </div>
+
+            {/* Level 3: LEAF NODES */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {['leaf-1', 'leaf-2', 'leaf-3', 'leaf-4'].map((nodeId) => {
+                const node = bTreeNodes[nodeId];
+                return (
+                  <div
+                    key={nodeId}
+                    className={`p-3.5 rounded-xl border-2 transition-all space-y-2 ${
+                      node.lockState === 'X_LOCKED'
+                        ? 'border-rose-500 bg-rose-50/30 dark:bg-rose-950/30'
+                        : node.lockState === 'S_LOCKED'
+                        ? 'border-sky-500 bg-sky-50/30 dark:bg-sky-950/30'
+                        : node.keys.length >= node.capacity
+                        ? 'border-amber-400 bg-amber-50/20 dark:bg-amber-950/20'
+                        : 'border-border bg-canvas'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-text">{node.name}</span>
+                      <span className="font-mono text-[10px] text-text-muted">
+                        {node.keys.length}/{node.capacity} keys
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-center gap-1.5 py-1">
+                      {node.keys.map((k) => (
+                        <span
+                          key={k}
+                          className={`px-2 py-0.5 rounded font-mono font-bold text-xs border ${
+                            k === 40
+                              ? 'bg-primary-100 text-primary-900 border-primary-300 dark:bg-primary-950/60 dark:text-primary-300'
+                              : k === 45 || k === 48
+                              ? 'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300'
+                              : 'bg-surface text-text border-border'
+                          }`}
+                        >
+                          {k}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] font-mono border-t border-border pt-1.5">
+                      <span className="text-text-muted">
+                        {bTreeStrategy === 'PESSIMISTIC_CRABBING' ? 'Lock:' : 'Version:'}
+                      </span>
+                      <span className={`font-bold ${
+                        node.lockState === 'X_LOCKED' ? 'text-rose-600' : node.lockState === 'S_LOCKED' ? 'text-sky-600' : 'text-emerald-600'
+                      }`}>
+                        {bTreeStrategy === 'PESSIMISTIC_CRABBING'
+                          ? node.lockState
+                          : `v: ${node.version} (Lock: ${node.version % 2 === 1 ? '1' : '0'})`}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Thread Activity Monitor */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Reader Thread Card */}
+            <div className="bg-surface border border-border rounded-xl p-4 space-y-2">
+              <div className="flex items-center justify-between border-b border-border pb-2">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-sky-500" />
+                  <h5 className="font-bold text-xs text-text">{bTreeThreadReader.name}</h5>
+                </div>
+                <span
+                  className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
+                    bTreeThreadReader.status === 'COMMITTED'
+                      ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                      : bTreeThreadReader.status === 'BLOCKED_LOCK'
+                      ? 'bg-rose-100 text-rose-900 border-rose-300 animate-pulse'
+                      : bTreeThreadReader.status === 'RESTARTED_COLLISION'
+                      ? 'bg-amber-100 text-amber-900 border-amber-300'
+                      : 'bg-canvas text-text-muted border-border'
+                  }`}
+                >
+                  {bTreeThreadReader.status}
+                </span>
+              </div>
+              <p className="text-xs text-text-muted leading-relaxed">
+                {bTreeThreadReader.statusMessage}
+              </p>
+            </div>
+
+            {/* Writer Thread Card */}
+            <div className="bg-surface border border-border rounded-xl p-4 space-y-2">
+              <div className="flex items-center justify-between border-b border-border pb-2">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-purple-500" />
+                  <h5 className="font-bold text-xs text-text">{bTreeThreadWriter.name}</h5>
+                </div>
+                <span
+                  className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
+                    bTreeThreadWriter.status === 'COMMITTED'
+                      ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                      : 'bg-canvas text-text-muted border-border'
+                  }`}
+                >
+                  {bTreeThreadWriter.status}
+                </span>
+              </div>
+              <p className="text-xs text-text-muted leading-relaxed">
+                {bTreeThreadWriter.statusMessage}
+              </p>
+            </div>
+          </div>
+
+          {/* Multi-Core Scaling Benchmark Matrix */}
+          <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="font-bold text-sm text-text">
+                Multi-Core Scaling &amp; Cache Line Invalidation Benchmark (32 Threads)
+              </h4>
+              <span className="text-xs font-mono text-text-muted">Throughput (k ops/sec)</span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-border bg-canvas text-text font-bold">
+                    <th className="p-2">CPU Cores</th>
+                    <th className="p-2">Pessimistic Lock Crabbing (ops/sec)</th>
+                    <th className="p-2">Optimistic Lock Coupling OLC (ops/sec)</th>
+                    <th className="p-2">Throughput Speedup Gain</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border font-mono">
+                  <tr>
+                    <td className="p-2 font-bold text-text">1 Core</td>
+                    <td className="p-2">45,000 ops/s</td>
+                    <td className="p-2 text-emerald-600 font-bold">58,000 ops/s</td>
+                    <td className="p-2 text-text-muted">1.29× (Lock-free fast-path)</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2 font-bold text-text">4 Cores</td>
+                    <td className="p-2">120,000 ops/s</td>
+                    <td className="p-2 text-emerald-600 font-bold">230,000 ops/s</td>
+                    <td className="p-2 text-emerald-600 font-bold">1.92×</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2 font-bold text-text">8 Cores</td>
+                    <td className="p-2">140,000 ops/s</td>
+                    <td className="p-2 text-emerald-600 font-bold">460,000 ops/s</td>
+                    <td className="p-2 text-emerald-600 font-bold">3.28×</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2 font-bold text-text">16 Cores</td>
+                    <td className="p-2 text-rose-600 font-semibold">145,000 ops/s (Root Contention)</td>
+                    <td className="p-2 text-emerald-600 font-bold">915,000 ops/s</td>
+                    <td className="p-2 text-emerald-600 font-bold">6.31×</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2 font-bold text-text">32 Cores</td>
+                    <td className="p-2 text-rose-600 font-bold">130,000 ops/s (Scaling Collapse)</td>
+                    <td className="p-2 text-emerald-600 font-bold">1,820,000 ops/s (Linear Scaling)</td>
+                    <td className="p-2 text-emerald-600 font-bold">14.0× Multi-Core Advantage</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Real-Time Concurrency Audit Log */}
+          <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-bold text-text uppercase tracking-wider">
+                B-Tree Synchronization Audit Log:
+              </span>
+              <span className="text-text-muted font-mono text-[11px]">
+                {bTreeAuditLog.length} Events
+              </span>
+            </div>
+            <div className="space-y-2">
+              {bTreeAuditLog.map((ev) => (
+                <div
+                  key={ev.id}
+                  className="p-2.5 rounded-lg bg-canvas border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-text-muted text-[11px]">{ev.time}</span>
+                    <span className={`font-mono font-bold text-[10px] px-2 py-0.5 rounded border ${ev.badgeClass}`}>
+                      {ev.badge}
+                    </span>
+                    <span className="text-text font-medium">{ev.message}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 4 Socratic Invariant Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                1. Lock Crabbing Invariant
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                Pessimistic lock coupling (Bayer &amp; Schkolnick 1977) holds a lock on the parent until the child lock is acquired. While safe, every reader must write to memory to acquire locks, dirtying shared CPU cache lines.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                2. The Root Bottleneck
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                Every B-Tree query traverses the Root node. In lock crabbing, if an insertion causes a node split, the writer must hold an Exclusive X-lock on the Root, halting all concurrent readers across all CPU cores.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                3. Atomic 64-Bit Version Counter
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                Optimistic Lock Coupling (Leis SIGMOD 2016) assigns each node a 64-bit atomic integer. The lowest bit indicates lock state (1 = locked, 0 = free), while the upper 63 bits track node modification epochs.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                4. Zero-Lock Reader Traversal
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                Readers in OLC execute zero atomic writes: they read node pointers, re-verify that the version counter has not changed, and complete. If a writer mutates a node concurrently, readers safely restart from the Root.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

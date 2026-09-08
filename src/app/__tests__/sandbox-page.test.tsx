@@ -124,6 +124,7 @@ describe('SandboxPage', () => {
 
     // Verify Cache Stampede & XFetch subtab button
     expect(screen.getByRole('button', { name: /Cache Stampede & XFetch/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /B-Tree Concurrency & OLC/i })).toBeInTheDocument();
   });
 
   it('switches to Distributed Systems & Architecture Lab tab and interacts with consistent hash ring and rate limiters', () => {
@@ -133,6 +134,7 @@ describe('SandboxPage', () => {
     fireEvent.click(distTabBtn);
 
     expect(screen.getByText('Consistent Hashing, Rate Limiting & Circuit Breakers')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Lock Fencing & Split-Brain/i })).toBeInTheDocument();
     expect(screen.getByText(/Circular Hash Space/i)).toBeInTheDocument();
 
     // Scale Out: Add Node D
