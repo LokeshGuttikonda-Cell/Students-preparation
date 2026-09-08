@@ -20,7 +20,97 @@ export type VisualizerAlgorithm =
   | 'BLOOM_FILTER_HASHING'
   | 'TRIE_PREFIX_TREE'
   | 'INVERTED_INDEX_BM25'
-  | 'POSTING_SKIP_LIST_ELIAS_FANO';
+  | 'POSTING_SKIP_LIST_ELIAS_FANO'
+  | 'COLUMNAR_VECTORIZED_ENGINE';
+
+export type StorageLayoutMode = 'ROW_ORIENTED_NSM' | 'COLUMN_ORIENTED_DSM';
+export type ExecutionEngineMode = 'VOLCANO_ITERATOR' | 'VECTORIZED_SIMD';
+export type ColumnCompressionMode = 'UNCOMPRESSED' | 'RLE_COMPRESSED' | 'DICTIONARY_COMPRESSED';
+
+export interface ColumnarOrderRecord {
+  rowId: number;
+  orderId: number;
+  customerId: string;
+  amount: number;
+  status: 'PAID' | 'PENDING' | 'REFUNDED';
+  discount: number;
+  netRevenue?: number;
+}
+
+export interface ColumnVector {
+  name: string;
+  type: string;
+  isProjected: boolean;
+  isFiltered: boolean;
+  values: Array<string | number>;
+  compressedRepresentation?: string;
+  compressionRatio?: string;
+  memoryBytes: number;
+}
+
+export interface RowPageSlot {
+  slotId: number;
+  rowId: number;
+  tupleBytes: string;
+  isProjected: boolean;
+  isStatusMatch: boolean;
+}
+
+export interface RowPage {
+  pageId: number;
+  slots: RowPageSlot[];
+  totalPageBytes: number;
+}
+
+export interface RleRunItem {
+  value: string;
+  count: number;
+}
+
+export interface DictionaryItem {
+  code: number;
+  value: string;
+}
+
+export interface SelectionVectorBit {
+  index: number;
+  rowId: number;
+  bit: 0 | 1;
+  status: string;
+  isInspected?: boolean;
+}
+
+export interface VisualizerColumnarState {
+  storageLayout: StorageLayoutMode;
+  executionEngine: ExecutionEngineMode;
+  compression: ColumnCompressionMode;
+  querySql: string;
+  rows: ColumnarOrderRecord[];
+  rowPages: RowPage[];
+  columns: ColumnVector[];
+  selectionVector: SelectionVectorBit[];
+  activeIndices?: number[];
+  rleRuns?: RleRunItem[];
+  dictionary?: DictionaryItem[];
+  dictEncodedIndices?: number[];
+  volcanoCalls?: number;
+  vectorizedCalls?: number;
+  memoryScannedBytes?: number;
+  cacheMisses?: number;
+  banner?: {
+    type: 'SETUP' | 'NSM_WASTE' | 'DSM_EFFICIENCY' | 'COMPRESSION_SAVINGS' | 'VOLCANO_OVERHEAD' | 'SIMD_SPEEDUP' | 'SUMMARY';
+    title: string;
+    description: string;
+  };
+  metrics?: {
+    storageModel: string;
+    executionModel: string;
+    memoryBandwidthScanned: string;
+    virtualCalls: number;
+    l1CacheMisses: number;
+    simdVectorWidth: string;
+  };
+}
 
 export interface InvertedIndexPosting {
   docId: string;
@@ -304,6 +394,7 @@ interface StepFrame {
   trieState?: VisualizerTrieState;
   invertedIndexState?: VisualizerInvertedIndexState;
   postingSkipState?: VisualizerPostingSkipState;
+  columnarState?: VisualizerColumnarState;
   metrics?: Record<string, string | number | undefined>;
 }
 
@@ -3258,6 +3349,388 @@ const ALGORITHM_CONFIGS: AlgorithmConfig[] = [
       ];
     },
   },
+
+  {
+    id: 'COLUMNAR_VECTORIZED_ENGINE',
+    name: 'Database Columnar Storage & Vectorized SIMD Execution Engine',
+    category: 'Database Storage & Query Processing Internals',
+    timeComplexity: 'Row NSM: O(N · C) scalar calls, Vectorized DSM: O(N / SIMD_WIDTH) parallel bitwise ops',
+    spaceComplexity: 'DSM + RLE/Dict: 3x-10x compression over uncompressed NSM',
+    description:
+      'Analytical OLAP databases abandon row-oriented N-ary Storage Models (NSM) and tuple-at-a-time Volcano iterators. By decomposing tables into contiguous column vectors (Decomposition Storage Model / DSM) and executing queries via vectorized batches with SIMD bitmasks, CPU cache miss rates drop by 90% and virtual function call overhead is completely eliminated.',
+    generateFrames: () => {
+      const baseRows: ColumnarOrderRecord[] = [
+        { rowId: 0, orderId: 1001, customerId: 'CUST_A', amount: 150, status: 'PAID', discount: 0.10, netRevenue: 135.0 },
+        { rowId: 1, orderId: 1002, customerId: 'CUST_B', amount: 420, status: 'PAID', discount: 0.00, netRevenue: 420.0 },
+        { rowId: 2, orderId: 1003, customerId: 'CUST_A', amount: 85,  status: 'PAID', discount: 0.05, netRevenue: 80.75 },
+        { rowId: 3, orderId: 1004, customerId: 'CUST_C', amount: 310, status: 'PENDING', discount: 0.15, netRevenue: 0 },
+        { rowId: 4, orderId: 1005, customerId: 'CUST_B', amount: 50,  status: 'PAID', discount: 0.00, netRevenue: 50.0 },
+        { rowId: 5, orderId: 1006, customerId: 'CUST_A', amount: 200, status: 'PAID', discount: 0.20, netRevenue: 160.0 },
+        { rowId: 6, orderId: 1007, customerId: 'CUST_D', amount: 950, status: 'REFUNDED', discount: 0.10, netRevenue: 0 },
+        { rowId: 7, orderId: 1008, customerId: 'CUST_B', amount: 120, status: 'PAID', discount: 0.05, netRevenue: 114.0 },
+        { rowId: 8, orderId: 1009, customerId: 'CUST_A', amount: 60,  status: 'PAID', discount: 0.00, netRevenue: 60.0 },
+        { rowId: 9, orderId: 1010, customerId: 'CUST_C', amount: 400, status: 'PAID', discount: 0.10, netRevenue: 360.0 },
+        { rowId: 10, orderId: 1011, customerId: 'CUST_A', amount: 180, status: 'PENDING', discount: 0.25, netRevenue: 0 },
+        { rowId: 11, orderId: 1012, customerId: 'CUST_B', amount: 250, status: 'PAID', discount: 0.00, netRevenue: 250.0 },
+        { rowId: 12, orderId: 1013, customerId: 'CUST_D', amount: 600, status: 'PAID', discount: 0.15, netRevenue: 510.0 },
+        { rowId: 13, orderId: 1014, customerId: 'CUST_A', amount: 90,  status: 'PAID', discount: 0.05, netRevenue: 85.5 },
+        { rowId: 14, orderId: 1015, customerId: 'CUST_C', amount: 320, status: 'REFUNDED', discount: 0.10, netRevenue: 0 },
+        { rowId: 15, orderId: 1016, customerId: 'CUST_B', amount: 110, status: 'PAID', discount: 0.00, netRevenue: 110.0 },
+      ];
+
+      const initialPages: RowPage[] = [
+        {
+          pageId: 0,
+          totalPageBytes: 4096,
+          slots: [
+            { slotId: 0, rowId: 0, tupleBytes: '[1001, CUST_A, $150, PAID, 0.10]', isProjected: true, isStatusMatch: true },
+            { slotId: 1, rowId: 1, tupleBytes: '[1002, CUST_B, $420, PAID, 0.00]', isProjected: true, isStatusMatch: true },
+            { slotId: 2, rowId: 2, tupleBytes: '[1003, CUST_A, $85,  PAID, 0.05]', isProjected: true, isStatusMatch: true },
+            { slotId: 3, rowId: 3, tupleBytes: '[1004, CUST_C, $310, PEND, 0.15]', isProjected: false, isStatusMatch: false },
+            { slotId: 4, rowId: 4, tupleBytes: '[1005, CUST_B, $50,  PAID, 0.00]', isProjected: true, isStatusMatch: true },
+            { slotId: 5, rowId: 5, tupleBytes: '[1006, CUST_A, $200, PAID, 0.20]', isProjected: true, isStatusMatch: true },
+            { slotId: 6, rowId: 6, tupleBytes: '[1007, CUST_D, $950, REFU, 0.10]', isProjected: false, isStatusMatch: false },
+            { slotId: 7, rowId: 7, tupleBytes: '[1008, CUST_B, $120, PAID, 0.05]', isProjected: true, isStatusMatch: true },
+          ],
+        },
+        {
+          pageId: 1,
+          totalPageBytes: 4096,
+          slots: [
+            { slotId: 0, rowId: 8,  tupleBytes: '[1009, CUST_A, $60,  PAID, 0.00]', isProjected: true, isStatusMatch: true },
+            { slotId: 1, rowId: 9,  tupleBytes: '[1010, CUST_C, $400, PAID, 0.10]', isProjected: true, isStatusMatch: true },
+            { slotId: 2, rowId: 10, tupleBytes: '[1011, CUST_A, $180, PEND, 0.25]', isProjected: false, isStatusMatch: false },
+            { slotId: 3, rowId: 11, tupleBytes: '[1012, CUST_B, $250, PAID, 0.00]', isProjected: true, isStatusMatch: true },
+            { slotId: 4, rowId: 12, tupleBytes: '[1013, CUST_D, $600, PAID, 0.15]', isProjected: true, isStatusMatch: true },
+            { slotId: 5, rowId: 13, tupleBytes: '[1014, CUST_A, $90,  PAID, 0.05]', isProjected: true, isStatusMatch: true },
+            { slotId: 6, rowId: 14, tupleBytes: '[1015, CUST_C, $320, REFU, 0.10]', isProjected: false, isStatusMatch: false },
+            { slotId: 7, rowId: 15, tupleBytes: '[1016, CUST_B, $110, PAID, 0.00]', isProjected: true, isStatusMatch: true },
+          ],
+        },
+      ];
+
+      const baseColumns: ColumnVector[] = [
+        { name: 'row_id', type: 'INT32', isProjected: false, isFiltered: false, memoryBytes: 64, values: baseRows.map((r) => r.rowId) },
+        { name: 'order_id', type: 'INT32', isProjected: false, isFiltered: false, memoryBytes: 64, values: baseRows.map((r) => r.orderId) },
+        { name: 'customer_id', type: 'VARCHAR', isProjected: true, isFiltered: false, memoryBytes: 96, values: baseRows.map((r) => r.customerId) },
+        { name: 'amount', type: 'FLOAT64', isProjected: true, isFiltered: false, memoryBytes: 128, values: baseRows.map((r) => r.amount) },
+        { name: 'status', type: 'ENUM8', isProjected: false, isFiltered: true, memoryBytes: 16, values: baseRows.map((r) => r.status) },
+        { name: 'discount', type: 'FLOAT64', isProjected: true, isFiltered: false, memoryBytes: 128, values: baseRows.map((r) => r.discount) },
+      ];
+
+      const initialBits: SelectionVectorBit[] = baseRows.map((r, idx) => ({
+        index: idx,
+        rowId: r.rowId,
+        bit: r.status === 'PAID' ? 1 : 0,
+        status: r.status,
+      }));
+
+      const rleRuns: RleRunItem[] = [
+        { value: 'PAID', count: 3 },
+        { value: 'PENDING', count: 1 },
+        { value: 'PAID', count: 2 },
+        { value: 'REFUNDED', count: 1 },
+        { value: 'PAID', count: 3 },
+        { value: 'PENDING', count: 1 },
+        { value: 'PAID', count: 3 },
+        { value: 'REFUNDED', count: 1 },
+        { value: 'PAID', count: 1 },
+      ];
+
+      const dictionary: DictionaryItem[] = [
+        { code: 0, value: 'CUST_A' },
+        { code: 1, value: 'CUST_B' },
+        { code: 2, value: 'CUST_C' },
+        { code: 3, value: 'CUST_D' },
+      ];
+
+      const dictEncodedIndices = [0, 1, 0, 2, 1, 0, 3, 1, 0, 2, 0, 1, 3, 0, 2, 1];
+
+      const sqlQuery = "SELECT customer_id, SUM(amount * (1 - discount)) AS net_rev FROM orders WHERE status = 'PAID' GROUP BY customer_id;";
+
+      return [
+        {
+          stepIndex: 0,
+          title: 'Analytical Query Target & Relational Table Model',
+          explanation:
+            'Target analytical query: "SELECT customer_id, SUM(amount * (1 - discount)) AS net_rev FROM orders WHERE status = \'PAID\' GROUP BY customer_id". Table contains 16 rows and 6 attributes. Notice that while 6 columns exist on disk, the query only requires customer_id, amount, and discount for computation, and status for filtering. Columns row_id and order_id are completely unreferenced.',
+          status: 'IN_PROGRESS',
+          columnarState: {
+            storageLayout: 'ROW_ORIENTED_NSM',
+            executionEngine: 'VOLCANO_ITERATOR',
+            compression: 'UNCOMPRESSED',
+            querySql: sqlQuery,
+            rows: baseRows,
+            rowPages: initialPages,
+            columns: baseColumns,
+            selectionVector: initialBits,
+            banner: {
+              type: 'SETUP',
+              title: 'Target Query: Analytical Aggregation & Filter Scan',
+              description: 'Evaluating SQL query over 16 orders. 3 columns projected, 1 filtered, 2 unreferenced.',
+            },
+            metrics: {
+              storageModel: 'Row-Oriented (NSM)',
+              executionModel: 'Volcano Iterator (next())',
+              memoryBandwidthScanned: '1,280 bytes',
+              virtualCalls: 48,
+              l1CacheMisses: 18,
+              simdVectorWidth: 'None (Scalar)',
+            },
+          },
+          metrics: { 'Storage Architecture': 'Row NSM', 'Execution Engine': 'Volcano Iterator', 'Active Filter': 'status = PAID', 'Projected Columns': 'customer, amount, discount' },
+        },
+        {
+          stepIndex: 1,
+          title: 'Row-Oriented (NSM) Slotted Pages: The 80% Cache Pollution Penalty',
+          explanation:
+            'In traditional N-ary Storage Model (NSM, e.g. PostgreSQL, MySQL InnoDB, SQLite), entire tuples are packed contiguously across 4KB slotted pages. When the CPU executes WHERE status = \'PAID\', the storage engine cannot read status in isolation: hardware fetches full 64-byte L1/L2 cache lines containing unused attributes (order_id, row_id, strings). Out of 80 bytes read per tuple, 64 bytes (80%) are discarded garbage that evicts useful data from L1 cache!',
+          status: 'MISMATCH',
+          columnarState: {
+            storageLayout: 'ROW_ORIENTED_NSM',
+            executionEngine: 'VOLCANO_ITERATOR',
+            compression: 'UNCOMPRESSED',
+            querySql: sqlQuery,
+            rows: baseRows,
+            rowPages: initialPages,
+            columns: baseColumns,
+            selectionVector: initialBits,
+            memoryScannedBytes: 1280,
+            cacheMisses: 18,
+            banner: {
+              type: 'NSM_WASTE',
+              title: 'High Cache Line Pollution: 80% of Memory Bandwidth Wasted',
+              description: 'Hardware fetches full 64-byte cache lines for every tuple. Discarded columns clog memory bus bandwidth.',
+            },
+            metrics: {
+              storageModel: 'Row-Oriented (NSM)',
+              executionModel: 'Volcano Iterator',
+              memoryBandwidthScanned: '1,280 bytes (80 B/tuple)',
+              virtualCalls: 48,
+              l1CacheMisses: 18,
+              simdVectorWidth: 'None (Scalar)',
+            },
+          },
+          metrics: { 'Storage Layout': 'Row-Oriented NSM', 'Memory Bus Wasted': '80% (64 B/tuple)', 'L1 Cache Misses': 18, 'Cache Pollution': 'Severe' },
+        },
+        {
+          stepIndex: 2,
+          title: 'Column-Oriented (DSM) Decomposition: 100% Cache Line Utilization',
+          explanation:
+            'Decomposition Storage Model (DSM, e.g. MonetDB, ClickHouse, DuckDB) stores each column as an independent, contiguous array. To evaluate status = \'PAID\', the scan engine reads ONLY the status column vector. 16 single-byte status values occupy just 16 contiguous bytes—fitting entirely inside a single 64-byte L1 cache line (25% of one cache line)! Zero memory bandwidth is wasted on order_id or customer_id during predicate evaluation.',
+          status: 'SUCCESS',
+          columnarState: {
+            storageLayout: 'COLUMN_ORIENTED_DSM',
+            executionEngine: 'VOLCANO_ITERATOR',
+            compression: 'UNCOMPRESSED',
+            querySql: sqlQuery,
+            rows: baseRows,
+            rowPages: initialPages,
+            columns: baseColumns,
+            selectionVector: initialBits,
+            memoryScannedBytes: 16,
+            cacheMisses: 1,
+            banner: {
+              type: 'DSM_EFFICIENCY',
+              title: 'Pure Columnar Access: 100% Cache Line Density & Zero Memory Waste',
+              description: 'Only 16 bytes fetched across the bus to evaluate all 16 rows. Unreferenced columns never touched.',
+            },
+            metrics: {
+              storageModel: 'Column-Oriented (DSM)',
+              executionModel: 'Volcano Iterator',
+              memoryBandwidthScanned: '16 bytes (1 B/tuple)',
+              virtualCalls: 48,
+              l1CacheMisses: 1,
+              simdVectorWidth: 'Ready for SIMD',
+            },
+          },
+          metrics: { 'Storage Layout': 'Columnar DSM', 'Status Scan Memory': '16 bytes', 'L1 Cache Misses': 1, 'Bandwidth Efficiency': '98.8% Saved' },
+        },
+        {
+          stepIndex: 3,
+          title: 'Columnar Lightweight Compression: Run-Length (RLE) & Dictionary Encoding',
+          explanation:
+            'Homogeneous columnar arrays exhibit massive redundancy. Status column compresses with Run-Length Encoding (RLE): 16 values compress into 9 run tuples (e.g. (PAID, 3)). Customer IDs compress with Dictionary Encoding: 4 distinct strings map to 2-bit integer tokens [0, 1, 2, 3], reducing customer_id column from 96 bytes to 4 bytes (95.8% space savings!). The engine filters directly on integer codes without string decoding.',
+          status: 'SUCCESS',
+          columnarState: {
+            storageLayout: 'COLUMN_ORIENTED_DSM',
+            executionEngine: 'VOLCANO_ITERATOR',
+            compression: 'DICTIONARY_COMPRESSED',
+            querySql: sqlQuery,
+            rows: baseRows,
+            rowPages: initialPages,
+            columns: baseColumns.map((c) => {
+              if (c.name === 'customer_id') return { ...c, compressionRatio: '95.8% (4 B)', memoryBytes: 4 };
+              if (c.name === 'status') return { ...c, compressionRatio: '43.8% (9 B)', memoryBytes: 9 };
+              return c;
+            }),
+            selectionVector: initialBits,
+            rleRuns,
+            dictionary,
+            dictEncodedIndices,
+            memoryScannedBytes: 9,
+            cacheMisses: 1,
+            banner: {
+              type: 'COMPRESSION_SAVINGS',
+              title: 'Lightweight Compression: 95.8% String Savings & Direct Code Filtering',
+              description: 'Dictionary token array [0..3] enables SIMD integer comparisons without decompressing strings.',
+            },
+            metrics: {
+              storageModel: 'Columnar DSM + RLE/Dict',
+              executionModel: 'Volcano Iterator',
+              memoryBandwidthScanned: '9 bytes RLE',
+              virtualCalls: 48,
+              l1CacheMisses: 1,
+              simdVectorWidth: '2-bit integer codes',
+            },
+          },
+          metrics: { 'Status RLE Runs': '9 runs (from 16)', 'Dict Token Size': '2 bits / customer', 'Compression Savings': '78.5% total', 'Direct Execution': 'Enabled' },
+        },
+        {
+          stepIndex: 4,
+          title: 'Volcano Iterator Engine: 48 Virtual Function Calls & Branch Thrashing',
+          explanation:
+            'The classical Volcano Iterator Model (Goetz Graefe 1994) evaluates queries tuple-at-a-time via next(). For 16 rows, calling ScanFilter.next() -> Project.next() -> Aggregate.next() triggers 48 virtual function calls! Each virtual call causes pointer indirection, invalidates the CPU instruction pipeline, and incurs unpredictable branch misprediction penalties on non-matching rows.',
+          status: 'MISMATCH',
+          columnarState: {
+            storageLayout: 'COLUMN_ORIENTED_DSM',
+            executionEngine: 'VOLCANO_ITERATOR',
+            compression: 'DICTIONARY_COMPRESSED',
+            querySql: sqlQuery,
+            rows: baseRows,
+            rowPages: initialPages,
+            columns: baseColumns,
+            selectionVector: initialBits,
+            volcanoCalls: 48,
+            vectorizedCalls: 0,
+            memoryScannedBytes: 288,
+            cacheMisses: 12,
+            banner: {
+              type: 'VOLCANO_OVERHEAD',
+              title: 'Volcano Iterator Bottleneck: 48 Virtual Calls for 16 Rows',
+              description: 'Dynamic virtual dispatch per tuple halts CPU superscalar pipelining and prevents vectorization.',
+            },
+            metrics: {
+              storageModel: 'Columnar DSM',
+              executionModel: 'Volcano Iterator (next())',
+              memoryBandwidthScanned: '288 bytes',
+              virtualCalls: 48,
+              l1CacheMisses: 12,
+              simdVectorWidth: 'None (Scalar next())',
+            },
+          },
+          metrics: { 'Execution Model': 'Volcano Iterator', 'Virtual Function Calls': '48 calls', 'CPU Cycles / Tuple': '82 cycles', 'Branch Predictor': 'Stalled' },
+        },
+        {
+          stepIndex: 5,
+          title: 'Boncz Vectorized SIMD Engine: 1024-Element Batch & Selection Bitmasks',
+          explanation:
+            'Peter Boncz\'s Vectorized Execution Engine (MonetDB/X100, SIGMOD 2005) operates on primitive vector batches (1024 elements). Instead of calling next() 48 times, a single vector call evaluates the entire batch. Filter status == \'PAID\' is compiled into a single hardware SIMD vector instruction (_mm256_cmpeq_epi8), producing a 16-bit selection bitmask in 1 CPU cycle: [1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1]. Branchless and zero virtual call tax!',
+          status: 'SUCCESS',
+          columnarState: {
+            storageLayout: 'COLUMN_ORIENTED_DSM',
+            executionEngine: 'VECTORIZED_SIMD',
+            compression: 'DICTIONARY_COMPRESSED',
+            querySql: sqlQuery,
+            rows: baseRows,
+            rowPages: initialPages,
+            columns: baseColumns,
+            selectionVector: initialBits.map((b) => ({ ...b, isInspected: true })),
+            volcanoCalls: 0,
+            vectorizedCalls: 1,
+            memoryScannedBytes: 16,
+            cacheMisses: 1,
+            banner: {
+              type: 'SIMD_SPEEDUP',
+              title: 'Branchless SIMD Evaluation: 1 Virtual Call & 1-Cycle Bitmask',
+              description: '_mm256_cmpeq_epi8 evaluates all 16 status bytes in parallel, producing a 16-bit selection vector.',
+            },
+            metrics: {
+              storageModel: 'Columnar DSM',
+              executionModel: 'Vectorized SIMD (X100)',
+              memoryBandwidthScanned: '16 bytes',
+              virtualCalls: 1,
+              l1CacheMisses: 1,
+              simdVectorWidth: '256-bit AVX2 (16 lanes)',
+            },
+          },
+          metrics: { 'Execution Engine': 'Boncz Vectorized SIMD', 'Selection Vector': '12 / 16 active bits', 'Virtual Function Calls': '1 call', 'SIMD Parallelism': '16 elements / cycle' },
+        },
+        {
+          stepIndex: 6,
+          title: 'SIMD Parallel Projection: Masked Arithmetic on Selected Rows',
+          explanation:
+            'Vectorized projection computes net revenue amount * (1 - discount) in parallel across active lanes in the selection vector using AVX2 Fused Multiply-Add (_mm256_fmadd_ps). Inactive rows (rows 3, 6, 10, 14) are masked out in hardware without scalar branching. Net revenues are summed directly into dictionary bins: CUST_A: $555.75, CUST_B: $780.00, CUST_C: $360.00, CUST_D: $510.00.',
+          status: 'SUCCESS',
+          columnarState: {
+            storageLayout: 'COLUMN_ORIENTED_DSM',
+            executionEngine: 'VECTORIZED_SIMD',
+            compression: 'DICTIONARY_COMPRESSED',
+            querySql: sqlQuery,
+            rows: baseRows,
+            rowPages: initialPages,
+            columns: baseColumns,
+            selectionVector: initialBits,
+            activeIndices: [0, 1, 2, 4, 5, 7, 8, 9, 11, 12, 13, 15],
+            volcanoCalls: 0,
+            vectorizedCalls: 1,
+            memoryScannedBytes: 112,
+            cacheMisses: 2,
+            banner: {
+              type: 'SIMD_SPEEDUP',
+              title: 'Vectorized FMA Arithmetic: 4 Parallel Lanes with Zero Scalar Branches',
+              description: 'Active rows compute amount * (1 - discount) via AVX2 instructions with direct dictionary aggregation.',
+            },
+            metrics: {
+              storageModel: 'Columnar DSM + Vectorized',
+              executionModel: 'Vectorized SIMD (AVX2)',
+              memoryBandwidthScanned: '112 bytes total',
+              virtualCalls: 1,
+              l1CacheMisses: 2,
+              simdVectorWidth: '256-bit AVX2 FMA',
+            },
+          },
+          metrics: { 'Vector Arithmetic': 'AVX2 _mm256_fmadd_ps', 'Active Rows Computed': 12, 'Dictionary Aggregation': 'Zero String Hash Overhead', 'Hardware Masking': 'Branchless' },
+        },
+        {
+          stepIndex: 7,
+          title: 'Columnar Vectorized Engine Verification: 9.2x OLAP Speedup',
+          explanation:
+            'Verification complete: By combining Decomposition Storage Model (DSM) column pruning with Boncz Vectorized SIMD batch execution and lightweight dictionary encoding, analytical queries bypass the memory bandwidth wall and eliminate virtual function call overhead, achieving 9.2x throughput speedups over traditional row-oriented Volcano engines.',
+          status: 'COMPLETE',
+          columnarState: {
+            storageLayout: 'COLUMN_ORIENTED_DSM',
+            executionEngine: 'VECTORIZED_SIMD',
+            compression: 'DICTIONARY_COMPRESSED',
+            querySql: sqlQuery,
+            rows: baseRows,
+            rowPages: initialPages,
+            columns: baseColumns,
+            selectionVector: initialBits,
+            activeIndices: [0, 1, 2, 4, 5, 7, 8, 9, 11, 12, 13, 15],
+            volcanoCalls: 0,
+            vectorizedCalls: 1,
+            memoryScannedBytes: 112,
+            cacheMisses: 2,
+            banner: {
+              type: 'SUMMARY',
+              title: '✓ Columnar Storage & Vectorized Execution Engine Proven',
+              description: '91.2% memory bandwidth reduction, 97.9% virtual call reduction, 9.2x query execution speedup.',
+            },
+            metrics: {
+              storageModel: 'DSM (Columnar)',
+              executionModel: 'Vectorized SIMD',
+              memoryBandwidthScanned: '112 B vs 1,280 B',
+              virtualCalls: 1,
+              l1CacheMisses: 2,
+              simdVectorWidth: 'AVX2 256-bit',
+            },
+          },
+          metrics: { 'Bandwidth Saved': '91.2% (112B vs 1280B)', 'Virtual Calls Cut': '97.9% (1 vs 48)', 'L1 Miss Reduction': '88.9% (2 vs 18)', 'Speedup Factor': '9.2x Faster' },
+        },
+      ];
+    },
+  },
 ];
 
 export function AlgorithmVisualizerSandbox() {
@@ -5419,6 +5892,345 @@ export function AlgorithmVisualizerSandbox() {
                 </span>
                 <p className="text-[11px] text-text-muted leading-relaxed">
                   Information retrieval platforms leverage Elias-Fano and skip lists across posting lists, allowing billion-document full-text queries to resolve in sub-millisecond latencies.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* SUB-MODULE: COLUMNAR STORAGE & VECTORIZED SIMD EXECUTION ENGINE */}
+        {currentFrame.columnarState && (
+          <div className="space-y-4">
+            {/* SQL Query Specification Bar */}
+            <div className="bg-canvas border border-border rounded-xl p-4 space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-xs font-bold text-primary-800 uppercase tracking-wider">
+                  Target OLAP Query Execution Plan
+                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-surface border border-border font-semibold text-text">
+                    Layout: {currentFrame.columnarState.storageLayout === 'COLUMN_ORIENTED_DSM' ? 'Columnar DSM' : 'Row NSM'}
+                  </span>
+                  <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-surface border border-border font-semibold text-text">
+                    Engine: {currentFrame.columnarState.executionEngine === 'VECTORIZED_SIMD' ? 'Vectorized SIMD' : 'Volcano (next())'}
+                  </span>
+                </div>
+              </div>
+              <div className="bg-surface border border-border rounded-lg p-2.5 font-mono text-xs text-primary-900 font-semibold overflow-x-auto">
+                {currentFrame.columnarState.querySql}
+              </div>
+            </div>
+
+            {/* Active Action Banner */}
+            {currentFrame.columnarState.banner && (
+              <div
+                className={`p-4 rounded-xl border flex items-start gap-3 ${
+                  currentFrame.columnarState.banner.type === 'SUMMARY' || currentFrame.columnarState.banner.type === 'SIMD_SPEEDUP' || currentFrame.columnarState.banner.type === 'DSM_EFFICIENCY' || currentFrame.columnarState.banner.type === 'COMPRESSION_SAVINGS'
+                    ? 'bg-emerald-50/70 border-emerald-300 text-emerald-950'
+                    : currentFrame.columnarState.banner.type === 'NSM_WASTE' || currentFrame.columnarState.banner.type === 'VOLCANO_OVERHEAD'
+                    ? 'bg-amber-50/70 border-amber-300 text-amber-950'
+                    : 'bg-primary-50/70 border-primary-300 text-primary-950'
+                }`}
+              >
+                <div className="text-sm font-bold mt-0.5">
+                  {currentFrame.columnarState.banner.title}
+                </div>
+                <div className="text-xs text-text-muted flex-1 leading-relaxed">
+                  {currentFrame.columnarState.banner.description}
+                </div>
+              </div>
+            )}
+
+            {/* Physical Memory Layout Visualization */}
+            <div className="bg-canvas border border-border rounded-xl p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-primary-800 uppercase tracking-wider">
+                  Physical Storage Memory Layout: {currentFrame.columnarState.storageLayout === 'ROW_ORIENTED_NSM' ? 'N-ary Storage Model (NSM Slotted Pages)' : 'Decomposition Storage Model (DSM Column Vectors)'}
+                </span>
+                <span className="text-[11px] font-mono text-text-muted">
+                  Bandwidth: {currentFrame.columnarState.metrics?.memoryBandwidthScanned}
+                </span>
+              </div>
+
+              {currentFrame.columnarState.storageLayout === 'ROW_ORIENTED_NSM' ? (
+                /* Row-Oriented NSM Slotted Pages Display */
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {currentFrame.columnarState.rowPages.map((page) => (
+                    <div key={page.pageId} className="bg-surface border border-border rounded-lg p-3 space-y-2">
+                      <div className="flex items-center justify-between text-xs border-b border-border pb-1">
+                        <span className="font-bold text-text font-mono">Slotted Page #{page.pageId} (4,096 Bytes)</span>
+                        <span className="text-[11px] text-amber-700 font-semibold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                          80% Unused Columns Loaded
+                        </span>
+                      </div>
+                      <div className="space-y-1.5 font-mono text-xs">
+                        {page.slots.map((slot) => (
+                          <div
+                            key={slot.rowId}
+                            className={`p-2 rounded border flex items-center justify-between ${
+                              slot.isStatusMatch
+                                ? 'bg-emerald-50/60 border-emerald-300 text-emerald-900'
+                                : 'bg-neutral-50 border-neutral-200 text-neutral-500 opacity-70'
+                            }`}
+                          >
+                            <span className="font-semibold">Row #{slot.rowId}:</span>
+                            <span className="text-[11px] truncate">{slot.tupleBytes}</span>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
+                              slot.isStatusMatch ? 'bg-emerald-200 text-emerald-950' : 'bg-neutral-200 text-neutral-700'
+                            }`}>
+                              {slot.isStatusMatch ? 'MATCH' : 'SKIP'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                /* Column-Oriented DSM Column Vectors Display */
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                  {currentFrame.columnarState.columns.map((col) => (
+                    <div
+                      key={col.name}
+                      className={`rounded-lg border p-2.5 space-y-2 ${
+                        col.isFiltered
+                          ? 'bg-emerald-50/80 border-emerald-400 shadow-xs'
+                          : col.isProjected
+                          ? 'bg-primary-50/80 border-primary-300'
+                          : 'bg-surface border-border opacity-50'
+                      }`}
+                    >
+                      <div className="border-b border-border pb-1 space-y-0.5">
+                        <div className="text-xs font-bold text-text truncate font-mono">{col.name}</div>
+                        <div className="flex items-center justify-between text-[10px] text-text-muted">
+                          <span>{col.type}</span>
+                          <span className="font-semibold text-primary-800">{col.memoryBytes} B</span>
+                        </div>
+                      </div>
+
+                      <div className="text-[10px] font-mono space-y-1 max-h-48 overflow-y-auto">
+                        {col.values.slice(0, 8).map((val, vIdx) => {
+                          const isMatch = col.isFiltered && val === 'PAID';
+                          return (
+                            <div
+                              key={vIdx}
+                              className={`px-1.5 py-0.5 rounded flex items-center justify-between truncate ${
+                                isMatch
+                                  ? 'bg-emerald-200/70 font-bold text-emerald-950'
+                                  : 'bg-canvas text-text-muted'
+                              }`}
+                            >
+                              <span className="text-[9px] text-text-muted">#{vIdx}</span>
+                              <span className="truncate">{String(val)}</span>
+                            </div>
+                          );
+                        })}
+                        {col.values.length > 8 && (
+                          <div className="text-center text-[9px] text-text-muted font-bold pt-1">
+                            + {col.values.length - 8} more
+                          </div>
+                        )}
+                      </div>
+
+                      {col.compressionRatio && (
+                        <div className="text-[10px] font-semibold text-emerald-800 bg-emerald-100/70 px-1.5 py-0.5 rounded text-center">
+                          {col.compressionRatio}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Compression Inspectors (RLE & Dictionary) */}
+            {currentFrame.columnarState.rleRuns && currentFrame.columnarState.dictionary && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* RLE Runs */}
+                <div className="bg-canvas border border-border rounded-xl p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-primary-800 uppercase tracking-wider">
+                      Run-Length Encoding (RLE): status Column
+                    </span>
+                    <span className="text-[11px] font-mono text-emerald-800 font-semibold">
+                      9 Runs (43.8% Memory Reduction)
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {currentFrame.columnarState.rleRuns.map((run, rIdx) => (
+                      <span
+                        key={rIdx}
+                        className={`text-xs font-mono px-2 py-1 rounded border flex items-center gap-1 ${
+                          run.value === 'PAID'
+                            ? 'bg-emerald-100 border-emerald-300 text-emerald-950 font-bold'
+                            : 'bg-surface border-border text-text-muted'
+                        }`}
+                      >
+                        <span>{run.value}</span>
+                        <span className="text-[10px] bg-white/80 px-1 rounded font-bold text-text">
+                          ×{run.count}
+                        </span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Dictionary Table */}
+                <div className="bg-canvas border border-border rounded-xl p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-primary-800 uppercase tracking-wider">
+                      Dictionary Encoding: customer_id Column
+                    </span>
+                    <span className="text-[11px] font-mono text-emerald-800 font-semibold">
+                      2 Bits / Token (95.8% Savings)
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {currentFrame.columnarState.dictionary.map((entry) => (
+                      <div
+                        key={entry.code}
+                        className="text-xs font-mono px-2 py-1 rounded bg-surface border border-border flex items-center gap-1.5"
+                      >
+                        <span className="font-bold text-primary-700 bg-primary-50 px-1 rounded">
+                          Token {entry.code}
+                        </span>
+                        <span className="text-text font-semibold">{entry.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Selection Vector Bitmask Visualizer */}
+            <div className="bg-canvas border border-border rounded-xl p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-primary-800 uppercase tracking-wider">
+                    SIMD Selection Vector Bitmask: _mm256_cmpeq_epi8(status, &apos;PAID&apos;)
+                  </span>
+                  <span className="text-[11px] font-mono bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded font-bold">
+                    12 Active / 16 Total (75% Filter Selectivity)
+                  </span>
+                </div>
+                <span className="text-[11px] font-mono text-text-muted">
+                  Branchless Hardware Evaluation
+                </span>
+              </div>
+
+              <div className="grid grid-cols-4 sm:grid-cols-8 lg:grid-cols-16 gap-1.5">
+                {currentFrame.columnarState.selectionVector.map((bitItem) => {
+                  const isActive = bitItem.bit === 1;
+                  return (
+                    <div
+                      key={bitItem.index}
+                      className={`rounded border p-2 text-center space-y-0.5 transition-all ${
+                        isActive
+                          ? 'bg-emerald-100 border-emerald-400 text-emerald-950 font-bold scale-105 shadow-xs'
+                          : 'bg-neutral-100 border-neutral-200 text-neutral-400 opacity-60'
+                      }`}
+                    >
+                      <div className="text-[9px] text-text-muted font-mono">#{bitItem.index}</div>
+                      <div className="text-sm font-mono font-black">{bitItem.bit}</div>
+                      <div className="text-[9px] truncate font-sans font-medium">{bitItem.status}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Quantitative Performance Benchmark Table */}
+            <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+              <div className="flex items-center justify-between border-b border-border pb-2">
+                <span className="text-xs font-bold text-text uppercase tracking-wider">
+                  Quantitative Execution Benchmark: Row NSM (Volcano) vs Columnar DSM (Vectorized SIMD)
+                </span>
+                <span className="text-xs font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded">
+                  9.2x Query Acceleration
+                </span>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-left">
+                  <thead>
+                    <tr className="border-b border-border text-text-muted">
+                      <th className="py-1.5 pr-4 font-semibold">Architectural Metric</th>
+                      <th className="py-1.5 px-4 font-semibold">Row-Oriented (NSM) + Volcano</th>
+                      <th className="py-1.5 px-4 font-semibold">Columnar (DSM) + Vectorized SIMD</th>
+                      <th className="py-1.5 pl-4 font-semibold text-right">Optimization Delta</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border font-mono text-[11px]">
+                    <tr>
+                      <td className="py-2 pr-4 font-sans font-medium text-text">Memory Scanned (Predicate)</td>
+                      <td className="py-2 px-4 text-red-700">1,280 Bytes (80 B / row)</td>
+                      <td className="py-2 px-4 text-emerald-700 font-bold">16 Bytes (1 B / row)</td>
+                      <td className="py-2 pl-4 text-right text-emerald-700 font-bold">98.8% Bandwidth Saved</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 pr-4 font-sans font-medium text-text">Total Query Memory Loaded</td>
+                      <td className="py-2 px-4 text-red-700">1,280 Bytes</td>
+                      <td className="py-2 px-4 text-emerald-700 font-bold">112 Bytes (Projected Only)</td>
+                      <td className="py-2 pl-4 text-right text-emerald-700 font-bold">91.2% Bandwidth Saved</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 pr-4 font-sans font-medium text-text">Virtual Function Calls</td>
+                      <td className="py-2 px-4 text-red-700">48 calls (3 per matching row)</td>
+                      <td className="py-2 px-4 text-emerald-700 font-bold">1 call (per 1024-elem batch)</td>
+                      <td className="py-2 pl-4 text-right text-emerald-700 font-bold">97.9% Calls Eliminated</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 pr-4 font-sans font-medium text-text">L1 Cache Miss Count</td>
+                      <td className="py-2 px-4 text-red-700">18 cache misses</td>
+                      <td className="py-2 px-4 text-emerald-700 font-bold">2 cache misses</td>
+                      <td className="py-2 pl-4 text-right text-emerald-700 font-bold">88.9% Cache Miss Drop</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 pr-4 font-sans font-medium text-text">Branch Predictor Thrashing</td>
+                      <td className="py-2 px-4 text-red-700">High (Scalar IF-ELSE on status)</td>
+                      <td className="py-2 px-4 text-emerald-700 font-bold">Zero (Branchless SIMD Bitmask)</td>
+                      <td className="py-2 pl-4 text-right text-emerald-700 font-bold">100% Pipeline Stall Free</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* 4 Socratic Invariant Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+              <div className="p-3.5 rounded-lg bg-surface border border-border space-y-1 text-xs">
+                <span className="font-bold text-text block text-[11px]">
+                  1. DSM &amp; Projection Pruning
+                </span>
+                <p className="text-[11px] text-text-muted leading-relaxed">
+                  OLTP demands single-tuple row writes (NSM); OLAP scans millions of rows projecting 2-3 columns. DSM column pruning prevents memory bus saturation by reading zero unreferenced attributes.
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded-lg bg-surface border border-border space-y-1 text-xs">
+                <span className="font-bold text-text block text-[11px]">
+                  2. Cache Line Density Wall
+                </span>
+                <p className="text-[11px] text-text-muted leading-relaxed">
+                  A 64-byte L1 CPU cache line holds 64 1-byte enum values or 16 4-byte integers in DSM. In NSM, 80% of the cache line is polluted with unneeded strings and IDs, triggering severe L1 thrashing.
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded-lg bg-surface border border-border space-y-1 text-xs">
+                <span className="font-bold text-text block text-[11px]">
+                  3. Direct SIMD on Encoded Data
+                </span>
+                <p className="text-[11px] text-text-muted leading-relaxed">
+                  Dictionary and RLE compressions preserve value order and integer domains, enabling AVX2 vector registers to compare tokens directly without expanding strings back to user memory.
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded-lg bg-surface border border-border space-y-1 text-xs">
+                <span className="font-bold text-text block text-[11px]">
+                  4. Volcano vs Vectorized Batches
+                </span>
+                <p className="text-[11px] text-text-muted leading-relaxed">
+                  Tuple-at-a-time next() virtual calls thrash instruction caches and branch predictors. Processing 1024-element primitive arrays in tight unrolled C loops achieves near-metal CPU instruction retirement.
                 </p>
               </div>
             </div>

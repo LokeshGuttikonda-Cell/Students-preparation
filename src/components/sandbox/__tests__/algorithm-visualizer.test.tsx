@@ -29,6 +29,7 @@ describe('AlgorithmVisualizerSandbox', () => {
     expect(screen.getByRole('button', { name: 'Bloom Filter Bit-Array Hashing & False Positive Invariants' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Trie Prefix Tree & Compressed Radix Tree Autocomplete Studio' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Inverted Index & Okapi BM25 Search Relevance Scoring Studio' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Database Columnar Storage & Vectorized SIMD Execution Engine' })).toBeInTheDocument();
   });
 
   it('renders AVL Tree Rotations with complete Socratic step-by-step frames', () => {
@@ -690,5 +691,84 @@ describe('AlgorithmVisualizerSandbox', () => {
     expect(screen.getByText(/Constant-Time O\(1\) Random Access via Hardware POPCNT & select₁/)).toBeInTheDocument();
     expect(screen.getByText(/O\(1\) Random Access: Reconstructed DocID 42/)).toBeInTheDocument();
     expect(nextBtn).toBeDisabled();
+  });
+
+  it('renders Database Columnar Storage & Vectorized SIMD Execution Engine stepping through NSM waste, DSM vectors, RLE/Dict compression, and SIMD bitmasks', () => {
+    render(<AlgorithmVisualizerSandbox />);
+
+    // Select Columnar & Vectorized Engine
+    const algoBtn = screen.getByRole('button', { name: /Database Columnar Storage & Vectorized SIMD Execution Engine/i });
+    fireEvent.click(algoBtn);
+
+    // Verify Title & Complexity
+    expect(
+      screen.getByRole('heading', {
+        name: 'Database Columnar Storage & Vectorized SIMD Execution Engine',
+        level: 3,
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Row NSM: O\(N · C\) scalar calls/)).toBeInTheDocument();
+
+    // Verify Initial Step 1 of 8
+    expect(screen.getByText('Step 1 of 8')).toBeInTheDocument();
+    expect(screen.getByText('Analytical Query Target & Relational Table Model')).toBeInTheDocument();
+    expect(screen.getAllByText(/SELECT customer_id, SUM\(amount/i).length).toBeGreaterThanOrEqual(1);
+
+    const nextBtn = screen.getByRole('button', { name: /Next Step/i });
+    const resetBtn = screen.getByRole('button', { name: /Reset Stepper/i });
+
+    // Step 2: Row-Oriented NSM Slotted Pages
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 2 of 8')).toBeInTheDocument();
+    expect(screen.getByText(/Row-Oriented \(NSM\) Slotted Pages: The 80% Cache Pollution Penalty/)).toBeInTheDocument();
+    expect(screen.getAllByText(/80% Unused Columns Loaded/i).length).toBeGreaterThanOrEqual(1);
+
+    // Step 3: Column-Oriented DSM Vectors
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 3 of 8')).toBeInTheDocument();
+    expect(screen.getByText(/Column-Oriented \(DSM\) Decomposition: 100% Cache Line Utilization/)).toBeInTheDocument();
+    expect(screen.getByText(/Pure Columnar Access: 100% Cache Line Density/)).toBeInTheDocument();
+
+    // Step 4: Column Compression (RLE & Dictionary)
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 4 of 8')).toBeInTheDocument();
+    expect(screen.getByText(/Columnar Lightweight Compression: Run-Length \(RLE\) & Dictionary Encoding/)).toBeInTheDocument();
+    expect(screen.getByText(/Run-Length Encoding \(RLE\): status Column/)).toBeInTheDocument();
+    expect(screen.getByText(/Dictionary Encoding: customer_id Column/)).toBeInTheDocument();
+
+    // Step 5: Volcano Iterator Bottleneck (48 Virtual Calls)
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 5 of 8')).toBeInTheDocument();
+    expect(screen.getByText(/Volcano Iterator Engine: 48 Virtual Function Calls & Branch Thrashing/)).toBeInTheDocument();
+    expect(screen.getByText(/Volcano Iterator Bottleneck: 48 Virtual Calls for 16 Rows/)).toBeInTheDocument();
+
+    // Step 6: Boncz Vectorized SIMD Engine (1 Virtual Call & 1-Cycle Bitmask)
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 6 of 8')).toBeInTheDocument();
+    expect(screen.getByText(/Boncz Vectorized SIMD Engine: 1024-Element Batch & Selection Bitmasks/)).toBeInTheDocument();
+    expect(screen.getByText(/Branchless SIMD Evaluation: 1 Virtual Call & 1-Cycle Bitmask/)).toBeInTheDocument();
+    expect(screen.getByText(/12 Active \/ 16 Total/)).toBeInTheDocument();
+
+    // Step 7: SIMD Parallel Projection & FMA Arithmetic
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 7 of 8')).toBeInTheDocument();
+    expect(screen.getByText(/SIMD Parallel Projection: Masked Arithmetic on Selected Rows/)).toBeInTheDocument();
+    expect(screen.getByText(/Vectorized FMA Arithmetic: 4 Parallel Lanes/)).toBeInTheDocument();
+
+    // Step 8: Full Benchmark Verification & Invariants
+    fireEvent.click(nextBtn);
+    expect(screen.getByText('Step 8 of 8')).toBeInTheDocument();
+    expect(screen.getByText(/Columnar Vectorized Engine Verification: 9.2x OLAP Speedup/)).toBeInTheDocument();
+    expect(screen.getByText(/✓ Columnar Storage & Vectorized Execution Engine Proven/)).toBeInTheDocument();
+    expect(screen.getByText('1. DSM & Projection Pruning')).toBeInTheDocument();
+    expect(screen.getByText('2. Cache Line Density Wall')).toBeInTheDocument();
+    expect(screen.getByText('3. Direct SIMD on Encoded Data')).toBeInTheDocument();
+    expect(screen.getByText('4. Volcano vs Vectorized Batches')).toBeInTheDocument();
+    expect(nextBtn).toBeDisabled();
+
+    // Test Reset Stepper
+    fireEvent.click(resetBtn);
+    expect(screen.getByText('Step 1 of 8')).toBeInTheDocument();
+    expect(screen.getByText('Analytical Query Target & Relational Table Model')).toBeInTheDocument();
   });
 });
