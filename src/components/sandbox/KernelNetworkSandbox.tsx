@@ -3,7 +3,30 @@
 import React, { useState } from 'react';
 import { Button } from '../ui/Button';
 
-export type KernelNetworkMode = 'CPU_SCHEDULING' | 'PAGE_REPLACEMENT' | 'TCP_CONGESTION';
+export type KernelNetworkMode = 'CPU_SCHEDULING' | 'PAGE_REPLACEMENT' | 'TCP_CONGESTION' | 'EPOLL_MULTIPLEXING';
+
+
+// --- Module 4: Linux Kernel epoll & C10K I/O Multiplexing Types ---
+export type EpollTriggerMode = 'LEVEL_TRIGGERED' | 'EDGE_TRIGGERED';
+
+export interface EpollSocket {
+  fd: number;
+  name: string;
+  ipPort: string;
+  bufferBytesUnread: number;
+  bufferCapacity: number;
+  state: 'IDLE' | 'DATA_ARRIVED' | 'PARTIALLY_DRAINED' | 'DRAINED_EAGAIN';
+  isOnReadyList: boolean;
+  totalBytesReceived: number;
+}
+
+export interface EpollEventLog {
+  id: number;
+  time: string;
+  badge: string;
+  badgeClass: string;
+  message: string;
+}
 
 interface ProcessDef {
   id: string;
@@ -268,6 +291,187 @@ export function KernelNetworkSandbox() {
 
   const currentTcpPoint = TCP_SERIES[tcpRound - 1] || TCP_SERIES[0];
 
+
+  // --- Module 4: Epoll & C10K Multiplexing State ---
+  const [epollMode, setEpollMode] = useState<EpollTriggerMode>('LEVEL_TRIGGERED');
+  const [epollStallAlert, setEpollStallAlert] = useState<string | null>(null);
+
+  const initialSockets: EpollSocket[] = [
+    { fd: 3, name: 'Client 1 (Web Gateway)', ipPort: '10.0.1.12:44192', bufferBytesUnread: 0, bufferCapacity: 4096, state: 'IDLE', isOnReadyList: false, totalBytesReceived: 0 },
+    { fd: 4, name: 'Client 2 (Heavy API Stream)', ipPort: '10.0.1.45:51280', bufferBytesUnread: 0, bufferCapacity: 4096, state: 'IDLE', isOnReadyList: false, totalBytesReceived: 0 },
+    { fd: 5, name: 'Client 3 (Microservice RPC)', ipPort: '10.0.2.18:38914', bufferBytesUnread: 0, bufferCapacity: 4096, state: 'IDLE', isOnReadyList: false, totalBytesReceived: 0 },
+    { fd: 6, name: 'Client 4 (Telemetry Sensor)', ipPort: '10.0.2.99:60210', bufferBytesUnread: 0, bufferCapacity: 4096, state: 'IDLE', isOnReadyList: false, totalBytesReceived: 0 },
+  ];
+
+  const [epollSockets, setEpollSockets] = useState<EpollSocket[]>(initialSockets);
+
+  const [epollAuditLog, setEpollAuditLog] = useState<EpollEventLog[]>([
+    {
+      id: 1,
+      time: '00:00:00',
+      badge: 'EPOLL_CREATE',
+      badgeClass: 'bg-slate-100 text-slate-800 border-slate-300 dark:bg-zinc-800 dark:text-zinc-200',
+      message: 'epoll_create1(EPOLL_CLOEXEC) initialized. In-kernel Red-Black Tree registered 4 FDs (3..6). Mode: LEVEL_TRIGGERED.',
+    },
+  ]);
+
+  const handleEpollInjectPacket = (targetFd: number = 4, bytes: number = 1024) => {
+    setEpollStallAlert(null);
+    setEpollSockets((prev) =>
+      prev.map((s) => {
+        if (s.fd === targetFd) {
+          const newBytes = s.bufferBytesUnread + bytes;
+          return {
+            ...s,
+            bufferBytesUnread: newBytes,
+            state: 'DATA_ARRIVED',
+            isOnReadyList: true, // Kernel interrupt places socket on rdllist
+            totalBytesReceived: s.totalBytesReceived + bytes,
+          };
+        }
+        return s;
+      })
+    );
+    setEpollAuditLog((prev) => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        badge: 'NIC_PACKET',
+        badgeClass: 'bg-sky-100 text-sky-900 border-sky-300 dark:bg-sky-950/40 dark:text-sky-300',
+        message: `NIC interrupt: +${bytes} bytes arrived on FD ${targetFd}. Kernel sock_def_readable() appended FD ${targetFd} to rdllist.`,
+      },
+      ...prev.slice(0, 9),
+    ]);
+  };
+
+  const handleEpollWaitCall = () => {
+    const readyFds = epollSockets.filter((s) => s.isOnReadyList);
+    setEpollWaitAwake(true);
+
+    if (epollMode === 'EDGE_TRIGGERED') {
+      // In Edge-Triggered mode, epoll_wait returns events and removes them from rdllist!
+      setEpollSockets((prev) =>
+        prev.map((s) => (s.isOnReadyList ? { ...s, isOnReadyList: false } : s))
+      );
+    }
+
+    setEpollAuditLog((prev) => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        badge: 'EPOLL_WAIT',
+        badgeClass: 'bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300',
+        message: `epoll_wait() returned ${readyFds.length} active event(s): [${readyFds.map((f) => 'FD ' + f.fd).join(', ') || 'none'}]. Thread unblocked.`,
+      },
+      ...prev.slice(0, 9),
+    ]);
+  };
+
+  const handleEpollPartialRead = (targetFd: number = 4) => {
+    const target = epollSockets.find((s) => s.fd === targetFd);
+    if (!target || target.bufferBytesUnread === 0) return;
+
+    const readBytes = 256;
+    const remaining = Math.max(0, target.bufferBytesUnread - readBytes);
+
+    if (epollMode === 'LEVEL_TRIGGERED') {
+      // Level-Triggered: Because unread bytes remain, socket remains on rdllist!
+      setEpollSockets((prev) =>
+        prev.map((s) =>
+          s.fd === targetFd
+            ? {
+                ...s,
+                bufferBytesUnread: remaining,
+                state: 'PARTIALLY_DRAINED',
+                isOnReadyList: remaining > 0, // Remains ready!
+              }
+            : s
+        )
+      );
+      setEpollStallAlert(null);
+      setEpollAuditLog((prev) => [
+        {
+          id: Date.now(),
+          time: new Date().toLocaleTimeString(),
+          badge: 'LT_PARTIAL_READ',
+          badgeClass: 'bg-sky-100 text-sky-900 border-sky-300 dark:bg-sky-950/40 dark:text-sky-300',
+          message: `read(FD ${targetFd}, buf, ${readBytes}) completed. ${remaining} bytes remain. Level-Triggered: FD ${targetFd} REMAINS on rdllist!`,
+        },
+        ...prev.slice(0, 9),
+      ]);
+    } else {
+      // Edge-Triggered: Socket is NOT on rdllist, and buffer is not empty!
+      // This triggers the classic Edge-Triggered Stall Hazard!
+      setEpollSockets((prev) =>
+        prev.map((s) =>
+          s.fd === targetFd
+            ? {
+                ...s,
+                bufferBytesUnread: remaining,
+                state: 'PARTIALLY_DRAINED',
+                isOnReadyList: false, // NOT on ready list!
+              }
+            : s
+        )
+      );
+      if (remaining > 0) {
+        setEpollStallAlert(`CRITICAL EDGE-TRIGGERED STALL: read() consumed only ${readBytes}B of data leaving ${remaining}B unread in FD ${targetFd}! In Edge-Triggered mode, epoll_wait() will NEVER notify again until new bytes arrive at the NIC! Application must drain until EAGAIN!`);
+      }
+      setEpollAuditLog((prev) => [
+        {
+          id: Date.now(),
+          time: new Date().toLocaleTimeString(),
+          badge: 'ET_STALL_HAZARD',
+          badgeClass: 'bg-rose-100 text-rose-900 border-rose-300 dark:bg-rose-950/40 dark:text-rose-300 animate-pulse',
+          message: `ET PARTIAL READ HAZARD: FD ${targetFd} has ${remaining}B buffered, but was removed from rdllist! epoll_wait() will stall indefinitely!`,
+        },
+        ...prev.slice(0, 9),
+      ]);
+    }
+  };
+
+  const handleEpollDrainToEagain = (targetFd: number = 4) => {
+    setEpollStallAlert(null);
+    setEpollSockets((prev) =>
+      prev.map((s) =>
+        s.fd === targetFd
+          ? {
+              ...s,
+              bufferBytesUnread: 0,
+              state: 'DRAINED_EAGAIN',
+              isOnReadyList: false,
+            }
+          : s
+      )
+    );
+    setEpollAuditLog((prev) => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        badge: 'DRAIN_EAGAIN',
+        badgeClass: 'bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300',
+        message: `while((n=read(FD ${targetFd}))>0)... errno=EAGAIN. Entire socket buffer drained. Edge-Triggered contract satisfied!`,
+      },
+      ...prev.slice(0, 9),
+    ]);
+  };
+
+  const handleEpollReset = () => {
+    setEpollSockets(initialSockets);
+    setEpollWaitAwake(false);
+    setEpollStallAlert(null);
+    setEpollAuditLog((prev) => [
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString(),
+        badge: 'RESET',
+        badgeClass: 'bg-slate-100 text-slate-800 border-slate-300 dark:bg-zinc-800 dark:text-zinc-200',
+        message: 'epoll subsystem reset. Sockets drained and rdllist cleared.',
+      },
+      ...prev.slice(0, 9),
+    ]);
+  };
+
   return (
     <div className="bg-surface border border-border rounded-xl shadow-xs overflow-hidden space-y-6">
       {/* Sub-Header Tabs */}
@@ -319,6 +523,17 @@ export function KernelNetworkSandbox() {
             }`}
           >
             TCP Congestion (cwnd)
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('EPOLL_MULTIPLEXING')}
+            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+              activeTab === 'EPOLL_MULTIPLEXING'
+                ? 'bg-primary-700 text-white shadow-xs'
+                : 'text-text-muted hover:text-text'
+            }`}
+          >
+            epoll &amp; C10K I/O
           </button>
         </div>
       </div>
@@ -901,6 +1116,382 @@ export function KernelNetworkSandbox() {
           </div>
         </div>
       )}
+      {/* MODULE 4: LINUX KERNEL EPOLL & C10K I/O MULTIPLEXING */}
+      {activeTab === 'EPOLL_MULTIPLEXING' && (
+        <div className="p-6 space-y-6">
+          {/* Header Banner */}
+          <div className="bg-canvas border border-border rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-primary-600">
+                  Linux Kernel Subsystem &amp; Asynchronous I/O
+                </span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded border border-primary-200 bg-primary-50 text-primary-800 dark:bg-primary-950/40 dark:text-primary-300">
+                  Dan Kegel C10K Invariant
+                </span>
+              </div>
+              <h3 className="font-bold text-base text-text">
+                Linux Kernel epoll Architecture: Level-Triggered (LT) vs Edge-Triggered (ET) &amp; C10K Scaling
+              </h3>
+              <p className="text-xs text-text-muted max-w-3xl leading-relaxed">
+                Contrast the $O(N)$ linear memory copy bottlenecks of legacy `select()` and `poll()` against the Linux kernel&apos;s $O(1)$ `epoll` subsystem. Explore how the in-kernel Red-Black Tree and interrupt-driven Ready List (`rdllist`) operate, and observe the critical differences between state-driven Level-Triggered (LT) and edge-driven Edge-Triggered (ET / `EPOLLET`) modes.
+              </p>
+            </div>
+
+            {/* Mode Switcher */}
+            <div className="bg-surface border border-border p-2.5 rounded-lg flex flex-col gap-1.5 min-w-[280px]">
+              <span className="text-[11px] font-bold text-text uppercase tracking-wider">
+                epoll Trigger Semantics:
+              </span>
+              <div className="grid grid-cols-2 gap-1 bg-canvas p-1 rounded-md border border-border">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEpollMode('LEVEL_TRIGGERED');
+                    handleEpollReset();
+                  }}
+                  className={`px-2 py-1.5 rounded text-[11px] font-bold cursor-pointer transition-colors ${
+                    epollMode === 'LEVEL_TRIGGERED'
+                      ? 'bg-primary-700 text-white shadow-xs'
+                      : 'text-text-muted hover:text-text'
+                  }`}
+                >
+                  Level-Triggered (LT)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEpollMode('EDGE_TRIGGERED');
+                    handleEpollReset();
+                  }}
+                  className={`px-2 py-1.5 rounded text-[11px] font-bold cursor-pointer transition-colors ${
+                    epollMode === 'EDGE_TRIGGERED'
+                      ? 'bg-amber-600 text-white shadow-xs'
+                      : 'text-text-muted hover:text-text'
+                  }`}
+                >
+                  Edge-Triggered (ET)
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Edge-Triggered Stall Alert Banner (if triggered) */}
+          {epollStallAlert && (
+            <div className="p-3.5 rounded-xl bg-rose-100 border border-rose-300 text-rose-950 dark:bg-rose-950/50 dark:border-rose-800 dark:text-rose-200 text-xs space-y-1 animate-pulse">
+              <span className="font-bold text-sm block">⚠️ CRITICAL EDGE-TRIGGERED STALL DETECTED</span>
+              <p>{epollStallAlert}</p>
+            </div>
+          )}
+
+          {/* Interactive Operational Controls */}
+          <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+            <span className="text-xs font-bold uppercase tracking-wider text-text block">
+              Kernel Event Simulation Operations:
+            </span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
+              <Button
+                onClick={() => handleEpollInjectPacket(4, 1024)}
+                variant="primary"
+                className="text-xs px-2.5 py-2 cursor-pointer w-full text-center"
+              >
+                1. Inject Packet (+1024B on FD 4)
+              </Button>
+              <Button
+                onClick={handleEpollWaitCall}
+                variant="accent"
+                className="text-xs px-2.5 py-2 cursor-pointer w-full text-center"
+              >
+                2. Call epoll_wait()
+              </Button>
+              <Button
+                onClick={() => handleEpollPartialRead(4)}
+                variant={epollMode === 'EDGE_TRIGGERED' ? 'destructive' : 'secondary'}
+                className="text-xs px-2.5 py-2 cursor-pointer w-full text-center"
+              >
+                3. Partial Read (256B)
+              </Button>
+              <Button
+                onClick={() => handleEpollDrainToEagain(4)}
+                variant="primary"
+                className="text-xs px-2.5 py-2 cursor-pointer w-full text-center"
+              >
+                4. Drain to EAGAIN (O_NONBLOCK)
+              </Button>
+              <Button
+                onClick={handleEpollReset}
+                variant="secondary"
+                className="text-xs px-2.5 py-2 cursor-pointer w-full text-center"
+              >
+                ↺ Reset epoll Lab
+              </Button>
+            </div>
+          </div>
+
+          {/* Architecture Visualization: User Space -> Kernel epoll (RB-Tree + Ready List) -> Socket Buffers */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            {/* Kernel Ready List (rdllist) & RB-Tree Inspector */}
+            <div className="lg:col-span-5 bg-surface border border-border rounded-xl p-4 space-y-4">
+              <div className="flex items-center justify-between border-b border-border pb-2">
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full bg-primary-600 animate-pulse" />
+                  <h4 className="font-bold text-sm text-text">Linux Kernel epoll Subsystem</h4>
+                </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded border border-border bg-canvas">
+                  O(1) Event Delivery
+                </span>
+              </div>
+
+              {/* Ready List (rdllist) Box */}
+              <div className="p-3 rounded-xl bg-canvas border-2 border-primary-500/50 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold text-text flex items-center gap-1.5">
+                    <span>⚡ Ready List (rdllist):</span>
+                    <span className="text-[10px] text-text-muted font-normal">Doubly-Linked List</span>
+                  </span>
+                  <span className="font-mono text-[11px] font-bold text-primary-600">
+                    {epollSockets.filter((s) => s.isOnReadyList).length} Socket(s) Ready
+                  </span>
+                </div>
+
+                <div className="min-h-[48px] p-2 rounded-lg bg-surface border border-border flex flex-wrap items-center gap-2">
+                  {epollSockets.filter((s) => s.isOnReadyList).length === 0 ? (
+                    <span className="text-xs text-text-muted italic">
+                      rdllist is empty (Kernel sleeping; epoll_wait will block)
+                    </span>
+                  ) : (
+                    epollSockets
+                      .filter((s) => s.isOnReadyList)
+                      .map((s) => (
+                        <span
+                          key={s.fd}
+                          className="px-2.5 py-1 rounded bg-emerald-100 text-emerald-900 border border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 font-mono font-bold text-xs flex items-center gap-1.5 animate-bounce"
+                        >
+                          <span className="w-2 h-2 rounded-full bg-emerald-600 inline-block" />
+                          FD {s.fd} ({s.bufferBytesUnread}B ready)
+                        </span>
+                      ))
+                  )}
+                </div>
+              </div>
+
+              {/* Red-Black Tree Registration */}
+              <div className="p-3 rounded-xl bg-canvas border border-border space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold text-text">In-Kernel Monitored RB-Tree (rbr):</span>
+                  <span className="font-mono text-[10px] text-text-muted">epoll_ctl(EPOLL_CTL_ADD)</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-[11px] font-mono">
+                  {epollSockets.map((s) => (
+                    <div
+                      key={s.fd}
+                      className={`p-2 rounded border transition-colors ${
+                        s.isOnReadyList
+                          ? 'bg-emerald-50 border-emerald-300 text-emerald-950 dark:bg-emerald-950/30 dark:text-emerald-200'
+                          : 'bg-surface border-border text-text'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between font-bold">
+                        <span>FD {s.fd}</span>
+                        <span className="text-[10px] text-text-muted">{epollMode === 'EDGE_TRIGGERED' ? 'EPOLLET' : 'EPOLLLT'}</span>
+                      </div>
+                      <div className="text-[10px] text-text-muted truncate mt-0.5">{s.name}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Socket Receive Buffers (Hardware/Kernel Interface) */}
+            <div className="lg:col-span-7 bg-surface border border-border rounded-xl p-4 space-y-3">
+              <div className="flex items-center justify-between border-b border-border pb-2">
+                <div>
+                  <h4 className="font-bold text-sm text-text">Kernel Socket Receive Buffers (sk_receive_queue)</h4>
+                  <span className="text-xs text-text-muted">
+                    Simulates non-blocking TCP socket buffers in Linux kernel memory.
+                  </span>
+                </div>
+                <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded border ${
+                  epollMode === 'EDGE_TRIGGERED'
+                    ? 'bg-amber-100 text-amber-900 border-amber-300'
+                    : 'bg-primary-100 text-primary-900 border-primary-300'
+                }`}>
+                  Mode: {epollMode}
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                {epollSockets.map((s) => (
+                  <div
+                    key={s.fd}
+                    className={`p-3 rounded-xl border transition-all space-y-2 ${
+                      s.bufferBytesUnread > 0 && !s.isOnReadyList && epollMode === 'EDGE_TRIGGERED'
+                        ? 'bg-rose-50/40 border-rose-400 dark:bg-rose-950/20'
+                        : s.isOnReadyList
+                        ? 'bg-emerald-50/30 border-emerald-400 dark:bg-emerald-950/20'
+                        : 'bg-canvas border-border'
+                    }`}
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-bold text-text bg-surface px-2 py-0.5 rounded border border-border">
+                          FD {s.fd}
+                        </span>
+                        <span className="font-semibold text-text">{s.name}</span>
+                        <span className="font-mono text-[10px] text-text-muted">{s.ipPort}</span>
+                      </div>
+                      <div className="flex items-center gap-2 font-mono text-[11px]">
+                        <span className="text-text-muted">Unread:</span>
+                        <span className={`font-bold ${s.bufferBytesUnread > 0 ? 'text-primary-700 dark:text-primary-400' : 'text-text-muted'}`}>
+                          {s.bufferBytesUnread} / {s.bufferCapacity} Bytes
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Buffer Fill Progress Bar */}
+                    <div className="w-full bg-slate-100 dark:bg-zinc-800 rounded-full h-2 overflow-hidden">
+                      <div
+                        className={`h-full transition-all duration-300 ${
+                          s.bufferBytesUnread > 0 && !s.isOnReadyList && epollMode === 'EDGE_TRIGGERED'
+                            ? 'bg-rose-500'
+                            : 'bg-primary-600'
+                        }`}
+                        style={{ width: `${(s.bufferBytesUnread / s.bufferCapacity) * 100}%` }}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between text-[11px] text-text-muted">
+                      <span>State: <strong className="text-text">{s.state}</strong></span>
+                      <span>Ready List: <strong className={s.isOnReadyList ? 'text-emerald-600' : 'text-text-muted'}>
+                        {s.isOnReadyList ? 'YES (In rdllist)' : 'NO (Not in rdllist)'}
+                      </strong></span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* C10K Performance Benchmark Comparison Table */}
+          <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+            <h4 className="font-bold text-sm text-text">
+              The C10K Problem: select() vs poll() vs epoll (LT &amp; ET)
+            </h4>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-border bg-canvas text-text font-bold">
+                    <th className="p-2">I/O Multiplexing Mechanism</th>
+                    <th className="p-2">Cost per Syscall (10,000 FDs)</th>
+                    <th className="p-2">Kernel Data Structure</th>
+                    <th className="p-2">Trigger Semantics</th>
+                    <th className="p-2">Application Drain Requirement</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  <tr>
+                    <td className="p-2 font-semibold text-text">select()</td>
+                    <td className="p-2 text-rose-600 font-mono">O(N) copy 1024-bit bitmap</td>
+                    <td className="p-2 text-text-muted font-mono">Fixed-size bitset</td>
+                    <td className="p-2 text-text-muted">Level-Triggered</td>
+                    <td className="p-2 text-text-muted">Optional (re-notifies)</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2 font-semibold text-text">poll()</td>
+                    <td className="p-2 text-rose-600 font-mono">O(N) copy pollfd array</td>
+                    <td className="p-2 text-text-muted font-mono">Linear pollfd array</td>
+                    <td className="p-2 text-text-muted">Level-Triggered</td>
+                    <td className="p-2 text-text-muted">Optional (re-notifies)</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2 font-semibold text-text">epoll (Level-Triggered)</td>
+                    <td className="p-2 text-emerald-600 font-mono">O(K) where K = ready FDs</td>
+                    <td className="p-2 text-text-muted font-mono">RB-Tree + Ready List (rdllist)</td>
+                    <td className="p-2 text-text-muted">State-based (buffer &gt; 0)</td>
+                    <td className="p-2 text-text-muted">Optional (safe, high syscall rate)</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2 font-semibold text-text">epoll (Edge-Triggered / EPOLLET)</td>
+                    <td className="p-2 text-emerald-600 font-mono">O(K) minimal wakeups</td>
+                    <td className="p-2 text-text-muted font-mono">RB-Tree + Ready List (rdllist)</td>
+                    <td className="p-2 text-amber-600 font-semibold">Transition-based (0 → N bytes)</td>
+                    <td className="p-2 text-rose-600 font-semibold font-mono">MANDATORY drain to EAGAIN</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Real-Time Audit Log */}
+          <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-bold text-text uppercase tracking-wider">
+                epoll Kernel &amp; Syscall Audit Stream:
+              </span>
+              <span className="text-text-muted font-mono text-[11px]">
+                {epollAuditLog.length} Events Logged
+              </span>
+            </div>
+
+            <div className="space-y-2">
+              {epollAuditLog.map((ev) => (
+                <div
+                  key={ev.id}
+                  className="p-2.5 rounded-lg bg-canvas border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-text-muted text-[11px]">{ev.time}</span>
+                    <span className={`font-mono font-bold text-[10px] px-2 py-0.5 rounded border ${ev.badgeClass}`}>
+                      {ev.badge}
+                    </span>
+                    <span className="text-text font-medium">{ev.message}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 4 Socratic Invariant Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                1. The C10K Decoupling Invariant
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                epoll decouples FD registration from event waiting. Interest registration (`epoll_ctl`) occurs once into an in-kernel Red-Black Tree, eliminating repeated $O(N)$ memory copies between user and kernel space.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                2. Level-Triggered Semantics
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                Level-Triggered (LT) notifies user space as long as unread bytes remain in the socket buffer. If an application reads only 256B of 1024B, `epoll_wait()` will immediately wake up again on the next call.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                3. Edge-Triggered Semantics
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                Edge-Triggered (ET / `EPOLLET`) notifies only upon state transitions (e.g. rising edge when new data arrives). Once `epoll_wait()` returns, the socket is removed from the Ready List and will not fire again.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+              <span className="text-xs font-bold text-text block">
+                4. The EAGAIN Draining Rule
+              </span>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                Under ET, non-blocking sockets must be read in a loop until `read()` returns -1 with `errno == EAGAIN`. Partial reads leave data trapped in the kernel buffer with zero subsequent wakeups!
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
