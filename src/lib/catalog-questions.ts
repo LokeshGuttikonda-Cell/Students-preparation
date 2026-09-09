@@ -5341,4 +5341,1579 @@ export const FALLBACK_TOPIC_QUESTIONS: RawTopicQuestion[] = [
     ],
     correctOptionId: "opt-s87-105a",
   },
+  {
+    id: "pq-s92-1",
+    topicId: "topic-os",
+    topicSlug: "operating-systems-internals",
+    body: "In a 48-bit x86_64 virtual memory architecture with standard 4KB pages, how many bits of the virtual address are allocated to the Page Global Directory (PGD) index?",
+    explanation: "x86_64 divides the 48-bit virtual address into four 9-bit directory indexes: PGD (bits 47:39), PUD (bits 38:30), PMD (bits 29:21), and PTE (bits 20:12), plus a 12-bit page offset (bits 11:0). Each 9-bit index addresses 2^9 = 512 entries of 8 bytes each, exactly filling one 4096-byte page.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-1a", body: "8 bits (256 entries)", orderIndex: 0 },
+      { id: "opt-s92-1b", body: "9 bits (512 entries)", orderIndex: 1 },
+      { id: "opt-s92-1c", body: "12 bits (4096 entries)", orderIndex: 2 },
+      { id: "opt-s92-1d", body: "16 bits (65536 entries)", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-1b",
+  },
+  {
+    id: "pq-s92-2",
+    topicId: "topic-os",
+    topicSlug: "operating-systems-internals",
+    body: "What hardware mechanism triggers an Inter-Processor Interrupt (IPI) \"TLB Shootdown\" across sibling CPU cores?",
+    explanation: "When one core invalidates a page mapping (such as unmapping memory or clearing dirty bits), sibling cores executing threads of that process retain stale translations in their private L1/L2 TLBs. The initiating core must broadcast IPI interrupts to force all other cores to flush their TLB entries via INVLPG.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-2a", body: "A process calling getpid() from userspace.", orderIndex: 0 },
+      { id: "opt-s92-2b", body: "A CPU core modifying a shared memory page mapping (e.g., via munmap, page migration, or permission changes) that is concurrently cached in the TLBs of other cores.", orderIndex: 1 },
+      { id: "opt-s92-2c", body: "The kernel reading disk sectors via Direct Memory Access (DMA).", orderIndex: 2 },
+      { id: "opt-s92-2d", body: "An application executing a CPU-bound arithmetic loop.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-2b",
+  },
+  {
+    id: "pq-s92-3",
+    topicId: "topic-os",
+    topicSlug: "operating-systems-internals",
+    body: "How does allocating 2MB HugePages reduce memory translation overhead in the hardware MMU?",
+    explanation: "With 2MB HugePages, the PS bit is set in the PMD entry, directly referencing a contiguous 2MB physical block. This eliminates the 4th level (PTE), drastically increasing TLB coverage from 4KB per entry to 2MB per entry and eliminating TLB thrashing.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s92-3a", body: "It sets the Page Size (PS) bit in the Page Middle Directory (PMD), eliminating the Page Table Entry (PTE) level and allowing 1024 TLB entries to cover 2GB of RAM instead of 4MB.", orderIndex: 0 },
+      { id: "opt-s92-3b", body: "It disables virtual memory entirely and switches to physical 32-bit real mode.", orderIndex: 1 },
+      { id: "opt-s92-3c", body: "It compresses memory pages using Zstandard before storing them in L3 cache.", orderIndex: 2 },
+      { id: "opt-s92-3d", body: "It forces all memory reads to bypass the CPU cache hierarchy.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-3a",
+  },
+  {
+    id: "pq-s92-4",
+    topicId: "topic-os",
+    topicSlug: "operating-systems-internals",
+    body: "According to the Linux NUMA First-Touch allocation policy, when and where is a physical RAM page allocated for a malloc() request?",
+    explanation: "malloc() only updates the virtual memory area (VMA) layout. Physical page allocation is deferred until the first write triggers a page fault (#PF). Under the First-Touch policy, the kernel allocates the physical frame from the NUMA node local to the faulting CPU core.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-4a", body: "Immediately upon malloc(), allocated randomly across all NUMA nodes.", orderIndex: 0 },
+      { id: "opt-s92-4b", body: "During the first write page fault, allocated on the local NUMA node of the specific CPU core executing the write instruction.", orderIndex: 1 },
+      { id: "opt-s92-4c", body: "During program compilation, embedded in the ELF data segment.", orderIndex: 2 },
+      { id: "opt-s92-4d", body: "On process termination, flushed to swap.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-4b",
+  },
+  {
+    id: "pq-s92-5",
+    topicId: "topic-os",
+    topicSlug: "operating-systems-internals",
+    body: "In the Linux Virtual File System (VFS), which object is responsible for mapping filename strings to Inode numbers and caching directory hierarchy lookups?",
+    explanation: "Inodes store file metadata and data block pointers, but do NOT store file names. struct dentry links human-readable path string components to inode numbers and caches directory lookups in the dcache.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s92-5a", body: "struct super_block", orderIndex: 0 },
+      { id: "opt-s92-5b", body: "struct dentry (Directory Entry)", orderIndex: 1 },
+      { id: "opt-s92-5c", body: "struct file", orderIndex: 2 },
+      { id: "opt-s92-5d", body: "struct inode", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-5b",
+  },
+  {
+    id: "pq-s92-6",
+    topicId: "topic-os",
+    topicSlug: "operating-systems-internals",
+    body: "What is the key durability and performance guarantee of the Ext4 default journaling mode (data=ordered)?",
+    explanation: "data=ordered journals only metadata to save disk bandwidth, but enforces a strict ordering rule: all data blocks must reach physical storage before the corresponding metadata transaction commits to the journal. This prevents files from exposing uninitialized disk sectors after a crash.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-6a", body: "Both data and metadata are written to the journal twice before touching disk.", orderIndex: 0 },
+      { id: "opt-s92-6b", body: "Only metadata is journaled, but all associated data blocks are guaranteed to be flushed to disk BEFORE the metadata transaction commits to the journal.", orderIndex: 1 },
+      { id: "opt-s92-6c", body: "Data blocks are written to the journal, but metadata is updated purely in RAM.", orderIndex: 2 },
+      { id: "opt-s92-6d", body: "No writes touch disk until the filesystem is cleanly unmounted.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-6b",
+  },
+  {
+    id: "pq-s92-7",
+    topicId: "topic-os",
+    topicSlug: "operating-systems-internals",
+    body: "What happens in Linux when dirty PageCache pages exceed the vm.dirty_ratio sysctl threshold?",
+    explanation: "vm.dirty_background_ratio wakes asynchronous flusher daemons in the background, but vm.dirty_ratio is the hard synchronous ceiling. Once crossed, any process calling write() is stalled and forced to perform synchronous disk writeback.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s92-7a", body: "The kernel terminates the largest process using OOM Killer.", orderIndex: 0 },
+      { id: "opt-s92-7b", body: "Any application thread attempting subsequent write() calls is synchronously blocked and forced to flush dirty pages to disk until levels subside.", orderIndex: 1 },
+      { id: "opt-s92-7c", body: "The kernel drops all dirty pages without writing them to disk.", orderIndex: 2 },
+      { id: "opt-s92-7d", body: "The filesystem remounts in read-only mode.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-7b",
+  },
+  {
+    id: "pq-s92-8",
+    topicId: "topic-os",
+    topicSlug: "operating-systems-internals",
+    body: "Why does opening a file with O_DIRECT require memory buffers and offsets to be aligned to physical storage sector boundaries (e.g. 4096 bytes)?",
+    explanation: "O_DIRECT bypasses the kernel PageCache. Because hardware storage controllers and DMA engines operate directly on sector-sized chunks across the PCIe bus, buffer addresses, file offsets, and lengths must align to block/sector boundaries (typically 4KB).",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-8a", body: "Because O_DIRECT bypasses the OS PageCache completely, requiring hardware DMA controllers to transfer data directly between userspace memory and the storage device controller.", orderIndex: 0 },
+      { id: "opt-s92-8b", body: "Because standard x86 CPUs cannot execute instructions on unaligned memory.", orderIndex: 1 },
+      { id: "opt-s92-8c", body: "Because the Linux kernel encrypts all O_DIRECT writes with AES-256.", orderIndex: 2 },
+      { id: "opt-s92-8d", body: "Because O_DIRECT files can only be accessed by one thread at a time.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-8a",
+  },
+  {
+    id: "pq-s92-9",
+    topicId: "topic-os",
+    topicSlug: "operating-systems-internals",
+    body: "How does the DPDK Poll Mode Driver (PMD) architecture eliminate context-switching and interrupt latency at 100GbE line rates?",
+    explanation: "DPDK PMD threads run 100% busy-wait loops in userspace directly polling the NIC descriptor rings via VFIO/UIO. This eliminates interrupt handling, kernel softirqs (NET_RX_SOFTIRQ), and system call context switches entirely.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-9a", body: "By pinning dedicated CPU cores to tight while(1) polling loops that directly read NIC hardware RX descriptor rings, bypassing the kernel stack and interrupts completely.", orderIndex: 0 },
+      { id: "opt-s92-9b", body: "By delegating all TCP processing to an external cloud API.", orderIndex: 1 },
+      { id: "opt-s92-9c", body: "By buffering 10,000 packets in L1 cache before triggering a single hardware interrupt.", orderIndex: 2 },
+      { id: "opt-s92-9d", body: "By converting incoming Ethernet frames into POSIX signals.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-9a",
+  },
+  {
+    id: "pq-s92-10",
+    topicId: "topic-os",
+    topicSlug: "operating-systems-internals",
+    body: "What is the primary operational advantage of XDP_DROP over traditional iptables/nftables packet filtering for DDoS mitigation?",
+    explanation: "Allocating a struct sk_buff (~240 bytes plus buffer) and initializing kernel metadata consumes significant CPU cycles. XDP executes in the NIC driver before sk_buff allocation, allowing XDP_DROP to discard packets at hardware wire-rate with minimal CPU overhead.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s92-10a", body: "XDP_DROP discards packets at the lowest level of the network driver hook before the kernel allocates an sk_buff data structure, processing tens of millions of packets per second.", orderIndex: 0 },
+      { id: "opt-s92-10b", body: "XDP_DROP encrypts the attacker's IP address so they cannot send further packets.", orderIndex: 1 },
+      { id: "opt-s92-10c", body: "XDP_DROP automatically shuts down the physical network switch.", orderIndex: 2 },
+      { id: "opt-s92-10d", body: "XDP_DROP requires no CPU cycles because it runs in outer space.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-10a",
+  },
+  {
+    id: "pq-s92-11",
+    topicId: "topic-os",
+    topicSlug: "operating-systems-internals",
+    body: "In the AF_XDP socket architecture, what is the specific role of the Completion Ring?",
+    explanation: "AF_XDP uses 4 lockless rings: Fill and Rx for reception, Tx and Completion for transmission. When userspace queues a packet in the Tx ring, the kernel transmits it via DMA and then places the UMEM frame address into the Completion Ring to signal userspace that the buffer is free.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-11a", body: "It stores user passwords for SSH authentication.", orderIndex: 0 },
+      { id: "opt-s92-11b", body: "It is populated by the kernel to inform userspace that packet buffers placed in the Tx Ring have been successfully transmitted by the NIC and can be reused.", orderIndex: 1 },
+      { id: "opt-s92-11c", body: "It collects packets that failed TCP checksum calculation.", orderIndex: 2 },
+      { id: "opt-s92-11d", body: "It executes DNS lookups for newly connected sockets.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-11b",
+  },
+  {
+    id: "pq-s92-12",
+    topicId: "topic-os",
+    topicSlug: "operating-systems-internals",
+    body: "What is the functional difference between fsync() and fdatasync()?",
+    explanation: "fsync() flushes modified data blocks and all inode metadata (including atime/mtime). fdatasync() flushes data blocks and only metadata necessary to read the file correctly (like file size expansion), omitting non-essential timestamp updates to save disk I/O.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s92-12a", body: "fsync() flushes data and all metadata (including access timestamps); fdatasync() flushes data and only essential metadata (e.g. file size) required to retrieve the data.", orderIndex: 0 },
+      { id: "opt-s92-12b", body: "fsync() operates synchronously; fdatasync() operates asynchronously in the background.", orderIndex: 1 },
+      { id: "opt-s92-12c", body: "fsync() works on network filesystems; fdatasync() only works on local SSDs.", orderIndex: 2 },
+      { id: "opt-s92-12d", body: "fdatasync() compresses data using Snappy before writing to disk.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-12a",
+  },
+  {
+    id: "pq-s92-13",
+    topicId: "topic-os",
+    topicSlug: "operating-systems-internals",
+    body: "How does Ext4 delayed allocation (alloc-on-flush) dramatically reduce filesystem fragmentation compared to direct allocation?",
+    explanation: "Instead of allocating disk blocks on each individual write() syscall, delayed allocation buffers megabytes of data in the PageCache. When flusher daemons or fsync() run, mballoc inspects the full size and allocates continuous physical block extents, minimizing fragmentation.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-13a", body: "It delays allocating physical disk blocks until dirty pages are flushed to disk, allowing the Multi-Block Allocator (mballoc) to allocate large contiguous block extents at once.", orderIndex: 0 },
+      { id: "opt-s92-13b", body: "It compresses all files into a single ZIP archive on disk.", orderIndex: 1 },
+      { id: "opt-s92-13c", body: "It writes all data to swap space instead of disk.", orderIndex: 2 },
+      { id: "opt-s92-13d", body: "It prevents files from exceeding 10MB in size.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-13a",
+  },
+  {
+    id: "pq-s92-14",
+    topicId: "topic-os",
+    topicSlug: "operating-systems-internals",
+    body: "What is an Ext4 Extent and why did it replace the indirect block pointer scheme of Ext2/Ext3?",
+    explanation: "Ext2/3 used indirect block pointers where large files required traversing multiple levels of 4-byte block addresses. Ext4 extents represent up to 32,768 contiguous 4KB blocks (128MB) in a single compact record {logical_start, length, physical_start}, drastically shrinking metadata size.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s92-14a", body: "An extent is a single 12-byte descriptor representing up to 128MB of contiguous physical disk blocks, eliminating massive trees of indirect block pointers for large files.", orderIndex: 0 },
+      { id: "opt-s92-14b", body: "An extent is a cryptographic signature attached to every file.", orderIndex: 1 },
+      { id: "opt-s92-14c", body: "An extent is a temporary file used during operating system boot.", orderIndex: 2 },
+      { id: "opt-s92-14d", body: "An extent is a network packet header used by NFS.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-14a",
+  },
+  {
+    id: "pq-s92-15",
+    topicId: "topic-os",
+    topicSlug: "operating-systems-internals",
+    body: "Why does Linux RCU-walk path resolution provide superior multicore scaling compared to traditional locked path resolution?",
+    explanation: "In high-core servers, incrementing d_count and acquiring spinlocks on shared directories (e.g. /usr/lib) causes severe cacheline bouncing across CPU caches. RCU-walk reads dentry pointers locklessly; if a concurrent rename occurs, it safely falls back to locked Ref-walk.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-15a", body: "It allows directory dentry traversals to proceed under Read-Copy-Update without acquiring spinlocks or incrementing dentry reference counters (d_count), avoiding cacheline bouncing.", orderIndex: 0 },
+      { id: "opt-s92-15b", body: "It copies the entire filesystem into CPU L1 cache at boot.", orderIndex: 1 },
+      { id: "opt-s92-15c", body: "It runs all pathname resolutions on a dedicated GPU.", orderIndex: 2 },
+      { id: "opt-s92-15d", body: "It replaces all directory paths with 32-bit integer IDs.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-15a",
+  },
+  {
+    id: "pq-s92-16",
+    topicId: "topic-os",
+    topicSlug: "operating-systems-internals",
+    body: "What is the purpose of the Linux futex (Fast Userspace Mutex) syscall architecture?",
+    explanation: "Traditional locking required a kernel syscall (trap) for every lock/unlock. Futexes operate via userspace atomic compare-and-swap (CAS). The kernel is only invoked via sys_futex() when contention occurs and a thread must be placed on a kernel wait queue.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-16a", body: "It allows lock acquisition and release to execute entirely in userspace via atomic CAS instructions in uncontended scenarios, entering the kernel only when a thread must sleep or wake.", orderIndex: 0 },
+      { id: "opt-s92-16b", body: "It replaces all mutexes with spinlocks that never sleep.", orderIndex: 1 },
+      { id: "opt-s92-16c", body: "It disables CPU hyperthreading to prevent race conditions.", orderIndex: 2 },
+      { id: "opt-s92-16d", body: "It enforces FIFO thread scheduling across all processes.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-16a",
+  },
+  {
+    id: "pq-s92-17",
+    topicId: "topic-os",
+    topicSlug: "operating-systems-internals",
+    body: "How does an Edge-Triggered (EPOLLET) epoll descriptor behave differently from a Level-Triggered (default) descriptor?",
+    explanation: "Level-triggered epoll reports a file descriptor on every epoll_wait() call as long as bytes remain to be read. Edge-triggered notifies only upon state transitions (e.g. new data arrival); the application must read in a loop until recv() returns EAGAIN/EWOULDBLOCK.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s92-17a", body: "Level-triggered notifies repeatedly as long as data remains in the socket buffer; edge-triggered notifies only when state changes from unready to ready, requiring the application to read until EAGAIN.", orderIndex: 0 },
+      { id: "opt-s92-17b", body: "Edge-triggered can only monitor up to 10 file descriptors.", orderIndex: 1 },
+      { id: "opt-s92-17c", body: "Level-triggered works only on UDP sockets, while edge-triggered works only on TCP.", orderIndex: 2 },
+      { id: "opt-s92-17d", body: "Edge-triggered automatically closes the socket after each event.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-17a",
+  },
+  {
+    id: "pq-s92-18",
+    topicId: "topic-os",
+    topicSlug: "operating-systems-internals",
+    body: "What is the function of a hardware Memory Barrier (e.g. mfence on x86, dmb on ARM) in low-level systems programming?",
+    explanation: "Out-of-order CPUs and store buffers reorder memory operations to maximize execution pipeline throughput. A memory fence halts execution until all preceding reads/writes are globally visible in memory, guaranteeing sequential consistency across cores.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-18a", body: "It enforces strict ordering of memory loads and stores across the CPU store buffer and cache hierarchy, preventing hardware out-of-order execution from violating visibility invariants.", orderIndex: 0 },
+      { id: "opt-s92-18b", body: "It protects memory pages from buffer overflow exploits.", orderIndex: 1 },
+      { id: "opt-s92-18c", body: "It copies memory from RAM to an external hardware secure enclave.", orderIndex: 2 },
+      { id: "opt-s92-18d", body: "It resets all CPU registers to zero.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-18a",
+  },
+  {
+    id: "pq-s92-19",
+    topicId: "topic-os",
+    topicSlug: "operating-systems-internals",
+    body: "What is the primary architectural cause of the Meltdown CPU hardware vulnerability, and how does Kernel Page Table Isolation (KPTI) mitigate it?",
+    explanation: "Meltdown exploited speculative execution: out-of-order execution permitted user instructions to read kernel memory, leaking secrets via cache timing side-channels before permission checks faulted. KPTI completely unmaps kernel memory from the user page table.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s92-19a", body: "CPUs speculatively executed instructions accessing kernel memory during user mode before checking privilege rings; KPTI separates user and kernel page tables into two distinct address spaces.", orderIndex: 0 },
+      { id: "opt-s92-19b", body: "Meltdown was caused by a software bug in Python 2.7; KPTI upgraded all servers to Python 3.", orderIndex: 1 },
+      { id: "opt-s92-19c", body: "Meltdown occurred because RAM capacitors overheated; KPTI throttles CPU fans.", orderIndex: 2 },
+      { id: "opt-s92-19d", body: "Meltdown allowed hackers to guess root passwords via brute force; KPTI enforces 16-character passwords.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-19a",
+  },
+  {
+    id: "pq-s92-20",
+    topicId: "topic-os",
+    topicSlug: "operating-systems-internals",
+    body: "Why does io_uring with IORING_SETUP_SQPOLL provide higher async I/O throughput than legacy POSIX AIO (io_submit)?",
+    explanation: "Legacy POSIX AIO (io_submit) requires an enter_kernel system call for every submission. io_uring with IORING_SETUP_SQPOLL spawns a kernel thread that polls the shared-memory submission queue (SQ), allowing user applications to enqueue operations with zero syscall overhead.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-20a", body: "SQPOLL dedicates a kernel thread to continuously poll the submission queue in shared memory, allowing userspace to submit I/O requests with zero enter-kernel syscalls.", orderIndex: 0 },
+      { id: "opt-s92-20b", body: "io_uring writes data directly to satellite uplinks.", orderIndex: 1 },
+      { id: "opt-s92-20c", body: "POSIX AIO was restricted to 300 baud modems.", orderIndex: 2 },
+      { id: "opt-s92-20d", body: "io_uring disables data encryption on disk.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-20a",
+  },
+  {
+    id: "pq-s92-21",
+    topicId: "topic-dist-sys",
+    topicSlug: "distributed-systems-architecture",
+    body: "According to the RUM Conjecture, what fundamental trade-off governs database storage engine design?",
+    explanation: "The RUM Conjecture states that storage engines face a fundamental trilemma: optimizing for Read overhead (like B+ Trees) increases Update overhead (write amplification). Optimizing for Update overhead (like LSM-Trees) increases Read or Space overhead.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-21a", body: "An engine can optimize for at most two of: Read Overhead (R), Update Overhead (U), and Memory/Space Overhead (M), always sacrificing the third.", orderIndex: 0 },
+      { id: "opt-s92-21b", body: "Relational databases are always superior to NoSQL databases in every dimension.", orderIndex: 1 },
+      { id: "opt-s92-21c", body: "Read throughput is always inversely proportional to CPU clock frequency.", orderIndex: 2 },
+      { id: "opt-s92-21d", body: "Memory allocation must always be a power of two.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-21a",
+  },
+  {
+    id: "pq-s92-22",
+    topicId: "topic-dist-sys",
+    topicSlug: "distributed-systems-architecture",
+    body: "How do Hazard Pointers enable lock-free concurrent reads in the WiredTiger B+ Tree storage engine?",
+    explanation: "Hazard pointers provide safe memory reclamation without read locks. A reader thread publishes a pointer to the target page in a shared array. Background eviction and reconciliation threads can split or evict other pages, but will never free a page held by an active hazard pointer.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-22a", body: "Reader threads register the memory address of the page they are accessing in a thread-local hazard pointer; eviction threads defer freeing or modifying the page until no hazard pointer references it.", orderIndex: 0 },
+      { id: "opt-s92-22b", body: "Hazard pointers place exclusive mutex locks on all parent nodes up to the root.", orderIndex: 1 },
+      { id: "opt-s92-22c", body: "Hazard pointers encrypt page data to prevent race conditions.", orderIndex: 2 },
+      { id: "opt-s92-22d", body: "Hazard pointers replicate all modified pages to 3 cloud zones before reading.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-22a",
+  },
+  {
+    id: "pq-s92-23",
+    topicId: "topic-dist-sys",
+    topicSlug: "distributed-systems-architecture",
+    body: "In the RocksDB LSM-Tree architecture, what data structure is typically used for the in-memory active MemTable?",
+    explanation: "The active MemTable in RocksDB is implemented as a concurrent lock-free SkipList. SkipLists allow concurrent lock-free insertions and concurrent range scans with O(log N) lookup complexity, avoiding the heavy rebalancing locks of AVL or Red-Black trees.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s92-23a", body: "A concurrent, lock-free SkipList", orderIndex: 0 },
+      { id: "opt-s92-23b", body: "A singly linked list", orderIndex: 1 },
+      { id: "opt-s92-23c", body: "A B+ Tree with 16KB leaf nodes", orderIndex: 2 },
+      { id: "opt-s92-23d", body: "An unindexed flat binary array", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-23a",
+  },
+  {
+    id: "pq-s92-24",
+    topicId: "topic-dist-sys",
+    topicSlug: "distributed-systems-architecture",
+    body: "What is the Write Amplification Factor (WAF) of a storage engine, and why is it higher in Leveled Compaction than in Universal (Size-Tiered) Compaction?",
+    explanation: "WAF = (bytes written to storage) / (bytes written by application). In Leveled Compaction, every level Li (for i >= 1) has non-overlapping key ranges. Pushing data into Li+1 requires reading all overlapping SSTables, merging them, and rewriting new files, yielding a WAF of 10-30.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-24a", body: "WAF is the ratio of bytes written to storage versus bytes written by the user; Leveled Compaction has higher WAF because non-overlapping levels require repeatedly reading and rewriting overlapping SSTables during cascades.", orderIndex: 0 },
+      { id: "opt-s92-24b", body: "WAF measures how many bytes are compressed by Snappy.", orderIndex: 1 },
+      { id: "opt-s92-24c", body: "WAF measures the speed of SSD TRIM commands.", orderIndex: 2 },
+      { id: "opt-s92-24d", body: "Universal Compaction rewrites every key 100 times per minute.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-24a",
+  },
+  {
+    id: "pq-s92-25",
+    topicId: "topic-dist-sys",
+    topicSlug: "distributed-systems-architecture",
+    body: "What is the function of a Bloom Filter in a RocksDB SSTable block file?",
+    explanation: "Bloom filters have no false negatives: if the filter says a key is absent, it is guaranteed not to exist in that SSTable. RocksDB can immediately skip reading that SSTable from storage, drastically reducing read amplification for point lookups.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s92-25a", body: "It definitively confirms whether a key is present on disk.", orderIndex: 0 },
+      { id: "opt-s92-25b", body: "It provides a probabilistic test that can definitively rule out the presence of a key, allowing RocksDB to skip reading the SSTable data blocks from disk on a negative result.", orderIndex: 1 },
+      { id: "opt-s92-25c", body: "It sorts keys in ascending chronological order.", orderIndex: 2 },
+      { id: "opt-s92-25d", body: "It compresses values using dictionary encoding.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-25b",
+  },
+  {
+    id: "pq-s92-26",
+    topicId: "topic-dist-sys",
+    topicSlug: "distributed-systems-architecture",
+    body: "What occurs when an LSM-Tree database encounters a \"Write Stall\"?",
+    explanation: "If write throughput exceeds the disk bandwidth available for background compaction, Level 0 files accumulate. Because L0 files have overlapping ranges, reads degrade rapidly. The engine injects artificial latency sleeps into client writes (write stalls) to let compaction catch up.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-26a", body: "The disk controller fails and disconnects from the motherboard.", orderIndex: 0 },
+      { id: "opt-s92-26b", body: "Incoming client write traffic outpaces background compaction capacity, causing L0 SSTables or MemTables to accumulate past limits, forcing the engine to artificially throttle incoming writes.", orderIndex: 1 },
+      { id: "opt-s92-26c", body: "The database deletes the newest records to recover disk space.", orderIndex: 2 },
+      { id: "opt-s92-26d", body: "The operating system kernel reboots automatically.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-26b",
+  },
+  {
+    id: "pq-s92-27",
+    topicId: "topic-dist-sys",
+    topicSlug: "distributed-systems-architecture",
+    body: "How does PostgreSQL Multi-Version Concurrency Control (MVCC) track tuple visibility without updating records in place?",
+    explanation: "PostgreSQL uses append-only MVCC directly in data pages: each tuple header stores xmin and xmax. An UPDATE inserts a new tuple with its xmin set to the current transaction ID, and marks the old tuple xmax with the same transaction ID. Dead tuples are later cleaned by VACUUM.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-27a", body: "Every row header contains xmin (creating transaction ID) and xmax (deleting/updating transaction ID); updates write a new physical row and set xmax on the old row.", orderIndex: 0 },
+      { id: "opt-s92-27b", body: "PostgreSQL locks the entire table with an exclusive mutex on every UPDATE.", orderIndex: 1 },
+      { id: "opt-s92-27c", body: "PostgreSQL stores all row versions in a shared Redis cache.", orderIndex: 2 },
+      { id: "opt-s92-27d", body: "PostgreSQL uses Undo Logs inside rollback segments like MySQL InnoDB.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-27a",
+  },
+  {
+    id: "pq-s92-28",
+    topicId: "topic-dist-sys",
+    topicSlug: "distributed-systems-architecture",
+    body: "How does MySQL InnoDB implement MVCC compared to PostgreSQL?",
+    explanation: "Unlike PostgreSQL (which writes new row versions into data pages), InnoDB modifies the row in-place within the clustered index B+ Tree and stores historical versions in Undo Log segments. Readers traverse the roll_ptr undo chain to reconstruct historical row versions.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-28a", body: "InnoDB mutates table pages in place and writes the previous version of the row to an Undo Log in the Rollback Segment, reconstructing older row snapshots on demand.", orderIndex: 0 },
+      { id: "opt-s92-28b", body: "InnoDB writes all old rows to a separate SQLite database.", orderIndex: 1 },
+      { id: "opt-s92-28c", body: "InnoDB uses xmin and xmax headers identical to PostgreSQL.", orderIndex: 2 },
+      { id: "opt-s92-28d", body: "InnoDB does not support MVCC and relies purely on table-level locking.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-28a",
+  },
+  {
+    id: "pq-s92-29",
+    topicId: "topic-dist-sys",
+    topicSlug: "distributed-systems-architecture",
+    body: "In Serializable Snapshot Isolation (SSI), how does the database detect serialization anomalies without acquiring heavy Two-Phase Locking (2PL) read locks?",
+    explanation: "SSI allows readers to proceed without blocking writers. It maintains lock-free \"si_read\" lock flags. When a write occurs, the engine checks if an active reader previously read the overwritten data (rw-antidependency). If a cycle of two consecutive rw-antidependencies forms, one transaction is aborted.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-29a", body: "By tracking rw-antidependencies (si_read locks) between concurrent transactions and aborting a transaction if a cycle of conflicting dependencies is formed.", orderIndex: 0 },
+      { id: "opt-s92-29b", body: "By forcing all transactions to execute sequentially on a single CPU core.", orderIndex: 1 },
+      { id: "opt-s92-29c", body: "By requiring clients to submit mathematical proofs before executing SQL.", orderIndex: 2 },
+      { id: "opt-s92-29d", body: "By aborting any transaction that reads more than 10 rows.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-29a",
+  },
+  {
+    id: "pq-s92-30",
+    topicId: "topic-dist-sys",
+    topicSlug: "distributed-systems-architecture",
+    body: "What is the purpose of Page Reconciliation in the WiredTiger storage engine?",
+    explanation: "In WiredTiger, writes do not overwrite disk pages immediately; they append update structures to an in-memory modification list. Page reconciliation transforms this in-memory page structure into a serialized, compressed block format ready to be written to disk during eviction or checkpointing.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s92-30a", body: "It merges in-memory update chains with base disk page structures, serializing and compressing the new page layout for on-disk eviction.", orderIndex: 0 },
+      { id: "opt-s92-30b", body: "It checks if user passwords match the database hash.", orderIndex: 1 },
+      { id: "opt-s92-30c", body: "It reconciles bank balances between credit and debit ledgers.", orderIndex: 2 },
+      { id: "opt-s92-30d", body: "It converts SQL statements into JavaScript bytecode.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-30a",
+  },
+  {
+    id: "pq-s92-31",
+    topicId: "topic-dist-sys",
+    topicSlug: "distributed-systems-architecture",
+    body: "How does Google Cloud Spanner achieve external consistency (linearizability) across global multi-region databases without cross-region two-phase commit on reads?",
+    explanation: "Spanner uses TrueTime, which exposes time as an interval [earliest, latest] with bounded uncertainty (typically < 7ms). When a transaction commits, it assigns a timestamp t >= latest and waits until TrueTime.now().earliest > t (commit wait). This guarantees commit timestamps strictly match real-world causal order.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-31a", body: "Using the TrueTime API, which integrates GPS receivers and atomic clocks to bound clock uncertainty (epsilon) and enforce commit wait periods.", orderIndex: 0 },
+      { id: "opt-s92-31b", body: "By pausing global Internet traffic for 500ms on every transaction.", orderIndex: 1 },
+      { id: "opt-s92-31c", body: "By running all database nodes in a single data center in Iowa.", orderIndex: 2 },
+      { id: "opt-s92-31d", body: "By using logical Lamport timestamps without physical time synchronization.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-31a",
+  },
+  {
+    id: "pq-s92-32",
+    topicId: "topic-dist-sys",
+    topicSlug: "distributed-systems-architecture",
+    body: "In distributed Raft consensus, how does Joint Consensus handle cluster membership reconfiguration safely without split-brain?",
+    explanation: "Directly switching from C_old to C_new can cause split-brain if two disjoint majorities form. Joint consensus writes a joint configuration C_old,new into the log; any election or log commit requires separate majorities from C_old AND C_new. Once committed, C_new is committed safely.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-32a", body: "By transitioning through a transitional configuration (C_old,new) where consensus decisions require independent majority quorums from BOTH the old configuration and the new configuration simultaneously.", orderIndex: 0 },
+      { id: "opt-s92-32b", body: "By shutting down all servers and restarting them with new IP addresses.", orderIndex: 1 },
+      { id: "opt-s92-32c", body: "By allowing the leader to make unilateral decisions without any quorum.", orderIndex: 2 },
+      { id: "opt-s92-32d", body: "By electing two concurrent leaders in the cluster.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-32a",
+  },
+  {
+    id: "pq-s92-33",
+    topicId: "topic-dist-sys",
+    topicSlug: "distributed-systems-architecture",
+    body: "In an Event Sourcing architecture, what is the primary role of an Event Upcaster?",
+    explanation: "Because event stores are immutable append-only logs, historical events cannot be modified in-place when application schemas change. Event Upcasters intercept old serialized event versions during replay and migrate them on-the-fly to the latest schema version.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s92-33a", body: "To transform historical serialized events into newer schema versions dynamically when loaded from the event store, enabling zero-downtime schema evolution.", orderIndex: 0 },
+      { id: "opt-s92-33b", body: "To broadcast events over UDP to mobile clients.", orderIndex: 1 },
+      { id: "opt-s92-33c", body: "To delete old events when disk storage reaches 80%.", orderIndex: 2 },
+      { id: "opt-s92-33d", body: "To convert JSON events into XML documents.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-33a",
+  },
+  {
+    id: "pq-s92-34",
+    topicId: "topic-dist-sys",
+    topicSlug: "distributed-systems-architecture",
+    body: "What is the primary vulnerability of the Martin Kleppmann Redlock critique regarding distributed locks based on Redis?",
+    explanation: "Martin Kleppmann proved that asynchronous network delays, page faults, or JVM Stop-the-World GC pauses can stall a lock holder past the lock TTL. When the thread resumes, it writes to storage unaware that another client acquired the lock. Fencing tokens solve this by rejecting stale writes.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-34a", body: "Unsynchronized physical system clocks and Stop-the-World GC pauses can cause a client to believe it holds a lock after its TTL has expired, corrupting shared storage unless Fencing Tokens are used.", orderIndex: 0 },
+      { id: "opt-s92-34b", body: "Redis does not support TCP connections.", orderIndex: 1 },
+      { id: "opt-s92-34c", body: "Redlock can only be used on single-node Redis instances.", orderIndex: 2 },
+      { id: "opt-s92-34d", body: "Redis keys cannot exceed 16 bytes in length.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-34a",
+  },
+  {
+    id: "pq-s92-35",
+    topicId: "topic-dist-sys",
+    topicSlug: "distributed-systems-architecture",
+    body: "Why does Kafka rely on the Linux OS PageCache rather than managing its own large in-memory JVM heap cache?",
+    explanation: "A huge JVM heap (e.g. 64GB) introduces severe GC pause risks and doubles object memory overhead. Storing data in the OS PageCache avoids GC, retains cached pages across broker process restarts, and allows direct DMA transfer to network sockets via sendfile().",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s92-35a", body: "Using the PageCache avoids JVM garbage collection pause overhead, prevents double-caching, survives application restarts without cache warming, and enables zero-copy sendfile() DMA transfers.", orderIndex: 0 },
+      { id: "opt-s92-35b", body: "Because Java does not support heap allocations larger than 1GB.", orderIndex: 1 },
+      { id: "opt-s92-35c", body: "Because the PageCache encrypts all data automatically.", orderIndex: 2 },
+      { id: "opt-s92-35d", body: "Because Kafka cannot run on Linux servers.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-35a",
+  },
+  {
+    id: "pq-s92-36",
+    topicId: "topic-dist-sys",
+    topicSlug: "distributed-systems-architecture",
+    body: "How do Vector Clocks detect concurrent conflicts in distributed leaderless storage systems (e.g. Dynamo, Riak)?",
+    explanation: "A vector clock is an array of logical counters, one per replica node. Clock V1 dominates V2 if every element in V1 >= V2 and at least one is strictly greater. If neither dominates (e.g. [2, 1] vs [1, 2]), the events occurred concurrently, prompting sibling reconciliation.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-36a", body: "By comparing vector clocks: if Clock A has all components <= Clock B, A causally preceded B; if neither clock dominates the other, the updates are concurrent and require conflict resolution.", orderIndex: 0 },
+      { id: "opt-s92-36b", body: "By comparing physical GPS timestamps down to nanoseconds.", orderIndex: 1 },
+      { id: "opt-s92-36c", body: "By routing all writes through a single master coordinator node.", orderIndex: 2 },
+      { id: "opt-s92-36d", body: "By taking a SHA-256 hash of the written data payload.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-36a",
+  },
+  {
+    id: "pq-s92-37",
+    topicId: "topic-dist-sys",
+    topicSlug: "distributed-systems-architecture",
+    body: "What is the key advantage of the Two-Phase Commit (2PC) protocol, and what is its primary fatal weakness?",
+    explanation: "2PC provides atomic commit across distributed databases. However, participants that vote \"YES\" in Phase 1 cannot unilaterally commit or abort. If the coordinator crashes before issuing Phase 2 COMMIT/ABORT, participants remain blocked indefinitely holding locks.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s92-37a", body: "Advantage: Guarantees atomic cross-shard commit; Weakness: It is a synchronous blocking protocol where a coordinator crash during the prepare phase blocks all participants indefinitely holding locks.", orderIndex: 0 },
+      { id: "opt-s92-37b", body: "Advantage: Zero network latency; Weakness: It does not support SQL databases.", orderIndex: 1 },
+      { id: "opt-s92-37c", body: "Advantage: Requires no disk logging; Weakness: It only runs on Windows.", orderIndex: 2 },
+      { id: "opt-s92-37d", body: "Advantage: Does not require participant nodes; Weakness: High CPU usage.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-37a",
+  },
+  {
+    id: "pq-s92-38",
+    topicId: "topic-dist-sys",
+    topicSlug: "distributed-systems-architecture",
+    body: "In the Saga pattern for distributed transactions, what is a Backward Compensating Transaction?",
+    explanation: "Because Sagas commit local database transactions immediately at each step without global locks, classical ACID rollback is impossible. If a step fails, the saga orchestrator executes compensating transactions in reverse order to semantically counteract earlier steps.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-38a", body: "An explicit business action that semantically undoes the effects of an earlier committed step when a subsequent step in the workflow fails (e.g. refunding a credit card if inventory reservation fails).", orderIndex: 0 },
+      { id: "opt-s92-38b", body: "A database rollback that restores disk sectors from magnetic tape.", orderIndex: 1 },
+      { id: "opt-s92-38c", body: "A transaction that executes in reverse chronological order.", orderIndex: 2 },
+      { id: "opt-s92-38d", body: "A hardware power-cycle of the database cluster.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-38a",
+  },
+  {
+    id: "pq-s92-39",
+    topicId: "topic-dist-sys",
+    topicSlug: "distributed-systems-architecture",
+    body: "What is the purpose of the XFetch probabilistic early recomputation algorithm in distributed caching?",
+    explanation: "Under heavy load, when a hot cache key expires, thousands of concurrent requests miss the cache and query the database simultaneously (dogpile effect). XFetch uses a probabilistic formula to trigger background recomputation early, ensuring the cache is refreshed before expiry.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s92-39a", body: "It recomputes expiring cache items probabilistically before expiration based on remaining TTL and computation time, preventing cache stampedes (dogpile effect) without static locks.", orderIndex: 0 },
+      { id: "opt-s92-39b", body: "It deletes random cache keys when Redis memory reaches 90%.", orderIndex: 1 },
+      { id: "opt-s92-39c", body: "It encrypts cached strings using RSA-2048.", orderIndex: 2 },
+      { id: "opt-s92-39d", body: "It copies the Redis cache to an S3 bucket every 10 seconds.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-39a",
+  },
+  {
+    id: "pq-s92-40",
+    topicId: "topic-dist-sys",
+    topicSlug: "distributed-systems-architecture",
+    body: "In Twitter Snowflake 64-bit distributed ID generation, how are the 64 bits partitioned to guarantee unique, monotonically ordered IDs without coordination?",
+    explanation: "Snowflake IDs are 64-bit integers: 1 unused sign bit, 41 timestamp bits (millisecond precision), 10 worker/datacenter bits, and 12 sequence bits. Because the high-order bits represent timestamp, IDs are naturally k-sorted chronologically.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-40a", body: "1 sign bit (0), 41 bits timestamp in milliseconds (~69 years), 10 bits machine/datacenter ID (1024 nodes), and 12 bits sequence number (4096 IDs/ms per node).", orderIndex: 0 },
+      { id: "opt-s92-40b", body: "64 bits random MD5 hash.", orderIndex: 1 },
+      { id: "opt-s92-40c", body: "32 bits IPv4 address and 32 bits process ID.", orderIndex: 2 },
+      { id: "opt-s92-40d", body: "64 bits continuous auto-increment integer fetched from MySQL.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-40a",
+  },
+  {
+    id: "pq-s92-41",
+    topicId: "topic-networks",
+    topicSlug: "computer-networks-protocols",
+    body: "How does the TCP BBR (Bottleneck Bandwidth and RTT) congestion control algorithm differ from loss-based algorithms like Cubic and Reno?",
+    explanation: "Loss-based algorithms (Cubic/Reno) assume packet loss indicates congestion, inadvertently filling bottleneck router buffers (bufferbloat) and causing latency spikes. BBR models maximum bandwidth and minimum round-trip time, pacing packets to prevent queues from forming.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-41a", body: "BBR models the physical network by measuring bottleneck bandwidth and min-RTT to operate at Kleinrock's optimal point, preventing bufferbloat rather than waiting for packet loss to throttle.", orderIndex: 0 },
+      { id: "opt-s92-41b", body: "BBR increases congestion window exponentially until packet loss occurs.", orderIndex: 1 },
+      { id: "opt-s92-41c", body: "BBR is a UDP protocol that disables all acknowledgments.", orderIndex: 2 },
+      { id: "opt-s92-41d", body: "BBR relies on satellite telemetry to adjust send rates.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-41a",
+  },
+  {
+    id: "pq-s92-42",
+    topicId: "topic-networks",
+    topicSlug: "computer-networks-protocols",
+    body: "How does the SYN Cookies algorithm protect a Linux web server against SYN flood DDoS attacks without allocating kernel socket memory?",
+    explanation: "During a SYN flood, the server SYN queue overflows. SYN Cookies avoid allocating half-open socket memory. The server computes a cryptographic hash of client IP/port and server secret, returning it as the SYN-ACK sequence number. When the client returns ACK with ISN+1, the server verifies and creates the socket.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s92-42a", body: "The server encodes connection state (MSS, timestamp, cryptographic secret) into the 32-bit Initial Sequence Number (ISN) of the SYN-ACK, creating the socket structure only when a valid ACK returns.", orderIndex: 0 },
+      { id: "opt-s92-42b", body: "The server drops all incoming TCP SYN packets permanently.", orderIndex: 1 },
+      { id: "opt-s92-42c", body: "The server blocks all IP addresses ending in odd numbers.", orderIndex: 2 },
+      { id: "opt-s92-42d", body: "The server reboots into single-user mode.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-42a",
+  },
+  {
+    id: "pq-s92-43",
+    topicId: "topic-networks",
+    topicSlug: "computer-networks-protocols",
+    body: "What is the primary security risk of TLS 1.3 0-RTT Early Data resumption, and how is it mitigated?",
+    explanation: "In TLS 1.3 0-RTT, the client sends encrypted application data in its first flight using a pre-shared key. Because the handshake has not established ephemeral forward secrecy, an eavesdropper can replay the exact packet to the server. Non-idempotent operations (POST /payments) must never be permitted in 0-RTT.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-43a", body: "0-RTT data is vulnerable to Replay Attacks because an attacker can capture and retransmit early data packets; applications must restrict 0-RTT strictly to idempotent requests (e.g. GET).", orderIndex: 0 },
+      { id: "opt-s92-43b", body: "0-RTT data is sent in cleartext without encryption.", orderIndex: 1 },
+      { id: "opt-s92-43c", body: "0-RTT data exposes the server's private RSA certificate.", orderIndex: 2 },
+      { id: "opt-s92-43d", body: "0-RTT requires disabling TLS certificate verification.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-43a",
+  },
+  {
+    id: "pq-s92-44",
+    topicId: "topic-networks",
+    topicSlug: "computer-networks-protocols",
+    body: "How does the QUIC protocol eliminate Head-of-Line (HoL) blocking at the transport layer compared to HTTP/2 over TCP?",
+    explanation: "In HTTP/2 over TCP, all streams share a single TCP connection. If one packet is dropped, the OS TCP receiver halts delivery of all subsequent data across ALL streams until the missing packet is retransmitted. QUIC manages streams natively over UDP, isolating loss to the affected stream.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s92-44a", body: "QUIC runs over UDP and handles stream multiplexing independently: a lost packet on Stream A only stalls Stream A, allowing Stream B and C packets to be delivered to the application immediately.", orderIndex: 0 },
+      { id: "opt-s92-44b", body: "QUIC sends all data three times to ensure zero packets are ever lost.", orderIndex: 1 },
+      { id: "opt-s92-44c", body: "QUIC does not support multiple streams.", orderIndex: 2 },
+      { id: "opt-s92-44d", body: "QUIC forces all web assets to be smaller than 1KB.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-44a",
+  },
+  {
+    id: "pq-s92-45",
+    topicId: "topic-networks",
+    topicSlug: "computer-networks-protocols",
+    body: "How does QUIC enable Connection Migration when a mobile device switches from Wi-Fi to a 5G cellular network?",
+    explanation: "TCP binds connections strictly to the 4-tuple (Src IP, Src Port, Dst IP, Dst Port). When a mobile device switches networks, its IP changes, breaking the TCP connection. QUIC incorporates an opaque Connection ID (CID) in its header, allowing seamless migration across networks.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-45a", body: "QUIC identifies connections using a 64-bit Connection ID (CID) rather than the traditional 4-tuple (IP/Port), allowing the connection to survive IP address changes without renegotiation.", orderIndex: 0 },
+      { id: "opt-s92-45b", body: "QUIC forces the cellular tower to adopt the home Wi-Fi router's IP address.", orderIndex: 1 },
+      { id: "opt-s92-45c", body: "QUIC stores packets on disk until the original Wi-Fi network reconnects.", orderIndex: 2 },
+      { id: "opt-s92-45d", body: "QUIC establishes a physical VPN tunnel to the nearest DNS root server.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-45a",
+  },
+  {
+    id: "pq-s92-46",
+    topicId: "topic-networks",
+    topicSlug: "computer-networks-protocols",
+    body: "How does BGP (Border Gateway Protocol) Anycast routing enable global low-latency CDN and DNS infrastructure?",
+    explanation: "In BGP Anycast, the same IP address is advertised by multiple data centers across the globe. Internet routers use standard BGP path-vector metric calculations to direct traffic to the nearest geographic location, reducing latency and absorbing DDoS attacks locally.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-46a", body: "Multiple geographically distributed server clusters announce the identical IP prefix via BGP; intermediate ISP routers route client packets to the topologically closest cluster via shortest AS-Path.", orderIndex: 0 },
+      { id: "opt-s92-46b", body: "Every client computer runs a full BGP routing daemon in userspace.", orderIndex: 1 },
+      { id: "opt-s92-46c", body: "Anycast duplicates every packet and delivers it to every server on Earth.", orderIndex: 2 },
+      { id: "opt-s92-46d", body: "Anycast routes traffic through a single global supercomputer in Geneva.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-46a",
+  },
+  {
+    id: "pq-s92-47",
+    topicId: "topic-networks",
+    topicSlug: "computer-networks-protocols",
+    body: "What is the primary architectural hazard of running stateful TCP connections over BGP Anycast routing during network flaps?",
+    explanation: "Because BGP routes are dynamic, a link failure or route flap can cause packets belonging to an active TCP connection to suddenly route to a different physical PoP. Unless data centers synchronize connection state, the new cluster responds with TCP RST, aborting the connection.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-47a", body: "If an intermediate BGP link flaps or route metrics change, subsequent packets in the same TCP session are routed to a different data center cluster, which sends a TCP RST because it lacks the session state.", orderIndex: 0 },
+      { id: "opt-s92-47b", body: "BGP Anycast routers automatically decrypt and inspect all TLS packets.", orderIndex: 1 },
+      { id: "opt-s92-47c", body: "The TCP sequence numbers become negative.", orderIndex: 2 },
+      { id: "opt-s92-47d", body: "Anycast causes optical fibers to lose signal permanently.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-47a",
+  },
+  {
+    id: "pq-s92-48",
+    topicId: "topic-networks",
+    topicSlug: "computer-networks-protocols",
+    body: "What is Path MTU Discovery (PMTUD) and why does blocking ICMP Type 3 Code 4 (\"Fragmentation Needed\") create \"PMTUD Black Holes\"?",
+    explanation: "When a packet with DF (Don't Fragment) exceeds a link MTU, the router drops it and emits an ICMP Type 3 Code 4 message with the link MTU. If a misconfigured firewall drops this ICMP packet, the sender keeps retransmitting large packets that are silently dropped, stalling TCP transfers.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s92-48a", body: "Routers that cannot forward a packet without fragmenting send ICMP Destination Unreachable; if firewalls drop this ICMP message, the sender never discovers the lower MTU and stalls on large packets.", orderIndex: 0 },
+      { id: "opt-s92-48b", body: "PMTUD converts IPv4 packets into IPv6 headers.", orderIndex: 1 },
+      { id: "opt-s92-48c", body: "PMTUD checks if DNS records have valid SPF signatures.", orderIndex: 2 },
+      { id: "opt-s92-48d", body: "Blocking ICMP causes the physical ethernet cable to melt.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-48a",
+  },
+  {
+    id: "pq-s92-49",
+    topicId: "topic-networks",
+    topicSlug: "computer-networks-protocols",
+    body: "Why does the TCP protocol specify a TIME_WAIT state lasting 2 * MSL (Maximum Segment Lifetime)?",
+    explanation: "2MSL (typically 60-120 seconds) serves two purposes: 1) It ensures delayed packets from the old connection do not corrupt a new connection reusing the same 4-tuple, and 2) If the final ACK was lost, the remote end can retransmit FIN and receive a re-ACKed response.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s92-49a", body: "To ensure delayed duplicate segments from the old connection dissipate from the Internet and to ensure the final ACK was received by the remote endpoint before the port can be reused.", orderIndex: 0 },
+      { id: "opt-s92-49b", body: "To allow the server to cool down its CPU.", orderIndex: 1 },
+      { id: "opt-s92-49c", body: "Because operating systems need 2 minutes to free memory buffers.", orderIndex: 2 },
+      { id: "opt-s92-49d", body: "To encrypt the log files using AES-GCM.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-49a",
+  },
+  {
+    id: "pq-s92-50",
+    topicId: "topic-networks",
+    topicSlug: "computer-networks-protocols",
+    body: "What is the interaction between Nagle's algorithm (TCP_NODELAY) and Delayed ACKs in interactive client-server communications?",
+    explanation: "Nagle holds small outgoing writes until receiving an ACK for previous bytes. Delayed ACK delays sending an ACK for up to 200ms to piggyback on response data. When an application writes a small request header and body separately, Nagle waits for the ACK while the receiver waits for data, stalling for 200ms.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-50a", body: "Nagle buffers outgoing small packets until previous packets are ACKed, while Delayed ACKs hold ACKs for up to 200ms expecting data; combining them introduces a catastrophic 200ms latency delay.", orderIndex: 0 },
+      { id: "opt-s92-50b", body: "Nagle's algorithm disables TCP checksum validation.", orderIndex: 1 },
+      { id: "opt-s92-50c", body: "Delayed ACKs cause the operating system to drop all HTTP requests.", orderIndex: 2 },
+      { id: "opt-s92-50d", body: "Combining them increases network bandwidth tenfold.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-50a",
+  },
+  {
+    id: "pq-s92-51",
+    topicId: "topic-networks",
+    topicSlug: "computer-networks-protocols",
+    body: "What is the purpose of HTTP Strict Transport Security (HSTS) and its \"preload\" directive?",
+    explanation: "HSTS prevents man-in-the-middle SSL-stripping attacks. Standard HSTS headers only protect after the first successful HTTPS visit. The HSTS Preload list embeds the domain directly into browser binaries (Chrome, Firefox, Safari), ensuring the initial request is never sent over insecure HTTP.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s92-51a", body: "It instructs browsers to strictly communicate with the domain only via HTTPS, and the preload list hardcodes this rule into the browser binary, preventing SSL-stripping attacks on the first visit.", orderIndex: 0 },
+      { id: "opt-s92-51b", body: "It pre-downloads all JavaScript and CSS files before the user visits the page.", orderIndex: 1 },
+      { id: "opt-s92-51c", body: "It disables cross-origin requests completely.", orderIndex: 2 },
+      { id: "opt-s92-51d", body: "It forces web servers to restart every 24 hours.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-51a",
+  },
+  {
+    id: "pq-s92-52",
+    topicId: "topic-networks",
+    topicSlug: "computer-networks-protocols",
+    body: "In Mutual TLS (mTLS) with SPIFFE identities, how do microservices authenticate each other securely?",
+    explanation: "In mTLS with SPIFFE/SPIRE, both client and server authenticate each other using short-lived X.509 certificates. The SPIFFE ID (e.g. spiffe://prod/ns/payments/sa/payment-service) is embedded in the SAN URI extension, enabling cryptographic zero-trust identity verification.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-52a", body: "Both client and server present X.509 SVID certificates during the TLS handshake, verifying identity strings embedded in the Subject Alternative Name (SAN) URI field against trusted trust bundles.", orderIndex: 0 },
+      { id: "opt-s92-52b", body: "The client sends a plaintext JWT token inside the HTTP Host header.", orderIndex: 1 },
+      { id: "opt-s92-52c", body: "The server trusts any client connecting from an internal 10.0.0.0/8 IP address.", orderIndex: 2 },
+      { id: "opt-s92-52d", body: "Authentication is performed using shared API keys stored in Git repositories.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-52a",
+  },
+  {
+    id: "pq-s92-53",
+    topicId: "topic-networks",
+    topicSlug: "computer-networks-protocols",
+    body: "What property does Ephemeral Diffie-Hellman (DHE/ECDHE) provide that static RSA key exchange lacks?",
+    explanation: "In static RSA key exchange, if an adversary records encrypted traffic for years and later steals the server private key, they can decrypt all historical recordings. ECDHE generates ephemeral session keys per handshake, ensuring past recorded sessions remain undecryptable.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-53a", body: "Perfect Forward Secrecy (PFS): A unique session key is negotiated using temporary keys; if the server's private key is compromised in the future, past recorded traffic cannot be decrypted.", orderIndex: 0 },
+      { id: "opt-s92-53b", body: "Zero network packet loss on optical fiber.", orderIndex: 1 },
+      { id: "opt-s92-53c", body: "Support for unlimited concurrent WebSocket connections.", orderIndex: 2 },
+      { id: "opt-s92-53d", body: "Automatic DNS resolution caching.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-53a",
+  },
+  {
+    id: "pq-s92-54",
+    topicId: "topic-networks",
+    topicSlug: "computer-networks-protocols",
+    body: "How does Dynamic ARP Inspection (DAI) on managed network switches prevent ARP spoofing / poisoning attacks?",
+    explanation: "DAI intercepts ARP packets on untrusted switch ports. It compares the sender IP and MAC address against the verified DHCP snooping table. If an attacker attempts to spoof the default gateway IP, the switch drops the packet and logs a security violation.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s92-54a", body: "The switch intercepts all ARP requests/responses and validates them against the DHCP Snooping binding database, dropping any ARP packet claiming an IP not bound to that physical port/MAC.", orderIndex: 0 },
+      { id: "opt-s92-54b", body: "The switch disables the ARP protocol and uses static DNS records exclusively.", orderIndex: 1 },
+      { id: "opt-s92-54c", body: "The switch reboots whenever an ARP broadcast is detected.", orderIndex: 2 },
+      { id: "opt-s92-54d", body: "The switch converts all IPv4 packets into AppleTalk frames.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-54a",
+  },
+  {
+    id: "pq-s92-55",
+    topicId: "topic-networks",
+    topicSlug: "computer-networks-protocols",
+    body: "What security risk does the HTTP response header \"X-Content-Type-Options: nosniff\" eliminate?",
+    explanation: "Browsers historically performed \"MIME sniffing\", inspecting file contents to determine format regardless of the Content-Type header. An attacker could upload an avatar image containing malicious HTML/JS. \"nosniff\" forces the browser to adhere strictly to the declared Content-Type.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s92-55a", body: "MIME-type sniffing: Prevents browsers from executing non-executable MIME types (e.g. treating an uploaded malicious .png containing JavaScript as text/html).", orderIndex: 0 },
+      { id: "opt-s92-55b", body: "Cross-Site Request Forgery (CSRF) attacks.", orderIndex: 1 },
+      { id: "opt-s92-55c", body: "SQL injection attacks against backend databases.", orderIndex: 2 },
+      { id: "opt-s92-55d", body: "DNS cache poisoning.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-55a",
+  },
+  {
+    id: "pq-s92-56",
+    topicId: "topic-networks",
+    topicSlug: "computer-networks-protocols",
+    body: "What is the purpose of OCSP Stapling in TLS handshakes?",
+    explanation: "Without stapling, the client browser must connect directly to the Certificate Authority's OCSP responder to check if the server certificate is revoked, adding 100-300ms latency and leaking client browsing habits. OCSP stapling has the server attach a cached, CA-signed proof directly.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-56a", body: "The web server queries the CA OCSP responder periodically, caches the signed revocation status, and staples it directly to the TLS Certificate handshake, eliminating client OCSP lookup latency and privacy leaks.", orderIndex: 0 },
+      { id: "opt-s92-56b", body: "It staples paper printouts of SSL certificates to physical server racks.", orderIndex: 1 },
+      { id: "opt-s92-56c", body: "It encrypts the server's IP address using SHA-512.", orderIndex: 2 },
+      { id: "opt-s92-56d", body: "It compresses HTTP response cookies.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-56a",
+  },
+  {
+    id: "pq-s92-57",
+    topicId: "topic-networks",
+    topicSlug: "computer-networks-protocols",
+    body: "How does the BGP Path Vector routing protocol detect and prevent routing loops across Autonomous Systems (AS)?",
+    explanation: "BGP is a path-vector protocol. As a route announcement traverses the Internet, each AS prepends its autonomous system number to the AS-Path list. When an AS router receives an update containing its own AS number in the path, it knows the route has looped and rejects it.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s92-57a", body: "Each BGP route update advertises the AS-Path attribute (sequence of AS numbers); if a BGP router sees its own AS number in the AS-Path, it immediately discards the advertisement.", orderIndex: 0 },
+      { id: "opt-s92-57b", body: "By enforcing a maximum hop count of 15 like RIP.", orderIndex: 1 },
+      { id: "opt-s92-57c", body: "By calculating Dijkstra's algorithm on the entire global Internet topology.", orderIndex: 2 },
+      { id: "opt-s92-57d", body: "By terminating all BGP sessions every 60 seconds.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-57a",
+  },
+  {
+    id: "pq-s92-58",
+    topicId: "topic-networks",
+    topicSlug: "computer-networks-protocols",
+    body: "What occurs during an Envoy Service Mesh Shadow Traffic (Mirroring) deployment?",
+    explanation: "Traffic shadowing mirrors production traffic to a new service version in the background without impacting live users. The response from the shadow service is discarded. This enables realistic load and performance testing with real production payloads with zero user risk.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-58a", body: "Envoy duplicates a percentage of live incoming production requests and asynchronously sends them to a candidate service; the shadow responses are completely ignored and never returned to the client.", orderIndex: 0 },
+      { id: "opt-s92-58b", body: "Envoy redirects 50% of users to a maintenance page.", orderIndex: 1 },
+      { id: "opt-s92-58c", body: "Envoy mirrors all database queries into a public Slack channel.", orderIndex: 2 },
+      { id: "opt-s92-58d", body: "Envoy forces all backend services to run on a single thread.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-58a",
+  },
+  {
+    id: "pq-s92-59",
+    topicId: "topic-networks",
+    topicSlug: "computer-networks-protocols",
+    body: "What triggers a Cross-Origin Resource Sharing (CORS) preflight request (OPTIONS) in web browsers?",
+    explanation: "Browsers distinguish between \"Simple Requests\" and non-simple requests. If a request uses methods like PUT/DELETE, sets custom headers like Authorization or X-Custom-Header, or uses application/json, the browser MUST issue an OPTIONS preflight request before the actual request.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s92-59a", body: "When a cross-origin HTTP request uses methods other than GET/HEAD/POST, or includes custom headers (e.g. Authorization), or uses a Content-Type other than application/x-www-form-urlencoded, multipart/form-data, or text/plain.", orderIndex: 0 },
+      { id: "opt-s92-59b", body: "Any HTTP request that transmits more than 50 bytes of data.", orderIndex: 1 },
+      { id: "opt-s92-59c", body: "When the user opens a browser tab in Incognito mode.", orderIndex: 2 },
+      { id: "opt-s92-59d", body: "When the web server is hosted on AWS rather than on-premise.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-59a",
+  },
+  {
+    id: "pq-s92-60",
+    topicId: "topic-networks",
+    topicSlug: "computer-networks-protocols",
+    body: "In DNSSEC, how is the cryptographic chain of trust anchored from top-level domains down to individual records?",
+    explanation: "DNSSEC builds a cryptographic hierarchy: Root anchors the TLD via DS records. The TLD anchors the domain zone. In each zone, the KSK signs the ZSK, and the ZSK signs resource record sets (RRsets) into RRSIG records, allowing recursive resolvers to verify cryptographic authenticity.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-60a", body: "Parent zones store a Delegation Signer (DS) record containing a hash of the child zone's Key Signing Key (KSK); each child zone signs its Zone Signing Key (ZSK) with the KSK, and records are signed into RRSIGs by the ZSK.", orderIndex: 0 },
+      { id: "opt-s92-60b", body: "DNSSEC uses a single global master private key owned by ICANN.", orderIndex: 1 },
+      { id: "opt-s92-60c", body: "Every DNS query is sent over encrypted SSH tunnels.", orderIndex: 2 },
+      { id: "opt-s92-60d", body: "DNSSEC encrypts all domain names so only the browser can read them.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-60a",
+  },
+  {
+    id: "pq-s92-61",
+    topicId: "topic-core-java",
+    topicSlug: "core-java-multithreading",
+    body: "In Java Concurrency, what is the internal architecture of AbstractQueuedSynchronizer (AQS) used by ReentrantLock and CountDownLatch?",
+    explanation: "AQS maintains an atomic volatile integer representing sync state (e.g. 0 = unlocked, 1 = locked in ReentrantLock). Blocked threads are enqueued into a lock-free doubly-linked FIFO queue (derived from Craig, Landin, and Hagersten CLH locks) and parked via LockSupport.park().",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-61a", body: "A volatile 32-bit state integer representing lock state, coupled with a FIFO wait queue based on a variant of the CLH lock queue using atomic CAS transitions.", orderIndex: 0 },
+      { id: "opt-s92-61b", body: "A hash table storing active thread IDs with reader-writer spinlocks.", orderIndex: 1 },
+      { id: "opt-s92-61c", body: "A circular array buffer that sleeps threads via Thread.sleep(100).", orderIndex: 2 },
+      { id: "opt-s92-61d", body: "A native OS pipe that transfers tokens across JVM processes.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-61a",
+  },
+  {
+    id: "pq-s92-62",
+    topicId: "topic-core-java",
+    topicSlug: "core-java-multithreading",
+    body: "In Java 21 Virtual Threads (Project Loom), what is \"Carrier Thread Pinning\" and why does it degrade performance?",
+    explanation: "Virtual threads unmount from their carrier worker thread during blocking network/file I/O. However, if blocking I/O occurs inside a synchronized method/block or JNI call, the virtual thread is \"pinned\", blocking the underlying OS carrier thread from executing other virtual threads.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-62a", body: "A virtual thread executing inside a synchronized block or native JNI call cannot unmount from its underlying OS carrier thread during blocking I/O, starving other virtual threads.", orderIndex: 0 },
+      { id: "opt-s92-62b", body: "Virtual threads become permanently pinned to CPU core 0.", orderIndex: 1 },
+      { id: "opt-s92-62c", body: "The garbage collector is disabled while virtual threads are active.", orderIndex: 2 },
+      { id: "opt-s92-62d", body: "Virtual threads cannot execute string manipulation.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-62a",
+  },
+  {
+    id: "pq-s92-63",
+    topicId: "topic-core-java",
+    topicSlug: "core-java-multithreading",
+    body: "According to the Java Memory Model (JMM), what does a \"Happens-Before\" relationship between a volatile write and volatile read guarantee?",
+    explanation: "Under JMM happens-before rules, writing to a volatile field establishes a memory barrier: all writes performed by Thread A prior to the volatile write become visible to Thread B after Thread B executes a volatile read of that field.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-63a", body: "A write to a volatile variable happens-before every subsequent read of that same variable, guaranteeing memory visibility and prohibiting instruction reordering across the fence.", orderIndex: 0 },
+      { id: "opt-s92-63b", body: "Volatile variables are stored in CPU L1 cache exclusively and never written to RAM.", orderIndex: 1 },
+      { id: "opt-s92-63c", body: "Volatile reads always acquire an exclusive OS mutex lock.", orderIndex: 2 },
+      { id: "opt-s92-63d", body: "Volatile variables can only be modified by a single designated master thread.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-63a",
+  },
+  {
+    id: "pq-s92-64",
+    topicId: "topic-core-java",
+    topicSlug: "core-java-multithreading",
+    body: "How does the Java ForkJoinPool Work-Stealing scheduling algorithm minimize lock contention between worker threads?",
+    explanation: "ForkJoinPool equips each worker with a dual-ended queue (deque). The owning thread operates exclusively on the head (LIFO) for superior CPU cache locality. When a worker runs out of work, it steals from the tail (FIFO) of other workers, minimizing lock contention.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-64a", body: "Each worker thread has a private double-ended queue (deque); the owner thread pushes and pops subtasks from the Head (LIFO cache locality), while idle thief threads steal tasks from the Tail (FIFO) using atomic CAS.", orderIndex: 0 },
+      { id: "opt-s92-64b", body: "All threads pull tasks from a single synchronized PriorityQueue.", orderIndex: 1 },
+      { id: "opt-s92-64c", body: "Tasks are assigned randomly by the operating system scheduler.", orderIndex: 2 },
+      { id: "opt-s92-64d", body: "Worker threads terminate immediately if their local queue is empty.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-64a",
+  },
+  {
+    id: "pq-s92-65",
+    topicId: "topic-core-java",
+    topicSlug: "core-java-multithreading",
+    body: "In CPython, why does a CPU-bound multithreaded Python program fail to achieve speedup across multiple CPU cores?",
+    explanation: "The CPython GIL is a mutual exclusion lock protecting internal memory management and reference counting. Because only one thread can hold the GIL, CPU-bound threads fight for the GIL, resulting in performance worse than single-threaded execution due to context-switch thrashing.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s92-65a", body: "The Global Interpreter Lock (GIL) enforces that only one native OS thread executes Python bytecode inside the CPython evaluation loop at any single moment.", orderIndex: 0 },
+      { id: "opt-s92-65b", body: "CPython restricts processes to a maximum of 512MB RAM.", orderIndex: 1 },
+      { id: "opt-s92-65c", body: "CPython disables thread scheduling on multi-core systems.", orderIndex: 2 },
+      { id: "opt-s92-65d", body: "Python bytecode can only run on 32-bit hardware.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-65a",
+  },
+  {
+    id: "pq-s92-66",
+    topicId: "topic-core-java",
+    topicSlug: "core-java-multithreading",
+    body: "How does PEP 703 (Free-Threaded Python / No-GIL) eliminate the GIL while preserving thread-safe reference counting?",
+    explanation: "PEP 703 removes the GIL by introducing Mimic-Biased Reference Counting: objects owned by a single thread use non-atomic fast reference updates; shared objects use atomic instructions. Frequently accessed constants are marked \"immortal\" to eliminate reference count mutations entirely.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-66a", body: "By replacing standard reference counting with Mimic-Biased Reference Counting (local vs shared counters) and designating immortal objects (constants/singletons) with fixed refcount flags.", orderIndex: 0 },
+      { id: "opt-s92-66b", body: "By rewriting CPython in JavaScript.", orderIndex: 1 },
+      { id: "opt-s92-66c", body: "By placing a global spinlock around every dictionary access.", orderIndex: 2 },
+      { id: "opt-s92-66d", body: "By disabling garbage collection completely.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-66a",
+  },
+  {
+    id: "pq-s92-67",
+    topicId: "topic-core-java",
+    topicSlug: "core-java-multithreading",
+    body: "How does declaring __slots__ on a Python class reduce memory consumption for millions of instances?",
+    explanation: "By default, every Python instance stores attributes in a dynamic dictionary (__dict__), which consumes several hundred bytes of hash table overhead. __slots__ reserves fixed struct offsets for declared attributes, shrinking object footprint by 60-80%.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s92-67a", body: "It prevents the dynamic creation of an internal __dict__ hash table per instance, allocating fixed C-struct array member offsets for declared attributes.", orderIndex: 0 },
+      { id: "opt-s92-67b", body: "It compresses object strings using Gzip.", orderIndex: 1 },
+      { id: "opt-s92-67c", body: "It stores class instances on disk instead of in RAM.", orderIndex: 2 },
+      { id: "opt-s92-67d", body: "It turns all class methods into static functions.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-67a",
+  },
+  {
+    id: "pq-s92-68",
+    topicId: "topic-core-java",
+    topicSlug: "core-java-multithreading",
+    body: "How does the Java LongAdder class achieve orders of magnitude higher throughput than AtomicLong under high thread contention?",
+    explanation: "AtomicLong uses a single memory location with a CAS loop, causing severe cacheline bouncing under contention. LongAdder stripes writes across an internal Cell[] array (@Contended padded to prevent false sharing); threads update separate cells, eliminating CAS spin contention.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-68a", body: "It maintains an internal array of Cell counters that threads update independently using thread-hash indexing, summing all cells only when sum() is queried.", orderIndex: 0 },
+      { id: "opt-s92-68b", body: "It writes numbers to disk using asynchronous I/O.", orderIndex: 1 },
+      { id: "opt-s92-68c", body: "It converts integers into 64-bit floating point numbers.", orderIndex: 2 },
+      { id: "opt-s92-68d", body: "It executes calculations on the GPU.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-68a",
+  },
+  {
+    id: "pq-s92-69",
+    topicId: "topic-core-java",
+    topicSlug: "core-java-multithreading",
+    body: "What is the \"ABA Problem\" in lock-free concurrent programming using Compare-And-Swap (CAS), and how is it resolved?",
+    explanation: "The ABA problem occurs when a memory location changes from A to B and back to A. A thread executing CAS(A, C) sees A and assumes state was undisturbed, which can corrupt node pointers in lock-free stacks/queues. Tagged pointers (stamped reference + version counter) resolve this.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-69a", body: "A thread reads value A, is preempted, another thread changes A to B and back to A; CAS succeeds assuming nothing changed, even though structural pointer invariants were corrupted. Resolved using tagged pointers / version stamps (AtomicStampedReference).", orderIndex: 0 },
+      { id: "opt-s92-69b", body: "A thread reads value A and the CPU shuts down.", orderIndex: 1 },
+      { id: "opt-s92-69c", body: "A memory leak caused by allocating strings containing the letter A.", orderIndex: 2 },
+      { id: "opt-s92-69d", body: "A deadlock caused by two threads acquiring locks in alphabetical order.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-69a",
+  },
+  {
+    id: "pq-s92-70",
+    topicId: "topic-core-java",
+    topicSlug: "core-java-multithreading",
+    body: "In Python asyncio, what is the consequence of calling a blocking synchronous function (e.g. time.sleep or requests.get) inside a coroutine?",
+    explanation: "asyncio relies on cooperative multitasking on a single thread. When a coroutine executes a synchronous blocking function (e.g. time.sleep), the event loop cannot cycle to process other pending tasks or network events, stalling the entire application. Use asyncio.to_thread() instead.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s92-70a", body: "It blocks the single OS thread running the event loop, freezing all other concurrent asynchronous tasks and network I/O until the blocking call returns.", orderIndex: 0 },
+      { id: "opt-s92-70b", body: "asyncio automatically spins up a background thread pool to handle the call.", orderIndex: 1 },
+      { id: "opt-s92-70c", body: "The program raises an uncatchable syntax error immediately.", orderIndex: 2 },
+      { id: "opt-s92-70d", body: "The operating system switches the Python interpreter to pre-emptive multitasking.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-70a",
+  },
+  {
+    id: "pq-s92-71",
+    topicId: "topic-core-java",
+    topicSlug: "core-java-multithreading",
+    body: "How does False Sharing degrade multicore multithreaded performance, and how is it mitigated in software?",
+    explanation: "Even if threads update completely separate variables, if they sit in the same 64-byte cache line, modifying one forces the hardware MESI cache coherence protocol to invalidate the entire cacheline on all other cores. Inserting padding (e.g. 64 bytes of dummy fields or Java @Contended) isolates variables.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-71a", body: "Two threads modify independent variables that happen to reside on the same 64-byte CPU cache line, forcing cache coherency protocols (MESI) to continuously invalidate L1/L2 caches across cores. Mitigated by cache line padding (@Contended).", orderIndex: 0 },
+      { id: "opt-s92-71b", body: "Two processes share a single database password.", orderIndex: 1 },
+      { id: "opt-s92-71c", body: "Threads read false values from boolean variables.", orderIndex: 2 },
+      { id: "opt-s92-71d", body: "A network card transmits corrupted packets to sibling servers.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-71a",
+  },
+  {
+    id: "pq-s92-72",
+    topicId: "topic-core-java",
+    topicSlug: "core-java-multithreading",
+    body: "What is the role of JVM Escape Analysis and Scalar Replacement in high-concurrency Java applications?",
+    explanation: "Escape analysis proves whether an allocated object remains thread-local. If it never escapes, the JVM applies Scalar Replacement: it does not allocate a heap object, but decomposes its fields into local CPU registers/stack frames, eliminating garbage collection allocation pressure.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-72a", body: "If JIT compilation proves an object does not escape the allocating method or thread, it avoids heap allocation entirely by breaking the object into primitive local variables stored in CPU registers or the stack.", orderIndex: 0 },
+      { id: "opt-s92-72b", body: "It encrypts objects before sending them across network sockets.", orderIndex: 1 },
+      { id: "opt-s92-72c", body: "It converts Java bytecode into Python source code.", orderIndex: 2 },
+      { id: "opt-s92-72d", body: "It allocates all Java objects in native off-heap memory.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-72a",
+  },
+  {
+    id: "pq-s92-73",
+    topicId: "topic-core-java",
+    topicSlug: "core-java-multithreading",
+    body: "Why does ThreadLocal in Java commonly cause serious memory leaks in web applications managed by container thread pools (e.g. Tomcat)?",
+    explanation: "ThreadLocalMap holds values with strong references attached to the running Thread. In application servers, threads are reused in pools and never terminate. If ThreadLocal.remove() is not called in a finally block, loaded classes and state leak memory indefinitely.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s92-73a", body: "ThreadLocal entries are stored in a ThreadLocalMap keyed by weak references to ThreadLocal, but values are strongly referenced; thread pool worker threads never terminate, keeping values alive in memory forever unless explicitly removed via remove().", orderIndex: 0 },
+      { id: "opt-s92-73b", body: "ThreadLocal variables automatically write 100MB files to the /tmp directory.", orderIndex: 1 },
+      { id: "opt-s92-73c", body: "ThreadLocal allocates memory from the kernel non-paged pool.", orderIndex: 2 },
+      { id: "opt-s92-73d", body: "ThreadLocal forces all Java classes to be reloaded on every HTTP request.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-73a",
+  },
+  {
+    id: "pq-s92-74",
+    topicId: "topic-core-java",
+    topicSlug: "core-java-multithreading",
+    body: "How does Go's runtime scheduler (the GMP model) achieve M:N goroutine scheduling across physical CPU cores?",
+    explanation: "In Go's GMP model: G (Goroutine), M (Machine / OS thread), P (Processor / logical context, bounded by GOMAXPROCS). Each P has a local runqueue. If a goroutine on M blocks in a syscall, M detaches from P; an idle or new M takes P and continues executing other goroutines.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-74a", body: "Goroutines (G) run on logical Processors (P) representing CPU context tokens, which are executed by native OS threads (M); when a goroutine blocks on a syscall, M detaches from P, allowing another M to run P's runqueue.", orderIndex: 0 },
+      { id: "opt-s92-74b", body: "Go runs all goroutines sequentially on a single OS thread using setjmp/longjmp.", orderIndex: 1 },
+      { id: "opt-s92-74c", body: "Go creates a new OS thread for every goroutine spawned with the go keyword.", orderIndex: 2 },
+      { id: "opt-s92-74d", body: "Go compiles all concurrent code into GPU compute shaders.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-74a",
+  },
+  {
+    id: "pq-s92-75",
+    topicId: "topic-core-java",
+    topicSlug: "core-java-multithreading",
+    body: "What is the purpose of Python 3.12 PEP 684 (A Per-Interpreter GIL)?",
+    explanation: "Historically, the GIL was global to the entire CPython process. PEP 684 makes the GIL per-interpreter. Multiple sub-interpreters running within the same process can now execute CPU-bound bytecode simultaneously on separate CPU cores without lock contention.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s92-75a", body: "It allows multiple independent Python sub-interpreters within the same process to each hold their own isolated GIL, enabling true multicore CPU parallelism across sub-interpreters.", orderIndex: 0 },
+      { id: "opt-s92-75b", body: "It deletes the GIL completely from all versions of Python.", orderIndex: 1 },
+      { id: "opt-s92-75c", body: "It restricts Python to running only on single-core Raspberry Pi computers.", orderIndex: 2 },
+      { id: "opt-s92-75d", body: "It converts Python into a compiled static language like C++.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-75a",
+  },
+  {
+    id: "pq-s92-76",
+    topicId: "topic-fullstack",
+    topicSlug: "fullstack-javascript-apis",
+    body: "Why does WebAssembly execute on an implicit Evaluation Stack rather than named physical CPU registers?",
+    explanation: "A stack-based VM yields compact binary encoding (instructions do not need register operand fields) and simplifies compiler validation. JIT engines (Liftoff, Cranelift) can map virtual stack values to physical CPU registers in a single linear pass.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-76a", body: "Stack machine bytecode is compact, hardware-neutral, and enforces structured types at compile time, enabling JIT engines to generate native machine code in a single linear validation pass.", orderIndex: 0 },
+      { id: "opt-s92-76b", body: "Physical CPUs do not possess hardware registers.", orderIndex: 1 },
+      { id: "opt-s92-76c", body: "Stack machines are only capable of running math formulas.", orderIndex: 2 },
+      { id: "opt-s92-76d", body: "Register-based bytecodes cannot be transmitted over HTTP.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-76a",
+  },
+  {
+    id: "pq-s92-77",
+    topicId: "topic-fullstack",
+    topicSlug: "fullstack-javascript-apis",
+    body: "How do modern WebAssembly engines ensure sandboxed Linear Memory safety without paying the 20-30% performance penalty of software bounds checking?",
+    explanation: "Wasm addresses are 32-bit (max 4GB). By placing a 4GB uncommitted virtual memory guard reservation around the active Wasm buffer using mmap(PROT_NONE), out-of-bounds offsets automatically land on guard pages, triggering an OS page fault caught by the runtime with zero branch overhead.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-77a", body: "By allocating a 4GB virtual address reservation using PROT_NONE guard pages; any out-of-bounds pointer triggers a hardware MMU page fault (#PF) that the runtime catches with zero software branch instructions.", orderIndex: 0 },
+      { id: "opt-s92-77b", body: "By running all WebAssembly programs inside a dedicated Docker container.", orderIndex: 1 },
+      { id: "opt-s92-77c", body: "By scanning the memory buffer with an antivirus program every 5 seconds.", orderIndex: 2 },
+      { id: "opt-s92-77d", body: "By limiting linear memory to a maximum size of 64KB.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-77a",
+  },
+  {
+    id: "pq-s92-78",
+    topicId: "topic-fullstack",
+    topicSlug: "fullstack-javascript-apis",
+    body: "In WebAssembly, what is the fixed allocation unit size for linear memory expansion via memory.grow?",
+    explanation: "WebAssembly linear memory is strictly partitioned into 64KB (65,536 bytes) page blocks. Both the initial memory declaration and subsequent dynamic growth via memory.grow operate in multiples of 64KB.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s92-78a", body: "4KB (4096 bytes)", orderIndex: 0 },
+      { id: "opt-s92-78b", body: "64KB (65536 bytes)", orderIndex: 1 },
+      { id: "opt-s92-78c", body: "1MB (1048576 bytes)", orderIndex: 2 },
+      { id: "opt-s92-78d", body: "2MB (2097152 bytes)", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-78b",
+  },
+  {
+    id: "pq-s92-79",
+    topicId: "topic-fullstack",
+    topicSlug: "fullstack-javascript-apis",
+    body: "What happens to existing JavaScript TypedArray views (e.g. new Uint8Array(wasmMemory.buffer)) when a WebAssembly module executes memory.grow()?",
+    explanation: "When memory grows, the underlying ArrayBuffer is reallocated and moved in memory. In accordance with ECMAScript standards, all previous TypedArray views are detached to prevent dangling pointers, rendering their byteLength 0.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s92-79a", body: "The existing TypedArray buffers are detached (byteLength becomes 0), requiring JavaScript code to re-instantiate new TypedArray views over the reallocated memory.", orderIndex: 0 },
+      { id: "opt-s92-79b", body: "The TypedArray automatically resizes with zero overhead.", orderIndex: 1 },
+      { id: "opt-s92-79c", body: "The browser terminates the tab with an out-of-memory error.", orderIndex: 2 },
+      { id: "opt-s92-79d", body: "The data inside the memory buffer is erased.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-79a",
+  },
+  {
+    id: "pq-s92-80",
+    topicId: "topic-fullstack",
+    topicSlug: "fullstack-javascript-apis",
+    body: "What is the WebAssembly Component Model and how does it solve polyglot data sharing across modules?",
+    explanation: "The Component Model builds on Wasm Interface Types (WIT) and the Canonical ABI. It enables high-level types (strings, records, variants, resources) to be passed across language boundaries safely without manual byte serialization or unsafe pointer sharing.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-80a", body: "It defines the Canonical ABI and Wasm Interface Types (WIT) to allow components compiled from different languages (Rust, Go, C++) to safely pass structured types and resources without manual memory marshalling.", orderIndex: 0 },
+      { id: "opt-s92-80b", body: "It converts all WebAssembly modules into React components.", orderIndex: 1 },
+      { id: "opt-s92-80c", body: "It stores all component states in a global SQLite database.", orderIndex: 2 },
+      { id: "opt-s92-80d", body: "It replaces HTML CSS styling with WebAssembly bytecode.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-80a",
+  },
+  {
+    id: "pq-s92-81",
+    topicId: "topic-fullstack",
+    topicSlug: "fullstack-javascript-apis",
+    body: "Why do React Server Components (RSC) serialize their output into the Flight wire format rather than emitting raw HTML during client-side navigation?",
+    explanation: "If navigation emitted raw HTML, the browser would blow away the DOM and recreate it, destroying all active client component state (e.g. video playback, form input, state). Flight stream allows React to perform standard virtual DOM diffing and reconciliation.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-81a", body: "Flight format describes the virtual DOM tree, allowing client-side React to reconcile new elements into the existing Fiber tree while preserving existing client-side state (scroll position, form inputs, local state).", orderIndex: 0 },
+      { id: "opt-s92-81b", body: "Because HTML cannot be sent over HTTP/2 connections.", orderIndex: 1 },
+      { id: "opt-s92-81c", body: "Because Flight format is 100% encrypted with AES-GCM.", orderIndex: 2 },
+      { id: "opt-s92-81d", body: "Because React Server Components cannot render standard HTML tags.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-81a",
+  },
+  {
+    id: "pq-s92-82",
+    topicId: "topic-fullstack",
+    topicSlug: "fullstack-javascript-apis",
+    body: "What is the client bundle size impact of an asynchronous React Server Component that imports a 10MB Markdown parsing library?",
+    explanation: "Server Components execute exclusively on the server. Neither the component code nor any libraries imported by it are included in the client JavaScript bundle, guaranteeing 0 bytes added to client bundle size.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s92-82a", body: "Exactly 0 bytes: Server Components and their server-only dependencies execute purely on the server and are never included in the browser bundle.", orderIndex: 0 },
+      { id: "opt-s92-82b", body: "10MB added to the client main.js bundle.", orderIndex: 1 },
+      { id: "opt-s92-82c", body: "A fixed 500KB compressed gzip chunk.", orderIndex: 2 },
+      { id: "opt-s92-82d", body: "1MB per concurrent active user.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-82a",
+  },
+  {
+    id: "pq-s92-83",
+    topicId: "topic-fullstack",
+    topicSlug: "fullstack-javascript-apis",
+    body: "What is the exact semantic meaning of the \"use client\" directive in modern React applications?",
+    explanation: "use client does not mean \"render only in browser\". It marks a module boundary separating server-only code from client-bundled code. Components marked with use client still render to HTML on the server during initial SSR, but are hydrated by the client runtime.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-83a", body: "It defines a boundary in the module dependency tree: the component and its imports are bundled for the browser and hydrated on the client (while still rendering initial HTML on the server during SSR).", orderIndex: 0 },
+      { id: "opt-s92-83b", body: "It prevents the component from ever executing on the server during initial page load.", orderIndex: 1 },
+      { id: "opt-s92-83c", body: "It converts the component into a client-side Service Worker.", orderIndex: 2 },
+      { id: "opt-s92-83d", body: "It disables server-side caching for the entire application.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-83a",
+  },
+  {
+    id: "pq-s92-84",
+    topicId: "topic-fullstack",
+    topicSlug: "fullstack-javascript-apis",
+    body: "Which of the following props CANNOT be passed from a Server Component to a Client Component across the boundary?",
+    explanation: "The RSC Flight protocol must serialize all props sent across the network from server to client. Plain objects, primitives, and React elements can be serialized; JavaScript function closures cannot and trigger a serialization error.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-84a", body: "A standard JavaScript closure function (e.g. onClick={() => alert(\"hi\")})", orderIndex: 0 },
+      { id: "opt-s92-84b", body: "A plain JavaScript string", orderIndex: 1 },
+      { id: "opt-s92-84c", body: "A nested JSX element (e.g. <div>Hello</div>)", orderIndex: 2 },
+      { id: "opt-s92-84d", body: "An array of serializable plain objects", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-84a",
+  },
+  {
+    id: "pq-s92-85",
+    topicId: "topic-fullstack",
+    topicSlug: "fullstack-javascript-apis",
+    body: "How does Streaming Server-Side Rendering (SSR) with React Suspense improve First Contentful Paint (FCP)?",
+    explanation: "Traditional SSR blocks on the slowest database query before emitting any HTML. Streaming SSR flushes the outer layout shell and loading skeletons immediately via HTTP chunked transfer encoding, giving users instant visual feedback while backend data streams in.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s92-85a", body: "The server immediately flushes the static layout shell and skeleton fallbacks via chunked HTTP transfer before waiting for slow database queries, allowing the browser to render the UI shell instantly.", orderIndex: 0 },
+      { id: "opt-s92-85b", body: "It forces the browser to download the entire application in a single TCP packet.", orderIndex: 1 },
+      { id: "opt-s92-85c", body: "It executes all database queries directly inside the client's browser.", orderIndex: 2 },
+      { id: "opt-s92-85d", body: "It converts the website into a static PDF document.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-85a",
+  },
+  {
+    id: "pq-s92-86",
+    topicId: "topic-fullstack",
+    topicSlug: "fullstack-javascript-apis",
+    body: "What is Selective Hydration in React 18+ and how does it respond when a user interacts with an unhydrated component?",
+    explanation: "Selective Hydration breaks hydration into discrete pieces wrapped in Suspense boundaries. If a user clicks an unhydrated piece of the UI while React is hydrating elsewhere, React pauses the low-priority hydration and hydrates the clicked component first, replaying the click.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-86a", body: "React prioritizes hydrating the specific component the user clicked on, pausing background hydration of other components to respond to the user interaction immediately.", orderIndex: 0 },
+      { id: "opt-s92-86b", body: "React aborts the application and throws an unhandled exception.", orderIndex: 1 },
+      { id: "opt-s92-86c", body: "React ignores user clicks until all JavaScript bundles on the page have completely executed.", orderIndex: 2 },
+      { id: "opt-s92-86d", body: "React refreshes the entire webpage.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-86a",
+  },
+  {
+    id: "pq-s92-87",
+    topicId: "topic-fullstack",
+    topicSlug: "fullstack-javascript-apis",
+    body: "What is the performance advantage of V8 Inline Caches (IC) when executing JavaScript property lookups?",
+    explanation: "JavaScript objects have dynamic shapes. V8 assigns Hidden Classes (Shapes/Maps) to objects. Inline Caches remember the structural offset of a property for a given shape, allowing subsequent executions of obj.x to read directly from that offset without table lookups.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s92-87a", body: "V8 caches the memory offset of an object property based on its hidden class (Shape/Map), converting dynamic dictionary lookups into a direct single-instruction memory read.", orderIndex: 0 },
+      { id: "opt-s92-87b", body: "V8 copies all object properties to an external Memcached server.", orderIndex: 1 },
+      { id: "opt-s92-87c", body: "V8 converts all numbers into 128-bit integers.", orderIndex: 2 },
+      { id: "opt-s92-87d", body: "V8 eliminates the need for garbage collection.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-87a",
+  },
+  {
+    id: "pq-s92-88",
+    topicId: "topic-fullstack",
+    topicSlug: "fullstack-javascript-apis",
+    body: "How does the Browser Rendering Engine pipeline execute when modifying a CSS property like \"transform\" vs \"width\"?",
+    explanation: "Changing width impacts element geometry and sibling positions, forcing the browser through Layout -> Paint -> Composite. Changing transform or opacity touches only composition properties, running purely on the GPU Compositor thread with zero CPU layout or repaint.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-88a", body: "Modifying width triggers Layout (reflow), Paint (repaint), and Composite; modifying transform bypasses Layout and Paint entirely, running directly on the GPU compositor thread.", orderIndex: 0 },
+      { id: "opt-s92-88b", body: "Modifying transform requires restarting the browser.", orderIndex: 1 },
+      { id: "opt-s92-88c", body: "Modifying width executes on the GPU; transform executes on the CPU.", orderIndex: 2 },
+      { id: "opt-s92-88d", body: "Both properties take exactly the same number of CPU cycles.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-88a",
+  },
+  {
+    id: "pq-s92-89",
+    topicId: "topic-fullstack",
+    topicSlug: "fullstack-javascript-apis",
+    body: "What is the priority execution order between JavaScript Microtasks (Promises, queueMicrotask) and Macrotasks (setTimeout, setInterval, setImmediate)?",
+    explanation: "In the HTML event loop specification, after a macrotask completes, the engine must immediately drain the microtask queue completely until empty before processing any other macrotasks or updating browser rendering.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s92-89a", body: "The event loop completely drains the entire Microtask queue after every single macrotask and before rendering/next event loop cycle.", orderIndex: 0 },
+      { id: "opt-s92-89b", body: "Macrotasks always execute before microtasks.", orderIndex: 1 },
+      { id: "opt-s92-89c", body: "Microtasks run only once every 60 seconds.", orderIndex: 2 },
+      { id: "opt-s92-89d", body: "Microtasks and macrotasks execute concurrently on two separate CPU cores.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-89a",
+  },
+  {
+    id: "pq-s92-90",
+    topicId: "topic-fullstack",
+    topicSlug: "fullstack-javascript-apis",
+    body: "What is the purpose of React Fiber's cooperative multitasking and time-slicing architecture?",
+    explanation: "Legacy React stack reconciliation was recursive and synchronous; a large update blocked the main thread for 100ms+, causing dropped frames (jank). Fiber represents work as a linked list of fibers, allowing React to pause rendering, yield to user input, and resume seamlessly.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-90a", body: "It breaks virtual DOM reconciliation into incremental units of work (Fibers) that can be paused, yielded to the browser main thread to handle user input/animations, and resumed later.", orderIndex: 0 },
+      { id: "opt-s92-90b", body: "It compiles React components into C++ shared libraries.", orderIndex: 1 },
+      { id: "opt-s92-90c", body: "It disables JavaScript async/await syntax.", orderIndex: 2 },
+      { id: "opt-s92-90d", body: "It converts the browser into an operating system kernel.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-90a",
+  },
+  {
+    id: "pq-s92-91",
+    topicId: "topic-cloud-sec",
+    topicSlug: "cloud-cybersecurity-defense",
+    body: "For a service with a 99.99% availability SLO over a 30-day month (43,200 minutes), what is the exact maximum permitted downtime before breaching the SLO?",
+    explanation: "The error budget is 100% - 99.99% = 0.01%. Allowed downtime = 43,200 minutes * 0.0001 = 4.32 minutes.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s92-91a", body: "43.2 minutes", orderIndex: 0 },
+      { id: "opt-s92-91b", body: "4.32 minutes", orderIndex: 1 },
+      { id: "opt-s92-91c", body: "25.9 seconds", orderIndex: 2 },
+      { id: "opt-s92-91d", body: "7.2 hours", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-91b",
+  },
+  {
+    id: "pq-s92-92",
+    topicId: "topic-cloud-sec",
+    topicSlug: "cloud-cybersecurity-defense",
+    body: "Why does Google SRE recommend Multi-Window Multi-Burn-Rate alerting (e.g. 1-hour and 5-minute windows) over single-window static error thresholds?",
+    explanation: "A short window alerts quickly but produces false positives on temporary traffic spikes. A long window avoids false alarms but stays triggered long after an issue is fixed (reset lag). Requiring both windows to violate burn rate thresholds provides optimal precision and rapid reset.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-92a", body: "Combining a long window (ensuring sustained statistical significance) with a short window (ensuring prompt alert reset upon resolution) eliminates false positives and alert lag.", orderIndex: 0 },
+      { id: "opt-s92-92b", body: "It allows alerts to be sent over SMS rather than email.", orderIndex: 1 },
+      { id: "opt-s92-92c", body: "It disables alerting during weekend hours automatically.", orderIndex: 2 },
+      { id: "opt-s92-92d", body: "Single-window alerts require running two separate Prometheus instances.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-92a",
+  },
+  {
+    id: "pq-s92-93",
+    topicId: "topic-cloud-sec",
+    topicSlug: "cloud-cybersecurity-defense",
+    body: "What is an Error Budget Burn Rate of 14.4 for a rolling 30-day compliance window?",
+    explanation: "A burn rate of 1 consumes the entire budget over 30 days. A burn rate of 14.4 consumes the 30-day budget in 30 / 14.4 = 2.08 days. In 1 hour, it consumes 1 / (2.08 * 24) = 2.0% of the entire monthly budget.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-93a", body: "The service will exhaust 100% of its monthly error budget in approximately 2 days (burning ~2% of the budget every hour).", orderIndex: 0 },
+      { id: "opt-s92-93b", body: "14.4% of all HTTP requests are failing.", orderIndex: 1 },
+      { id: "opt-s92-93c", body: "The service is operating 14.4 times faster than normal.", orderIndex: 2 },
+      { id: "opt-s92-93d", body: "The CPU temperature is 14.4 degrees Celsius above normal.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-93a",
+  },
+  {
+    id: "pq-s92-94",
+    topicId: "topic-cloud-sec",
+    topicSlug: "cloud-cybersecurity-defense",
+    body: "In Combinatorial Shuffle Sharding with N = 100 worker cells and K = 4 cells assigned per tenant, what is the total number of unique fault-isolated cell combinations available?",
+    explanation: "The number of unique combinations is 100 choose 4: (100 * 99 * 98 * 97) / (4 * 3 * 2 * 1) = 3,921,225 combinations. This ensures that even if one customer's poison pill knocks out their 4 cells, the probability of another specific customer sharing those exact 4 cells is less than 0.00003%.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s92-94a", body: "400", orderIndex: 0 },
+      { id: "opt-s92-94b", body: "3,921,225", orderIndex: 1 },
+      { id: "opt-s92-94c", body: "10,000", orderIndex: 2 },
+      { id: "opt-s92-94d", body: "1,000,000", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-94b",
+  },
+  {
+    id: "pq-s92-95",
+    topicId: "topic-cloud-sec",
+    topicSlug: "cloud-cybersecurity-defense",
+    body: "How does the Bulkhead Pattern prevent cascading outages across microservices during downstream service degradation?",
+    explanation: "In microservices, if a shared thread pool is used for all downstream calls, a hanging payment service will consume all threads, starving profile lookups and login queries. The Bulkhead pattern limits payment calls to a dedicated subset of threads, containing the failure.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-95a", body: "By isolating resource pools (e.g. allocating bounded thread pools or semaphores per downstream dependency), ensuring a slow dependency saturates only its own pool without exhausting global thread capacity.", orderIndex: 0 },
+      { id: "opt-s92-95b", body: "By encrypting all database columns with AES-256.", orderIndex: 1 },
+      { id: "opt-s92-95c", body: "By merging all microservices into a single monolithic codebase.", orderIndex: 2 },
+      { id: "opt-s92-95d", body: "By automatically scaling up servers to infinity.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-95a",
+  },
+  {
+    id: "pq-s92-96",
+    topicId: "topic-cloud-sec",
+    topicSlug: "cloud-cybersecurity-defense",
+    body: "In the W3C Trace Context specification, what information does the 16-byte field in the traceparent header represent?",
+    explanation: "The traceparent header format is version-traceid-parentid-traceflags. The 16-byte (32 hex character) field is the globally unique Trace ID that binds all distributed spans together into a single causal trace graph.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s92-96a", body: "The global Trace ID, unique across all distributed systems, which correlates all spans belonging to the same transaction.", orderIndex: 0 },
+      { id: "opt-s92-96b", body: "The IP address of the client making the request.", orderIndex: 1 },
+      { id: "opt-s92-96c", body: "The Unix timestamp in nanoseconds.", orderIndex: 2 },
+      { id: "opt-s92-96d", body: "The HMAC signature of the HTTP body.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-96a",
+  },
+  {
+    id: "pq-s92-97",
+    topicId: "topic-cloud-sec",
+    topicSlug: "cloud-cybersecurity-defense",
+    body: "What is Tail-Based Trace Sampling and why is it preferred over Head-Based Sampling in large-scale observability?",
+    explanation: "Head-based sampling flips a coin at request ingress, inevitably discarding 99% of rare errors and latency spikes. Tail-based sampling buffers the trace until completion; if any span recorded an error or exceeded latency thresholds, the trace is retained with 100% reliability.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-97a", body: "Tail-Based Sampling buffers complete traces in memory collectors and evaluates sampling rules after the request completes, guaranteeing 100% capture of errors and latency outliers while dropping healthy traces.", orderIndex: 0 },
+      { id: "opt-s92-97b", body: "Tail-Based Sampling only traces requests that originate from mobile devices.", orderIndex: 1 },
+      { id: "opt-s92-97c", body: "Tail-Based Sampling samples only the last 10 requests of every day.", orderIndex: 2 },
+      { id: "opt-s92-97d", body: "Tail-Based Sampling compresses traces using LZ4 before sending to Prometheus.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-97a",
+  },
+  {
+    id: "pq-s92-98",
+    topicId: "topic-cloud-sec",
+    topicSlug: "cloud-cybersecurity-defense",
+    body: "Why does adding high-cardinality labels (like user_id or IP address) cause Out-Of-Memory (OOM) crashes in Prometheus TSDB?",
+    explanation: "In Prometheus, a time series is uniquely identified by the metric name plus label set. Adding a label with 10 million distinct values creates 10 million separate time series in the inverted index, consuming gigabytes of memory and crashing the server.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-98a", body: "Every unique combination of metric name and label values creates an independent time-series entry with its own in-memory chunk buffer; millions of user IDs produce millions of series, exhausting RAM.", orderIndex: 0 },
+      { id: "opt-s92-98b", body: "Prometheus cannot parse strings containing numbers.", orderIndex: 1 },
+      { id: "opt-s92-98c", body: "Prometheus stores all metrics in an unindexed flat text file.", orderIndex: 2 },
+      { id: "opt-s92-98d", body: "High-cardinality labels disable network encryption.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-98a",
+  },
+  {
+    id: "pq-s92-99",
+    topicId: "topic-cloud-sec",
+    topicSlug: "cloud-cybersecurity-defense",
+    body: "How does the Facebook Gorilla compression algorithm achieve over 90% compression on time-series floating-point values?",
+    explanation: "Adjacent metric values often share high-order exponent and mantissa bits. Gorilla computes XOR = V_curr ^ V_prev. If unchanged, XOR = 0 (encoded as 1 bit). If changed, Gorilla stores the count of leading/trailing zeros and emits only the significant changed bits.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-99a", body: "By computing the bitwise XOR between consecutive float64 values; if identical, it emits a single '0' bit; if changed, it encodes only the variable-length meaningful bits between leading and trailing zeros.", orderIndex: 0 },
+      { id: "opt-s92-99b", body: "By rounding all floating-point numbers to the nearest integer.", orderIndex: 1 },
+      { id: "opt-s92-99c", body: "By encrypting floats with RSA-4096.", orderIndex: 2 },
+      { id: "opt-s92-99d", body: "By deleting all values older than 5 minutes.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-99a",
+  },
+  {
+    id: "pq-s92-100",
+    topicId: "topic-cloud-sec",
+    topicSlug: "cloud-cybersecurity-defense",
+    body: "Why does Shor's quantum algorithm break classical RSA and Elliptic Curve Cryptography (ECC)?",
+    explanation: "RSA and ECC rely on the classical hardness of integer factorization and discrete logarithms (sub-exponential time). Shor's algorithm computes the period of modular exponentiation in polynomial time, enabling a sufficiently large quantum computer to factor keys in minutes.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-100a", body: "It uses Quantum Fourier Transform to solve order finding (discrete logarithms and prime factorization) in polynomial time O((log N)^3), destroying the mathematical trapdoor of classical asymmetric cryptography.", orderIndex: 0 },
+      { id: "opt-s92-100b", body: "It guesses passwords using dictionary attacks at the speed of light.", orderIndex: 1 },
+      { id: "opt-s92-100c", body: "It disables Internet routers using quantum electromagnetic pulses.", orderIndex: 2 },
+      { id: "opt-s92-100d", body: "It changes the value of mathematical constants like pi.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-100a",
+  },
+  {
+    id: "pq-s92-101",
+    topicId: "topic-cloud-sec",
+    topicSlug: "cloud-cybersecurity-defense",
+    body: "What is the foundational hard problem underlying the NIST ML-KEM (CRYSTALS-Kyber) post-quantum standard?",
+    explanation: "ML-KEM relies on the hardness of Module Learning With Errors (M-LWE). Solving LWE on high-dimensional lattices is mathematically proven to be as hard as the worst-case Shortest Vector Problem (SVP), which has no known polynomial quantum algorithm.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-101a", body: "The Module Learning With Errors (M-LWE) problem in high-dimensional geometric vector lattices, which reduces to the worst-case Shortest Vector Problem (SVP).", orderIndex: 0 },
+      { id: "opt-s92-101b", body: "The discrete logarithm on Edwards curves.", orderIndex: 1 },
+      { id: "opt-s92-101c", body: "Finding collisions in SHA-256.", orderIndex: 2 },
+      { id: "opt-s92-101d", body: "Solving the Boolean Satisfiability Problem (SAT) in linear time.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-101a",
+  },
+  {
+    id: "pq-s92-102",
+    topicId: "topic-cloud-sec",
+    topicSlug: "cloud-cybersecurity-defense",
+    body: "What is the primary architectural trade-off between ZK-SNARKs and ZK-STARKs in Zero-Knowledge Proof systems?",
+    explanation: "ZK-SNARKs (e.g. Groth16) have tiny proof sizes and sub-5ms verification, but require a trusted setup that creates toxic waste. ZK-STARKs eliminate the trusted setup (transparent) and use collision-resistant hashing (quantum-resistant), but have much larger proof sizes.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-102a", body: "ZK-SNARKs produce ultra-compact proofs (~200 bytes) but require a trusted setup ceremony; ZK-STARKs are transparent (no trusted setup) and post-quantum secure, but generate proofs measuring 50KB-100KB.", orderIndex: 0 },
+      { id: "opt-s92-102b", body: "ZK-STARKs require an elliptic curve trusted setup; ZK-SNARKs do not.", orderIndex: 1 },
+      { id: "opt-s92-102c", body: "ZK-SNARKs can only prove calculations on addition, not multiplication.", orderIndex: 2 },
+      { id: "opt-s92-102d", body: "ZK-STARKs can only be verified on supercomputers.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-102a",
+  },
+  {
+    id: "pq-s92-103",
+    topicId: "topic-cloud-sec",
+    topicSlug: "cloud-cybersecurity-defense",
+    body: "In Zero-Knowledge Proofs, what is the property of \"Zero-Knowledge\"?",
+    explanation: "Zero-Knowledge guarantees that the proof reveals no information about the secret input (the witness) other than the truth of the statement. A simulator could generate an indistinguishable transcript without knowing the secret.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s92-103a", body: "The verifier learns absolutely nothing about the secret witness beyond the fact that the statement is mathematically valid.", orderIndex: 0 },
+      { id: "opt-s92-103b", body: "The prover has zero knowledge of the question being asked.", orderIndex: 1 },
+      { id: "opt-s92-103c", body: "The proof requires zero bytes of network bandwidth.", orderIndex: 2 },
+      { id: "opt-s92-103d", body: "The verification algorithm takes zero milliseconds.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-103a",
+  },
+  {
+    id: "pq-s92-104",
+    topicId: "topic-cloud-sec",
+    topicSlug: "cloud-cybersecurity-defense",
+    body: "Why must distributed systems employ Exponential Backoff with Jitter when retrying failed downstream requests?",
+    explanation: "Without jitter, all clients that fail during an outage calculate the exact same backoff delay and retry simultaneously in synchronized waves (retry storms). Jitter adds randomized variation, smoothing out traffic over time.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s92-104a", body: "To break synchronization among concurrent retrying clients, preventing synchronized retry storms from repeatedly overwhelming recovering services.", orderIndex: 0 },
+      { id: "opt-s92-104b", body: "To ensure requests arrive at exact 1.000-second intervals.", orderIndex: 1 },
+      { id: "opt-s92-104c", body: "Because TCP connections fail if packets arrive too quickly.", orderIndex: 2 },
+      { id: "opt-s92-104d", body: "To encrypt the payload with randomized keys.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-104a",
+  },
+  {
+    id: "pq-s92-105",
+    topicId: "topic-cloud-sec",
+    topicSlug: "cloud-cybersecurity-defense",
+    body: "In AWS IAM, how does the policy evaluation engine resolve conflicts when an Explicit Deny and an Explicit Allow apply to the same action?",
+    explanation: "The AWS IAM evaluation logic follows a strict order: It starts with an implicit deny. If an explicit deny is found anywhere in the evaluation tree (SCP, boundary, identity, resource policy), access is immediately and irrevocably denied.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s92-105a", body: "An Explicit Deny always overrides any Allow, regardless of policy type (SCP, Permissions Boundary, Identity policy, or Resource policy).", orderIndex: 0 },
+      { id: "opt-s92-105b", body: "The policy that was created most recently takes precedence.", orderIndex: 1 },
+      { id: "opt-s92-105c", body: "Explicit Allow overrides Deny if the user has AdministratorAccess.", orderIndex: 2 },
+      { id: "opt-s92-105d", body: "The evaluation results in an HTTP 500 error.", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s92-105a",
+  },
 ];
