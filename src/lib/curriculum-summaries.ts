@@ -2405,4 +2405,234 @@ export const CURRICULUM_SUMMARIES: CurriculumArticleSummary[] = [
   ],
   "practiceMcqsCount": 5
 },
+{
+  "id": "art-storage-arrow-columnar-flight-rpc",
+  "slug": "apache-arrow-columnar-format-and-flight-rpc",
+  "domainSlug": "databases-storage-engines",
+  "domainName": "Database Engines & Storage Systems",
+  "title": "Apache Arrow Columnar In-Memory Format and High-Performance Arrow Flight RPC",
+  "level": "ADVANCED",
+  "readTimeMinutes": 26,
+  "summary": "An architectural deep dive into the Apache Arrow in-memory columnar format: contiguous contiguous memory buffers, validity bitmaps, dictionary encoding, zero-copy inter-process communication (IPC), SIMD vectorized execution, and high-throughput Arrow Flight gRPC streaming.",
+  "keyConcepts": [
+    "Arrow Columnar Memory Layout: Validity Bitmaps, Offsets, and Data Buffers",
+    "Zero-Copy Cross-Language IPC via Shared Memory (Plasma Store)",
+    "Dictionary Encoding & Variable-Binary Representation",
+    "SIMD Vectorization & Cache Locality in Columnar Compute",
+    "Arrow Flight RPC: Parallel gRPC Streams with Ticket Handshakes"
+  ],
+  "relatedRoleSlugs": [
+    "systems-architect",
+    "data-engineer",
+    "backend-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-storage-duckdb-vectorized-morsel-olap",
+  "slug": "duckdb-vectorized-execution-and-in-process-olap",
+  "domainSlug": "databases-storage-engines",
+  "domainName": "Database Engines & Storage Systems",
+  "title": "DuckDB In-Process OLAP: Vectorized Execution Engine, Morsel-Driven Parallelism & Out-of-Core Streaming",
+  "level": "ADVANCED",
+  "readTimeMinutes": 27,
+  "summary": "A comprehensive study of embedded analytical database architecture: DuckDB vectorized execution model (1024-tuple DataChunks), morsel-driven scheduling, Radix partition hash joins, unified memory management, and out-of-core streaming over Parquet and Arrow buffers.",
+  "keyConcepts": [
+    "Vectorized vs Volcano Tuple-at-a-Time Execution Models",
+    "DuckDB DataChunk & Vector Primitives (1024-tuple batches)",
+    "Morsel-Driven Parallelism & NUMA-Aware Task Scheduling",
+    "Radix-Partitioned Hash Joins with Bloom Filter Pre-Filtering",
+    "Out-of-Core Buffer Management & Direct Parquet Pushdown"
+  ],
+  "relatedRoleSlugs": [
+    "systems-architect",
+    "data-engineer",
+    "backend-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-storage-rocksdb-write-buffer-manager",
+  "slug": "rocksdb-internals-and-write-buffer-manager",
+  "domainSlug": "databases-storage-engines",
+  "domainName": "Database Engines & Storage Systems",
+  "title": "RocksDB Internals: MemTable Variants, Write Buffer Manager & Two-Level Partitioned Index SSTables",
+  "level": "ADVANCED",
+  "readTimeMinutes": 28,
+  "summary": "A deep architectural inspection of RocksDB storage engine internals: Write-Ahead Log (WAL) sync semantics, MemTable implementations (SkipList, VectorMemTable, Prefix-Hash), Write Buffer Manager memory budgeting, Block-Based Table layout, and two-level index/filter partitioning.",
+  "keyConcepts": [
+    "MemTable Architectures: Concurrent SkipList vs VectorMemTable vs Prefix-Hash",
+    "Write Buffer Manager: Global RAM Budgeting and Flush Triggers",
+    "Block-Based SSTable Format & Two-Level Partitioned Indexing",
+    "Write Stall Triggers: L0 File Accumulation and MemTable Exhaustion",
+    "WAL Flush Modes: Manual Sync, Group Commit, and WriteBatchWithIndex"
+  ],
+  "relatedRoleSlugs": [
+    "systems-architect",
+    "database-administrator",
+    "backend-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-storage-ceph-crush-distributed-storage",
+  "slug": "ceph-crush-map-and-distributed-object-storage",
+  "domainSlug": "distributed-systems-architecture",
+  "domainName": "Distributed Systems Architecture",
+  "title": "Ceph Storage Architecture: CRUSH Algorithmic Data Placement, Bucket Types & OSD Peering",
+  "level": "ADVANCED",
+  "readTimeMinutes": 29,
+  "summary": "An in-depth analysis of Ceph distributed unified storage: CRUSH (Controlled Replication Under Scalable Hashing) algorithmic mapping, hierarchy bucket types (straw2, tree), failure domain isolation, Placement Groups (PGs), OSD peering protocols, and asynchronous recovery.",
+  "keyConcepts": [
+    "CRUSH Map Hierarchy: Roots, Racks, Hosts, and OSD Devices",
+    "Bucket Selection Algorithms: Uniform, List, Tree, and Straw2",
+    "Algorithmic Deterministic Placement vs Centralized Metadata Lookups",
+    "Placement Groups (PGs) and Epoch-Based OSD Peering Protocols",
+    "Failure Domains, Weight Scaling, and Backfill Data Recovery"
+  ],
+  "relatedRoleSlugs": [
+    "systems-architect",
+    "sre-infrastructure",
+    "cloud-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-storage-lsm-compaction-prefix-bloom",
+  "slug": "lsm-tree-compaction-filters-and-prefix-bloom-filters",
+  "domainSlug": "databases-storage-engines",
+  "domainName": "Database Engines & Storage Systems",
+  "title": "LSM-Tree Optimization: Custom Compaction Filters, Prefix Bloom Filters & Parallel Compaction Schedulers",
+  "level": "ADVANCED",
+  "readTimeMinutes": 27,
+  "summary": "A master-class in production LSM-tree tuning: Custom Compaction Filters for TTL expiration and GDPR tombstone purging, Prefix Bloom Filters for bounded range query acceleration, Write Amplification vs Space Amplification trade-offs, and multi-threaded compaction pipelines.",
+  "keyConcepts": [
+    "LSM Compaction Filters: In-Flight Value Mutation and Tombstone Elimination",
+    "Prefix Bloom Filters & Slicing for Range Query Acceleration",
+    "Leveled vs Tiered (Size-Tiered) Compaction Mathematical Trade-offs",
+    "Write Amplification Factor (WAF) vs Space Amplification Factor (SAF)",
+    "Sub-Compactions and Multi-Threaded Background Compaction Schedulers"
+  ],
+  "relatedRoleSlugs": [
+    "systems-architect",
+    "database-administrator",
+    "backend-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-sre-ebpf-continuous-profiling",
+  "slug": "ebpf-continuous-profiling-and-frame-pointer-unwinding",
+  "domainSlug": "operating-systems-internals",
+  "domainName": "Operating Systems & Linux Kernel Engineering",
+  "title": "eBPF Continuous Profiling: Stack Trace Sampling, Frame Pointer Unwinding & Low-Overhead Flame Graphs",
+  "level": "ADVANCED",
+  "readTimeMinutes": 28,
+  "summary": "A deep technical exploration of continuous production profiling using eBPF: Linux perf event sampling, kernel stack trace unwinding, Frame Pointers vs DWARF debug info vs eBPF ORC tables, BPF ring buffers, and aggregating low-overhead on-CPU and off-CPU flame graphs.",
+  "keyConcepts": [
+    "Linux perf_event_open & High-Frequency CPU Sampling (e.g. 19 or 99 Hz)",
+    "Stack Unwinding Mechanics: RBP/RSP Frame Pointers vs DWARF .eh_frame",
+    "eBPF BPF_MAP_TYPE_STACK_TRACE & MurmurHash Aggregation",
+    "On-CPU vs Off-CPU Profiling via sched_switch Tracepoints",
+    "Continuous Profiling Architecture: Kernel Aggregation to Parquet/Pprof"
+  ],
+  "relatedRoleSlugs": [
+    "sre-infrastructure",
+    "systems-architect",
+    "backend-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-sre-prometheus-tsdb-mmap-gorilla",
+  "slug": "prometheus-tsdb-head-chunk-memory-mapping-and-gorilla",
+  "domainSlug": "databases-storage-engines",
+  "domainName": "Database Engines & Storage Systems",
+  "title": "Prometheus TSDB Architecture: 2-Hour Head Chunk Memory-Mapping, WAL Records & Gorilla Compression",
+  "level": "ADVANCED",
+  "readTimeMinutes": 29,
+  "summary": "A deep architectural analysis of the Prometheus TSDB v3 storage engine: the 2-hour mutable Head block, memory-mapped (mmap) chunk files, Write-Ahead Log (WAL) records and checkpointing, inverted postings index, and Gorilla double-delta timestamp / XOR float compression.",
+  "keyConcepts": [
+    "TSDB Layout: Head Chunk, WORM Immutable Blocks, and Compaction",
+    "Gorilla Compression: Double-Delta Timestamps & Floating-Point XOR Bit-Packing",
+    "Memory-Mapped (mmap) Head Chunks & Garbage Collection Free Paging",
+    "Postings Lists & Inverted Index for Multi-Dimensional Label Filtering",
+    "WAL Checkpointing, Truncation, and Crash Recovery Replay"
+  ],
+  "relatedRoleSlugs": [
+    "sre-infrastructure",
+    "systems-architect",
+    "database-administrator"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-sre-otel-collector-pipeline-memory-limiter",
+  "slug": "opentelemetry-collector-pipeline-and-memory-limiter",
+  "domainSlug": "cloud-cybersecurity-defense",
+  "domainName": "Cloud Infrastructure & Cybersecurity",
+  "title": "OpenTelemetry Collector Internals: Pipeline Architecture, Memory Limiter & Tail-Sampling Processors",
+  "level": "ADVANCED",
+  "readTimeMinutes": 27,
+  "summary": "A deep architectural breakdown of the OpenTelemetry Collector: Receiver-Processor-Exporter data pipelines, OTLP protobuf serialization, the memory_limiter processor soft/hard ceiling mechanics, backpressure propagation, and stateful tail-sampling distributed tracing clusters.",
+  "keyConcepts": [
+    "OTel Collector Pipeline: Receivers, Processors, and Exporters",
+    "OpenTelemetry Protocol (OTLP) over gRPC & Protobuf Schemas",
+    "memory_limiter Processor: Soft Limits, Hard Limits, and Garbage Collection Spikes",
+    "Backpressure Mechanics: Drop vs Retry with Exponential Backoff",
+    "Tail-Sampling Processor & Multi-Collector Trace Routing"
+  ],
+  "relatedRoleSlugs": [
+    "sre-infrastructure",
+    "cloud-engineer",
+    "backend-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-sre-multi-window-burn-rate-alerting",
+  "slug": "multi-window-multi-burn-rate-sre-alerting",
+  "domainSlug": "cloud-cybersecurity-defense",
+  "domainName": "Cloud Infrastructure & Cybersecurity",
+  "title": "Site Reliability Engineering: Multi-Window Multi-Burn-Rate Alerting & Error Budget Mathematics",
+  "level": "ADVANCED",
+  "readTimeMinutes": 28,
+  "summary": "A definitive guide to industrial SRE reliability engineering: Service Level Indicators (SLIs), Service Level Objectives (SLOs), error budget depletion rates, the mathematical pitfalls of naive threshold alerts, and designing multi-window multi-burn-rate alerting algorithms.",
+  "keyConcepts": [
+    "SLI, SLO, and Error Budget Mathematical Foundations",
+    "Burn Rate ($B$): Instantaneous vs Amortized Consumption Rates",
+    "The 4 Pitfalls of Traditional Alerting: Precision, Recall, Detection Time, Reset Time",
+    "Multi-Window Multi-Burn-Rate Matrix: Short vs Long Windows",
+    "PromQL Implementation for Production SRE Alerting Rules"
+  ],
+  "relatedRoleSlugs": [
+    "sre-infrastructure",
+    "systems-architect",
+    "cloud-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-sre-chaos-blast-radius-mitigation",
+  "slug": "chaos-engineering-and-blast-radius-mitigation",
+  "domainSlug": "distributed-systems-architecture",
+  "domainName": "Distributed Systems Architecture",
+  "title": "Chaos Engineering Principles: Fault Injection, Steady-State Hypotheses & Blast Radius Containment",
+  "level": "ADVANCED",
+  "readTimeMinutes": 27,
+  "summary": "A rigorous exploration of chaos engineering in distributed systems: steady-state hypothesis formulation, Linux kernel fault injection (tc-netem, cgroups, eBPF), blast radius containment strategies (canary deployments, cell-based architectures), and automated game day rollbacks.",
+  "keyConcepts": [
+    "The 4 Principles of Chaos Engineering (Hypothesis, Real-world Events, Production, Automation)",
+    "Fault Injection Mechanics: tc-netem (Latency/Loss), cgroups (CPU/Mem), and eBPF Error Injection",
+    "Blast Radius Containment: Cell-Based Architecture & Traffic Shadowing",
+    "Automated Emergency Halts: Dead-Man Switches & SLO-Linked Kill Switches",
+    "Game Day Execution Lifecycle & Continuous Automated Chaos Pipelines"
+  ],
+  "relatedRoleSlugs": [
+    "sre-infrastructure",
+    "systems-architect",
+    "cloud-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
 ];

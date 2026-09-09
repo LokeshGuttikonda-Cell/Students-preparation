@@ -5651,6 +5651,556 @@ Therefore, if we reset slow = head and keep fast at the collision point, moving 
     "Setting tail-sampling memory buffer windows too long in high-throughput environments, exhausting collector RAM."
   ]
 },
+{
+  "id": "dsa-26",
+  "category": "Data Structures & Algorithms",
+  "categorySlug": "dsa",
+  "title": "How do you design and implement a Treap (Cartesian Tree) with dynamic split and merge operations?",
+  "difficulty": "HARD",
+  "frequency": "HIGH",
+  "shortSummary": "Explains the hybrid binary search tree and max-heap invariant, random priority assignment, tree rotations, and logarithmic split and merge primitives for interval manipulation.",
+  "deepAnswer": "A Treap is a randomized Cartesian tree that simultaneously satisfies two invariants:\n1. **Binary Search Tree Invariant**: For any node $X$ with key $K_X$, all keys in the left subtree satisfy $K_L < K_X$ and all keys in the right subtree satisfy $K_R > K_X$.\n2. **Heap Invariant**: For any node $X$ with priority $P_X$, priorities of both children satisfy $P_{\\text{child}} \\le P_X$ (Max-Heap).\n\n### Construction and Random Priorities\nBy assigning each key a uniformly distributed pseudo-random 64-bit priority upon insertion, a Treap behaves identically to a binary search tree constructed from a randomly permuted key insertion sequence, bounding expected tree height to $O(\\log N)$ with high probability.\n\n### Split and Merge Primitives\nModern interval treaps implement all operations via two fundamental building blocks:\n- **`split(Node* root, Key k, Node*& L, Node*& R)`**:\n  Partitions the treap into two disjoint treaps: $L$ containing all nodes with $\\text{key} \\le k$, and $R$ containing all nodes with $\\text{key} > k$. Runs in $O(\\log N)$ time.\n- **`merge(Node*& root, Node* L, Node* R)`**:\n  Combines two treaps $L$ and $R$ (under the strict precondition that all keys in $L$ are strictly less than all keys in $R$). It compares root priorities: whichever root has the higher priority becomes the parent, and recursively merges the other tree into its child branch in $O(\\log N)$ time.\n\n### Implicit Treaps (Rope Data Structure)\nBy using subtree sizes instead of explicit keys as the search criteria, an Implicit Treap acts as a dynamic array supporting $O(\\log N)$ insertions, deletions, array slicing, and range reversals via lazy tag propagation.",
+  "interviewerCounterQuestions": [
+    "How does a Treap prevent worst-case $O(N)$ degeneration compared to a Red-Black Tree or AVL Tree?",
+    "How can an Implicit Treap execute range reverse operations (like std::reverse) in $O(\\log N)$ time?"
+  ],
+  "keyTakeaways": [
+    "A Treap combines BST ordering on keys and Max-Heap ordering on randomized priorities.",
+    "Split and Merge primitives eliminate explicit rotation logic, simplifying range queries, interval updates, and persistence."
+  ],
+  "pitfalls": [
+    "Using a weak pseudo-random number generator that produces priority collisions, degrading tree balance.",
+    "Attempting to merge two treaps where the precondition $\\max(L) < \\min(R)$ is violated, corrupting BST invariants."
+  ]
+},
+{
+  "id": "dsa-27",
+  "category": "Data Structures & Algorithms",
+  "categorySlug": "dsa",
+  "title": "How does Tarjan’s Strongly Connected Components (SCC) algorithm discover cycles in directed graphs in a single DFS pass?",
+  "difficulty": "HARD",
+  "frequency": "VERY HIGH",
+  "shortSummary": "Covers discovery timestamps (dfn), lowest reachable timestamps (low), DFS call stack tracking, and identifying component roots in linear $O(V + E)$ time.",
+  "deepAnswer": "A Strongly Connected Component (SCC) in a directed graph is a maximal subgraph where every vertex is reachable from every other vertex in that subgraph.\n\n### Algorithmic Mechanics\nTarjan's algorithm executes a single Depth-First Search (DFS) traversal maintaining two integer values per vertex and an explicit stack:\n- `dfn[u]`: Discovery timestamp index when vertex $u$ is first visited.\n- `low[u]`: The smallest `dfn` reachable from $u$ through descendants in the DFS tree and at most one back-edge into the current DFS stack.\n- `onStack[u]`: Boolean tracking whether $u$ currently resides on the DFS stack.\n\n### Traversal Logic\n1. When visiting $u$, set `dfn[u] = low[u] = ++timer`, push $u$ onto stack, and set `onStack[u] = true`.\n2. For each outgoing directed edge $(u, v)$:\n   - If $v$ has not been visited: recursively traverse $v$, then update `low[u] = min(low[u], low[v])`.\n   - Else if `onStack[v]` is true (back-edge within the current component): update `low[u] = min(low[u], dfn[v])`.\n3. **Root Identification**: If after exploring all outgoing edges, `low[u] == dfn[u]`, then vertex $u$ is the root of an SCC.\n4. Pop vertices from the stack up to and including $u$. All popped vertices constitute exactly one complete SCC.",
+  "interviewerCounterQuestions": [
+    "Why does Tarjan's update use `min(low[u], dfn[v])` instead of `min(low[u], low[v])` for back-edges?",
+    "How does Kosaraju's two-pass algorithm compare to Tarjan's algorithm in terms of cache locality and memory overhead?"
+  ],
+  "keyTakeaways": [
+    "Tarjan's algorithm discovers all SCCs in a single $O(V + E)$ DFS pass using low-link values and a vertex stack.",
+    "Condensing each SCC into a single supernode produces a Directed Acyclic Graph (DAG), enabling topological sorting."
+  ],
+  "pitfalls": [
+    "Failing to check `onStack[v]` when updating `low[u]`, which erroneously includes cross-edges to previously finalized components.",
+    "Using recursive DFS on massive graphs in Python or Java without configuring deep stack recursion limits, causing stack overflow."
+  ]
+},
+{
+  "id": "dsa-28",
+  "category": "Data Structures & Algorithms",
+  "categorySlug": "dsa",
+  "title": "How do you implement the Aho-Corasick Automaton for simultaneous multi-pattern string matching in $O(N + M + Z)$ time?",
+  "difficulty": "EXPERT",
+  "frequency": "MEDIUM",
+  "shortSummary": "Analyzes Trie construction, BFS suffix failure links, dictionary output links, and deterministic finite automaton (DFA) state transitions for multi-pattern searching.",
+  "deepAnswer": "The Aho-Corasick algorithm searches for occurrences of a finite set of keywords $P = \\{p_1, p_2, \\dots, p_k\\}$ inside an input text string of length $N$ in linear time $O(N + M + Z)$, where $M = \\sum |p_i|$ and $Z$ is the number of matching matches.\n\n### Phase 1: Trie Construction\nInsert all keywords into a prefix tree (Trie). Each node represents a prefix, and terminal nodes store the matching pattern identifier.\n\n### Phase 2: Failure Links via Breadth-First Search (BFS)\nAnalogous to the KMP failure function, an Aho-Corasick **Failure Link** (`fail[u]`) points to the node representing the longest proper suffix of the string represented by $u$ that is also a prefix in the trie:\n1. All direct children of the root have `fail[child] = root`.\n2. For each node $u$ visited in BFS level-order, and each child $v$ on character $c$:\n   - Walk `ptr = fail[u]`.\n   - While `ptr != root` and `ptr` has no transition on $c$, set `ptr = fail[ptr]`.\n   - If `ptr` has child on $c$, set `fail[v] = child(ptr, c)`; otherwise `fail[v] = root`.\n3. **Output (Dictionary) Links**: Point directly to the nearest terminal node reachable via failure links, allowing immediate discovery of nested matches (e.g. \"he\" inside \"she\").\n\n### Phase 3: Text Traversal\nStream the text character-by-character through the automaton. Each state transition is $O(1)$ amortized, collecting all matches in linear time.",
+  "interviewerCounterQuestions": [
+    "How does Aho-Corasick compare to executing multiple independent KMP or Rabin-Karp searches?",
+    "How does constructing a full deterministic transition table (DFA) optimize runtime at the expense of memory?"
+  ],
+  "keyTakeaways": [
+    "Aho-Corasick generalizes KMP to multiple patterns simultaneously using a Trie augmented with suffix failure links.",
+    "Output links bypass intermediate non-terminal failure chains to report all matching substrings in optimal time."
+  ],
+  "pitfalls": [
+    "Building failure links using DFS instead of BFS level-order, which references uncomputed ancestor failure links.",
+    "Omitting output links, which misses shorter matching patterns contained within longer matching substrings."
+  ]
+},
+{
+  "id": "sd-32",
+  "category": "System Design & Scalability",
+  "categorySlug": "system-design",
+  "title": "How do you design a Real-Time Distributed Notification Engine capable of delivering 100M messages per minute across Push, SMS, and Email?",
+  "difficulty": "HARD",
+  "frequency": "VERY HIGH",
+  "shortSummary": "Architects a multi-tier notification platform featuring distributed rate limiting, provider failover fallback chains, deduplication windows, and priority partitioning.",
+  "deepAnswer": "A high-throughput notification engine requires high availability, strict deduplication, multi-channel fan-out, and regulatory compliance.\n\n### Architecture Blueprint\n1. **API Ingestion & Priority Queuing**:\n   - Stateless ingestion gateways receive notification requests via gRPC.\n   - Requests are tagged with priority (`TRANSACTIONAL` like OTPs vs `MARKETING` like promotional blasts).\n   - Queued into Kafka topics partitioned by `(user_id, channel)`: High-priority topics have dedicated worker pools and lower consumer lag limits.\n2. **Deduplication Engine**:\n   - Uses Redis sliding-window Bloom filters and unique idempotency keys (`hash(user_id, template_id, entity_id)`):\n   - Rejects duplicate notifications submitted within configured cooldown periods (e.g. 5 minutes).\n3. **User Preference & Rate-Limiting Engine**:\n   - Evaluates user opt-ins, quiet hours (timezone-aware), and frequency caps (e.g. maximum 3 promotional SMS per day).\n4. **Provider Dispatcher & Circuit Breaker Fallback**:\n   - Multiple third-party dispatch providers per channel (e.g., SMS Provider A and SMS Provider B).\n   - Implements Circuit Breakers: If Provider A error rate exceeds 5% or p95 latency $> 2\\text{s}$, the dispatcher fails over to Provider B automatically.\n5. **Delivery Status Feedback & Webhook Ingestion**:\n   - Ingests delivery receipts (DLR) via asynchronous queues to track final status (`SENT`, `DELIVERED`, `BOUNCED`, `FAILED`).",
+  "interviewerCounterQuestions": [
+    "How do you prevent promotional notification backlogs from delaying time-critical One-Time Passwords (OTPs)?",
+    "How do you ensure GDPR/CCPA right-to-be-forgotten compliance in historical notification delivery logs?"
+  ],
+  "keyTakeaways": [
+    "Decouple transactional and marketing traffic into physically separate queues and worker pools.",
+    "Employ circuit breakers and dynamic provider routing to maintain 99.99% deliverability despite vendor outages."
+  ],
+  "pitfalls": [
+    "Using a single shared queue for both high-priority OTPs and batch marketing blasts, causing catastrophic authentication delays.",
+    "Failing to handle webhook delivery status idempotency, resulting in duplicate user charging or false delivery alarms."
+  ]
+},
+{
+  "id": "sd-33",
+  "category": "System Design & Scalability",
+  "categorySlug": "system-design",
+  "title": "How do you design a Distributed Global Rate Limiter capable of processing 10M RPS with sub-millisecond latency?",
+  "difficulty": "EXPERT",
+  "frequency": "VERY HIGH",
+  "shortSummary": "Examines local in-memory token bucket caches, asynchronous batch synchronization to distributed Redis clusters, and probabilistic Leaky Bucket smoothing.",
+  "deepAnswer": "A centralized rate limiter checking a remote Redis database on every request introduces network RTT latency (1-5ms) and creates a catastrophic bottleneck at 10M RPS.\n\n### Two-Tier Hybrid Architecture\n1. **Edge Tier (Local Memory Token Buckets)**:\n   - Every API gateway node maintains a local, lockless token bucket per client/IP in process memory using atomic counters.\n   - Requests are checked and decremented in local L1 memory in under 50 nanoseconds.\n2. **Batching and Asynchronous Reconciliation**:\n   - Gateway nodes do not update central Redis on every single request.\n   - Instead, nodes synchronize local counters in micro-batches (e.g. every 50ms or every 100 tokens consumed) via non-blocking asynchronous threads.\n3. **Token Allocation Lease Protocol**:\n   - A central Redis cluster grants tokens to individual edge nodes in leases proportional to each node's observed traffic share.\n   - If Client A has a global quota of 10,000 req/min across 10 nodes, each node is leased 1,000 tokens.\n   - Active nodes that exhaust their lease request top-ups from central Redis before running dry.\n4. **Graceful Degradation Under Partition**:\n   - If the central Redis cluster becomes unreachable, edge nodes degrade to local quotas, ensuring rate limiting continues without taking down the entire API gateway.",
+  "interviewerCounterQuestions": [
+    "What happens if traffic distribution across edge nodes is heavily skewed towards one region?",
+    "How does the sliding-window log algorithm compare to the sliding-window counter algorithm in memory usage?"
+  ],
+  "keyTakeaways": [
+    "Two-tier caching with local memory token allocations decouples latency from central storage.",
+    "Micro-batching synchronization amortizes network I/O while maintaining bounded global quota accuracy."
+  ],
+  "pitfalls": [
+    "Querying central Redis synchronously on every request, saturating network interfaces and adding unacceptable tail latency.",
+    "Allowing edge nodes to continue unbounded consumption during network partitions, completely breaking global quota caps."
+  ]
+},
+{
+  "id": "sd-34",
+  "category": "System Design & Scalability",
+  "categorySlug": "system-design",
+  "title": "How do you design a Distributed Video Transcoding & Adaptive Bitrate (ABR) Streaming Platform?",
+  "difficulty": "HARD",
+  "frequency": "HIGH",
+  "shortSummary": "Covers parallel chunked video segmentation, asynchronous transcoding worker pools, manifest generation (HLS/DASH), and geo-distributed CDN edge caching.",
+  "deepAnswer": "Video processing is computationally demanding and I/O intensive. Streaming multi-resolution video to heterogeneous devices requires Adaptive Bitrate (ABR) streaming.\n\n### End-to-End Architecture\n1. **Upload & Chunk Segmentation**:\n   - Direct S3/Object Storage upload using multipart presigned URLs.\n   - An initial ingest worker splits the raw video into uniform 4-second GoP (Group of Pictures) segments along keyframe boundaries using FFmpeg.\n2. **Distributed Transcoding Pipeline**:\n   - Each 4-second video chunk is queued as an independent task in an asynchronous message queue (e.g., RabbitMQ or SQS).\n   - Transcoding worker fleets scale dynamically using GPU/ASIC hardware encoders.\n   - Each chunk is transcoded into multiple bitrate/resolution ladders simultaneously: 1080p (4.5 Mbps), 720p (2.5 Mbps), 480p (1.2 Mbps), 360p (600 Kbps) using H.264, HEVC, and AV1 codecs.\n3. **Manifest Synthesis & Packaging**:\n   - Once all chunk variants for a video finish transcoding, a packager creates master playlist manifests: HLS (`master.m3u8` and variant playlists) and MPEG-DASH (`manifest.mpd`).\n4. **Global CDN Caching**:\n   - Chunks are stored in object storage and aggressively cached on CDN edge servers.\n   - Because video chunks are immutable, CDN edge cache hit ratios exceed 98%, allowing viral videos to scale infinitely without hitting origin storage.",
+  "interviewerCounterQuestions": [
+    "Why must video chunks strictly be split on keyframe (I-frame) boundaries?",
+    "How does client-side ABR player heuristics (e.g. buffer-based vs throughput-based) switch bitrates dynamically?"
+  ],
+  "keyTakeaways": [
+    "Chunking videos into short keyframe-aligned segments enables horizontal, massively parallel transcoding.",
+    "Immutable chunk segments maximize CDN cache efficiency for global scale."
+  ],
+  "pitfalls": [
+    "Transcoding entire video files as single monolithic jobs, causing multi-hour latency and fatal restart overhead upon worker crash.",
+    "Splitting chunks across non-keyframes, resulting in decoding artifacts, visual glitches, and player crashes."
+  ]
+},
+{
+  "id": "sd-35",
+  "category": "System Design & Scalability",
+  "categorySlug": "system-design",
+  "title": "How do you design a Collaborative Real-Time Whiteboard Architecture supporting 10,000 concurrent editors per room?",
+  "difficulty": "EXPERT",
+  "frequency": "HIGH",
+  "shortSummary": "Evaluates Conflict-Free Replicated Data Types (CRDTs) vs Operational Transformation (OT), WebRTC data channels, selective spatial updates, and canvas rendering.",
+  "deepAnswer": "Real-time collaborative editing for visual canvas elements requires sub-50ms synchronization latency, offline editing reconciliation, and peer scalability.\n\n### Synchronization Engine: CRDTs vs OT\n- **Why CRDTs over Centralized OT?** Operational Transformation requires a single authoritative central server to transform concurrent operations, becoming an $O(N^2)$ bottleneck. State-based or Operation-based CRDTs (e.g., Yjs or Automerge) guarantee mathematical eventual consistency without centralized transformation.\n- Every visual shape (rectangle, path, text) is assigned a globally unique ID (Lamport timestamp + Client ID).\n\n### Scalability: Spatial Partitioning & Viewport Culling\nBroadcasting 10,000 users' micro-movements to all 10,000 peers requires $10^8$ messages/sec, crushing client CPUs.\n1. **Spatial Quad-Tree Sharding**:\n   - The infinite canvas is partitioned into a spatial Quadtree.\n   - Clients subscribe only to the bounding box of their current viewport + buffer margin.\n   - Edits occurring outside the client's viewport are not streamed in real-time; only low-resolution thumbnails or background diffs are loaded.\n2. **Cursor Throttling and Lossy UDP/WebRTC**:\n   - Transient cursor positions are decoupled from persistent canvas state.\n   - Cursor positions are downsampled to 30 Hz and broadcast over WebRTC Data Channels (ephemeral UDP datagrams) without retransmission, while persistent canvas state syncs reliably over WebSockets/CRDTs.",
+  "interviewerCounterQuestions": [
+    "How do you handle z-index ordering and concurrent layer movements in a collaborative canvas CRDT?",
+    "How does WebRTC mesh topology degrade as room participant count grows, and when must you switch to SFU (Selective Forwarding Unit)?"
+  ],
+  "keyTakeaways": [
+    "CRDTs provide decentralized, mathematically provable conflict resolution for collaborative canvases.",
+    "Spatial viewport culling and separating persistent state from ephemeral cursor telemetry makes massive multi-user scaling feasible."
+  ],
+  "pitfalls": [
+    "Broadcasting every mouse pointer move event over persistent WebSocket TCP connections, causing socket buffer bloat and UI freeze.",
+    "Relying on client-generated local clocks without logical timestamps, causing conflicting shape overwrites."
+  ]
+},
+{
+  "id": "db-26",
+  "category": "Databases & Storage Engines",
+  "categorySlug": "databases",
+  "title": "How does PostgreSQL implement Multi-Version Concurrency Control (MVCC), Tuple Freezing, and VACUUM internals?",
+  "difficulty": "HARD",
+  "frequency": "VERY HIGH",
+  "shortSummary": "Examines Heap Tuple headers (xmin, xmax), Snapshot isolation visibility checks, Transaction ID (XID) wraparound hazards, and autovacuum mechanics.",
+  "deepAnswer": "PostgreSQL implements MVCC by appending new tuple versions directly into standard heap table pages rather than utilizing rollback undo segments.\n\n### Heap Tuple Header Visibility\nEvery table row (tuple) contains a header with visibility tracking fields:\n- `xmin`: The transaction ID (XID) that inserted this tuple.\n- `xmax`: The transaction ID that deleted or updated this tuple (0 if active).\n- `t_ctid`: Physical tuple ID pointing to the latest version of the row (chaining updates).\n\nWhen a query runs under Snapshot Isolation, it receives a snapshot with: `xmin` (oldest active XID), `xmax` (highest assigned XID), and an active transaction list. A tuple is visible if its `xmin` committed before the snapshot and its `xmax` is either unset or belongs to an uncommitted/later transaction.\n\n### The 32-Bit XID Wraparound Catastrophe\nPostgreSQL uses a 32-bit integer for transaction IDs, yielding $2^{32} \\approx 4.29\\text{ billion}$ transactions. Because modulo arithmetic treats values within $2^{31}$ as past and $> 2^{31}$ as future, running $2.1$ billion transactions without maintenance causes all historic data to appear as \"future\" transactions, disappearing completely!\n\n### Vacuum and Tuple Freezing\n`VACUUM` scans heap pages:\n1. Reclaims dead tuples (where `xmax` committed before the oldest active transaction snapshot).\n2. **Tuple Freezing**: Converts old `xmin` values to a special sentinel `FrozenTransactionId` (2). Frozen tuples are considered unconditionally committed in the past, resetting the wraparound clock.",
+  "interviewerCounterQuestions": [
+    "What is the difference between standard VACUUM and VACUUM FULL regarding table locks and disk space?",
+    "How does the PostgreSQL Visibility Map accelerate Index-Only Scans?"
+  ],
+  "keyTakeaways": [
+    "PostgreSQL MVCC writes new tuple versions directly to the table heap, requiring VACUUM to reclaim space.",
+    "Autovacuum freezing is mandatory to prevent catastrophic 32-bit transaction ID wraparound data loss."
+  ],
+  "pitfalls": [
+    "Disabling autovacuum on high-write production tables, leading to table bloat and sudden emergency shutdown due to XID wraparound.",
+    "Allowing long-running idle transactions in PostgreSQL, which prevents VACUUM from cleaning dead tuples across all tables."
+  ]
+},
+{
+  "id": "db-27",
+  "category": "Databases & Storage Engines",
+  "categorySlug": "databases",
+  "title": "What is Write Amplification, Read Amplification, and Space Amplification in B-Trees vs LSM-Trees?",
+  "difficulty": "HARD",
+  "frequency": "VERY HIGH",
+  "shortSummary": "Analyzes the fundamental storage engine trade-offs (RUM Conjecture) across SSD random page writes, sequential logging, compactions, and Bloom filters.",
+  "deepAnswer": "Database storage architectures are governed by the **RUM Conjecture** (Read, Update, Memory/Space overhead trade-offs). No storage engine can optimize all three simultaneously.\n\n### B-Tree Performance Characteristics (e.g. InnoDB, Postgres)\n- **Write Amplification (WAF)**: High. Updating a 50-byte record forces rewriting an entire 4KB or 16KB leaf page to disk, plus doublewrite buffers and WAL commits (WAF $\\approx 30 - 100$).\n- **Read Amplification (RAF)**: Low. B-Trees guarantee non-overlapping key ranges across pages. A point lookup checks exactly $O(\\log_B N)$ pages (typically 3-4 page reads), with high L1/L2 buffer pool hit rates.\n- **Space Amplification (SAF)**: Moderate. Pages are typically 50-70% full due to B-Tree node splits ($1.4\\times$ to $2\\times$ space amplification).\n\n### LSM-Tree Performance Characteristics (e.g. RocksDB, Cassandra)\n- **Write Amplification (WAF)**: Low to Moderate. Writes append sequentially to MemTable and Write-Ahead Log (WAL), amortizing disk commits. Periodic compaction merges SSTables (WAF $\\approx 10 - 30$).\n- **Read Amplification (RAF)**: High. Multiple SSTable levels may contain versions of the same key. A point read must check Bloom filters and potentially inspect multiple SSTables across levels ($O(L)$ disk checks).\n- **Space Amplification (SAF)**: Low in Leveled Compaction ($1.1\\times - 1.2\\times$); High in Size-Tiered Compaction ($> 2.0\\times$ during major compactions).",
+  "interviewerCounterQuestions": [
+    "Why are LSM-Trees preferred for NVMe flash drives with finite write endurance limits?",
+    "How does Fractured Mirrors or B-epsilon trees attempt to bridge the B-tree and LSM trade-off space?"
+  ],
+  "keyTakeaways": [
+    "B-Trees optimize for low read amplification and fast point lookups at the expense of random write amplification.",
+    "LSM-Trees convert random writes into sequential disk I/O, optimizing write throughput at the cost of read amplification."
+  ],
+  "pitfalls": [
+    "Selecting Size-Tiered compaction on storage volumes with $>50\\%$ disk utilization, risking disk-full crashes during compactions.",
+    "Using B-Trees for write-intensive time-series or logging workloads, causing early flash SSD drive wear-out."
+  ]
+},
+{
+  "id": "db-28",
+  "category": "Databases & Storage Engines",
+  "categorySlug": "databases",
+  "title": "How does MySQL InnoDB execute Deadlock Detection, and what are the mechanics of Next-Key Locks in Repeatable Read?",
+  "difficulty": "HARD",
+  "frequency": "HIGH",
+  "shortSummary": "Explains Record Locks, Gap Locks, Next-Key Locks preventing Phantom Reads, and the wait-for graph cycle detection algorithm.",
+  "deepAnswer": "InnoDB implements the standard SQL `REPEATABLE READ` isolation level using a combination of MVCC snapshots and **Next-Key Locking** to prevent Phantom Reads.\n\n### The Anatomy of Next-Key Locking\nA Next-Key Lock is the combination of a **Record Lock** on the index record and a **Gap Lock** on the gap preceding the record:\n- **Record Lock**: Locks the specific existing index record.\n- **Gap Lock**: Locks the open interval between index records, preventing other transactions from inserting new rows into that gap.\n- **Next-Key Lock Interval**: For an index record with key $K$, the Next-Key lock covers $(K_{\\text{prev}}, K]$.\n\n```text\nIndex Keys:      ... [ 10 ] -------- Gap -------- [ 20 ] ...\nNext-Key Lock on 20:          ( 10, 20 ]\n```\nWhen a transaction executes `SELECT * FROM users WHERE age > 10 FOR UPDATE`, InnoDB places Next-Key locks on all matching records and gap locks on the ending supremum pseudo-record. Any concurrent transaction attempting `INSERT INTO users (age) VALUES (15)` blocks on the gap lock, eliminating phantom inserts.\n\n### Deadlock Detection Internals\nInnoDB maintains a directed **Wait-For Graph** where nodes represent active transactions and directed edges $T_1 \\to T_2$ indicate that $T_1$ is waiting for a lock held by $T_2$.\n- The background lock monitor periodically runs Depth-First Search (DFS) on the wait-for graph.\n- If a directed cycle is discovered ($T_1 \\to T_2 \\to T_1$), a deadlock exists.\n- **Deadlock Resolution**: InnoDB selects the transaction with the smallest undo log volume (the transaction that made the fewest modifications) and rolls it back, returning error 1213.",
+  "interviewerCounterQuestions": [
+    "Why does lowering the isolation level to READ COMMITTED eliminate Gap Locks in InnoDB?",
+    "What causes high CPU spikes during heavy lock contention even if queries are simple primary key updates?"
+  ],
+  "keyTakeaways": [
+    "Next-Key locks merge record locks and gap locks to prevent phantom inserts under Repeatable Read.",
+    "InnoDB detects deadlocks using directed cycles in the wait-for graph and rolls back the transaction with the least modified data."
+  ],
+  "pitfalls": [
+    "Executing bulk INSERTs or UPDATEs on non-indexed columns, forcing InnoDB to lock every single gap and record in the entire table.",
+    "Disabling deadlock detection (`innodb_deadlock_detect = off`) without configuring a short `innodb_lock_wait_timeout`, causing transactions to hang indefinitely."
+  ]
+},
+{
+  "id": "os-26",
+  "category": "Operating Systems & Linux Internals",
+  "categorySlug": "os-linux",
+  "title": "How does Linux Memory Cgroup v2 (cgroups v2) implement PSI (Pressure Stall Information) and OOM Killer prioritization?",
+  "difficulty": "HARD",
+  "frequency": "HIGH",
+  "shortSummary": "Examines Pressure Stall Information (some vs full stalls), memory threshold accounting, memory.low vs memory.min reservations, and cgroup-level OOM actions.",
+  "deepAnswer": "cgroups v2 unifies resource management under a single hierarchical tree, resolving the conflicting controller hierarchies of cgroups v1.\n\n### Pressure Stall Information (PSI)\nTraditional metrics like CPU or memory utilization do not indicate whether a system is actually resource-constrained or simply performing productive caching. PSI measures the exact percentage of wall-clock time tasks spend waiting for resources:\n- **`some` Pressure**: The fraction of time that at least one task is stalled waiting on a resource (CPU, memory, I/O).\n- **`full` Pressure**: The fraction of time that **all non-idle tasks** are stalled simultaneously (complete system lockup or thrashing).\nApplications monitor `/proc/pressure/memory` using `epoll()` to trigger proactive self-throttling or pod autoscaling before an OOM occurs.\n\n### Memory Control Knobs\n- `memory.min`: Hard memory protection. If memory drops below this, memory is NEVER reclaimed by kernel page scanners under any circumstance.\n- `memory.low`: Soft memory protection. Reclaimed only if no unprotected memory can be reclaimed.\n- `memory.high`: Throttles processes and forces direct reclaim when exceeded.\n- `memory.max`: Hard ceiling; breaches trigger cgroup-level OOM killing.\n- `memory.oom.group`: When set to 1, terminates all processes in the cgroup atomically.",
+  "interviewerCounterQuestions": [
+    "How does PSI differentiate between productive page cache reads and destructive swap thrashing?",
+    "Why did Kubernetes migrate from cgroups v1 to cgroups v2 for container QoS management?"
+  ],
+  "keyTakeaways": [
+    "PSI measures productive stall time rather than raw resource percentages, providing true starvation signals.",
+    "cgroups v2 memory.min and memory.low provide deterministic QoS memory guarantees for critical workloads."
+  ],
+  "pitfalls": [
+    "Relying solely on memory usage percentages to diagnose memory pressure, which treats harmless page cache allocation as an emergency.",
+    "Failing to set memory.oom.group in multi-process containers, leaving orphaned worker processes running in a broken container."
+  ]
+},
+{
+  "id": "os-27",
+  "category": "Operating Systems & Linux Internals",
+  "categorySlug": "os-linux",
+  "title": "What is the Linux vDSO (Virtual Dynamically Linked Shared Object), and how does it optimize gettimeofday() system calls?",
+  "difficulty": "MEDIUM",
+  "frequency": "VERY HIGH",
+  "shortSummary": "Explains kernel-to-userspace page mapping, avoiding Ring 3 to Ring 0 context switches, and reading hardware TSC registers directly.",
+  "deepAnswer": "A traditional system call (`syscall` or `int 0x80`) switches CPU privilege levels from Ring 3 (user mode) to Ring 0 (kernel mode). This transition incurs hundreds of CPU clock cycles, flushes CPU pipeline stages, and invalidates branch prediction buffers.\n\n### vDSO Architecture\nFor frequently invoked, read-only system calls (such as `clock_gettime()`, `gettimeofday()`, and `time()`), entering the kernel is completely unnecessary.\n1. **Memory Mapping**: The Linux kernel allocates a small virtual memory page containing kernel-compiled machine code and shared data structures (the `vvar` page).\n2. **Shared Page**: The kernel maps this read-only page into the address space of every user-space process at launch.\n3. **Hardware Counter Direct Read**: When the process calls `clock_gettime()`:\n   - The glibc wrapper invokes the vDSO function residing in user memory.\n   - The vDSO code reads the CPU hardware Time Stamp Counter register directly via `RDTSC` / `RDTSCP` instructions.\n   - Multiplies the TSC delta by the calibrated kernel scale factor stored in the `vvar` page.\n   - Returns the accurate timestamp in user space in **under 15 nanoseconds**, with **zero system calls and zero privilege transitions**.",
+  "interviewerCounterQuestions": [
+    "What happens if a virtual machine hypervisor migrates a VM to a host CPU with a different TSC frequency?",
+    "Which other system calls are implemented via vDSO besides time functions?"
+  ],
+  "keyTakeaways": [
+    "vDSO maps kernel code and clock calibration data into user space, executing time queries without context switches.",
+    "Direct RDTSC reads reduce clock query latency from ~400ns to ~15ns."
+  ],
+  "pitfalls": [
+    "Assuming all system calls incur kernel privilege switch penalties; time queries are fast user-space reads via vDSO.",
+    "Overriding system call wrappers with raw `syscall(SYS_clock_gettime, ...)` assembly, bypassing vDSO and degrading performance by 30x."
+  ]
+},
+{
+  "id": "os-28",
+  "category": "Operating Systems & Linux Internals",
+  "categorySlug": "os-linux",
+  "title": "How does Linux hugepage fragmentation occur, and how does Compact Memory defragment physical memory?",
+  "difficulty": "HARD",
+  "frequency": "MEDIUM",
+  "shortSummary": "Covers physical memory buddy allocator fragmentation, movable vs unmovable page allocation types, and the memory compaction migrate/free scanning algorithm.",
+  "deepAnswer": "Modern servers allocate memory using 2MB or 1GB Huge Pages to minimize TLB miss penalties. However, physical RAM frequently suffers from **External Fragmentation** where sufficient total free RAM exists, but no single 2MB contiguous physical chunk is available.\n\n### Buddy Allocator Fragmentation\nThe Linux buddy allocator satisfies requests in powers-of-two page orders ($2^0, 2^1, \\dots, 2^{10}$). If scattered single 4KB pages remain allocated across physical memory, large contiguous order-9 (2MB) blocks cannot be formed.\n\n### Memory Compaction Algorithm\nLinux defragments memory using a dual-scanner compaction algorithm:\n1. **Migrate Scanner**: Starts at the beginning of the memory zone and advances upwards, searching for allocated, movable pages (pages mapped to user-space anonymous memory or page cache).\n2. **Free Scanner**: Starts at the end of the memory zone and advances downwards, searching for free page frames.\n3. **Page Migration**: When both scanners isolate candidates, the kernel copies data from the migrate pages into the free pages at the end of the zone, updates the page table entries with new physical addresses, and frees the original pages.\n4. **Contiguous Formation**: The freed pages are consolidated (coalesced) by the buddy allocator into large, contiguous huge pages.\nCompaction is executed automatically by the `kcompactd` background kernel thread or triggered manually via `/proc/sys/vm/compact_memory`.",
+  "interviewerCounterQuestions": [
+    "Why cannot unmovable kernel memory allocations (like kmalloc slab allocations) be compacted?",
+    "How does setting `vm.compaction_proactiveness` mitigate application latency spikes during huge page allocation?"
+  ],
+  "keyTakeaways": [
+    "Compaction pairs a bottom-up migrate scanner and top-down free scanner to coalesce scattered pages into contiguous blocks.",
+    "Only movable pages (page cache and anonymous memory) can be migrated; kernel slab memory resists compaction."
+  ],
+  "pitfalls": [
+    "Allowing unmovable kernel slab caches to scatter across physical memory, permanently preventing huge page consolidation.",
+    "Setting `vm.compact_memory` synchronously in latency-critical production paths, causing multi-second thread stalls."
+  ]
+},
+{
+  "id": "net-25",
+  "category": "Computer Networks & Protocols",
+  "categorySlug": "networking",
+  "title": "How does the QUIC Connection ID enable seamless Connection Migration across Wi-Fi and Cellular networks?",
+  "difficulty": "HARD",
+  "frequency": "VERY HIGH",
+  "shortSummary": "Explains how QUIC replaces the rigid 4-tuple connection identity with a 64-bit Connection ID, preventing NAT rebinding drops and TCP resets.",
+  "deepAnswer": "Traditional TCP identifies a connection strictly by the 4-tuple: `(Source IP, Source Port, Destination IP, Destination Port)`. When a mobile device switches from Wi-Fi to a 5G cellular network, its local IP address changes, instantly breaking the 4-tuple and terminating all active TCP connections with `RST`.\n\n### QUIC Connection ID (CID) Mechanics\nQUIC (RFC 9000) completely decouples the transport connection identity from network-layer IP addresses:\n1. **The Connection ID**: Each QUIC endpoint assigns a random, cryptographically secure 64-bit to 160-bit **Connection ID** to the session.\n2. **Packet Header Format**: Every QUIC packet carries the Destination Connection ID in its unencrypted public header, independent of the IP/UDP header enclosing it.\n3. **Seamless Migration**:\n   - When the client IP changes from Wi-Fi (`192.168.1.50`) to Cellular (`172.56.21.8`), the client simply transmits subsequent QUIC packets from its new IP using the existing Connection ID.\n   - The server inspects the Connection ID, matches it to the active cryptographic session, updates the client destination address in memory, and validates path reachability via a `PATH_CHALLENGE` frame.\n   - **Zero Interruption**: Video streams, file downloads, and API calls continue without dropping connections or repeating TLS handshakes.",
+  "interviewerCounterQuestions": [
+    "How does QUIC prevent eavesdroppers from tracking mobile devices across networks using Connection IDs?",
+    "What is the purpose of PATH_CHALLENGE and PATH_RESPONSE frames during QUIC connection migration?"
+  ],
+  "keyTakeaways": [
+    "QUIC Connection IDs decouple transport state from IP 4-tuples, enabling zero-downtime mobile network handover.",
+    "Rotating Connection IDs protect user privacy against cross-network eavesdropping tracking."
+  ],
+  "pitfalls": [
+    "Assuming QUIC connection migration allows sending unlimited traffic immediately; the server must validate path reachability before lifting congestion window clamps.",
+    "Using a single static Connection ID across network migrations, enabling third-party tracking."
+  ]
+},
+{
+  "id": "net-26",
+  "category": "Computer Networks & Protocols",
+  "categorySlug": "networking",
+  "title": "How does the TCP Window Scale Option (RFC 7323) solve the Bandwidth-Delay Product (BDP) limitation in high-speed long-distance networks?",
+  "difficulty": "MEDIUM",
+  "frequency": "VERY HIGH",
+  "shortSummary": "Examines the 16-bit TCP header window limitation (64 KB), the Bandwidth-Delay Product formula, and the logarithmic shift multiplier.",
+  "deepAnswer": "The original TCP specification (RFC 793) dedicated a 16-bit integer field in the TCP header for advertising the receive window (`rwnd`).\n\n### The 64 KB Bottleneck\nA 16-bit field has a maximum value of $2^{16} - 1 = 65,535\\text{ bytes}$ (64 KB). In modern high-bandwidth networks, the maximum achievable throughput is strictly bounded by the **Bandwidth-Delay Product (BDP)**:\n$$\\text{Max Throughput} = \\frac{\\text{Window Size}}{\\text{Round-Trip Time (RTT)}}$$\nFor a transcontinental link with 10 Gbps bandwidth and 80 ms RTT:\n$$\\text{BDP} = 10\\times 10^9\\text{ bps} \\times 0.08\\text{ s} = 800\\text{ Megabits} = 100\\text{ Megabytes}$$\nWith the original 64 KB limit:\n$$\\text{Max Throughput} = \\frac{65,535\\text{ bytes}}{0.08\\text{ s}} \\approx 819\\text{ KB/s} = 6.55\\text{ Mbps}$$\nThe connection is throttled to under 7 Mbps on a 10 Gbps link because the sender must halt and wait for ACKs once 64 KB is in flight!\n\n### Window Scale Option Mechanics\nRFC 7323 introduces the **TCP Window Scale Option** negotiated during the initial SYN handshake:\n- Specifies a scale factor $S$ (from 0 to 14).\n- The true window size is computed as: $\\text{True Window} = \\text{rwnd} \\times 2^S$.\n- With maximum scale $S=14$, the window size scales up to $65,535 \\times 2^{14} \\approx 1\\text{ Gigabyte}$, allowing TCP to fully saturate 100 Gbps cross-continental links.",
+  "interviewerCounterQuestions": [
+    "Why can the Window Scale option only be negotiated during the initial SYN/SYN-ACK handshake and never mid-connection?",
+    "How does TCP receive buffer auto-tuning in the Linux kernel (`tcp_rmem`) interact with window scaling?"
+  ],
+  "keyTakeaways": [
+    "Window scaling applies a bitwise left-shift multiplier to the 16-bit header window, expanding maximum in-flight data from 64 KB to 1 GB.",
+    "Without window scaling, high BDP networks experience severe throughput throttling."
+  ],
+  "pitfalls": [
+    "Intermediate legacy network middleboxes stripping or corrupting the TCP Window Scale option in SYN packets, destroying throughput.",
+    "Configuring inadequate OS socket buffer sizes (`SO_RCVBUF`), preventing the window scale option from reaching optimal BDP capacity."
+  ]
+},
+{
+  "id": "net-27",
+  "category": "Computer Networks & Protocols",
+  "categorySlug": "networking",
+  "title": "What is the difference between Ingress and Egress NAT, SNAT, DNAT, and Full NAT in distributed cloud load balancers?",
+  "difficulty": "MEDIUM",
+  "frequency": "HIGH",
+  "shortSummary": "Clarifies Source NAT (SNAT), Destination NAT (DNAT), Direct Server Return (DSR), and connection tracking (conntrack) table exhaustion.",
+  "deepAnswer": "Network Address Translation (NAT) rewrites IP packet headers at the transport boundary to facilitate routing, security, and load balancing.\n\n### NAT Modes in Load Balancing\n1. **Destination NAT (DNAT / Ingress)**:\n   - Modifies the destination IP address of incoming client packets from the public VIP (Virtual IP) to the private IP of a backend real server.\n   - Used by Kubernetes kube-proxy (iptables/IPVS mode) to route Service VIP traffic to pod endpoints.\n2. **Source NAT (SNAT / Egress)**:\n   - Modifies the source IP of outgoing packets from private subnet IPs to a shared public IP gateway (e.g. AWS NAT Gateway).\n   - Hides internal topology and conserves public IPv4 addresses.\n3. **Full NAT (Dual NAT)**:\n   - Modifies BOTH the source IP (to the load balancer's internal IP) and destination IP (to the backend server).\n   - Ensures return traffic flows back through the load balancer, but obscures the original client IP (requiring the `PROXY` protocol or `X-Forwarded-For` HTTP headers).\n4. **Direct Server Return (DSR)**:\n   - The load balancer rewrites only the destination MAC address (Layer 2) to the backend server without altering IP headers.\n   - The backend server responds directly to the client IP, bypassing the load balancer on the egress path and delivering massive throughput.",
+  "interviewerCounterQuestions": [
+    "Why is Direct Server Return (DSR) preferred for high-volume video streaming over Full NAT?",
+    "What causes Linux `conntrack: table full, dropping packet` errors under high connection rates?"
+  ],
+  "keyTakeaways": [
+    "DNAT routes inbound requests to internal endpoints; SNAT masks internal source IPs for outbound egress.",
+    "Full NAT requires proxy protocols to preserve client identity; DSR bypasses load balancers on the return path."
+  ],
+  "pitfalls": [
+    "Exhausting ephemeral SNAT ports on outbound NAT gateways when thousands of connections target the same destination IP/port.",
+    "Enabling Full NAT without the PROXY protocol, which strips client IP addresses from security audit logs."
+  ]
+},
+{
+  "id": "java-25",
+  "category": "Java & JVM Internals",
+  "categorySlug": "java-jvm",
+  "title": "How does the JVM JIT Compiler implement Escape Analysis, Scalar Replacement, and Lock Elision?",
+  "difficulty": "HARD",
+  "frequency": "VERY HIGH",
+  "shortSummary": "Examines C2 compiler escape states (NoEscape, ArgEscape, GlobalEscape), stack allocation substitution, and eliminating synchronized monitor blocks.",
+  "deepAnswer": "The HotSpot JVM C2 optimizing compiler analyzes the dynamic lifetime and scope of every allocated object to determine whether the object can \"escape\" the current method or thread.\n\n### Escape Analysis States\n1. **GlobalEscape**: The object escapes the current method and thread (e.g. stored in a static field, returned from the method, or passed to a concurrent queue). Must be allocated on the heap.\n2. **ArgEscape**: The object is passed as an argument to another method, but does not outlive the calling method or escape to other threads.\n3. **NoEscape**: The object is allocated, used, and discarded entirely within the allocating method.\n\n### Optimizations Enabled by Escape Analysis\n- **Scalar Replacement**: If an object is determined to be `NoEscape`, the JIT compiler does NOT allocate the object on the heap or even on the stack. Instead, it breaks the object into its constituent primitive fields (**scalars**) and maps them directly into CPU registers or stack slots, eliminating garbage collection overhead.\n- **Lock Elision (Lock Removal)**: If a synchronized lock object is proven to be thread-local (`NoEscape`), the compiler completely removes the `monitorenter` and `monitorexit` bytecodes, executing the critical section without atomic CAS overhead.\n- **Lock Coarsening**: Merges adjacent synchronized blocks on the same monitor into a single lock acquisition.",
+  "interviewerCounterQuestions": [
+    "Why does Java not perform true C-style struct stack allocation, relying on scalar replacement instead?",
+    "Under what conditions can passing a lambda expression or method reference defeat Escape Analysis?"
+  ],
+  "keyTakeaways": [
+    "Escape Analysis identifies objects that never escape method scope, enabling scalar replacement directly in CPU registers.",
+    "Lock elision strips thread-local synchronization monitors, eliminating CAS instructions."
+  ],
+  "pitfalls": [
+    "Assuming every short-lived object is allocated on the heap; scalar replacement eliminates heap allocation for NoEscape objects.",
+    "Writing long methods with complex control flow branches that exceed the C2 compiler's inlining budget, preventing escape analysis."
+  ]
+},
+{
+  "id": "java-26",
+  "category": "Java & JVM Internals",
+  "categorySlug": "java-jvm",
+  "title": "What is the difference between WeakReference, SoftReference, and PhantomReference in Java memory management?",
+  "difficulty": "MEDIUM",
+  "frequency": "VERY HIGH",
+  "shortSummary": "Covers reference reachability tiers, LRU memory-sensitive cache implementation, and safe native resource cleanup via ReferenceQueue.",
+  "deepAnswer": "Java provides specialized reference types in `java.lang.ref` to interact directly with the garbage collector.\n\n### The Reference Hierarchy\n1. **Strong Reference**: Standard object assignment (`Object obj = new Object()`). An object with an active strong reference path from GC roots is NEVER garbage collected.\n2. **SoftReference** (`SoftReference<T>`):\n   - Cleared by the GC **only when memory pressure demands it** (prior to throwing `OutOfMemoryError`).\n   - Frequently used for memory-sensitive in-memory caches where data can be evicted if RAM is scarce.\n   - HotSpot uses `-XX:SoftRefLRUPolicyMSPerMB` to control how long soft references persist per free megabyte.\n3. **WeakReference** (`WeakReference<T>`):\n   - Cleared by the GC **immediately during the next collection cycle**, regardless of whether memory is scarce or abundant.\n   - Used in `WeakHashMap` and canonical mappings where retaining an object should not prevent its lifecycle termination.\n4. **PhantomReference** (`PhantomReference<T>`):\n   - Enqueued on a `ReferenceQueue` **after** the referent has been finalized and physically reclaimed.\n   - `get()` always returns `null`.\n   - Used for zero-cost, safe native off-heap memory deallocation (e.g. cleaning Netty Direct ByteBuffers), completely replacing hazardous `finalize()` methods.",
+  "interviewerCounterQuestions": [
+    "Why was `Object.finalize()` deprecated and slated for removal in modern Java?",
+    "How does `Cleaner` (introduced in Java 9) utilize PhantomReference to manage native resources safely?"
+  ],
+  "keyTakeaways": [
+    "SoftReferences survive until memory pressure forces reclaim; WeakReferences are reclaimed on the next GC pass.",
+    "PhantomReferences track post-mortem memory reclamation for safe native resource deallocation."
+  ],
+  "pitfalls": [
+    "Using SoftReferences for high-throughput critical caching; under high heap pressure, the GC aggressively evicts them, causing cache stampedes.",
+    "Calling `get()` on a PhantomReference expecting the object instance; it is intentionally designed to always return null."
+  ]
+},
+{
+  "id": "java-27",
+  "category": "Java & JVM Internals",
+  "categorySlug": "java-jvm",
+  "title": "How does Java ClassLoader Delegation (Parent Delegation Model) work, and how do OSGi and Tomcat break it?",
+  "difficulty": "MEDIUM",
+  "frequency": "HIGH",
+  "shortSummary": "Explains hierarchical class loading (Bootstrap, Platform/Extension, Application), namespace isolation, and Child-First class loading in web containers.",
+  "deepAnswer": "Java uses ClassLoaders to load compiled bytecode (`.class` files) into the JVM runtime.\n\n### The Parent Delegation Model\nWhen a ClassLoader is requested to load a class:\n1. It first delegates the request to its **Parent ClassLoader** before searching locally.\n2. The delegation cascades up the hierarchy until it reaches the **Bootstrap ClassLoader** (which loads `java.base` classes from the runtime image).\n3. If the parent cannot find the class, the child calls its own `findClass()` method.\n\n```text\n+---------------------------------------------------+\n|       Bootstrap ClassLoader (C++ Native)          |\n+---------------------------------------------------+\n                          ^\n+---------------------------------------------------+\n|       Platform / Extension ClassLoader            |\n+---------------------------------------------------+\n                          ^\n+---------------------------------------------------+\n|       Application / System ClassLoader            |\n+---------------------------------------------------+\n                          ^\n+---------------------------------------------------+\n|  Custom WebApp ClassLoader (Tomcat / Jetty)       |\n+---------------------------------------------------+\n```\n\n### Why and How Containers Break Parent Delegation\n- **Tomcat / Web Applications**: A shared application server may host multiple distinct web applications, each requiring different versions of the same library (e.g. App A requires Jackson 2.12 while App B requires Jackson 2.15). Tomcat implements **Child-First (Parent-Last)** delegation: the WebAppClassLoader searches its own `/WEB-INF/lib` JARs first, only delegating to the parent if the class is not found locally (except for core `java.*` classes, which are always protected).",
+  "interviewerCounterQuestions": [
+    "What causes a `ClassCastException` when casting two objects that appear to have the exact same class name?",
+    "How does module encapsulation in Java 9+ (JPMS) alter class loading behavior?"
+  ],
+  "keyTakeaways": [
+    "Parent delegation prevents core classes (like java.lang.String) from being overridden by untrusted user code.",
+    "Web application servers break parent delegation to allow isolated third-party library versions per application."
+  ],
+  "pitfalls": [
+    "Attempting to override core JDK classes like `java.lang.Object`; the JVM verifier rejects user-defined java.* packages.",
+    "Loading two instances of the same class with two different ClassLoaders, resulting in incompatible types and ClassCastException."
+  ]
+},
+{
+  "id": "py-24",
+  "category": "Python & Asynchronous Runtimes",
+  "categorySlug": "python-async",
+  "title": "How does the Python 3.12+ Per-Interpreter GIL and PEP 703 (Free-Threaded Python) eliminate the Global Interpreter Lock?",
+  "difficulty": "EXPERT",
+  "frequency": "VERY HIGH",
+  "shortSummary": "Examines immortal objects, biased reference counting, mimalloc thread-safe heap allocators, and true multi-core parallel Python execution.",
+  "deepAnswer": "The Global Interpreter Lock (GIL) is a mutex that prevents multiple native threads from executing Python bytecodes concurrently, safeguarding CPython memory management and reference counting.\n\n### PEP 684: Per-Interpreter GIL (Python 3.12+)\nInstead of running a single global interpreter, Python allows creating multiple sub-interpreters in a single OS process via the `interpreters` module. Each sub-interpreter has its own isolated GIL, private heap, and module dictionaries, achieving true multi-core parallelism while sharing native OS process memory.\n\n### PEP 703: Free-Threaded Python (No-GIL in Python 3.13+)\nPEP 703 eliminates the GIL entirely through three core architectural innovations:\n1. **Biased Reference Counting (BRC)**:\n   - Reference counts are split into local and shared counters.\n   - If an object is accessed only by the thread that allocated it, reference updates execute using standard non-atomic increments ($O(1)$ CPU cycles).\n   - If accessed by other threads, the runtime transitions to atomic CAS operations.\n2. **Immortal Objects (PEP 683)**:\n   - Core immutable runtime objects (e.g. `None`, `True`, `False`, small integers, interned strings) have their reference count bit-flagged as immortal. The runtime never increments or decrements their counters, eliminating cache line invalidations across cores.\n3. **Thread-Safe Memory Allocation (mimalloc)**:\n   - Replaces the legacy `pymalloc` allocator with Microsoft's `mimalloc`, providing thread-local memory pools and lock-free thread deallocations.",
+  "interviewerCounterQuestions": [
+    "What is the performance overhead of free-threaded Python on single-threaded workloads?",
+    "How must C-extension libraries (like NumPy or PyTorch) be modified to support free-threaded Python safely?"
+  ],
+  "keyTakeaways": [
+    "Per-Interpreter GIL isolates interpreter state to enable multi-core execution within a single process.",
+    "Free-threaded Python replaces the GIL with biased reference counting, immortal objects, and mimalloc."
+  ],
+  "pitfalls": [
+    "Assuming free-threaded Python makes multithreaded application code automatically thread-safe; application-level race conditions on shared data structures still require explicit mutexes or locks.",
+    "Loading legacy C-extensions compiled without free-threaded flags, which forces the Python runtime to re-enable the GIL."
+  ]
+},
+{
+  "id": "py-25",
+  "category": "Python & Asynchronous Runtimes",
+  "categorySlug": "python-async",
+  "title": "How does Python `asyncio` coordinate Tasks, Coroutines, and Futures over the OS Event Loop?",
+  "difficulty": "HARD",
+  "frequency": "VERY HIGH",
+  "shortSummary": "Examines generator-based coroutine mechanics, async/await bytecode suspension, Future callback registration, and OS multiplexing via selectors.",
+  "deepAnswer": "Python `asyncio` is a single-threaded, cooperative multitasking framework built upon an event loop that multiplexes I/O using OS primitives (`epoll`, `kqueue`, or `IOCP`).\n\n### The Coroutine Lifecycle\n1. **Coroutine Functions (`async def`)**: Calling an `async def` function does not execute it immediately; it returns a **Coroutine Object**.\n2. **Tasks (`asyncio.Task`)**:\n   - A Task wraps a coroutine and registers it with the running event loop as an executable unit of work.\n   - When execution starts, the event loop calls `coroutine.send(None)`, advancing execution until the coroutine reaches an `await` expression.\n3. **Futures and Suspension**:\n   - An `await` on a non-blocking I/O socket awaits an `asyncio.Future`.\n   - The future registers a callback with the event loop's OS selector (`selectors.DefaultSelector`).\n   - The coroutine yields control back to the event loop, unmounting its stack frame and allowing the loop to execute other runnable tasks.\n4. **Waking and Resumption**:\n   - When the kernel signals socket readability via `epoll_wait()`, the event loop resolves the Future by setting its result.\n   - The event loop invokes `coroutine.send(result)` on the waiting Task, resuming execution exactly where it paused.",
+  "interviewerCounterQuestions": [
+    "What happens to the event loop if a coroutine executes a synchronous blocking function like `time.sleep(5)` or `requests.get()`?",
+    "How does `asyncio.to_thread()` execute blocking I/O without stalling the event loop?"
+  ],
+  "keyTakeaways": [
+    "asyncio uses single-threaded cooperative multitasking where await points yield control back to the event loop.",
+    "Tasks wrap coroutines and coordinate with low-level OS I/O selectors via Futures."
+  ],
+  "pitfalls": [
+    "Invoking synchronous blocking libraries (e.g. `requests`, `urllib`) inside async functions, freezing the entire event loop for all concurrent users.",
+    "Creating fire-and-forget tasks via `asyncio.create_task()` without retaining a strong reference, leading to premature garbage collection of the task before completion."
+  ]
+},
+{
+  "id": "py-26",
+  "category": "Python & Asynchronous Runtimes",
+  "categorySlug": "python-async",
+  "title": "How does Python Memory Management coordinate `pymalloc`, Arenas, Pools, and Cyclic Garbage Collection?",
+  "difficulty": "HARD",
+  "frequency": "HIGH",
+  "shortSummary": "Analyzes CPython small-object allocation hierarchies (Arenas, Pools, Blocks) and the tri-generational cyclic garbage collector (Generations 0, 1, 2).",
+  "deepAnswer": "CPython uses a layered memory architecture to handle millions of small object allocations efficiently without exhausting the OS virtual memory allocator.\n\n### The `pymalloc` Small-Object Hierarchy\nFor objects $\\le 512$ bytes, CPython bypasses system `malloc()` in favor of `pymalloc`:\n1. **Arenas (256 KB)**: 256 KB memory slabs allocated via `malloc()`, aligned to page boundaries. This is the only tier that can be freed back to the OS kernel.\n2. **Pools (4 KB)**: Each arena is subdivided into 64 4KB Pools. A pool is dedicated to a specific **Size Class** (multiples of 8 bytes: 8, 16, 24, ..., 512 bytes).\n3. **Blocks**: The smallest units within a pool, holding the actual object bytes.\n\n### The Cyclic Garbage Collector (Generations 0, 1, 2)\nReference counting handles 99% of deallocations immediately when `ob_refcnt == 0`. However, reference counting cannot reclaim **reference cycles** (e.g., $A \\to B$ and $B \\to A$).\n- **Generations**:\n  - Generation 0: Newly allocated container objects.\n  - Generation 1: Objects that survive one collection.\n  - Generation 2: Long-lived objects.\n- **Cycle Detection Algorithm**:\n  - For all container objects in a generation, the collector copies reference counts into a trial field `gc_refs`.\n  - It traverses reachable pointers and decrements `gc_refs` for each internal reference.\n  - If an object's `gc_refs` drops to zero, all its incoming references were internal to the cycle: it is unreachable from outside and marked for reclamation.",
+  "interviewerCounterQuestions": [
+    "Why can memory fragmentation prevent CPython from returning freed memory back to the operating system?",
+    "How does `gc.freeze()` in Python 3.7+ optimize multi-worker web servers using pre-fork architectures?"
+  ],
+  "keyTakeaways": [
+    "pymalloc categorizes allocations $\\le 512$ bytes into Arenas, Pools, and Blocks to prevent system memory fragmentation.",
+    "The cyclic GC detects isolated reference cycles using trial reference count subtractions across three generations."
+  ],
+  "pitfalls": [
+    "Creating reference cycles inside objects implementing `__del__` methods in Python $<3.4$, causing uncollectable memory leaks.",
+    "Assuming deleting an object (`del obj`) frees physical RAM to the OS; memory is often retained in CPython arena pools for future reuse."
+  ]
+},
+{
+  "id": "cloud-24",
+  "category": "Cloud Architecture & DevOps",
+  "categorySlug": "cloud-devops",
+  "title": "How do you design a Zero-Trust Service Mesh Security Architecture using SPIFFE/SPIRE and Envoy xDS?",
+  "difficulty": "HARD",
+  "frequency": "VERY HIGH",
+  "shortSummary": "Examines cryptographic workload identity issuance (SVID), mTLS encryption, Envoy dynamic discovery APIs (xDS), and continuous attestation.",
+  "deepAnswer": "Zero-Trust asserts that network locality (being inside a private VPC or corporate network) grants zero implicit trust. Every request must be authenticated, authorized, and encrypted based on verifiable cryptographic workload identity.\n\n### Core Building Blocks\n1. **SPIFFE (Secure Production Identity Framework for Everyone)**:\n   - Defines a standard URI format for workload identities: `spiffe://domain.internal/ns/production/sa/payment-service`.\n   - Encapsulated within a **SPIFFE Verifiable Identity Document (SVID)**, typically an X.509 certificate with the SPIFFE ID encoded in the Subject Alternative Name (SAN).\n2. **SPIRE (SPIFFE Runtime Environment)**:\n   - **SPIRE Server**: The root/intermediate CA that manages registration entries and attestation policies.\n   - **SPIRE Agent**: Runs on every Kubernetes node or VM. Performs **Node Attestation** (verifying host identity with cloud hypervisors) and **Workload Attestation** (inspecting container cgroups, PID, and service account tokens via the Linux kernel).\n   - Issues short-lived SVID X.509 certificates (e.g. 1-hour validity) to workloads via the local UNIX domain socket Workload API without distributing static private keys.\n3. **Envoy xDS Dynamic Discovery**:\n   - Workload sidecars connect to the local SPIRE agent via Envoy's Secret Discovery Service (SDS).\n   - SPIRE pushes updated certificates and trusted CA bundles into Envoy memory without restarting the proxy.\n   - Envoy sidecars negotiate mutual TLS (mTLS) with peer proxies, verifying SVID identities and enforcing fine-grained Layer 7 authorization policies.",
+  "interviewerCounterQuestions": [
+    "How does short certificate validity (e.g. 1 hour) eliminate the need for Certificate Revocation Lists (CRLs)?",
+    "What prevents a malicious container running on the same node from stealing another container’s SPIFFE SVID?"
+  ],
+  "keyTakeaways": [
+    "SPIFFE/SPIRE provides automated, kernel-attested workload identities using short-lived X.509 certificates.",
+    "Envoy Secret Discovery Service (SDS) enables zero-downtime certificate rotation without proxy restarts."
+  ],
+  "pitfalls": [
+    "Using long-lived static API tokens or X.509 certificates embedded in container images, violating zero-trust principles.",
+    "Failing to configure Unix Domain Socket file permissions properly for the SPIRE Workload API, risking cross-tenant attestation leaks."
+  ]
+},
+{
+  "id": "cloud-25",
+  "category": "Cloud Architecture & DevOps",
+  "categorySlug": "cloud-devops",
+  "title": "How does Kubernetes Cluster Autoscaler (CA) coordinate with Horizontal Pod Autoscaler (HPA) without thrashing?",
+  "difficulty": "HARD",
+  "frequency": "VERY HIGH",
+  "shortSummary": "Analyzes the dual-feedback control loop: metric-based pod scaling (HPA) triggering scheduler pod pending events that trigger node group expansion (CA).",
+  "deepAnswer": "Kubernetes autoscaling operates at two distinct layers: application pod scaling (HPA) and underlying infrastructure node scaling (CA).\n\n### The Dual-Control Loop Interaction\n1. **Horizontal Pod Autoscaler (HPA)**:\n   - Evaluates resource metrics (CPU/RAM utilization) or custom metrics (e.g. Kafka queue lag) every 15 seconds.\n   - Scales the number of pod replicas using the formula:\n     $$\\text{Desired Replicas} = \\left\\lceil \\text{Current Replicas} \\times \\frac{\\text{Current Metric}}{\\text{Target Metric}} \\right\\rceil$$\n2. **Cluster Autoscaler (CA)**:\n   - CA does **NOT** monitor CPU or RAM percentages! It monitors the **Kubernetes Scheduler**.\n   - When HPA increases pod replicas, the scheduler attempts to place them. If existing nodes lack capacity, pods enter `Pending` state with `Unschedulable` scheduling conditions.\n   - CA detects pending pods, calculates the optimal node type and count required to satisfy pod resource requests and affinity constraints, and triggers cloud provider node group expansion.\n\n### Preventing Scale-Down Thrashing\n- **Scale-Down Stabilization Windows**: HPA incorporates a stabilization window (e.g. 5 minutes) to ensure pod counts do not oscillate rapidly under bursty traffic.\n- **Graceful Node Drainage**: CA checks `scale-down-unneeded-time` (default 10 minutes) before evicting a node. It verifies that pods on the node can be rescheduled elsewhere and respects Pod Disruption Budgets (PDBs).",
+  "interviewerCounterQuestions": [
+    "Why is it a catastrophic anti-pattern to configure HPA and Vertical Pod Autoscaler (VPA) simultaneously on the same CPU/memory metrics?",
+    "How does Karpenter optimize cluster scaling compared to the standard Kubernetes Cluster Autoscaler?"
+  ],
+  "keyTakeaways": [
+    "HPA scales pods based on application metrics; Cluster Autoscaler scales nodes exclusively based on unschedulable pending pods.",
+    "Stabilization windows and Pod Disruption Budgets prevent scale-down thrashing."
+  ],
+  "pitfalls": [
+    "Setting container resource requests equal to zero, which blinds the Cluster Autoscaler and prevents node scaling.",
+    "Failing to configure Pod Disruption Budgets (PDBs), allowing node scale-downs to evict all replicas of a critical service simultaneously."
+  ]
+},
+{
+  "id": "cloud-26",
+  "category": "Cloud Architecture & DevOps",
+  "categorySlug": "cloud-devops",
+  "title": "What is GitOps, and how does the reconciliation loop in ArgoCD/Flux detect and self-heal Configuration Drift?",
+  "difficulty": "MEDIUM",
+  "frequency": "VERY HIGH",
+  "shortSummary": "Examines Git as the single source of truth, continuous state comparison (Desired vs Actual), and automated drift remediation.",
+  "deepAnswer": "GitOps is an operational framework that applies DevOps best practices (version control, collaboration, compliance, and CI/CD) to infrastructure and application deployment, treating a Git repository as the **single source of truth** for declarative state.\n\n### The Reconciliation Loop Architecture\nInstead of external CI/CD pipelines pushing changes via `kubectl apply` using shared cluster administrative credentials (Push model), GitOps uses an in-cluster agent (e.g. ArgoCD or Flux) operating on a continuous **Pull Model**:\n1. **Desired State Extraction**: The controller periodically pulls the Git repository, rendering manifests (Kustomize, Helm, or plain YAML).\n2. **Actual State Discovery**: The controller queries the live Kubernetes API server to inspect active cluster resources.\n3. **Diff Computation & Drift Detection**:\n   - Compares the live state against the Git target state.\n   - If a manual change was applied to the cluster (e.g., an engineer manually modified a replica count or container image via `kubectl`), the controller flags a **Configuration Drift**.\n4. **Automated Self-Healing**:\n   - With self-healing enabled (`auto-sync` with `self-heal`), the controller immediately overwrites unauthorized manual cluster modifications with the declared Git configuration.\n   - If a rollback is needed, reverting the Git commit via standard git commands automatically triggers a cluster rollback within seconds, providing an immutable audit trail.",
+  "interviewerCounterQuestions": [
+    "How do GitOps tools manage secret configurations without storing plaintext passwords or keys in public/private Git repositories?",
+    "What is the difference between Sealed Secrets, External Secrets Operator, and SOPS in GitOps workflows?"
+  ],
+  "keyTakeaways": [
+    "GitOps maintains Git as the sole declarative source of truth, using in-cluster reconciliation agents rather than external push pipelines.",
+    "Automated self-healing detects and reverses unauthorized configuration drift, enforcing continuous compliance."
+  ],
+  "pitfalls": [
+    "Committing plaintext secrets to Git repositories; always use secret management tools like External Secrets Operator or Sealed Secrets.",
+    "Modifying live Kubernetes clusters manually via kubectl while GitOps auto-sync is active, which causes immediate overwrite confusion."
+  ]
+},
 ];
 
 export function getInterviewQuestions(categorySlug?: string, searchQuery?: string): InterviewQAItem[] {

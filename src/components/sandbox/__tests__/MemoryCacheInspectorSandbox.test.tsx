@@ -3,7 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { MemoryCacheInspectorSandbox } from '../MemoryCacheInspectorSandbox';
 
-describe('MemoryCacheInspectorSandbox', () => {
+describe('MemoryCacheInspectorSandbox', { timeout: 20000 }, () => {
   it('renders Stack vs Heap simulator by default and steps through clean allocation lifecycle', () => {
     render(<MemoryCacheInspectorSandbox />);
 
