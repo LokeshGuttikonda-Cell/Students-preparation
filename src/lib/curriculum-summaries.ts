@@ -1715,4 +1715,234 @@ export const CURRICULUM_SUMMARIES: CurriculumArticleSummary[] = [
     relatedRoleSlugs: ["sre-infrastructure","devops-engineer","systems-architect"],
     practiceMcqsCount: 5,
   },
+{
+  "id": "art-comp-jit-internals-deopt",
+  "slug": "jit-compiler-internals-and-deoptimization",
+  "domainSlug": "programming-languages-compilers",
+  "domainName": "Programming Languages, Compilers & Runtimes",
+  "title": "JIT Compiler Internals: Tiered Compilation, Sea-of-Nodes IR & Deoptimization",
+  "level": "ADVANCED",
+  "readTimeMinutes": 22,
+  "summary": "An exhaustive investigation into modern JIT compiler architectures: tiered execution pipelines (Ignition/Sparkplug/TurboFan, HotSpot C1/C2), Sea-of-Nodes Intermediate Representation (IR), speculative optimization, Inline Caches (IC), and On-Stack Replacement (OSR) deoptimization bailouts.",
+  "keyConcepts": [
+    "Tiered Compilation Architecture (Interpreter vs Baseline vs Optimizing JIT)",
+    "Inline Caches (Monomorphic, Polymorphic, and Megamorphic Call Sites)",
+    "Sea-of-Nodes Intermediate Representation (Control & Data Flow Graph)",
+    "Speculative Optimization & Type Feedback Vectors",
+    "Deoptimization Bailouts & On-Stack Replacement (OSR)"
+  ],
+  "relatedRoleSlugs": [
+    "fullstack-engineer",
+    "backend-engineer",
+    "systems-architect"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-os-ebpf-internals-core",
+  "slug": "linux-ebpf-internals-and-co-re",
+  "domainSlug": "operating-systems-internals",
+  "domainName": "Operating Systems & Linux Kernel Internals",
+  "title": "Linux eBPF Internals: Bytecode Verifier, BPF Maps & CO-RE (Compile Once - Run Everywhere)",
+  "level": "ADVANCED",
+  "readTimeMinutes": 21,
+  "summary": "A deep kernel-level exploration of extended Berkeley Packet Filter (eBPF): in-kernel virtual machine bytecode, register constraints, DAG static safety verifier, BPF maps, BTF (BPF Type Format), and CO-RE (Compile Once – Run Everywhere) portability.",
+  "keyConcepts": [
+    "eBPF Architecture (In-Kernel RISC Virtual Machine)",
+    "The Static Bytecode Verifier (Acyclic Directed Graph Proofs & Safety Invariants)",
+    "BPF Maps & Ring Buffers (Kernel-to-Userspace IPC)",
+    "BPF Type Format (BTF) & Field Relocation Offsets",
+    "CO-RE (Compile Once - Run Everywhere) Portability"
+  ],
+  "relatedRoleSlugs": [
+    "systems-architect",
+    "sre-infrastructure",
+    "backend-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-os-zero-copy-iouring",
+  "slug": "zero-copy-io-and-io-uring",
+  "domainSlug": "operating-systems-internals",
+  "domainName": "Operating Systems & Linux Kernel Internals",
+  "title": "Zero-Copy I/O & Linux io_uring: Ring Buffers, SQPOLL & High-Performance Storage",
+  "level": "ADVANCED",
+  "readTimeMinutes": 22,
+  "summary": "A comprehensive architectural breakdown of modern Linux asynchronous I/O: the cost of classical POSIX syscalls, kernel-to-userspace page copying, splice and sendfile zero-copy primitives, and Jens Axboe's lockless io_uring Submission/Completion Queue architecture.",
+  "keyConcepts": [
+    "The Cost of POSIX I/O (Syscall Traps, Context Switches & Cache Pollution)",
+    "Zero-Copy Transfer Primitives (sendfile, splice, and vmsplice)",
+    "io_uring Ring Pair Architecture (Submission Queue & Completion Queue)",
+    "Kernel Submission Polling (IORING_SETUP_SQPOLL)",
+    "Fixed Buffers & Pre-Registered File Descriptors"
+  ],
+  "relatedRoleSlugs": [
+    "systems-architect",
+    "sre-infrastructure",
+    "backend-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-dist-epaxos-raft-optimizations",
+  "slug": "distributed-consensus-epaxos-and-raft-optimizations",
+  "domainSlug": "distributed-systems-architecture",
+  "domainName": "Distributed Systems & Cloud Architecture",
+  "title": "Egalitarian Paxos (EPaxos) & Advanced Raft Optimizations: Leaderless Consensus & Read Leases",
+  "level": "ADVANCED",
+  "readTimeMinutes": 23,
+  "summary": "A rigorous exploration of next-generation distributed consensus algorithms: Egalitarian Paxos (EPaxos) leaderless commit paths and dependency graph topological sorting, compared with advanced Raft optimizations including Pre-Vote phases, leader lease reads, and ReadIndex batching.",
+  "keyConcepts": [
+    "The Leader Bottleneck in Classical Consensus (Multi-Paxos & Raft)",
+    "Egalitarian Paxos (EPaxos) Fast Path Quorum (1 RTT Consensus)",
+    "Dynamic Dependency Graphs & Topological Sort Linearization",
+    "Raft Pre-Vote Protocol & Disrupted Partition Protection",
+    "Leader Leases vs ReadIndex Batching for Lock-Free Consensus Reads"
+  ],
+  "relatedRoleSlugs": [
+    "systems-architect",
+    "backend-engineer",
+    "sre-infrastructure"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-db-columnar-vectorized-execution",
+  "slug": "columnar-storage-and-vectorized-execution",
+  "domainSlug": "database-storage-query-engines",
+  "domainName": "Database Internals & Advanced Storage Engines",
+  "title": "Columnar Storage Engines & SIMD Vectorized Execution: Parquet, Arrow & ClickHouse Internals",
+  "level": "ADVANCED",
+  "readTimeMinutes": 22,
+  "summary": "A deep engineering inquiry into analytical OLAP query engines: Row-oriented (NSM) vs Columnar (DSM/PAX) storage layouts, lightweight compression encodings (RLE, Bit-Packing, Dictionary), SIMD vectorized execution vectors (AVX-512), and Apache Arrow zero-copy memory layouts.",
+  "keyConcepts": [
+    "Row-Oriented (NSM) vs Columnar (DSM / PAX) Memory Layouts",
+    "Lightweight Columnar Compression (Run-Length, Dictionary, and Bit-Packing)",
+    "Volcano Iterator Model vs Block-at-a-Time Vectorized Execution",
+    "SIMD Hardware Parallelism (AVX-512 & Neon Vector Registers)",
+    "Apache Arrow In-Memory Format & IPC Zero-Copy Serialization"
+  ],
+  "relatedRoleSlugs": [
+    "database-administrator",
+    "systems-architect",
+    "backend-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-dist-byzantine-pbft",
+  "slug": "byzantine-fault-tolerance-and-pbft",
+  "domainSlug": "distributed-systems-architecture",
+  "domainName": "Distributed Systems & Cloud Architecture",
+  "title": "Byzantine Fault Tolerance & PBFT: The 3f+1 Proof, 3-Phase Commits & View Changes",
+  "level": "ADVANCED",
+  "readTimeMinutes": 24,
+  "summary": "A rigorous mathematical exploration of Byzantine Fault Tolerance (BFT) in adversarial distributed environments: Crash Fault Tolerance (CFT) vs BFT, Castro & Liskov's Practical Byzantine Fault Tolerance (PBFT), the formal 3f+1 quorum derivation, the 3-phase commit protocol, and authenticated view changes.",
+  "keyConcepts": [
+    "Crash Fault Tolerance (CFT) vs Byzantine Fault Tolerance (BFT)",
+    "The 3f+1 Lower Bound Quorum Derivation",
+    "The PBFT 3-Phase Protocol (Pre-Prepare, Prepare, and Commit)",
+    "Cryptographic Watermarking & Digest Verification",
+    "PBFT View Change Protocol & Liveness Invariants"
+  ],
+  "relatedRoleSlugs": [
+    "systems-architect",
+    "backend-engineer",
+    "sre-infrastructure"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-sec-oauth2-spiffe-spire",
+  "slug": "oauth2-token-exchange-and-spiffe-spire",
+  "domainSlug": "cybersecurity-secure-coding",
+  "domainName": "Cybersecurity & Secure Coding Practices",
+  "title": "Workload Identity & Token Exchange: SPIFFE/SPIRE, mTLS Attestation & RFC 8693",
+  "level": "ADVANCED",
+  "readTimeMinutes": 23,
+  "summary": "An architectural deep-dive into zero-trust workload identity: Secure Production Identity Framework for Everyone (SPIFFE), SPIRE attestation lifecycles, short-lived X.509/JWT SVIDs, automated mutual TLS, and OAuth 2.0 Token Exchange (RFC 8693) for cross-domain delegation.",
+  "keyConcepts": [
+    "Zero-Trust Workload Identity vs Static Long-Lived Secrets",
+    "SPIFFE ID URI Format & Trust Domains",
+    "SPIRE Server/Agent Architecture (Node & Workload Attestation)",
+    "SPIFFE Verifiable Identity Documents (X.509 & JWT SVIDs)",
+    "OAuth 2.0 Token Exchange (RFC 8693 Delegation Semantics)"
+  ],
+  "relatedRoleSlugs": [
+    "security-engineer",
+    "systems-architect",
+    "devops-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-sys-caching-thundering-herd",
+  "slug": "distributed-caching-cache-aside-vs-write-behind-and-thundering-herd",
+  "domainSlug": "system-design-architecture",
+  "domainName": "System Design & Software Architecture",
+  "title": "Distributed Caching Internals: Cache-Aside, Write-Behind, XFetch & Thundering Herd",
+  "level": "ADVANCED",
+  "readTimeMinutes": 23,
+  "summary": "An in-depth systems design inquiry into high-throughput distributed caching architectures: Cache-Aside vs Write-Through vs Write-Behind, Cache Stampede (Thundering Herd) mathematical mitigation via the XFetch algorithm, and Change Data Capture (CDC) cache invalidation.",
+  "keyConcepts": [
+    "Caching Topologies (Cache-Aside, Read-Through, Write-Through, Write-Behind)",
+    "The Cache Stampede / Thundering Herd Collapse Dynamics",
+    "Probabilistic Early Recomputation: The XFetch Algorithm",
+    "Distributed Mutex Locks vs Singleflight Request Collapsing",
+    "CDC (Change Data Capture) Cache Consistency with Debezium & Kafka"
+  ],
+  "relatedRoleSlugs": [
+    "systems-architect",
+    "backend-engineer",
+    "sre-infrastructure"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-db-ansi-isolation-berenson",
+  "slug": "database-isolation-levels-ansi-vs-berenson-critique",
+  "domainSlug": "database-storage-query-engines",
+  "domainName": "Database Internals & Advanced Storage Engines",
+  "title": "Database Isolation Levels: The ANSI SQL-92 Critique, Berenson Anomalies & SSI",
+  "level": "ADVANCED",
+  "readTimeMinutes": 24,
+  "summary": "A rigorous exploration of transactional concurrency control: the historical ANSI SQL-92 isolation standard, the seminal 1995 Berenson critique, formal definitions of anomalies (Dirty Read, Non-Repeatable Read, Phantom, Write Skew), Snapshot Isolation (SI), and Serializable Snapshot Isolation (SSI).",
+  "keyConcepts": [
+    "The ANSI SQL-92 Isolation Matrix (P1, P2, P3 Phenomena)",
+    "The 1995 Berenson Critique: Ambiguities & Missed Anomalies",
+    "Generalized Concurrency Anomalies (G0, G1a, G1b, G2)",
+    "Snapshot Isolation (SI) & The Write Skew Anomaly",
+    "Serializable Snapshot Isolation (SSI) & SIREAD Dependency Tracking"
+  ],
+  "relatedRoleSlugs": [
+    "database-administrator",
+    "systems-architect",
+    "backend-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-sec-post-quantum-pki",
+  "slug": "quantum-resistant-pki-and-post-quantum-tls",
+  "domainSlug": "cybersecurity-secure-coding",
+  "domainName": "Cybersecurity & Secure Coding Practices",
+  "title": "Quantum-Resistant PKI & Post-Quantum TLS: NIST Standards, Lattice Cryptography & ML-KEM",
+  "level": "ADVANCED",
+  "readTimeMinutes": 24,
+  "summary": "An architectural analysis of post-quantum cryptography (PQC) transitions: Shor's algorithm threat to RSA/ECC, Harvest-Now-Decrypt-Later (HNDL) state-sponsored adversaries, NIST standardization (FIPS 203 ML-KEM, FIPS 204 ML-DSA), hybrid X.509 digital certificates, and hybrid TLS 1.3 Key Encapsulation Mechanisms.",
+  "keyConcepts": [
+    "The Quantum Cryptographic Threat: Shor's vs Grover's Algorithms",
+    "Harvest-Now-Decrypt-Later (HNDL) Adversary Dynamics",
+    "Lattice-Based Cryptography & Learning With Errors (LWE)",
+    "NIST Standards: FIPS 203 (ML-KEM / Kyber) & FIPS 204 (ML-DSA / Dilithium)",
+    "Hybrid TLS 1.3 Handshakes & X.509 Digital Certificate Migration"
+  ],
+  "relatedRoleSlugs": [
+    "security-engineer",
+    "systems-architect",
+    "devops-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
 ];
