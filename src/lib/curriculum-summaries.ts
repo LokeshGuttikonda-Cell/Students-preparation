@@ -1945,4 +1945,234 @@ export const CURRICULUM_SUMMARIES: CurriculumArticleSummary[] = [
   ],
   "practiceMcqsCount": 5
 },
+{
+  "id": "art-ai-gpu-cuda-tensor-cores",
+  "slug": "gpu-architecture-cuda-and-tensor-cores",
+  "domainSlug": "machine-learning-ai-systems",
+  "domainName": "Machine Learning & AI Systems Engineering",
+  "title": "GPU Architecture Internals: CUDA Execution Model, Warp Divergence & Tensor Cores",
+  "level": "ADVANCED",
+  "readTimeMinutes": 24,
+  "summary": "A deep hardware-level investigation of modern GPU computing: Streaming Multiprocessors (SMs), SIMT warp execution (32 threads), warp divergence penalties, shared memory bank conflicts, Tensor Core mixed-precision matrix multiplication (WMMA), and HBM3 memory coalescing.",
+  "keyConcepts": [
+    "Streaming Multiprocessor (SM) Architecture & SIMT Execution",
+    "Warp Scheduling (32 Threads) & Warp Divergence Penalties",
+    "Shared Memory Bank Conflicts & Memory Coalescing",
+    "Tensor Cores & Warp Matrix Multiply and Accumulate (WMMA)",
+    "High Bandwidth Memory (HBM3) vs SRAM Roofline Model"
+  ],
+  "relatedRoleSlugs": [
+    "mlops-engineer",
+    "systems-architect",
+    "backend-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-ai-transformer-kvcache-pagedattn",
+  "slug": "transformer-inference-kv-cache-and-pagedattention",
+  "domainSlug": "machine-learning-ai-systems",
+  "domainName": "Machine Learning & AI Systems Engineering",
+  "title": "Transformer LLM Inference: KV-Cache Bottlenecks, PagedAttention & vLLM Architecture",
+  "level": "ADVANCED",
+  "readTimeMinutes": 24,
+  "summary": "An architectural deep-dive into autoregressive Large Language Model (LLM) serving: the Prefill vs Decode phase, memory bandwidth bounds, Key-Value (KV) cache memory explosion, internal memory fragmentation, and vLLM's PagedAttention virtual memory block allocation.",
+  "keyConcepts": [
+    "Prefill (Compute-Bound) vs Decode (Memory-Bound) Phases",
+    "The Key-Value (KV) Cache Memory Calculus",
+    "Memory Fragmentation in Classical LLM Serving (Internal vs External)",
+    "vLLM PagedAttention Virtual Memory Block Mapping",
+    "Continuous Batching & Chunked Prefill Scheduling"
+  ],
+  "relatedRoleSlugs": [
+    "mlops-engineer",
+    "systems-architect",
+    "backend-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-ai-distributed-training-3d-parallelism",
+  "slug": "distributed-model-training-data-tensor-pipeline-parallelism",
+  "domainSlug": "machine-learning-ai-systems",
+  "domainName": "Machine Learning & AI Systems Engineering",
+  "title": "Distributed Model Training: 3D Parallelism (ZeRO, Tensor Parallelism & Pipeline Schedules)",
+  "level": "ADVANCED",
+  "readTimeMinutes": 25,
+  "summary": "A comprehensive systems architectural breakdown of distributed deep learning training for multi-billion parameter models: Data Parallelism with DeepSpeed ZeRO (Stages 1, 2, 3), Megatron-LM Tensor Parallelism (column/row linear splits), Pipeline Parallelism (GPipe vs 1F1B schedules), and collective communication primitives (All-Reduce, All-Gather, Reduce-Scatter).",
+  "keyConcepts": [
+    "The Model State Memory Equation (Weights, Gradients, Optimizer States)",
+    "DeepSpeed ZeRO Stages 1, 2, and 3 Memory Partitioning",
+    "Megatron-LM Tensor Parallelism (Column & Row Parallel Linear Layers)",
+    "Pipeline Parallelism & The 1F1B Schedule Bubble Problem",
+    "Collective Communications: Ring All-Reduce vs Tree All-Reduce"
+  ],
+  "relatedRoleSlugs": [
+    "mlops-engineer",
+    "systems-architect",
+    "backend-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-ai-flashattention-io-aware",
+  "slug": "flashattention-and-io-aware-exact-attention",
+  "domainSlug": "machine-learning-ai-systems",
+  "domainName": "Machine Learning & AI Systems Engineering",
+  "title": "FlashAttention Internals: I/O-Aware Exact Attention, Online Softmax & SRAM Tiling",
+  "level": "ADVANCED",
+  "readTimeMinutes": 24,
+  "summary": "A rigorous mathematical and systems exploration of Tri Dao et al.'s FlashAttention algorithms (FlashAttention-1, 2, and 3): overcoming the O(N^2) memory wall of classical attention, GPU memory hierarchy exploitation (HBM vs fast SRAM), the online softmax scaling trick, forward pass kernel fusion, and backward recomputation.",
+  "keyConcepts": [
+    "The Classical Attention Memory Wall ($O(N^2)$ HBM Read/Write Bottleneck)",
+    "GPU Memory Hierarchy Roofline: High Bandwidth Memory (HBM) vs SRAM",
+    "Online Softmax Scaling Mathematics (Milakov & Gimelshein)",
+    "SRAM Tiling & Kernel Fusion Algorithm",
+    "FlashAttention-2 & 3 Optimizations (Warp Partitioning & Asynchronous Copy)"
+  ],
+  "relatedRoleSlugs": [
+    "mlops-engineer",
+    "systems-architect",
+    "backend-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-ai-vector-db-hnsw-ann",
+  "slug": "vector-databases-hnsw-and-approximate-nearest-neighbors",
+  "domainSlug": "machine-learning-ai-systems",
+  "domainName": "Machine Learning & AI Systems Engineering",
+  "title": "Vector Databases & HNSW Internals: Hierarchical Graphs, Quantization & ANN Search",
+  "level": "ADVANCED",
+  "readTimeMinutes": 23,
+  "summary": "An in-depth systems design exploration of vector indexing and similarity retrieval engines: the curse of dimensionality in exact k-NN, Hierarchical Navigable Small World (HNSW) graph skip-layers, vector compression via Product Quantization (PQ) and Scalar Quantization (SQ), and inverted file indexing (IVF).",
+  "keyConcepts": [
+    "The Curse of Dimensionality & Exact vs Approximate Nearest Neighbors (ANN)",
+    "Hierarchical Navigable Small World (HNSW) Multi-Layer Graph Architecture",
+    "Greedy Routing & Heuristic Edge Selection Invariants",
+    "Vector Quantization Primitives: Scalar (SQ) vs Product Quantization (PQ)",
+    "Inverted File Indexing (IVF-PQ) & Memory-Mapped Storage Engines"
+  ],
+  "relatedRoleSlugs": [
+    "mlops-engineer",
+    "systems-architect",
+    "backend-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-crypto-zkp-snarks-starks",
+  "slug": "zero-knowledge-proofs-snarks-vs-starks",
+  "domainSlug": "cybersecurity-secure-coding",
+  "domainName": "Cybersecurity & Secure Coding Practices",
+  "title": "Zero-Knowledge Proofs: SNARKs vs STARKs, Arithmetization & KZG Commitments",
+  "level": "ADVANCED",
+  "readTimeMinutes": 25,
+  "summary": "A rigorous mathematical exploration of Zero-Knowledge Proofs (ZKP): Completeness, Soundness, and Zero-Knowledge invariants; arithmetization via Rank-1 Constraint Systems (R1CS) and Quadratic Arithmetic Programs (QAP); trusted setups vs transparent proofs; and polynomial commitment schemes (KZG vs FRI).",
+  "keyConcepts": [
+    "The Three ZKP Invariants: Completeness, Soundness, and Zero-Knowledge",
+    "Arithmetization: Rank-1 Constraint Systems (R1CS) & QAP",
+    "Trusted Setup (Powers of Tau) vs Transparent Proofs",
+    "Polynomial Commitment Schemes: KZG Pairings vs FRI Merkle Paths",
+    "zk-SNARKs vs zk-STARKs Engineering Comparison Matrix"
+  ],
+  "relatedRoleSlugs": [
+    "security-engineer",
+    "systems-architect",
+    "backend-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-crypto-fhe-smpc",
+  "slug": "homomorphic-encryption-and-secure-multi-party-computation",
+  "domainSlug": "cybersecurity-secure-coding",
+  "domainName": "Cybersecurity & Secure Coding Practices",
+  "title": "Privacy-Preserving Computation: Homomorphic Encryption (FHE) & Secure MPC",
+  "level": "ADVANCED",
+  "readTimeMinutes": 24,
+  "summary": "An architectural exploration of computing on confidential data without decryption: Partially vs Somewhat vs Fully Homomorphic Encryption (FHE: BGV, BFV, CKKS), ciphertext noise budgets and Gentry's bootstrapping theorem, paired with Secure Multi-Party Computation (SMPC: Shamir Secret Sharing, Yao's Garbled Circuits, and Oblivious Transfer).",
+  "keyConcepts": [
+    "Computing on Encrypted Data: The Homomorphic Property",
+    "Lattice-Based FHE Schemes: BGV, BFV, and CKKS (Approximate Numbers)",
+    "Ciphertext Noise Accumulation & Craig Gentry's Bootstrapping",
+    "Secure Multi-Party Computation (SMPC) via Shamir's Secret Sharing",
+    "Yao's Garbled Circuits & Oblivious Transfer (OT)"
+  ],
+  "relatedRoleSlugs": [
+    "security-engineer",
+    "systems-architect",
+    "backend-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-crypto-pos-slashing-consensus",
+  "slug": "consensus-in-proof-of-stake-and-slashing-conditions",
+  "domainSlug": "distributed-systems-architecture",
+  "domainName": "Distributed Systems & Cloud Architecture",
+  "title": "Proof-of-Stake Consensus: LMD-GHOST Fork Choice, Casper FFG & Slashing Protocols",
+  "level": "ADVANCED",
+  "readTimeMinutes": 24,
+  "summary": "A comprehensive investigation of modern Proof-of-Stake (PoS) distributed consensus: resolving the Nothing-at-Stake vulnerability, LMD-GHOST (Latest Message Driven GHOST) fork choice rules, Casper FFG finality gadgets, 2/3 supermajority checkpoints, and slashing condition enforcement against double signing and surround voting.",
+  "keyConcepts": [
+    "Proof-of-Work vs Proof-of-Stake: Energy & Security Sybil Defense",
+    "The 'Nothing-at-Stake' Problem & Economic Security Bounds",
+    "LMD-GHOST (Latest Message Driven Greediest Heaviest Observed Subtree)",
+    "Casper FFG (Friendly Finality Gadget) Supermajority Checkpoints",
+    "Slashing Protocol Violations (Double Proposal & Surround Voting)"
+  ],
+  "relatedRoleSlugs": [
+    "systems-architect",
+    "security-engineer",
+    "backend-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-dist-ipfs-content-addressing",
+  "slug": "decentralized-storage-ipfs-and-content-addressing",
+  "domainSlug": "distributed-systems-architecture",
+  "domainName": "Distributed Systems & Cloud Architecture",
+  "title": "Decentralized Storage & IPFS: Content Addressing (CIDs), Merkle DAGs & Bitswap",
+  "level": "ADVANCED",
+  "readTimeMinutes": 23,
+  "summary": "An architectural deep-dive into content-addressed distributed file systems: Location-based addressing (URLs) vs Content-based addressing (CIDs), the Multihash / Multicodec standard, Merkle Directed Acyclic Graphs (Merkle DAGs) for immutable deduplication, Kademlia Distributed Hash Tables (DHT), and the Bitswap peer-to-peer data exchange protocol.",
+  "keyConcepts": [
+    "Location-Based Addressing (URLs) vs Content-Based Addressing (CIDs)",
+    "The Anatomy of a CIDv1 (Multibase, Multicodec, Multihash)",
+    "UnixFS & Merkle DAGs (Directed Acyclic Graphs) for File Chunking",
+    "Kademlia Distributed Hash Table (DHT) & XOR Metric Routing",
+    "Bitswap Peer-to-Peer Block Exchange Protocol (Wantlists & Ledger)"
+  ],
+  "relatedRoleSlugs": [
+    "systems-architect",
+    "backend-engineer",
+    "sre-infrastructure"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-sec-hsm-confidential-compute",
+  "slug": "hardware-security-modules-and-confidential-compute-attestation",
+  "domainSlug": "cybersecurity-secure-coding",
+  "domainName": "Cybersecurity & Secure Coding Practices",
+  "title": "Hardware Security Modules (HSM) & Confidential Computing: TPM 2.0 & Enclaves",
+  "level": "ADVANCED",
+  "readTimeMinutes": 24,
+  "summary": "An in-depth systems security analysis of Hardware Roots of Trust: Hardware Security Modules (HSM), Trusted Platform Module (TPM 2.0) Platform Configuration Registers (PCRs), cryptographic remote attestation quotes, sealed storage, and Confidential Computing memory encryption enclaves (Intel SGX, AMD SEV-SNP).",
+  "keyConcepts": [
+    "Hardware Root of Trust (RoT) & Tamper-Resistant Silicon",
+    "TPM 2.0 Architecture: Endorsement Keys (EK) & PCR Registers",
+    "Cryptographic Remote Attestation & Signed Quote Verification",
+    "Sealed Storage: Cryptographic Binding to Boot State",
+    "Confidential Computing Enclaves: Intel SGX vs AMD SEV-SNP"
+  ],
+  "relatedRoleSlugs": [
+    "security-engineer",
+    "systems-architect",
+    "devops-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
 ];
