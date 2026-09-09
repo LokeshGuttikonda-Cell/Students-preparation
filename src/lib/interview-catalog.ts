@@ -2826,6 +2826,581 @@ Therefore, if we reset slow = head and keep fast at the collision point, moving 
     ],
     relatedCurriculumSlug: "ci-cd-pipelines-gitops-and-devsecops"
   },
+  {
+    id: "dsa-11",
+    category: "Data Structures & Algorithms",
+    categorySlug: "dsa",
+    title: "How do you find the Median of Two Sorted Arrays in O(log(min(M, N))) time using Binary Search on partition boundaries?",
+    difficulty: "HARD",
+    frequency: "VERY HIGH",
+    shortSummary: "Partition the smaller array into two halves at index i, deriving the corresponding partition index j in the larger array. Binary search i until maxLeftA <= minRightB and maxLeftB <= minRightA.",
+    deepAnswer: "Finding the median of two sorted arrays nums1 (size M) and nums2 (size N) in O(log(min(M, N))) requires binary searching for the correct partition cut on the smaller array.\n\n1. Partition Invariant:\n   - Ensure nums1 is the smaller array (if M > N, swap arrays).\n   - Total elements: (M + N + 1) / 2 on the left side of the combined partition.\n   - For any partition cut index `i` in nums1 (where 0 <= i <= M), the cut index in nums2 is mathematically fixed:\n     `j = (M + N + 1) / 2 - i`.\n\n2. Convergence Condition:\n   - The partition is correct when all elements in the combined left half are <= all elements in the combined right half:\n     `maxLeftA <= minRightB` AND `maxLeftB <= minRightA`.\n   - Edge Cases: If i == 0, maxLeftA = -Infinity; if i == M, minRightA = +Infinity. Similarly for j == 0 and j == N.\n   - Adjust Binary Search:\n     - If maxLeftA > minRightB: Cut i is too far right; search left (`high = i - 1`).\n     - If maxLeftB > minRightA: Cut i is too far left; search right (`low = i + 1`).\n\n3. Median Calculation:\n   - If total length (M + N) is odd: `median = max(maxLeftA, maxLeftB)`.\n   - If total length is even: `median = (max(maxLeftA, maxLeftB) + min(minRightA, minRightB)) / 2.0`.\n   - Time Complexity: Exactly O(log(min(M, N))) because binary search executes exclusively on the shorter array. Auxiliary Space: O(1).",
+    interviewerCounterQuestions: [
+      "How would you generalize this algorithm to find the K-th smallest element of two sorted arrays?",
+      "Can this approach be extended to K sorted arrays, and what would the resulting time complexity be?"
+    ],
+    keyTakeaways: [
+      "Binary searching partition boundaries on the smaller array achieves O(log(min(M, N))) time without merging arrays.",
+      "Sentinel values (-Infinity and +Infinity) elegantly resolve edge cuts without nested branch conditions."
+    ],
+    pitfalls: [
+      "Running binary search on the larger array, causing index j to become negative and out of bounds.",
+      "Failing to handle integer overflow when calculating midpoint indices (low + (high - low) / 2)."
+    ],
+    relatedCurriculumSlug: "binary-search-trees-and-avl-balancing"
+  },
+  {
+    id: "dsa-12",
+    category: "Data Structures & Algorithms",
+    categorySlug: "dsa",
+    title: "How does the Knuth-Morris-Pratt (KMP) string search algorithm construct the Prefix Function (pi table) in O(M) time?",
+    difficulty: "HARD",
+    frequency: "HIGH",
+    shortSummary: "The pi table stores the length of the longest proper prefix that is also a suffix for each pattern prefix. Matching failures fall back to pi[k-1] without ever backtracking the text pointer, guaranteeing strict O(N + M) time.",
+    deepAnswer: "The Knuth-Morris-Pratt (KMP) algorithm eliminates the O(N * M) worst-case backtracking of naive string search by preprocessing the pattern into a prefix table (also called pi table or LPS - Longest Prefix Suffix array).\n\n1. The Prefix Function Invariant:\n   - For pattern P of length M: `pi[i]` is defined as the length of the longest proper prefix of P[0..i] that is also a suffix of P[0..i].\n   - If a mismatch occurs at pattern index j while scanning text index i:\n     Instead of resetting text pointer i back to i - j + 1 (as in naive search), text pointer i NEVER moves backward!\n     Pattern pointer j safely shifts to `pi[j - 1]`.\n\n2. Constructing the Pi Table in O(M) Time:\n   - Initialize `pi[0] = 0` and prefix length `len = 0`.\n   - Loop index `i` from 1 to M - 1:\n     a. While `len > 0` and `P[i] !== P[len]`: backtrack `len = pi[len - 1]`.\n     b. If `P[i] === P[len]`: increment `len++`.\n     c. Set `pi[i] = len`.\n\n3. Search Phase:\n   - Loop text index i from 0 to N - 1 with pattern index j:\n     a. While `j > 0` and `text[i] !== P[j]`: fallback `j = pi[j - 1]`.\n     b. If `text[i] === P[j]`: advance `j++`.\n     c. If `j === M`: pattern found at index `i - M + 1`; shift `j = pi[j - 1]` to continue searching.",
+    interviewerCounterQuestions: [
+      "How does the Z-algorithm compare with KMP in performance and practical implementation complexity?",
+      "Can KMP be used to find the minimum length period of a repeating string?"
+    ],
+    keyTakeaways: [
+      "KMP never backtracks the text index i, enabling linear O(N) streaming string search over unbuffered input pipes.",
+      "The prefix table construction is amortized O(M) because len increases at most M times."
+    ],
+    pitfalls: [
+      "Allowing proper prefixes to equal the entire string length (a proper prefix must be strictly shorter than the string).",
+      "Resetting j to 0 on mismatch instead of consulting pi[j - 1], degrading KMP into naive O(N*M) search."
+    ],
+    relatedCurriculumSlug: "asymptotic-complexity-and-master-theorem"
+  },
+  {
+    id: "dsa-13",
+    category: "Data Structures & Algorithms",
+    categorySlug: "dsa",
+    title: "How do you detect Strongly Connected Components (SCCs) in a directed graph using Tarjan's Algorithm in O(V + E) time?",
+    difficulty: "HARD",
+    frequency: "HIGH",
+    shortSummary: "Execute a single Depth-First Search maintaining discovery times (disc) and lowest reachable discovery times (low) with an explicit stack. When disc[u] === low[u], pop the stack to isolate the SCC.",
+    deepAnswer: "A Strongly Connected Component (SCC) of a directed graph is a maximal subgraph where every vertex is reachable from every other vertex within that subgraph. Tarjan's algorithm identifies all SCCs in a single DFS pass in strict O(V + E) time.\n\n1. Core Tracking Arrays & Invariants:\n   - `disc[u]`: Discovery timestamp when vertex u was first visited during DFS.\n   - `low[u]`: Smallest discovery timestamp reachable from u through directed edges and back-edges within the current DFS tree branch.\n   - `onStack[u]`: Boolean indicating whether vertex u is currently resident on the active DFS component stack.\n\n2. Algorithm Execution Steps:\n   - When visiting vertex u:\n     a. Assign `disc[u] = low[u] = ++timer`. Push u onto stack, set `onStack[u] = true`.\n     b. For each directed neighbor v of u:\n        - If v is unvisited: Recursively visit v. Then update `low[u] = min(low[u], low[v])`.\n        - Else if `onStack[v]` is true (back-edge within current SCC candidate):\n          Update `low[u] = min(low[u], disc[v])`.\n     c. Root of SCC Condition:\n        If `disc[u] === low[u]`: Vertex u is the root of a strongly connected component!\n        Pop nodes from stack until u is popped; all popped vertices form a complete, isolated SCC.\n\n3. Tarjan vs Kosaraju:\n   - Kosaraju requires 2 full DFS passes (one on original graph, one on transposed graph).\n   - Tarjan requires ONLY 1 DFS pass and operates directly without constructing the transposed reverse graph.",
+    interviewerCounterQuestions: [
+      "Why does Tarjan update low[u] using disc[v] rather than low[v] when encountering a back-edge to an on-stack node?",
+      "How do you use SCC condensation to solve 2-SAT boolean satisfiability problems in linear time?"
+    ],
+    keyTakeaways: [
+      "Tarjan's algorithm finds all SCCs in a single O(V + E) DFS pass without graph transposition.",
+      "The condition disc[u] === low[u] uniquely identifies the root of a Strongly Connected Component."
+    ],
+    pitfalls: [
+      "Updating low[u] with vertices that are already visited but NOT on the stack (cross-edges to previously finalized SCCs).",
+      "Confusing SCCs (directed graphs) with Biconnected Components and articulation bridges (undirected graphs)."
+    ],
+    relatedCurriculumSlug: "asymptotic-complexity-and-master-theorem"
+  },
+  {
+    id: "sys-12",
+    category: "System Design & Scalability",
+    categorySlug: "system-design",
+    title: "How do you architect an ultra-high throughput Distributed Rate Limiter serving 10M req/sec using Redis?",
+    difficulty: "HARD",
+    frequency: "VERY HIGH",
+    shortSummary: "Use the Sliding Window Counter algorithm implemented via atomic Redis Lua scripts or multi-tier local token buckets with asynchronous Redis batch synchronization to eliminate central lock contention.",
+    deepAnswer: "A global rate limiting service serving 10 million requests per second cannot execute a synchronous network round-trip to a single Redis master on every request.\n\n1. Algorithm Selection: Sliding Window Counter:\n   - Fixed Window creates boundary burst hazards (2x quota at window boundaries).\n   - Sliding Window Log (ZSET of timestamps) consumes too much memory (1,000 req/sec = thousands of timestamp entries per user).\n   - Sliding Window Counter: Divides time into small sub-windows (e.g. 1-second chunks). Estimates current window load by weighting previous window count: `Estimated = current_count + prev_count * (1 - time_into_window / window_size)`. Low memory (2 integer keys per user), O(1) time complexity.\n\n2. Scaling to 10M req/sec (Two-Tier Architecture):\n   - Local In-Memory Token Bucket (L1):\n     Each API gateway instance allocates a local in-memory token bucket. Gateways synchronize with Redis in batched increments (e.g. every 100ms or reserving 50 tokens at a time) rather than making 1 network call per HTTP request.\n   - Redis Cluster Sharding (L2):\n     Rate limiting keys (`rate:{tenant_id}:{window}`) are sharded across a Redis Cluster using consistent hashing on `{tenant_id}` hash tags.\n   - Atomic Lua Script Execution:\n     Evaluating and incrementing counters must execute in a single atomic Redis Lua script to prevent race conditions without distributed locks.\n\n3. Failure Modes:\n   - Soft Fail (Fail-Open): If the Redis rate limiter cluster becomes completely unreachable or times out (> 10ms), the API gateway MUST fail open (allow requests through) while logging alerts, ensuring a rate limiter failure never cascades into a total production outage.",
+    interviewerCounterQuestions: [
+      "How do you handle clock skew between application gateway servers when evaluating sliding window offsets?",
+      "What are the pros and cons of using a Leaky Bucket vs Token Bucket for smoothing egress traffic to third-party APIs?"
+    ],
+    keyTakeaways: [
+      "Two-tier caching (local batching + Redis cluster) scales rate limiting to millions of requests per second.",
+      "Always design rate limiters to fail open to prevent rate limiter outages from taking down public applications."
+    ],
+    pitfalls: [
+      "Using non-atomic GET then INCR calls in Redis, creating concurrency race conditions that exceed quotas by 300%.",
+      "Failing to set TTL expirations on rate limit keys in Redis, causing memory leaks across millions of unique IP addresses."
+    ],
+    relatedCurriculumSlug: "distributed-caching-topologies-and-coherence"
+  },
+  {
+    id: "sys-13",
+    category: "System Design & Scalability",
+    categorySlug: "system-design",
+    title: "How do you design a Real-Time Ride-Hailing Matchmaking Engine (e.g. Uber/Lyft) using Geospatial H3 indexing?",
+    difficulty: "EXPERT",
+    frequency: "HIGH",
+    shortSummary: "Divide the world into hexagonal hierarchical cells using Uber H3 (or Google S2). Drivers stream GPS coordinates over WebSockets to an in-memory geospatial index (Redis GEO / custom spatial index), enabling O(1) radius match queries.",
+    deepAnswer: "A real-time ride-hailing matchmaking engine must track millions of concurrently moving drivers, ingest GPS location pings every 3-5 seconds, and match riders with nearest available drivers in sub-second latency.\n\n1. Geospatial Indexing: Uber H3 vs Geohash vs QuadTree:\n   - Standard Geohash divides the map into rectangles; rectangular cells suffer from distortion at poles and unequal neighbor distances (corners are farther than edges).\n   - Uber H3 uses a discrete hexagonal hierarchical spatial index. Hexagons have a crucial geometric property: all 6 adjacent neighboring cells are equidistant from the center point! This makes radial distance expansion (`k-ring`) smooth and invariant.\n   - Hexagon resolution: Resolution 8 (~460m edge length) or Resolution 9 (~174m edge length) is ideal for urban driver indexing.\n\n2. System Architecture:\n   - Location Ingestion Pipeline:\n     Drivers transmit `{driver_id, lat, lng, status}` over persistent WebSocket connections to Location Gateway pods.\n     Location Gateway computes the H3 cell index (`h3_index = H3.latLngToCell(lat, lng, 8)`) and publishes updates to a Kafka cluster partitioned by `city_id`.\n   - In-Memory Spatial Storage (Redis / Distributed Memory Grid):\n     Maintains active driver sets per H3 cell: `H3_Cell -> Set<DriverId>`.\n   - Matchmaking Engine:\n     When a rider requests a pickup at (lat, lng):\n     1. Compute rider's H3 cell.\n     2. Query candidate drivers in that cell. If insufficient, expand to immediate neighbors via `H3.gridDisk(cell, k=1)` (1 ring = 7 cells) or `k=2` (19 cells).\n     3. Filter candidates by vehicle class and dispatch status.\n     4. Calculate Estimated Time of Arrival (ETA) using pre-computed road network graph routing engines (OSRM / Valhalla).\n     5. Dispatch ride offer to highest-ranked driver with an accept/reject timer.",
+    interviewerCounterQuestions: [
+      "How do you handle the 'Thundering Herd' where 5 riders attempt to match with the same single nearest driver?",
+      "How do you dynamically compute surge pricing based on local supply/demand density in real time?"
+    ],
+    keyTakeaways: [
+      "Hexagonal indexing (H3) provides equidistant neighbor traversal superior to rectangular Geohashes.",
+      "Partitioning location ingestion by city/region isolates localized driver GPS volume."
+    ],
+    pitfalls: [
+      "Storing moving driver GPS coordinates in relational databases with standard SQL spatial queries, crashing disks under millions of updates/sec.",
+      "Calculating driving ETAs using straight-line Euclidean distance rather than road-network routing engines."
+    ],
+    relatedCurriculumSlug: "realtime-stream-processing-flink-and-cdc"
+  },
+  {
+    id: "sys-14",
+    category: "System Design & Scalability",
+    categorySlug: "system-design",
+    title: "How do you design an Idempotent Payment Processing API that guarantees exactly-once transaction execution?",
+    difficulty: "HARD",
+    frequency: "VERY HIGH",
+    shortSummary: "Enforce client-supplied Idempotency Keys stored in an atomic distributed lock and state store (Redis/DB). Use the Transactional Outbox pattern and two-phase charge state machines to prevent double billing on retries.",
+    deepAnswer: "In financial payment APIs, network timeouts, client retries, and dropped webhooks can easily cause duplicate charges unless idempotency is strictly engineered at every layer.\n\n1. The Idempotency Key Lifecycle:\n   - Client sends an HTTP POST with a unique UUID header: `Idempotency-Key: 7b3d2e41-...`.\n   - Step 1 (Atomic Lock & Status Check):\n     API gateway executes atomic Redis check: `SET key processing NX EX 120`.\n     - If key already exists with status `COMPLETED`: Return cached HTTP response body and status code immediately without re-executing logic!\n     - If key exists with status `PROCESSING`: Return HTTP 409 Conflict or hold request waiting for completion.\n     - If key is new: Acquire lock, proceed with charge pipeline.\n\n2. State Machine & Database Invariants:\n   - Payment Record States: `CREATED -> AUTHORIZING -> AUTHORIZED -> CAPTURED / FAILED`.\n   - The payment table enforces a unique constraint on `(account_id, idempotency_key)`.\n   - If the payment gateway crashes after contacting external processor (e.g. Stripe/Visa) but before saving response:\n     Reconciliation workers query external processor by idempotency key to recover transaction status rather than blindly re-charging.\n\n3. Two-Phase Authorize and Capture:\n   - Separate Authorization (reserving credit line) from Capture (final settlement).\n   - If network drops during Capture, retrying capture is inherently idempotent on payment gateways because the funds were already authorized.",
+    interviewerCounterQuestions: [
+      "What should your API return if a client sends an existing idempotency key with a DIFFERENT request payload (e.g. different charge amount)?",
+      "How do you handle webhooks from third-party payment gateways that arrive out of order or multiple times?"
+    ],
+    keyTakeaways: [
+      "Store idempotency keys with request payload hashes to detect and reject tampered duplicate keys (HTTP 422).",
+      "Query external processor by idempotency key before attempting any retry after a timeout."
+    ],
+    pitfalls: [
+      "Returning cached 200 OK responses with an empty body when an idempotency key is matched.",
+      "Relying on client-side retry timers without exponential backoff and randomized jitter."
+    ],
+    relatedCurriculumSlug: "distributed-transactions-2pc-saga-event-sourcing"
+  },
+  {
+    id: "sys-15",
+    category: "System Design & Scalability",
+    categorySlug: "system-design",
+    title: "How do you design an ultra-scalable Web Crawler handling 10 billion pages with politeness and deduplication?",
+    difficulty: "HARD",
+    frequency: "HIGH",
+    shortSummary: "Deconstruct into a URL Frontier (Priority + Politeness queues), distributed worker fetchers, DNS caching, HTML text extraction with SimHash deduplication, and Bloom filters for URL deduplication.",
+    deepAnswer: "Crawling 10 billion web pages requires balancing crawling throughput, host politeness constraints, duplicate detection, and distributed fault tolerance.\n\n1. URL Frontier (Politeness & Priority Queues):\n   - The URL Frontier manages URLs to be downloaded.\n   - Politeness Invariant: A web crawler must never overwhelm a single host (e.g. hammering small websites with 100 req/sec causes unintentional DDoS).\n   - Solution: Two-stage queue architecture:\n     a. Priority Queues (F1): Classifies URLs by PageRank / importance into priority tiers.\n     b. Politeness Queues (F2): One queue per target hostname. A router maps hostnames to specific worker queues.\n     c. Delay Coordinator: Enforces a configurable politeness delay (e.g. 1 second between requests to the same host) and respects `robots.txt`.\n\n2. Deduplication Engine:\n   - URL Deduplication: Storing 10 billion URLs (average 50 bytes = 500GB) in RAM hash sets is expensive. Use a Scalable Bloom Filter (or Cuckoo Filter) with 0.1% false positive rate (~10 bytes per URL = 100GB RAM) to discard already-seen URLs before queuing.\n   - Content Deduplication: Millions of pages share identical content under different URLs (mirrors, query parameters). Compute a 64-bit SimHash (Locality-Sensitive Hashing) on the extracted text. SimHash hamming distance <= 3 identifies near-duplicate pages without storing full HTML.\n\n3. Distributed Fetcher Nodes:\n   - High-performance asynchronous workers (using epoll / libuv) download HTML streams.\n   - In-memory DNS cache: Eliminates recursive DNS resolution latency on every URL.\n   - Storage: Raw HTML compressed and saved to Distributed Object Storage (S3/Blob). Extracted text and links pushed to Kafka for indexing.",
+    interviewerCounterQuestions: [
+      "How do you prevent 'Spider Traps' (dynamically generated infinite URL loops like calendar pages)?",
+      "How do you handle client-side JavaScript rendering (Single Page Apps) at scale without browser headless memory bloat?"
+    ],
+    keyTakeaways: [
+      "Separate priority queues from host-specific politeness queues to respect target server bandwidth.",
+      "Bloom filters and SimHash provide memory-efficient URL and near-duplicate content deduplication."
+    ],
+    pitfalls: [
+      "Failing to cache DNS queries, causing the crawler to flood public DNS resolvers with billions of repetitive requests.",
+      "Ignoring robots.txt directives, violating legal agreements and triggering IP bans."
+    ],
+    relatedCurriculumSlug: "distributed-data-engineering-spark-and-lakehouse"
+  },
+  {
+    id: "db-11",
+    category: "Databases & Storage Internals",
+    categorySlug: "databases",
+    title: "What is Write Skew under Snapshot Isolation, and why does standard SI fail to prevent it without SSI?",
+    difficulty: "HARD",
+    frequency: "VERY HIGH",
+    shortSummary: "Write Skew occurs when concurrent transactions read overlapping data sets, evaluate an integrity constraint, and modify disjoint records that together violate the constraint. SI only detects write-write conflicts on identical rows.",
+    deepAnswer: "Snapshot Isolation (SI) is a popular isolation level (often marketed as 'Repeatable Read' in PostgreSQL/MySQL). While it eliminates Dirty Reads, Non-Repeatable Reads, and Phantom Reads for queries, it is NOT fully Serializable because it permits Write Skew anomalies.\n\n1. The Classic On-Call Doctor Anomaly:\n   - Hospital rule: At least one doctor must be on call at all times (Constraint: `COUNT(on_call) >= 1`).\n   - Currently, Doctor Alice and Doctor Bob are both on call (count = 2).\n   - Concurrently:\n     - Transaction 1 (Alice): Reads count = 2. Decides she can take time off. Sets `alice.on_call = false`.\n     - Transaction 2 (Bob): Reads count = 2 from his snapshot. Decides he can take time off. Sets `bob.on_call = false`.\n   - Both transactions commit successfully!\n   - Result: ZERO DOCTORS ON CALL! The integrity constraint was completely violated.\n\n2. Why Standard Snapshot Isolation Fails:\n   - SI employs First-Committer-Wins: it checks for write-write conflicts on the EXACT SAME row.\n   - Because Alice modified row 'Alice' and Bob modified row 'Bob', there was NO row-level write-write conflict! Under SI, both commits succeed.\n\n3. Solutions:\n   - Solution 1 (Pessimistic Locking): Use `SELECT ... FOR UPDATE` to lock the matching rows during read.\n   - Solution 2 (Serializable Snapshot Isolation - SSI):\n     Tracks read-write anti-dependencies (si-read locks). If the database detects a cycle of dependencies ($T_1 \\xrightarrow{rw} T_2 \\xrightarrow{rw} T_1$), it aborts one transaction with a serialization failure.",
+    interviewerCounterQuestions: [
+      "What is the difference between Write Skew and Phantom Reads?",
+      "How does Serializable Snapshot Isolation (SSI) in PostgreSQL maintain low locking overhead compared to strict Two-Phase Locking?"
+    ],
+    keyTakeaways: [
+      "Snapshot Isolation prevents write-write conflicts on identical rows, but allows Write Skew across related rows.",
+      "Write Skew can be eliminated via explicit SELECT FOR UPDATE locking or Serializable Snapshot Isolation (SSI)."
+    ],
+    pitfalls: [
+      "Assuming 'Repeatable Read' isolation level guarantees full serializability without testing for write skew.",
+      "Attempting to solve write skew by adding non-locking secondary indexes."
+    ],
+    relatedCurriculumSlug: "distributed-transactions-2pc-saga-event-sourcing"
+  },
+  {
+    id: "db-12",
+    category: "Databases & Storage Internals",
+    categorySlug: "databases",
+    title: "How does PostgreSQL Heap-Only Tuple (HOT) optimization bypass secondary index updates during UPDATE operations?",
+    difficulty: "HARD",
+    frequency: "HIGH",
+    shortSummary: "When an UPDATE does not alter indexed columns and the data page has sufficient free space, PostgreSQL creates the new tuple version on the exact same page and links it via a line pointer chain, avoiding secondary index churn.",
+    deepAnswer: "In PostgreSQL MVCC, an `UPDATE` writes an entirely new version (tuple) of the row. Under naive MVCC, if a table has 5 secondary indexes, creating a new tuple requires updating all 5 index B-Trees to point to the new tuple TID (Tuple ID: page + offset), causing massive write amplification and index bloat.\n\n1. The Heap-Only Tuple (HOT) Conditions:\n   PostgreSQL executes a HOT update if and only if two conditions are met:\n   - Condition 1: NONE of the columns modified by the UPDATE statement are referenced in any index on the table.\n   - Condition 2: The physical data page (heap block) containing the old tuple has sufficient free space to accommodate the new tuple version.\n\n2. How HOT Links Work:\n   - The new tuple is written to the same 8KB page.\n   - The old tuple's line pointer (item pointer) is linked directly to the new tuple's offset.\n   - When an index scan searches the index, it finds the original TID pointing to the old tuple, follows the in-page pointer chain directly to the newest live tuple, and returns it.\n   - ZERO SECONDARY INDEXES ARE MODIFIED!\n\n3. In-Page Pruning & Defragmentation:\n   - Subsequent SELECT or UPDATE operations reading that page execute opportunistic in-page pruning: dead old tuples in the chain are pruned, and line pointers are redirected directly to the live tuple without requiring an explicit VACUUM run.",
+    interviewerCounterQuestions: [
+      "How does adjusting table FILLFACTOR (e.g. from 100 to 80) drastically increase the percentage of successful HOT updates?",
+      "Why does modifying an indexed column completely disable HOT optimization?"
+    ],
+    keyTakeaways: [
+      "HOT updates eliminate write amplification across secondary indexes when non-indexed columns are updated.",
+      "Setting table FILLFACTOR below 100 reserves headroom on data pages for in-place HOT updates."
+    ],
+    pitfalls: [
+      "Leaving FILLFACTOR at 100 on high-frequency UPDATE tables, forcing 100% of updates onto new pages and disabling HOT.",
+      "Indexing frequently changing counter or status columns, permanently disqualifying those updates from HOT optimization."
+    ],
+    relatedCurriculumSlug: "database-query-optimizer-and-cbo-internals"
+  },
+  {
+    id: "db-13",
+    category: "Databases & Storage Internals",
+    categorySlug: "databases",
+    title: "What is the operational difference between Optimistic Locking with version columns and Pessimistic Locking with SELECT FOR UPDATE NOWAIT?",
+    difficulty: "MEDIUM",
+    frequency: "VERY HIGH",
+    shortSummary: "Optimistic locking verifies a version column at update time (UPDATE ... WHERE id = x AND version = v) without holding locks; Pessimistic locking locks rows immediately via SELECT FOR UPDATE, blocking concurrent transactions.",
+    deepAnswer: "Managing concurrent row updates in relational databases requires choosing between optimistic and pessimistic strategies based on contention frequency.\n\n1. Optimistic Locking (Version Column / Timestamp):\n   - Mechanism: Add an integer `version` column to the table.\n   - Read path: `SELECT id, balance, version FROM accounts WHERE id = 101` (version = 5).\n   - Write path: `UPDATE accounts SET balance = balance - 50, version = version + 1 WHERE id = 101 AND version = 5`.\n   - If another transaction modified the row in the interim, the `version = 5` predicate matches 0 rows. The application detects `affectedRows === 0` and aborts or retries.\n   - Advantages: Zero database locks held; maximum throughput when collisions are infrequent.\n   - Disadvantages: Wasted compute and high abort rates under heavy write contention.\n\n2. Pessimistic Locking (SELECT FOR UPDATE):\n   - Mechanism: `SELECT balance FROM accounts WHERE id = 101 FOR UPDATE NOWAIT`.\n   - The database engine places an exclusive row-level lock on row 101. Any other transaction attempting to read with FOR UPDATE or write to row 101 blocks (or fails fast if NOWAIT is specified).\n   - Advantages: Guarantees zero transaction aborts; ideal for flash sales and inventory decrements where contention is guaranteed.\n   - Disadvantages: Holds database locks, reducing throughput and introducing deadlock hazards if transactions acquire rows in different orders.",
+    interviewerCounterQuestions: [
+      "Why is NOWAIT or SKIP LOCKED critical when using SELECT FOR UPDATE in high-throughput worker queue architectures?",
+      "How do deadlocks occur in pessimistic locking, and how do database engines detect and resolve them?"
+    ],
+    keyTakeaways: [
+      "Optimistic locking excels under low contention; pessimistic locking excels under high contention where aborts would be costly.",
+      "SKIP LOCKED allows concurrent workers to lock distinct unreserved queue items without blocking."
+    ],
+    pitfalls: [
+      "Holding a pessimistic SELECT FOR UPDATE lock while executing a slow external third-party HTTP call, exhausting database connection pools.",
+      "Using optimistic locking on a hot inventory counter during a flash sale, causing 95%+ of user transactions to fail."
+    ],
+    relatedCurriculumSlug: "distributed-transactions-2pc-saga-event-sourcing"
+  },
+  {
+    id: "os-11",
+    category: "Operating Systems & Linux",
+    categorySlug: "os-linux",
+    title: "How do Docker --cpus limits translate into Linux Completely Fair Scheduler (CFS) bandwidth control (cfs_quota_us)?",
+    difficulty: "HARD",
+    frequency: "HIGH",
+    shortSummary: "Docker limits map to Linux cgroup cpu.cfs_quota_us and cpu.cfs_period_us. If quota is 200ms and period is 100ms, the container can use 2 full CPU cores; when quota is exhausted in a period, the kernel throttles the container.",
+    deepAnswer: "Container CPU limits in Docker and Kubernetes do not allocate dedicated physical CPU cores; they enforce Completely Fair Scheduler (CFS) Bandwidth Quotas via Linux cgroups.\n\n1. CFS Bandwidth Parameters:\n   - `cpu.cfs_period_us`: The scheduling enforcement period (default is 100,000 microseconds = 100ms).\n   - `cpu.cfs_quota_us`: The total CPU runtime allowed for all threads in the cgroup combined within that period.\n\n2. Calculation Formula:\n   - Setting `docker run --cpus=\"2.5\"` calculates:\n     `quota = 2.5 * 100,000us = 250,000us`.\n   - Across a 100ms period, all container threads can collectively consume at most 250ms of CPU time.\n\n3. CPU Throttling and Latency Spikes:\n   - If a multi-threaded application (e.g. Node.js with worker threads or Java GC) bursts and consumes 250ms of CPU runtime within the first 20ms of the 100ms period, its quota is completely exhausted!\n   - The kernel deschedules all container threads and freezes execution for the remaining 80 milliseconds until the next period begins.\n   - Result: Extreme latency spikes and p99 degradation, even when the host node has 80% idle CPU capacity!\n   - Best Practice in Kubernetes: Set CPU requests (guarantees minimum share via `cpu.shares`) and avoid hard CPU limits on latency-sensitive microservices to prevent throttling.",
+    interviewerCounterQuestions: [
+      "Why can a single multi-threaded container be throttled even when host CPU utilization is below 20%?",
+      "What is the difference between CPU Throttling and CPU Starvation?"
+    ],
+    keyTakeaways: [
+      "Docker CPU limits enforce CFS quotas (quota/period) across 100ms enforcement intervals.",
+      "Bursting thread pools can exhaust quota early in a period, causing severe latency spikes from kernel throttling."
+    ],
+    pitfalls: [
+      "Setting hard CPU limits on latency-critical Java or Node.js microservices, triggering periodic 50-80ms freezes.",
+      "Confusing CPU requests (weights/shares during contention) with CPU limits (enforced hard quotas)."
+    ],
+    relatedCurriculumSlug: "process-scheduling-cfs-and-real-time-kernels"
+  },
+  {
+    id: "os-12",
+    category: "Operating Systems & Linux",
+    categorySlug: "os-linux",
+    title: "How does the Linux Futex (Fast Userspace Mutex) transition between user-space atomic CAS and in-kernel wait queues?",
+    difficulty: "HARD",
+    frequency: "HIGH",
+    shortSummary: "Uncontended locking completes entirely in user space via atomic CAS without syscalls. Under contention, the caller invokes the futex() system call to place the thread on an in-kernel hash table wait queue.",
+    deepAnswer: "Before futexes, all synchronization primitives required system calls into the kernel to acquire or release locks, incurring devastating context-switching overhead. The Linux Futex (introduced in kernel 2.6) provides fast user-space locking.\n\n1. Architecture and Shared State:\n   - A futex is represented simply as a 32-bit integer in user-space memory (e.g. 0 = unlocked, 1 = locked without waiters, 2 = locked with waiters).\n\n2. Fast Path (Zero Syscalls):\n   - Acquiring lock: The thread executes an atomic Compare-And-Swap: `atomic_cas(&futex_val, 0, 1)`.\n   - If successful, the thread enters the critical section with ZERO system calls and zero kernel transitions!\n   - Releasing lock: If `atomic_cas(&futex_val, 1, 0)` succeeds, the lock is released with zero syscalls.\n\n3. Slow Path (Kernel Coordination):\n   - If CAS fails (the lock is already held), the acquiring thread sets `futex_val = 2` (indicating waiters) and invokes the system call:\n     `futex(&futex_val, FUTEX_WAIT, 2, NULL, NULL, 0)`.\n   - The kernel checks whether `*futex_val == 2`:\n     - If true, it places the thread on an in-kernel hash table wait queue and puts the thread to sleep.\n     - When the lock holder releases the lock, seeing `futex_val == 2`, it calls `futex(&futex_val, FUTEX_WAKE, 1)` to wake one waiting thread from the kernel queue.",
+    interviewerCounterQuestions: [
+      "Why does the kernel FUTEX_WAIT operation re-check the value of the futex integer before putting the thread to sleep?",
+      "How do Priority Inheritance Futexes (FUTEX_LOCK_PI) solve priority inversion in real-time Linux?"
+    ],
+    keyTakeaways: [
+      "Futexes achieve near-zero overhead by keeping uncontended operations in user space via atomic instructions.",
+      "The kernel system call is only executed when thread suspension or waking is required under contention."
+    ],
+    pitfalls: [
+      "Calling sleep() or polling in a busy spin-loop instead of yielding to a futex wait queue under contention.",
+      "Assuming futexes are only for threads; shared memory futexes (FUTEX_SHARED) synchronize distinct processes."
+    ],
+    relatedCurriculumSlug: "process-scheduling-cfs-and-real-time-kernels"
+  },
+  {
+    id: "os-13",
+    category: "Operating Systems & Linux",
+    categorySlug: "os-linux",
+    title: "How does the Linux Virtual File System (VFS) manage directory lookups using the dentry cache (dcache) and inode cache?",
+    difficulty: "MEDIUM",
+    frequency: "HIGH",
+    shortSummary: "The dentry cache (dcache) maps directory paths to dentries and inodes in memory. Lookups traverse dentry pointers; on miss, disk directory entries are read into dcache, avoiding expensive repeated disk I/O.",
+    deepAnswer: "Resolving a path like `/var/log/nginx/access.log` to a physical file requires traversing multiple directory layers. Without caching, this would require reading disk blocks for root (/), var, log, nginx, and access.log on every single file access.\n\n1. The Dentry (Directory Entry) Abstraction:\n   - In Linux VFS, a `dentry` represents a specific component of a path (e.g. `var`, `log`, `nginx`).\n   - Each dentry links a pathname component to its corresponding `inode` structure in memory.\n   - Dentries are organized in an in-memory tree mirroring the filesystem hierarchy.\n\n2. The Dentry Cache (dcache):\n   - An in-memory hash table: `dcache = Hash(parent_dentry, name) -> dentry`.\n   - When resolving `/var/log/nginx/access.log`:\n     1. Look up 'var' under root dentry in dcache (O(1) memory lookup).\n     2. Look up 'log' under 'var' dentry.\n     3. Look up 'nginx' under 'log' dentry.\n     4. Look up 'access.log' under 'nginx' dentry.\n   - Entire path resolution completes in nanoseconds without touching physical disk sectors!\n\n3. Negative Dentries:\n   - When an application checks for a non-existent file (e.g. file_exists('test.txt') -> false), the dcache stores a 'Negative Dentry' with a null inode pointer.\n   - Subsequent checks for missing files return false instantly from memory, protecting disk storage from malicious missing-file polling attacks.",
+    interviewerCounterQuestions: [
+      "What is the difference between dentry cache (dcache) and PageCache in Linux memory management?",
+      "How does the Linux kernel handle dentry cache eviction when system RAM experiences memory pressure?"
+    ],
+    keyTakeaways: [
+      "The dcache resolves hierarchical directory paths in memory in O(1) time without disk reads.",
+      "Negative dentries cache missing file lookups, shielding storage from repeated 404 file scans."
+    ],
+    pitfalls: [
+      "Assuming directory paths are stored inside inode structures; inodes store file metadata, while dentries store path components.",
+      "Executing millions of stat() calls on non-cached paths on slow NFS mounts, exhausting network bandwidth."
+    ],
+    relatedCurriculumSlug: "virtual-memory-paging-and-tlb-hardware"
+  },
+  {
+    id: "net-10",
+    category: "Computer Networks & Security",
+    categorySlug: "networking",
+    title: "How does the TCP Window Scaling option (RFC 7323) enable high throughput on Long Fat Networks (LFNs)?",
+    difficulty: "HARD",
+    frequency: "HIGH",
+    shortSummary: "The standard TCP header allocates only 16 bits for the receive window (max 64KB). Window Scaling adds a shift count in SYN options, scaling window sizes up to 1GB to saturate high Bandwidth-Delay Product links.",
+    deepAnswer: "In original TCP (RFC 793), the Receive Window (`rwnd`) field in the 20-byte TCP header is strictly 16 bits wide, capping the maximum advertised window size at $2^{16} - 1 = 65,535$ bytes (64 KB).\n\n1. The Long Fat Network (LFN) Problem:\n   - Consider a modern 10 Gbps trans-oceanic network connection with an 80ms Round-Trip Time (RTT).\n   - Bandwidth-Delay Product: $\\text{BDP} = 10\\text{ Gbps} \\times 0.080\\text{s} = 800\\text{ Megabits} = 100\\text{ Megabytes}$.\n   - Maximum theoretical throughput without window scaling:\n     $$\\text{Throughput} = \\frac{\\text{Window Size}}{\\text{RTT}} = \\frac{65,535\\text{ bytes}}{0.080\\text{s}} \\approx 819\\text{ KB/s} = 6.55\\text{ Mbps}$$\n   - The 10 Gbps pipe is 99.9% empty because the sender must wait for ACKs after sending only 64KB!\n\n2. Window Scale Option (RFC 7323):\n   - Negotiated exclusively during the TCP 3-way handshake in SYN packets.\n   - Specifies a shift multiplier $S$ (0 to 14).\n   - The true window size is computed by left-shifting the 16-bit header field:\n     $$\\text{True Window} = \\text{Header Value} \\ll S$$\n   - With max shift $S = 14$, maximum window size reaches $65,535 \\times 2^{14} = 1,073,725,440$ bytes (~1 GB), enabling sender to keep hundreds of megabytes inflight and fully saturate 100 Gbps fiber links.",
+    interviewerCounterQuestions: [
+      "Why can the Window Scale option only be negotiated in SYN / SYN-ACK packets, and what happens if one endpoint does not support it?",
+      "How does Selective Acknowledgment (SACK) complement Window Scaling on high-BDP links?"
+    ],
+    keyTakeaways: [
+      "TCP Window Scaling shifts the 16-bit window value up to 14 bits, expanding maximum window from 64KB to 1GB.",
+      "High Bandwidth-Delay Product (BDP) links require large window scaling to achieve wire speed."
+    ],
+    pitfalls: [
+      "Restricting OS socket buffer sizes (rmem_max, wmem_max) to 64KB, neutralizing window scaling on gigabit networks.",
+      "Assuming TCP window scaling can be adjusted dynamically mid-connection; it can only be negotiated in initial SYN packets."
+    ],
+    relatedCurriculumSlug: "tcp-congestion-control-bbr-cubic-and-quic"
+  },
+  {
+    id: "net-11",
+    category: "Computer Networks & Security",
+    categorySlug: "networking",
+    title: "What is a Path MTU Discovery (PMTUD) Black Hole, and how does TCP MSS Clamping mitigate ICMP drops in VPNs?",
+    difficulty: "HARD",
+    frequency: "HIGH",
+    shortSummary: "When routers drop ICMP \"Fragmentation Needed\" packets due to overly aggressive firewalls, senders with DF=1 never learn of smaller MTUs and stall forever (Black Hole). TCP MSS Clamping rewrites the MSS in SYN packets to force smaller segments.",
+    deepAnswer: "In standard IP networking, Path MTU Discovery (PMTUD) sends packets with Don't Fragment (`DF = 1`). If an intermediate link (like a VPN tunnel) has a smaller MTU (e.g. 1420 bytes due to IPsec/GRE headers), the router drops the packet and returns an ICMP Type 3, Code 4 message ('Fragmentation Needed').\n\n1. The PMTUD Black Hole Problem:\n   - Many misconfigured enterprise firewalls and cloud security groups blindly drop ALL ICMP packets.\n   - When a router drops a packet exceeding MTU and attempts to send the ICMP error, the firewall drops the ICMP message!\n   - The sender never receives the ICMP notification. It assumes the packet was lost, retransmits the same large packet, and hangs indefinitely.\n   - Symptoms: Small packets (like HTTP GET or ping) succeed, but large responses (like TLS certificates or large web pages) stall and time out forever!\n\n2. The Solution: TCP MSS Clamping:\n   - VPN gateways and intermediate routers inspect passing TCP SYN and SYN-ACK packets.\n   - The router calculates the maximum allowed payload: `MSS = VPN_MTU - 40 bytes (IP + TCP headers)`.\n   - If the client's advertised Maximum Segment Size (MSS) in the SYN option exceeds this value, the router dynamically rewrites the MSS field in the TCP header on-the-fly.\n   - Result: Both endpoints automatically restrict their maximum packet size, preventing fragmentation and bypassing broken ICMP paths without client configuration.",
+    interviewerCounterQuestions: [
+      "How does PLPMTUD (Packetization Layer Path MTU Discovery, RFC 4821) discover MTU without relying on ICMP?",
+      "Why do VPN tunnels have smaller MTUs than standard 1500-byte Ethernet networks?"
+    ],
+    keyTakeaways: [
+      "PMTUD black holes occur when firewalls block ICMP Fragmentation Needed packets.",
+      "TCP MSS clamping intercepts SYN packets on VPN routers and rewrites MSS values to prevent oversized packets."
+    ],
+    pitfalls: [
+      "Blocking all ICMP traffic in cloud security groups, breaking Path MTU Discovery for remote clients.",
+      "Debugging black hole issues with simple ping tests (which use small packets that traverse successfully)."
+    ],
+    relatedCurriculumSlug: "tcp-congestion-control-bbr-cubic-and-quic"
+  },
+  {
+    id: "net-12",
+    category: "Computer Networks & Security",
+    categorySlug: "networking",
+    title: "How does HTTP/2 HPACK header compression eliminate repetitive header overhead using static and dynamic tables?",
+    difficulty: "MEDIUM",
+    frequency: "HIGH",
+    shortSummary: "HPACK uses a predefined Static Table of 61 common headers and a connection-scoped Dynamic Table of seen headers. Headers are encoded as integer index references with Huffman compression, reducing header bytes by up to 85%.",
+    deepAnswer: "In HTTP/1.1, clients transmit verbose, redundant text headers (like `User-Agent`, `Cookie`, `Authorization`) with every single HTTP request, consuming several kilobytes of bandwidth per asset. HTTP/2 introduces HPACK (RFC 7541) to compress headers securely.\n\n1. Why Gzip Was Rejected (CRIME and BREACH Attacks):\n   - In 2012, researchers demonstrated that naive stream compression (like gzip) over encrypted TLS leaks secret session cookies (CRIME attack) by measuring ciphertext length variations when injected content matches secret tokens.\n   - HPACK was designed from scratch to be immune to compression side-channel attacks.\n\n2. HPACK Two-Table Architecture:\n   - Static Table: A fixed, immutable table of 61 common HTTP headers known to both client and server:\n     - Index 2: `:method: GET`\n     - Index 8: `:status: 200`\n     - Index 14: `:status: 404`\n     - Transmitting index 2 requires only 1 byte instead of transmitting `:method: GET`.\n   - Dynamic Table: An initially empty, FIFO table maintained symmetrically by client and server throughout the TCP connection.\n     When a custom header (e.g. `Authorization: Bearer xyz`) is first sent, it is added to the dynamic table at index 62. Subsequent requests reference index 62 directly!\n\n3. Static Huffman Coding:\n   - Literal strings that cannot be indexed are encoded using a pre-calculated Huffman code table optimized for HTTP header character frequencies.",
+    interviewerCounterQuestions: [
+      "Why did HTTP/3 replace HPACK with QPACK, and what problem does QPACK solve?",
+      "How does the server control the maximum memory allocated to the client dynamic table in HPACK?"
+    ],
+    keyTakeaways: [
+      "HPACK replaces redundant textual headers with index references into static (61 items) and dynamic tables.",
+      "HPACK was intentionally designed without adaptive stream compression to neutralize CRIME/BREACH cryptographic vulnerabilities."
+    ],
+    pitfalls: [
+      "Assuming HPACK compresses request and response bodies; HPACK compresses HTTP headers exclusively.",
+      "Failing to enforce dynamic table size limits, allowing memory exhaustion from unbounded client headers."
+    ],
+    relatedCurriculumSlug: "api-design-rest-graphql-and-grpc"
+  },
+  {
+    id: "java-10",
+    category: "Core Java & JVM Internals",
+    categorySlug: "java-jvm",
+    title: "How does the Java 8+ ConcurrentHashMap implement concurrent write scalability using CAS and synchronized head-node locks?",
+    difficulty: "HARD",
+    frequency: "VERY HIGH",
+    shortSummary: "When inserting into an empty bucket, ConcurrentHashMap uses a lock-free CAS operation. For non-empty buckets, it synchronizes strictly on the individual head node of that bucket, leaving all other buckets open for concurrent writes.",
+    deepAnswer: "Java 7 ConcurrentHashMap used 16 Segment locks (a fixed concurrency level). Java 8+ completely refactored the map to eliminate Segments and maximize concurrency.\n\n1. Lock-Free Insertion (Empty Buckets):\n   - When a thread puts a key whose bucket is currently null (`tabAt(tab, i) == null`):\n   - The thread uses an atomic Compare-And-Swap: `casTabAt(tab, i, null, new Node(hash, key, value))`.\n   - If the CAS succeeds, the node is inserted with ZERO LOCKING!\n\n2. Node-Level Synchronization (Populated Buckets):\n   - If the bucket already contains a node (linked list or red-black tree):\n   - The thread synchronizes strictly on the HEAD NODE of that specific bucket: `synchronized (f) { ... }`.\n   - Crucially, this locks ONLY that individual bucket! Threads writing to any of the other 1,023 buckets proceed in parallel without contention.\n\n3. Treeification (Red-Black Trees):\n   - When a bucket linked list length exceeds `TREEIFY_THRESHOLD` (8 nodes) and total capacity >= 64, the linked list converts to a balanced Red-Black Tree (`TreeNode`), guaranteeing worst-case O(log N) lookup time even under deliberate hash collision attacks.",
+    interviewerCounterQuestions: [
+      "How does ConcurrentHashMap calculate size() without locking the entire table?",
+      "What is the role of the ForwardingNode during dynamic table resizing?"
+    ],
+    keyTakeaways: [
+      "Empty bucket inserts execute via atomic CAS; populated bucket updates synchronize only on the head node.",
+      "Buckets dynamically treeify into Red-Black Trees when collision depth exceeds 8, preventing denial-of-service hash attacks."
+    ],
+    pitfalls: [
+      "Using complex mutable objects with shifting hashCode() implementations as map keys.",
+      "Calling compound operations (like if (!map.containsKey(k)) map.put(k, v)) instead of atomic computeIfAbsent()."
+    ],
+    relatedCurriculumSlug: "jvm-internals-classloading-and-bytecode"
+  },
+  {
+    id: "java-11",
+    category: "Core Java & JVM Internals",
+    categorySlug: "java-jvm",
+    title: "How does the Work-Stealing algorithm in Java's ForkJoinPool balance workload across worker threads?",
+    difficulty: "MEDIUM",
+    frequency: "HIGH",
+    shortSummary: "Each worker thread owns a double-ended queue (Deque). The owner thread pushes and pops its own tasks from the tail (bottom) in LIFO order; idle worker threads steal tasks from the head (top) in FIFO order.",
+    deepAnswer: "The ForkJoinPool is designed for divide-and-conquer parallel recursive tasks (ForkJoinTask, parallel streams).\n\n1. Per-Worker Deque (Double-Ended Queue):\n   - Rather than sharing a single global queue (which would suffer massive lock contention across CPU cores), every worker thread maintains its own Deque.\n   - Owner Thread Access (Bottom / LIFO):\n     The owner thread pushes newly spawned subtasks to the BOTTOM of its own deque and pops tasks from the BOTTOM.\n     LIFO order provides two critical advantages:\n     1. Cache locality (recently created data is hot in CPU cache).\n     2. Depth-First traversal reduces memory footprint by completing subtrees quickly.\n\n2. Stealing Access (Top / FIFO):\n   - When a worker runs out of tasks in its own deque, it becomes a 'thief' and attempts to steal a task from another randomly selected worker thread.\n   - Stealing occurs from the TOP of the victim's deque in FIFO order!\n   - Stealing from the top provides two major benefits:\n     1. Contention minimization: Owner accesses bottom; thief accesses top. They rarely contend on the same deque end.\n     2. Largest chunk of work: Tasks near the top are the oldest, representing high-level root tasks that split into many subtasks, keeping the thief busy longer.",
+    interviewerCounterQuestions: [
+      "Why does ForkJoinPool use a common pool (ForkJoinPool.commonPool()) by default in Java 8 parallel streams?",
+      "What is the difference between ForkJoinTask.fork() and ForkJoinTask.join()?"
+    ],
+    keyTakeaways: [
+      "Work-stealing pairs LIFO local access at the bottom with FIFO stealing at the top.",
+      "Stealing older tasks from the top grabs larger computational subtrees, maximizing stealing efficiency."
+    ],
+    pitfalls: [
+      "Executing blocking I/O calls inside the ForkJoinPool.commonPool(), starving parallel streams across the entire JVM.",
+      "Forking both subtasks and joining both, rather than computing one subtask directly on the current thread."
+    ],
+    relatedCurriculumSlug: "jvm-internals-classloading-and-bytecode"
+  },
+  {
+    id: "java-12",
+    category: "Core Java & JVM Internals",
+    categorySlug: "java-jvm",
+    title: "Why does java.util.concurrent.atomic.LongAdder drastically outperform AtomicLong under high thread contention?",
+    difficulty: "HARD",
+    frequency: "HIGH",
+    shortSummary: "AtomicLong uses a single memory address with a CAS retry loop that burns CPU cycles under contention. LongAdder uses a striped array of Cell counters that threads update independently without contention.",
+    deepAnswer: "Under high write concurrency (e.g. 64 threads updating a global request counter), AtomicLong experiences severe throughput collapse.\n\n1. The AtomicLong Bottleneck:\n   - AtomicLong stores the count in a single volatile 64-bit field: `private volatile long value`.\n   - Increment executes in a loop: `do { current = get(); } while (!compareAndSet(current, current + 1));`.\n   - When 64 threads attempt to increment simultaneously, exactly ONE thread succeeds; the other 63 threads fail and retry.\n   - This triggers cache line bouncing across CPU cores, saturates the CPU memory bus, and burns CPU cycles in futile spin loops.\n\n2. The LongAdder Striped Cell Architecture:\n   - LongAdder extends `Striped64`. It maintains a base value and an array of `Cell` objects: `transient volatile Cell[] cells`.\n   - Under low contention: Threads update the base field using CAS.\n   - Under contention: If the base CAS fails, the thread hashes its thread ID (`getProbe()`) to index into the `Cell[]` array and increments its local cell counter.\n   - Multiple threads update different cells concurrently with ZERO CONTENTION!\n   - Querying the sum: Calling `sum()` simply sums the base value and all active cell values.\n   - Trade-off: LongAdder trades a tiny memory overhead (Cell padding) for massive multi-threaded throughput gains, though `sum()` is not an atomic snapshot during concurrent writes.",
+    interviewerCounterQuestions: [
+      "Why are Cell objects inside LongAdder annotated with @Contended?",
+      "When would you still prefer AtomicLong over LongAdder?"
+    ],
+    keyTakeaways: [
+      "LongAdder eliminates CAS retry loops by distributing increments across a striped array of Cell counters.",
+      "AtomicLong is preferred when exact atomic compare-and-set logic (CAS) is required, while LongAdder is ideal for high-throughput counters."
+    ],
+    pitfalls: [
+      "Using LongAdder where atomic compare-and-swap (e.g. compareAndSet) or sequence generation is required.",
+      "Assuming LongAdder.sum() provides a strict serializable snapshot while writes are actively in flight."
+    ],
+    relatedCurriculumSlug: "jvm-internals-classloading-and-bytecode"
+  },
+  {
+    id: "py-09",
+    category: "Python & Asynchronous Runtimes",
+    categorySlug: "python-concurrency",
+    title: "How does Python's cyclic garbage collector detect and break circular reference cycles using trial decrements and generations?",
+    difficulty: "HARD",
+    frequency: "HIGH",
+    shortSummary: "Python tracks container objects in 3 generations. To detect unreachable cycles, it creates trial reference counts (gc_refs = ob_refcnt), subtracts internal references between objects, and reclaims groups whose external references reach zero.",
+    deepAnswer: "CPython relies primarily on Reference Counting for instantaneous memory reclamation. However, reference counting alone cannot collect circular references (e.g. Node A references Node B, and Node B references Node A).\n\n1. Generational Collection (Weak Generational Hypothesis):\n   - The cyclic GC organizes container objects (lists, dicts, tuples, custom classes) into three generations: Generation 0 (youngest), Generation 1, and Generation 2 (oldest).\n   - Gen 0 runs frequently (triggered when allocations minus deallocations exceeds `threshold0`). Objects that survive collections are promoted to older generations.\n\n2. The Trial Decrement Cycle Detection Algorithm:\n   - Step 1: Copy reference counts: For every container object in the generation, copy its reference count to an internal field: `gc_refs = ob_refcnt`.\n   - Step 2: Subtract internal references:\n     For each container object, traverse all objects it references (`tp_traverse`) and decrement their `gc_refs`.\n   - Step 3: Classify reachable vs unreachable:\n     - If an object's `gc_refs > 0`, it must be reachable from an external reference outside the generation (e.g. a global variable or stack pointer). That object and all objects reachable from it are flagged as REACHABLE.\n     - Objects whose `gc_refs == 0` and have no path from any reachable object are proven to be an UNREACHABLE CYCLE!\n   - Step 4: Break cycles and free memory:\n     The GC breaks references in unreachable objects and frees their memory blocks.",
+    interviewerCounterQuestions: [
+      "Why does Python not track atomic types (like integers, floats, strings) in the cyclic garbage collector?",
+      "How did Python 3.4 (PEP 442) resolve the legacy issue where objects with __del__ methods in cycles could not be collected?"
+    ],
+    keyTakeaways: [
+      "Trial decrements isolate references internal to the candidate group from legitimate external references.",
+      "Generational collection limits full GC scans by prioritizing young objects where death rates are highest."
+    ],
+    pitfalls: [
+      "Disabling cyclic GC (gc.disable()) in applications that generate circular references, causing severe memory leaks.",
+      "Creating circular references inside performance-sensitive inner loops, forcing frequent Gen 0 collection runs."
+    ],
+    relatedCurriculumSlug: "concurrency-models-threads-processes-and-event-loops"
+  },
+  {
+    id: "py-10",
+    category: "Python & Asynchronous Runtimes",
+    categorySlug: "python-concurrency",
+    title: "How does the C3 Linearization algorithm resolve Method Resolution Order (MRO) in complex multiple inheritance diamond hierarchies?",
+    difficulty: "HARD",
+    frequency: "HIGH",
+    shortSummary: "C3 merges the linearizations of parent classes with the parent list itself. It iteratively selects the first class whose head does not appear in the tail of any other candidate list, ensuring local precedence and monotonicity.",
+    deepAnswer: "In Python, Method Resolution Order (MRO) defines the exact order in which base classes are searched when resolving a method call via `instance.method()` or `super().method()`. Python 2.3+ adopted the C3 Linearization algorithm.\n\n1. Invariants Guaranteed by C3:\n   - Strict Local Precedence: If class C inherits from `(A, B)`, class A must always appear before class B in C's MRO.\n   - Monotonicity: If class A appears before class B in parent P's MRO, A must appear before B in all subclasses of P.\n\n2. The C3 Merge Formula:\n   - Linearization of class C with parents $B_1, B_2, \\dots, B_N$:\n     $$L(C) = [C] + \\text{merge}(L(B_1), L(B_2), \\dots, L(B_N), [B_1, B_2, \\dots, B_N])$$\n   - The Merge Algorithm:\n     1. Look at the head (first element) of the first list.\n     2. If this head is NOT in the tail (any position other than the first) of any other list in the merge, extract it and append it to the result!\n     3. Remove the chosen head from all lists in the merge and repeat.\n     4. If no valid head can be extracted because of cyclic dependency, Python raises a `TypeError: Cannot create a consistent method resolution order (MRO)`.",
+    interviewerCounterQuestions: [
+      "What causes a 'Cannot create a consistent method resolution order' TypeError in Python?",
+      "How does cooperative multiple inheritance work using super() without hardcoding parent class names?"
+    ],
+    keyTakeaways: [
+      "C3 Linearization guarantees monotonicity and respects parent order defined in class signatures.",
+      "Inconsistent diamond inheritance patterns that violate monotonicity are rejected at class definition time."
+    ],
+    pitfalls: [
+      "Invoking parent methods via explicit class names (e.g. Parent.__init__(self)) rather than super(), causing duplicate executions in diamond hierarchies.",
+      "Creating cyclic dependency orders in multiple inheritance that fail C3 merge verification."
+    ],
+    relatedCurriculumSlug: "design-patterns-gof-in-modern-engineering"
+  },
+  {
+    id: "py-11",
+    category: "Python & Asynchronous Runtimes",
+    categorySlug: "python-concurrency",
+    title: "What is the Python Generator Delegation protocol (yield from), and how does it enable transparent bidirectional communication?",
+    difficulty: "HARD",
+    frequency: "HIGH",
+    shortSummary: "yield from creates an automatic two-way communication channel between caller and sub-generator, forwarding values, return expressions, send() payloads, throw() exceptions, and close() cancellations transparently.",
+    deepAnswer: "Introduced in PEP 380, `yield from` is not merely syntactic sugar for a `for` loop; it establishes a transparent bidirectional pipeline between an outer caller and a sub-generator.\n\n1. Bidirectional Channel Mechanics:\n   - Forwarding Values: Any values yielded by the sub-generator are directly passed through to the caller of the delegating generator.\n   - Forwarding `send(val)`: Values sent to the delegating generator via `generator.send(value)` are forwarded directly to the sub-generator's active `yield` expression.\n   - Forwarding Exceptions (`throw(exc)`): Calling `generator.throw()` on the delegating generator injects the exception directly into the sub-generator at its current execution point.\n   - Forwarding Termination (`close()`): Calling `generator.close()` invokes `close()` on the sub-generator.\n\n2. Return Value Capture:\n   - In Python generators, a `return expr` statement inside a generator raises `StopIteration(expr)`.\n   - With `yield from`: The value of the `yield from` expression directly equals the return value of the sub-generator:\n     `result = yield from sub_generator()`\n   - This capability laid the foundation for Python coroutines before the introduction of `async / await`.",
+    interviewerCounterQuestions: [
+      "How did yield from enable the original asyncio framework (Tornado/Tulip) before native async/await syntax?",
+      "What happens if an exception thrown into a sub-generator is not caught by the sub-generator?"
+    ],
+    keyTakeaways: [
+      "yield from establishes a full two-way communication pipeline for values, sends, exceptions, and closes.",
+      "The value returned by a sub-generator via return is captured as the value of the yield from expression."
+    ],
+    pitfalls: [
+      "Replacing yield from with a naive for loop, which breaks send(), throw(), and return value handling.",
+      "Attempting to return values from generators in legacy Python 2 environments where generators could not return expressions."
+    ],
+    relatedCurriculumSlug: "concurrency-models-threads-processes-and-event-loops"
+  },
+  {
+    id: "cloud-09",
+    category: "Cloud Architecture & DevOps",
+    categorySlug: "cloud-devops",
+    title: "How does the AWS Transit Gateway hub-and-spoke model scale enterprise multi-VPC networking compared to full-mesh VPC Peering?",
+    difficulty: "MEDIUM",
+    frequency: "VERY HIGH",
+    shortSummary: "VPC peering does not support transitive routing, requiring N*(N-1)/2 peering connections. Transit Gateway acts as a regional Layer 3 cloud router, connecting hundreds of VPCs and VPNs via single attachment points.",
+    deepAnswer: "Enterprise cloud architectures divide workloads across hundreds of AWS accounts and VPCs for billing, security, and isolation. Connecting these networks efficiently requires understanding routing topology limits.\n\n1. The VPC Peering Scaling Bottleneck:\n   - AWS VPC Peering connections are strictly non-transitive: if VPC A peers with VPC B, and B peers with C, traffic from A CANNOT transit through B to reach C.\n   - To connect N VPCs directly requires full-mesh peering:\n     $$\\text{Connections} = \\frac{N \\times (N - 1)}{2}$$\n   - For 100 VPCs, full-mesh requires 4,950 peering connections, creating an unmanageable administrative nightmare of route tables and security groups.\n\n2. AWS Transit Gateway (TGW):\n   - A regional, highly available, managed cloud router operating as a centralized Hub-and-Spoke.\n   - Each VPC creates a single Transit Gateway Attachment (consuming only 1 connection per VPC).\n   - TGW supports Transitive Routing: VPC A transmits traffic to TGW, which routes it directly to VPC C, shared service VPCs, or on-premises Direct Connect / VPN circuits.\n   - Route Tables & Network Segmentation:\n     TGW supports multiple independent route tables, allowing network segmentation (e.g. isolating Production VPCs from Development VPCs while granting both access to shared compliance services).",
+    interviewerCounterQuestions: [
+      "What are the data processing cost trade-offs between VPC Peering (free within AZ) and Transit Gateway ($0.02 per GB)?",
+      "How do Transit Gateway Peering connections enable cross-region global network backbones?"
+    ],
+    keyTakeaways: [
+      "Transit Gateway replaces quadratic N*(N-1)/2 peering meshes with a centralized hub-and-spoke router.",
+      "TGW supports transitive routing and multiple route tables for fine-grained network isolation."
+    ],
+    pitfalls: [
+      "Using Transit Gateway for high-volume petabyte data transfers within the same AZ where VPC Peering would avoid data transfer fees.",
+      "Forgetting to update subnet route tables in attached VPCs to point 0.0.0.0/0 or inter-VPC CIDRs to the tgw-id."
+    ],
+    relatedCurriculumSlug: "cloud-security-iam-and-zero-trust-architecture"
+  },
+  {
+    id: "cloud-10",
+    category: "Cloud Architecture & DevOps",
+    categorySlug: "cloud-devops",
+    title: "What is Amazon S3 Object Lock Compliance Mode, and how does it enforce Write-Once-Read-Many (WORM) storage against root accounts?",
+    difficulty: "HARD",
+    frequency: "HIGH",
+    shortSummary: "Compliance Mode strictly forbids anyone—including the AWS root account—from deleting an object version or shortening its retention period until retention expires, satisfying SEC 17a-4 and financial WORM mandates.",
+    deepAnswer: "Regulatory compliance in financial, healthcare, and legal industries mandates that records must be immutable: once written, they cannot be altered or deleted for a mandatory duration (e.g. 7 years). Amazon S3 Object Lock enforces this via WORM (Write-Once-Read-Many) storage.\n\n1. Governance Mode vs Compliance Mode:\n   - Governance Mode:\n     Protects objects from deletion by default users. However, users with special IAM permissions (`s3:BypassGovernanceRetention`) or the AWS root account can override or delete protected versions.\n   - Compliance Mode:\n     Absolute, irrevocable immutability!\n     NO ONE can delete an object version in Compliance mode. The AWS root account CANNOT delete it. AWS Customer Support CANNOT delete it.\n     The retention period CANNOT be shortened by anyone; it can only be extended.\n\n2. Legal Hold:\n   - A distinct binary flag (`ON / OFF`) that can be applied to an object version independently of retention dates.\n   - An object under Legal Hold cannot be deleted until the hold is explicitly removed by an authorized principal, commonly used during active litigation.\n\n3. Under the Hood:\n   - Object Lock requires S3 Versioning to be permanently enabled on the bucket.\n   - When a user attempts to delete a locked object, S3 places a Delete Marker, leaving the underlying locked object version untouched and immutable.",
+    interviewerCounterQuestions: [
+      "What happens if an organization needs to close its AWS account while buckets contain objects locked under Compliance Mode?",
+      "How does S3 Object Lock protect against internal rogue administrators or ransomware attacks?"
+    ],
+    keyTakeaways: [
+      "Compliance Mode prevents deletion by all users including the AWS root account, satisfying SEC 17a-4 compliance.",
+      "Governance Mode allows privileged override; Compliance Mode is completely irrevocable."
+    ],
+    pitfalls: [
+      "Testing Compliance Mode with long retention periods (e.g. 10 years) in test environments, creating undeletable storage charges.",
+      "Attempting to enable Object Lock on existing buckets without contacting AWS support (must be enabled at bucket creation)."
+    ],
+    relatedCurriculumSlug: "cloud-security-iam-and-zero-trust-architecture"
+  },
+  {
+    id: "cloud-11",
+    category: "Cloud Architecture & DevOps",
+    categorySlug: "cloud-devops",
+    title: "In Azure Cosmos DB, what are the 5 Consistency Levels, and how does Bounded Staleness balance latency with global consistency?",
+    difficulty: "HARD",
+    frequency: "VERY HIGH",
+    shortSummary: "Cosmos DB offers 5 well-defined consistency levels: Strong, Bounded Staleness, Session, Consistent Prefix, and Eventual. Bounded Staleness bounds lag by time or updates while preserving strict total ordering.",
+    deepAnswer: "Rather than forcing a binary choice between extreme ACID linearizability (high latency) and eventual consistency (data anomalies), Azure Cosmos DB defines a spectrum of 5 well-defined consistency levels backed by SLAs:\n\n1. The 5 Consistency Levels:\n   - 1. Strong: Linearizable consistency. Reads are guaranteed to return the latest committed write. Requires majority write quorum and synchronous coordination across regions. Highest latency; limited to single-region writes.\n   - 2. Bounded Staleness: Reads lag behind writes by at most $K$ versions (updates) or $T$ time interval (e.g. 5 seconds). Within the staleness window, global monotonic read order is guaranteed.\n   - 3. Session (Default): Scoped to a client session token. Guarantees Read-Your-Own-Writes, Write-Follows-Reads, and Monotonic Reads for the current user session. Concurrent other users experience eventual consistency.\n   - 4. Consistent Prefix: Guarantees reads never see out-of-order writes (if A then B is written, reader never sees B before A), but reads may lag indefinitely.\n   - 5. Eventual: Lowest latency and highest throughput. Replicas converge eventually, with zero ordering or lag guarantees.\n\n2. Why Bounded Staleness is the Ideal Compromise:\n   - Provides near-strong consistency for global multi-region applications where true Strong consistency is prohibited by the speed of light.\n   - Guarantees predictable bounds for financial balances or operational tracking without paying the massive latency penalty of cross-region synchronous consensus on every read.",
+    interviewerCounterQuestions: [
+      "Why is Session consistency the default choice for 90% of consumer web applications?",
+      "How does Cosmos DB multi-region multi-master replication resolve write conflicts under Eventual consistency?"
+    ],
+    keyTakeaways: [
+      "Cosmos DB spans a 5-level consistency spectrum: Strong, Bounded Staleness, Session, Consistent Prefix, and Eventual.",
+      "Bounded Staleness bounds replication lag by fixed time T or updates K while guaranteeing monotonic order."
+    ],
+    pitfalls: [
+      "Selecting Strong consistency on globally distributed multi-region write databases, violating physical speed-of-light latencies.",
+      "Using Eventual consistency for shopping cart sessions, causing items to appear and disappear on page refreshes."
+    ],
+    relatedCurriculumSlug: "distributed-transactions-2pc-saga-event-sourcing"
+  },
 ];
 
 export function getInterviewQuestions(categorySlug?: string, searchQuery?: string): InterviewQAItem[] {
