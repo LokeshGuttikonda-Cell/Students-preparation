@@ -2175,4 +2175,234 @@ export const CURRICULUM_SUMMARIES: CurriculumArticleSummary[] = [
   ],
   "practiceMcqsCount": 5
 },
+{
+  "id": "art-os-kernel-module-char-drivers",
+  "slug": "linux-kernel-module-and-char-device-drivers",
+  "domainSlug": "operating-systems-internals",
+  "domainName": "Operating Systems & Linux Kernel Engineering",
+  "title": "Linux Kernel Module Development: Char Device Drivers, VFS File Operations & Interrupt Top/Bottom Halves",
+  "level": "ADVANCED",
+  "readTimeMinutes": 25,
+  "summary": "A definitive guide to developing in-kernel loadable modules: Virtual File System (VFS) struct file_operations, major/minor device number allocation, kmalloc vs vmalloc memory allocators, user-space buffer marshaling with copy_to_user, and interrupt handling across top halves, tasklets, workqueues, and threaded IRQs.",
+  "keyConcepts": [
+    "VFS struct file_operations & inode abstractions",
+    "Major & Minor Device Numbers via alloc_chrdev_region",
+    "Kernel Memory Allocation (kmalloc SLUB vs vmalloc page-table mapping)",
+    "Safe User/Kernel Space Data Copying (copy_to_user, copy_from_user)",
+    "Interrupt Handling: Hardware Top Halves vs Softirqs, Tasklets & Threaded IRQs"
+  ],
+  "relatedRoleSlugs": [
+    "systems-architect",
+    "sre-infrastructure",
+    "backend-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-os-ebpf-xdp-packet-processing",
+  "slug": "ebpf-xdp-line-rate-packet-processing",
+  "domainSlug": "operating-systems-internals",
+  "domainName": "Operating Systems & Linux Kernel Engineering",
+  "title": "eBPF XDP (eXpress Data Path): Line-Rate Packet Processing, Zero-Copy AF_XDP & Kernel Bypass Architecture",
+  "level": "ADVANCED",
+  "readTimeMinutes": 24,
+  "summary": "A deep dive into Linux ultra-high-performance networking: the eXpress Data Path (XDP) architecture at the network driver ring buffer level, XDP actions (XDP_DROP, XDP_TX, XDP_REDIRECT), zero-copy AF_XDP UMEM queues, and architectural trade-offs against user-space DPDK.",
+  "keyConcepts": [
+    "XDP Driver Ring Buffer Hook vs Standard sk_buff Allocation",
+    "XDP Return Actions (XDP_DROP, XDP_PASS, XDP_TX, XDP_REDIRECT)",
+    "AF_XDP (XSK) Architecture: Fill, Rx, Tx, and Completion Rings",
+    "UMEM Zero-Copy Packet Descriptors & Shared Memory Buffers",
+    "Architectural Comparison: eBPF XDP vs DPDK Kernel Bypass"
+  ],
+  "relatedRoleSlugs": [
+    "systems-architect",
+    "sre-infrastructure",
+    "security-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-os-rdma-rocev2-architecture",
+  "slug": "rdma-infiniband-and-rocev2-architecture",
+  "domainSlug": "operating-systems-internals",
+  "domainName": "Operating Systems & Linux Kernel Engineering",
+  "title": "RDMA, InfiniBand & RoCEv2: Remote Direct Memory Access, Queue Pairs & Lossless Ethernet",
+  "level": "ADVANCED",
+  "readTimeMinutes": 26,
+  "summary": "An architectural investigation of Remote Direct Memory Access (RDMA) over Converged Ethernet (RoCEv2) and InfiniBand: Queue Pairs (QP), Completion Queues (CQ), Virtual Memory Registration (MR), zero-copy kernel bypass, and Priority-Based Flow Control (PFC) lossless fabric.",
+  "keyConcepts": [
+    "Kernel Bypass & Zero-Copy Remote Memory Addressing",
+    "Queue Pair (QP) Architecture: Send Queue, Receive Queue, and Completion Queue (CQ)",
+    "Memory Registration (MR), L_Key, and R_Key Cryptographic Protection",
+    "RoCEv2 UDP Framing (Port 4791) vs Native InfiniBand",
+    "Lossless Networking: Priority Flow Control (PFC) & Explicit Congestion Notification (ECN)"
+  ],
+  "relatedRoleSlugs": [
+    "systems-architect",
+    "sre-infrastructure",
+    "backend-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-os-time-sensitive-networking-ptp",
+  "slug": "time-sensitive-networking-and-ptp-ieee1588",
+  "domainSlug": "operating-systems-internals",
+  "domainName": "Operating Systems & Linux Kernel Engineering",
+  "title": "Time-Sensitive Networking (TSN) & IEEE 1588 PTP: Hardware Timestamping, Sub-Microsecond Clock Sync & Deterministic Ethernet",
+  "level": "ADVANCED",
+  "readTimeMinutes": 23,
+  "summary": "A comprehensive study of deterministic Ethernet and high-precision time synchronization: IEEE 1588 Precision Time Protocol (PTPv2), PHY/MAC layer hardware timestamping, Boundary vs Transparent Clocks, Best Master Clock Algorithm (BMCA), and IEEE 802.1Qbv Time-Aware Shaper (TAS).",
+  "keyConcepts": [
+    "NTP (Millisecond) vs PTP IEEE 1588 (Sub-Microsecond) Precision",
+    "Hardware Timestamping in the Ethernet PHY/MAC vs Software OS Stacks",
+    "Boundary Clocks (BC) vs Transparent Clocks (TC) Residency Time",
+    "Best Master Clock Algorithm (BMCA) & Grandmaster Election",
+    "IEEE 802.1Qbv Time-Aware Shaper (TAS) Cyclic Scheduled Queues"
+  ],
+  "relatedRoleSlugs": [
+    "systems-architect",
+    "sre-infrastructure",
+    "backend-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-os-rt-preempt-realtime-linux",
+  "slug": "real-time-linux-rt-preempt-and-deterministic-scheduling",
+  "domainSlug": "operating-systems-internals",
+  "domainName": "Operating Systems & Linux Kernel Engineering",
+  "title": "Real-Time Linux & RT-PREEMPT: Deterministic Latency, Priority Inheritance Mutexes & High-Resolution Timers",
+  "level": "ADVANCED",
+  "readTimeMinutes": 25,
+  "summary": "An architectural investigation of real-time computing on Linux using the PREEMPT_RT patch: converting kernel spinlocks to sleeping rt_mutexes, resolving the unbounded priority inversion anomaly via Priority Inheritance, high-resolution timers (hrtimer), and achieving bounded microsecond worst-case latency.",
+  "keyConcepts": [
+    "Hard Real-Time vs Soft Real-Time Determinism",
+    "The Unbounded Priority Inversion Problem (Mars Pathfinder Disaster)",
+    "Priority Inheritance Mutexes (rt_mutex) & Dynamic Priority Boosting",
+    "PREEMPT_RT Architecture: Sleeping Spinlocks & Threaded Hardirqs",
+    "High-Resolution Timers (hrtimer) & SCHED_FIFO / SCHED_DEADLINE"
+  ],
+  "relatedRoleSlugs": [
+    "systems-architect",
+    "sre-infrastructure",
+    "backend-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-cloud-cilium-ebpf-tetragon",
+  "slug": "ebpf-cilium-service-mesh-and-tetragon",
+  "domainSlug": "cloud-infrastructure-devops",
+  "domainName": "Cloud Infrastructure, SRE & Platform Engineering",
+  "title": "eBPF-Powered Service Mesh & Runtime Security: Cilium Socket Layer Load Balancing & Tetragon Kernel Tracing",
+  "level": "ADVANCED",
+  "readTimeMinutes": 25,
+  "summary": "An architectural investigation of eBPF-based service mesh and runtime security: kernel-level socket load balancing using sockops and sock_msg to bypass TCP/IP stack overhead, replacement of kube-proxy iptables, and deep Linux kernel security event tracing and kill-actions via Tetragon.",
+  "keyConcepts": [
+    "Cilium eBPF Host-Routing & Bypassing the Kernel TCP/IP Stack (sockops)",
+    "Kube-Proxy Replacement: O(1) eBPF Maps vs O(N) Iptables Chains",
+    "Sidecarless Service Mesh: Mutual TLS (mTLS) and L7 Parsing in eBPF",
+    "Tetragon Architecture: In-Kernel Sensor Tracing, Namespaces & Process Lineage",
+    "Kernel-Enforced Enforcement: Real-Time Signal Kill-Action at Syscall Entry"
+  ],
+  "relatedRoleSlugs": [
+    "sre-infrastructure",
+    "systems-architect",
+    "security-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-cloud-envoy-xds-protocol",
+  "slug": "envoy-xds-dynamic-configuration-protocol",
+  "domainSlug": "cloud-infrastructure-devops",
+  "domainName": "Cloud Infrastructure, SRE & Platform Engineering",
+  "title": "Envoy xDS Dynamic Configuration Protocol: ADS, CDS, RDS, EDS & State-of-the-World vs Delta Synchronization",
+  "level": "ADVANCED",
+  "readTimeMinutes": 24,
+  "summary": "A deep architectural dissection of the Envoy xDS (Data Plane API) configuration protocol: discovery services (LDS, RDS, CDS, EDS), Aggregated Discovery Service (ADS) ordering invariants, State-of-the-World (SotW) vs Delta xDS gRPC streaming, and graceful dynamic configuration updates without dropping connections.",
+  "keyConcepts": [
+    "The xDS Discovery Hierarchy: LDS, RDS, CDS, and EDS",
+    "Aggregated Discovery Service (ADS) & Ordering Dependency Graphs",
+    "State-of-the-World (SotW) v3 vs Incremental Delta xDS Protocol",
+    "ACK/NACK Protocol: VersionInfo, Nonce, and Error Detail Verification",
+    "Dynamic Draining & Zero-Downtime Hot Restarts"
+  ],
+  "relatedRoleSlugs": [
+    "sre-infrastructure",
+    "systems-architect",
+    "backend-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-cloud-secretless-zero-trust-iam",
+  "slug": "secretless-zero-trust-iam-and-vault-agent",
+  "domainSlug": "cybersecurity-secure-coding",
+  "domainName": "Cybersecurity, Cryptography & Secure Coding",
+  "title": "Secretless Zero-Trust Architecture: Vault Agent Sidecars, Ephemeral Dynamic Credentials & Mutual TLS",
+  "level": "ADVANCED",
+  "readTimeMinutes": 24,
+  "summary": "An architectural design guide for eliminating static passwords and API keys from production environments: HashiCorp Vault Agent sidecars with Unix domain socket proxies, short-lived dynamic database credentials, SPIFFE/SPIRE workload attestation, and automated credential rotation without application restarts.",
+  "keyConcepts": [
+    "The Security Hazard of Static Long-Lived Credentials",
+    "HashiCorp Vault Dynamic Secrets & Automated Time-to-Live (TTL)",
+    "Vault Agent Sidecar: Unix Domain Sockets vs Shared Memory Volumes",
+    "Database Secret Engine: Just-In-Time User Creation & Revocation",
+    "Workload Identity Attestation & Secretless Application Design"
+  ],
+  "relatedRoleSlugs": [
+    "security-engineer",
+    "systems-architect",
+    "sre-infrastructure"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-cloud-wasmedge-wasi-microservices",
+  "slug": "webassembly-wasmedge-and-wasi-in-microservices",
+  "domainSlug": "cloud-infrastructure-devops",
+  "domainName": "Cloud Infrastructure, SRE & Platform Engineering",
+  "title": "WebAssembly (Wasm) & WASI in Cloud Native: WasmEdge, Microsecond Cold Starts & OCI Container Runtime Integration",
+  "level": "ADVANCED",
+  "readTimeMinutes": 24,
+  "summary": "A deep architectural evaluation of WebAssembly (Wasm) and the WebAssembly System Interface (WASI) for server-side microservices: comparing Wasm sandboxing against Linux cgroups/namespaces, microsecond cold-start execution, Ahead-of-Time (AOT) compilation, and deploying Wasm modules via OCI image registries into Kubernetes with runwasi / crun.",
+  "keyConcepts": [
+    "Wasm Memory Sandbox: Linear Memory vs OS Hardware Page Tables",
+    "WebAssembly System Interface (WASI) Preview 1 & Preview 2 (WASI 0.2)",
+    "Performance Comparison: Wasm Microsecond Startup vs Linux Containers",
+    "WasmEdge AOT Compilation & SIMD Native Execution",
+    "Kubernetes OCI Integration: containerd, runwasi, and crun"
+  ],
+  "relatedRoleSlugs": [
+    "systems-architect",
+    "backend-engineer",
+    "sre-infrastructure"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-cloud-kubernetes-multi-cluster-submariner",
+  "slug": "kubernetes-multi-cluster-federation-and-submariner",
+  "domainSlug": "cloud-infrastructure-devops",
+  "domainName": "Cloud Infrastructure, SRE & Platform Engineering",
+  "title": "Kubernetes Multi-Cluster Networking: Submariner WireGuard/IPsec Tunnels, MCS-API & Cross-Cluster Disaster Recovery",
+  "level": "ADVANCED",
+  "readTimeMinutes": 25,
+  "summary": "An architectural exploration of enterprise multi-cluster Kubernetes networking: interconnecting independent cluster pod CIDRs without NAT conflicts using Submariner, WireGuard/IPsec encrypted overlay tunnels, Kubernetes Multi-Cluster Services (MCS-API), and cross-cluster CoreDNS service discovery.",
+  "keyConcepts": [
+    "Multi-Cluster Topologies: Multi-Region, Hybrid Cloud & Fault Isolation",
+    "The Overlapping Pod/Service CIDR Problem & Globalnet NAT",
+    "Submariner Architecture: Gateway Nodes, Route Agent & Broker",
+    "Secure Encrypted Data Plane: WireGuard vs IPsec IKEv2",
+    "Kubernetes Multi-Cluster Services API (MCS-API, KEP-1645)"
+  ],
+  "relatedRoleSlugs": [
+    "systems-architect",
+    "sre-infrastructure",
+    "security-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
 ];

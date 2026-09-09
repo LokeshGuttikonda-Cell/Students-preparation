@@ -7,9 +7,9 @@ import {
 } from './interview-catalog';
 
 describe('Interview Catalog Data & Utility Tests', () => {
-  it('contains at least 175 master technical interview questions', () => {
-    expect(INTERVIEW_QUESTIONS.length).toBeGreaterThanOrEqual(175);
-    expect(INTERVIEW_QUESTIONS.length).toBe(175);
+  it('contains at least 200 master technical interview questions', () => {
+    expect(INTERVIEW_QUESTIONS.length).toBeGreaterThanOrEqual(200);
+    expect(INTERVIEW_QUESTIONS.length).toBe(200);
   });
 
   it('provides complete coverage across all 8 technical disciplines', () => {
