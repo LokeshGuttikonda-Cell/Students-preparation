@@ -2191,4 +2191,1579 @@ export const FALLBACK_TOPIC_QUESTIONS: RawTopicQuestion[] = [
     ],
     correctOptionId: 'opt-dist-5a',
   },
+  {
+    id: "pq-s82-1",
+    topicId: "topic-ml-systems",
+    topicSlug: "ml-ai-systems",
+    body: "During reverse-mode automatic differentiation (backpropagation), why must intermediate activation tensors from the forward pass be cached in memory?",
+    explanation: "Under the chain rule, calculating the gradient of loss with respect to weights (dL/dW) requires multiplying the upstream gradient (dL/dZ) by the local derivative (dZ/dW), which directly equals the forward input activation X (dL/dW = X^T * dL/dZ). Without caching X, the activations would have to be completely recomputed during the backward pass.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s82-1a", body: "The chain rule computes dL/dW = X^T * dL/dZ, requiring input activations X as local partial derivatives", orderIndex: 0 },
+      { id: "opt-s82-1b", body: "Activations are required to compute the floating-point checksum that verifies GPU hardware integrity", orderIndex: 1 },
+      { id: "opt-s82-1c", body: "Activation caching prevents deadlocks between the host CPU memory controller and GPU streaming multiprocessors", orderIndex: 2 },
+      { id: "opt-s82-1d", body: "Activations serve as random seeds to perturb the backward gradient descent path", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-1a",
+  },
+  {
+    id: "pq-s82-2",
+    topicId: "topic-ml-systems",
+    topicSlug: "ml-ai-systems",
+    body: "How does the AdamW optimizer rectify the mathematical inconsistency between L2 regularization and weight decay present in the original Adam optimizer?",
+    explanation: "In standard Adam, L2 weight decay was added to the gradient objective g_t before computing first (m_t) and second (v_t) moments. Consequently, weights with historically large gradients had their decay scaled down by 1/sqrt(v_t). AdamW decouples weight decay, subtracting lambda * theta_t directly from the parameters after the adaptive gradient step.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s82-2a", body: "It subtracts weight decay directly from model weights rather than incorporating it into adaptive moment estimators", orderIndex: 0 },
+      { id: "opt-s82-2b", body: "It replaces first-order momentum with second-order Hessian diagonal approximations", orderIndex: 1 },
+      { id: "opt-s82-2c", body: "It restricts gradient magnitudes to unit vectors using Riemannian manifold projections", orderIndex: 2 },
+      { id: "opt-s82-2d", body: "It eliminates the need for computing exponential moving averages of squared gradients", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-2a",
+  },
+  {
+    id: "pq-s82-3",
+    topicId: "topic-ml-systems",
+    topicSlug: "ml-ai-systems",
+    body: "What is the primary operational advantage of Grouped-Query Attention (GQA) over standard Multi-Head Attention (MHA) during autoregressive LLM inference?",
+    explanation: "In standard MHA, each query head has its own key-value (KV) head, leading to massive KV cache memory footprints during long-context generation. GQA groups multiple query heads to share a single key-value head, drastically reducing KV cache size and memory bandwidth consumption while maintaining near-MHA representational fidelity.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s82-3a", body: "Multiple query heads share a single Key-Value head, dramatically reducing KV-cache VRAM consumption and memory bandwidth bottlenecks", orderIndex: 0 },
+      { id: "opt-s82-3b", body: "It reduces self-attention matrix multiplication complexity from O(N^2) to O(N log N)", orderIndex: 1 },
+      { id: "opt-s82-3c", body: "It completely eliminates the need for causal masking during autoregressive token generation", orderIndex: 2 },
+      { id: "opt-s82-3d", body: "It allows all transformer layers to execute asynchronously without data dependencies", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-3a",
+  },
+  {
+    id: "pq-s82-4",
+    topicId: "topic-ml-systems",
+    topicSlug: "ml-ai-systems",
+    body: "Why does the FlashAttention algorithm achieve significant speedups over naive attention implementations despite executing the exact same mathematical operations?",
+    explanation: "Naive attention materializes the N x N attention matrix in slow GPU High Bandwidth Memory (HBM). FlashAttention uses tiling and online softmax rescaling to compute attention in fast on-chip SRAM blocks without ever writing the massive N x N intermediate matrix to HBM, transforming a memory-bandwidth-bound operation into a compute-bound operation.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s82-4a", body: "It uses tiling and online softmax rescaling to compute attention within fast on-chip SRAM, avoiding writing the N x N attention matrix to HBM", orderIndex: 0 },
+      { id: "opt-s82-4b", body: "It converts floating-point matrices to binary matrices using 1-bit stochastic rounding", orderIndex: 1 },
+      { id: "opt-s82-4c", body: "It approximates the softmax distribution using low-rank random Fourier feature projections", orderIndex: 2 },
+      { id: "opt-s82-4d", body: "It skips attention computation for tokens that have low lexical entropy", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-4a",
+  },
+  {
+    id: "pq-s82-5",
+    topicId: "topic-ml-systems",
+    topicSlug: "ml-ai-systems",
+    body: "How does Rotary Position Embedding (RoPE) encode token position into attention mechanisms?",
+    explanation: "RoPE encodes relative position by rotating 2D query and key subvectors in the complex plane by an angle proportional to their sequence index: R_{Theta, m}^d q_m. When computing q_m^T k_n, the inner product naturally depends only on the relative distance (m - n), enabling natural length extrapolation.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s82-5a", body: "It applies a 2D rotation matrix to paired query and key subvectors, ensuring inner products depend only on relative position offset (m - n)", orderIndex: 0 },
+      { id: "opt-s82-5b", body: "It adds a static learned sinusoidal bias vector directly to word token embeddings before the first transformer layer", orderIndex: 1 },
+      { id: "opt-s82-5c", body: "It assigns hard-coded Euclidean coordinates to tokens based on document sentence structure", orderIndex: 2 },
+      { id: "opt-s82-5d", body: "It dynamically masks distant key vectors using an exponential decay window function", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-5a",
+  },
+  {
+    id: "pq-s82-6",
+    topicId: "topic-ml-systems",
+    topicSlug: "ml-ai-systems",
+    body: "In High-Dimensional Vector Databases, what is the core mechanism of Hierarchical Navigable Small World (HNSW) graphs for Approximate Nearest Neighbor (ANN) search?",
+    explanation: "HNSW constructs a multi-layer graph where upper layers have long-range links between sparse nodes (skipping vast areas of vector space), and lower layers have dense short-range links. Greedy routing searches from the top layer down to the base layer, achieving O(log N) search complexity.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s82-6a", body: "Multi-layer skip-list graph hierarchy with long-range links at top layers and dense local links at bottom layers for logarithmic search", orderIndex: 0 },
+      { id: "opt-s82-6b", body: "K-Means partitioning that splits the entire vector space into orthogonal Cartesian quadrants", orderIndex: 1 },
+      { id: "opt-s82-6c", body: "Random hyperplane projection that hashes vectors into deterministic integer hash buckets", orderIndex: 2 },
+      { id: "opt-s82-6d", body: "Inverted file indexing that maps individual floating point mantissas to document IDs", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-6a",
+  },
+  {
+    id: "pq-s82-7",
+    topicId: "topic-ml-systems",
+    topicSlug: "ml-ai-systems",
+    body: "What distinguishes Low-Rank Adaptation (LoRA) for parameter-efficient fine-tuning (PEFT) of large models?",
+    explanation: "LoRA freezes pre-trained weight matrix W_0 (d x k) and injects trainable rank decomposition matrices B (d x r) and A (r x k), where r << min(d, k). The forward pass computes h = W_0 x + (B * A) x * (alpha / r), reducing trainable parameters by 99% while enabling zero inference latency overhead by fusing B * A into W_0.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s82-7a", body: "Freezes original model weights and trains low-rank decomposition matrices (B * A) that can be folded back into weights at inference", orderIndex: 0 },
+      { id: "opt-s82-7b", body: "Prunes 90% of model weight tensors using unstructured magnitude thresholding", orderIndex: 1 },
+      { id: "opt-s82-7c", body: "Quantizes all weights to 2-bit ternary values while preserving FP32 activation gradients", orderIndex: 2 },
+      { id: "opt-s82-7d", body: "Inserts feedforward bottleneck layers between transformer attention heads that cannot be folded back", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-7a",
+  },
+  {
+    id: "pq-s82-8",
+    topicId: "topic-ml-systems",
+    topicSlug: "ml-ai-systems",
+    body: "In a Hybrid Search Retrieval-Augmented Generation (RAG) system, why is Reciprocal Rank Fusion (RRF) favored over raw score addition?",
+    explanation: "Dense vector search outputs cosine distances or dot products (often [0, 1] or unbounded), whereas sparse BM25 produces unbounded TF-IDF scores. Because their score distributions and scales are entirely different, naive addition fails. RRF scores items based strictly on rank: RRF(d) = sum_{m in models} 1 / (k + rank_m(d)), making it robust and scale-invariant.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s82-8a", body: "It combines retrieval results purely by ranking positions rather than incomparable score magnitudes across dense and sparse engines", orderIndex: 0 },
+      { id: "opt-s82-8b", body: "It transforms sparse token frequencies into high-dimensional vector embeddings without inference latency", orderIndex: 1 },
+      { id: "opt-s82-8c", body: "It eliminates document chunks that have duplicate semantic hashes before indexing", orderIndex: 2 },
+      { id: "opt-s82-8d", body: "It guarantees zero false positives in retrieved factual context chunks", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-8a",
+  },
+  {
+    id: "pq-s82-9",
+    topicId: "topic-ml-systems",
+    topicSlug: "ml-ai-systems",
+    body: "What is the primary trade-off between a Cross-Encoder reranker and a Bi-Encoder retriever in two-stage search architectures?",
+    explanation: "A Bi-Encoder encodes queries and documents independently into vectors, enabling offline pre-computation and fast sub-millisecond MIPS search, but loses inter-token cross-attention between query and document. A Cross-Encoder feeds query and document together through all self-attention layers, yielding superior semantic accuracy at substantial computational cost.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s82-9a", body: "Cross-Encoders perform full joint self-attention between query and document for high accuracy but are too slow for large-scale candidate generation", orderIndex: 0 },
+      { id: "opt-s82-9b", body: "Bi-Encoders have higher computational complexity per document than Cross-Encoders during online retrieval", orderIndex: 1 },
+      { id: "opt-s82-9c", body: "Cross-Encoders can only index documents offline and cannot evaluate arbitrary user queries dynamically", orderIndex: 2 },
+      { id: "opt-s82-9d", body: "Bi-Encoders require GPU cluster synchronization for every individual vector search query", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-9a",
+  },
+  {
+    id: "pq-s82-10",
+    topicId: "topic-ml-systems",
+    topicSlug: "ml-ai-systems",
+    body: "How does Continuous (Iteration-Level) Batching improve serving throughput in Large Language Model inference engines?",
+    explanation: "Traditional static batching waits for the longest sequence in a batch to complete token generation before admitting new requests, wasting GPU compute on padding tokens. Continuous batching evicts completed sequences and injects newly arrived requests at every decoding iteration (token step), maintaining near 100% GPU utilization.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s82-10a", body: "It schedules requests at the iteration (token-step) level rather than the sequence level, immediately replacing finished sequences with new prompts", orderIndex: 0 },
+      { id: "opt-s82-10b", body: "It forces all input prompts to be padded to identical token lengths before running forward passes", orderIndex: 1 },
+      { id: "opt-s82-10c", body: "It executes multiple models in parallel across different CPU sockets using IPC shared memory", orderIndex: 2 },
+      { id: "opt-s82-10d", body: "It downsamples input query tokens by 50% to ensure constant forward pass duration", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-10a",
+  },
+  {
+    id: "pq-s82-11",
+    topicId: "topic-ml-systems",
+    topicSlug: "ml-ai-systems",
+    body: "What is the fundamental difference between Direct Preference Optimization (DPO) and traditional PPO-based Reinforcement Learning from Human Feedback (RLHF)?",
+    explanation: "Traditional RLHF trains an explicit reward model and uses PPO reinforcement learning with policy gradient updates and actor-critic networks. DPO mathematically demonstrates that the optimal policy under the Bradley-Terry preference model can be derived in closed form, optimizing the language model directly on paired preference data using a simple binary cross-entropy loss without a separate reward model or RL loop.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s82-11a", body: "DPO optimizes policy parameters directly on pairwise preference pairs via closed-form substitution, eliminating the need for a separate reward model or PPO training loop", orderIndex: 0 },
+      { id: "opt-s82-11b", body: "DPO requires human annotators in the loop to score tokens in real-time during model inference", orderIndex: 1 },
+      { id: "opt-s82-11c", body: "DPO uses Monte Carlo Tree Search to evaluate future token trajectories during generation", orderIndex: 2 },
+      { id: "opt-s82-11d", body: "DPO trains an adversarial discriminator to distinguish synthetic tokens from human writing", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-11a",
+  },
+  {
+    id: "pq-s82-12",
+    topicId: "topic-ml-systems",
+    topicSlug: "ml-ai-systems",
+    body: "When evaluating a classification model on an imbalanced dataset with 99% negative samples and 1% positive samples, why is the Area Under the Precision-Recall Curve (PR-AUC) preferred over ROC-AUC?",
+    explanation: "The ROC curve plots True Positive Rate vs False Positive Rate (FPR = FP / (FP + TN)). With huge numbers of true negatives, huge surges in false positives cause only negligible increases in FPR, making ROC-AUC misleadingly optimistic. PR curves plot Precision vs Recall, which ignores True Negatives entirely and directly exposes poor precision.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s82-12a", body: "PR-AUC does not include True Negatives in its calculation, preventing overwhelming negative counts from masking false positive spikes", orderIndex: 0 },
+      { id: "opt-s82-12b", body: "ROC-AUC is mathematically invalid when class frequencies are not strictly 50/50", orderIndex: 1 },
+      { id: "opt-s82-12c", body: "PR-AUC evaluates calibration probabilities rather than classification thresholds", orderIndex: 2 },
+      { id: "opt-s82-12d", body: "ROC-AUC requires the positive class to be monotonically non-decreasing over time", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-12a",
+  },
+  {
+    id: "pq-s82-13",
+    topicId: "topic-ml-systems",
+    topicSlug: "ml-ai-systems",
+    body: "In transformer language models, what is the KV-Cache memory requirement formula for batch size B, sequence length S, num_layers L, num_heads H, and head_dim D using 16-bit precision (2 bytes)?",
+    explanation: "For each token, we store both Key and Value vectors across all layers and heads. Total parameters = 2 * L * H * D. With 2 bytes per float16/bfloat16 value, each token consumes 4 * L * H * D bytes. For batch B and sequence length S, KV-Cache memory = 2 * 2 * B * S * L * H * D = 4 * B * S * L * H * D bytes.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s82-13a", body: "KV Cache = 4 * B * S * L * H * D bytes (accounting for both Keys and Values at 2 bytes per 16-bit float)", orderIndex: 0 },
+      { id: "opt-s82-13b", body: "KV Cache = 2 * B * S * L * (H + D) bytes", orderIndex: 1 },
+      { id: "opt-s82-13c", body: "KV Cache = B * S^2 * L * D bytes", orderIndex: 2 },
+      { id: "opt-s82-13d", body: "KV Cache = 8 * B * S * L * H / D bytes", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-13a",
+  },
+  {
+    id: "pq-s82-14",
+    topicId: "topic-ml-systems",
+    topicSlug: "ml-ai-systems",
+    body: "How does speculative decoding accelerate text generation with large autoregressive models without changing the output probability distribution?",
+    explanation: "A small, fast 'draft model' generates K speculative candidate tokens quickly. The large 'target model' then runs a single parallel forward pass over all K tokens to evaluate their conditional probabilities. Tokens are accepted or rejected using a modified rejection sampling criteria that mathematically guarantees the target distribution is preserved.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s82-14a", body: "A smaller draft model generates token candidates in parallel, which the target model verifies in a single forward pass using unbiased rejection sampling", orderIndex: 0 },
+      { id: "opt-s82-14b", body: "The model predicts the next 5 words using an external dictionary lookup table before generating embeddings", orderIndex: 1 },
+      { id: "opt-s82-14c", body: "Low-confidence tokens are automatically skipped and filled in during a secondary backward pass", orderIndex: 2 },
+      { id: "opt-s82-14d", body: "It replaces autoregressive decoding with non-autoregressive diffusion steps", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-14a",
+  },
+  {
+    id: "pq-s82-15",
+    topicId: "topic-ml-systems",
+    topicSlug: "ml-ai-systems",
+    body: "What is the primary function of an auxiliary load balancing loss in Mixture-of-Experts (MoE) transformer architectures?",
+    explanation: "Without load balancing loss, top-k routing gates quickly suffer from routing collapse, where a small subset of experts receives almost all tokens while the remaining experts starve and never learn. The auxiliary loss penalizes uneven token distribution across experts, ensuring balanced capacity utilization.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s82-15a", body: "It prevents routing collapse where gating networks route all tokens to a few favorite experts while starving others", orderIndex: 0 },
+      { id: "opt-s82-15b", body: "It forces expert weights to remain orthogonal across all transformer feedforward blocks", orderIndex: 1 },
+      { id: "opt-s82-15c", body: "It minimizes network communication latency between different GPU nodes in a cluster", orderIndex: 2 },
+      { id: "opt-s82-15d", body: "It guarantees that all tokens have identical embedding norms before classification", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-15a",
+  },
+  {
+    id: "pq-s82-16",
+    topicId: "topic-ml-systems",
+    topicSlug: "ml-ai-systems",
+    body: "What is the primary difference between Covariate Shift and Concept Drift in production machine learning systems?",
+    explanation: "Covariate Shift occurs when the input feature distribution P(X) changes over time while the conditional ground-truth mapping P(Y|X) remains constant. Concept Drift occurs when the underlying ground-truth relationship P(Y|X) changes, meaning identical feature values now correspond to different target labels.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s82-16a", body: "Covariate Shift is a change in feature distribution P(X) with static P(Y|X); Concept Drift is a change in the relationship P(Y|X) itself", orderIndex: 0 },
+      { id: "opt-s82-16b", body: "Covariate Shift affects only training data; Concept Drift affects only inference latency", orderIndex: 1 },
+      { id: "opt-s82-16c", body: "Covariate Shift occurs in unsupervised learning; Concept Drift occurs only in supervised classification", orderIndex: 2 },
+      { id: "opt-s82-16d", body: "Covariate Shift can be fixed by retraining; Concept Drift can only be resolved by rewriting the database schema", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-16a",
+  },
+  {
+    id: "pq-s82-17",
+    topicId: "topic-ml-systems",
+    topicSlug: "ml-ai-systems",
+    body: "How does Temperature sampling affect the softmax probability distribution over vocabulary logits z_i?",
+    explanation: "Softmax with temperature T computes P(x_i) = exp(z_i / T) / sum_j exp(z_j / T). As T approaches 0, the highest logit dominates (approaching greedy argmax selection). As T increases above 1.0, the differences between logits are dampened, flattening the probability distribution towards uniform randomness.",
+    difficulty: "EASY",
+    options: [
+      { id: "opt-s82-17a", body: "T < 1 sharpens the distribution towards greedy selection of high-probability tokens; T > 1 flattens it toward uniform randomness", orderIndex: 0 },
+      { id: "opt-s82-17b", body: "T scales the learning rate during backward propagation through the model", orderIndex: 1 },
+      { id: "opt-s82-17c", body: "T caps the maximum number of tokens generated in a single response", orderIndex: 2 },
+      { id: "opt-s82-17d", body: "T regulates the physical thermal throttling threshold of the GPU streaming multiprocessors", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-17a",
+  },
+  {
+    id: "pq-s82-18",
+    topicId: "topic-ml-systems",
+    topicSlug: "ml-ai-systems",
+    body: "In contrast to Post-Layer Normalization, why do modern large language models (such as modern transformers) adopt Pre-Layer Normalization (Pre-LN) or RMSNorm?",
+    explanation: "In Post-LN (used in the original 2017 Transformer), normalization is applied after the residual addition (x = LN(x + Sublayer(x))), causing gradients in earlier layers to compound and explode/vanish without careful warmup. Pre-LN applies normalization to the sublayer input (x = x + Sublayer(LN(x))), leaving the residual stream unimpeded, which provides stable gradient propagation and allows training without complex warmup.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s82-18a", body: "Pre-LN provides an unimpeded residual stream identity path, stabilizing gradients and enabling training without unstable warmups", orderIndex: 0 },
+      { id: "opt-s82-18b", body: "Pre-LN halves the number of parameters in the multi-head attention projection matrices", orderIndex: 1 },
+      { id: "opt-s82-18c", body: "Pre-LN allows KV cache entries to be computed without attention masks", orderIndex: 2 },
+      { id: "opt-s82-18d", body: "Pre-LN replaces matrix multiplications with bitwise XOR operations", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-18a",
+  },
+  {
+    id: "pq-s82-19",
+    topicId: "topic-ml-systems",
+    topicSlug: "ml-ai-systems",
+    body: "What is the core principle of Gradient Accumulation when training deep learning models on memory-constrained GPUs?",
+    explanation: "Gradient Accumulation divides a large desired effective batch size into multiple micro-batches that fit in GPU VRAM. It computes forward and backward passes for N micro-batches, accumulating gradients (without calling optimizer.step() or optimizer.zero_grad()), and updates weights once after N steps, mathematically emulating a larger batch size.",
+    difficulty: "EASY",
+    options: [
+      { id: "opt-s82-19a", body: "It runs multiple micro-batches through forward/backward passes while summing gradients before executing a single optimizer parameter update", orderIndex: 0 },
+      { id: "opt-s82-19b", body: "It averages weight checkpoints from multiple independent training runs after every epoch", orderIndex: 1 },
+      { id: "opt-s82-19c", body: "It offloads backward pass computation to the host operating system pagefile", orderIndex: 2 },
+      { id: "opt-s82-19d", body: "It compresses gradients using run-length encoding before writing them to disk", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-19a",
+  },
+  {
+    id: "pq-s82-20",
+    topicId: "topic-ml-systems",
+    topicSlug: "ml-ai-systems",
+    body: "In Post-Training Quantization of neural network weights, what is the key difference between Weight-Only Quantization (e.g., W4A16) and Full Weight-Activation Quantization (e.g., W8A8)?",
+    explanation: "In W4A16 weight-only quantization, weights are stored in 4-bit integers and dequantized on-the-fly to FP16 in GPU SRAM before GEMM multiplication with FP16 activations (reducing memory bandwidth pressure). In W8A8, both weights and activations are quantized to INT8, enabling INT8 tensor core matrix multiplication, which accelerates compute throughput as well as memory bandwidth.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s82-20a", body: "W4A16 dequantizes weights to 16-bit float during compute to multiply with float activations, while W8A8 executes integer tensor core arithmetic directly", orderIndex: 0 },
+      { id: "opt-s82-20b", body: "W4A16 requires specialized quantum hardware while W8A8 runs on standard consumer CPUs", orderIndex: 1 },
+      { id: "opt-s82-20c", body: "W8A8 discards all negative weight values while W4A16 preserves signed representation", orderIndex: 2 },
+      { id: "opt-s82-20d", body: "W4A16 is only applicable to convolutional layers while W8A8 is restricted to embedding tables", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-20a",
+  },
+  {
+    id: "pq-s82-21",
+    topicId: "topic-etl-pipelines",
+    topicSlug: "etl-pipelines-data-engineering",
+    body: "In Apache Spark's Catalyst optimizer, what is the sequence of transformations applied to a user query DataFrame?",
+    explanation: "Catalyst processes queries through four distinct stages: 1) Analysis (resolving table and column references against the Catalog into an Analyzed Logical Plan), 2) Logical Optimization (applying rule-based relational algebra rewrites such as predicate pushdown and projection pruning), 3) Physical Planning (generating one or more physical plans with cost-based join selection), and 4) Code Generation (compiling into Java bytecode via Tungsten).",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s82-21a", body: "Unresolved Logical Plan -> Analysis -> Optimized Logical Plan -> Physical Plans (Cost-Based) -> Code Generation", orderIndex: 0 },
+      { id: "opt-s82-21b", body: "Physical Plan -> Logical Plan -> AST Parsing -> SQL Code Generation", orderIndex: 1 },
+      { id: "opt-s82-21c", body: "Bytecode Compilation -> JIT Inlining -> Relational Cost Analysis -> Execution DAG", orderIndex: 2 },
+      { id: "opt-s82-21d", body: "Schema Validation -> Distributed Map -> Shuffle Reduce -> Disk Spill Serialization", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-21a",
+  },
+  {
+    id: "pq-s82-22",
+    topicId: "topic-etl-pipelines",
+    topicSlug: "etl-pipelines-data-engineering",
+    body: "How does Spark's Project Tungsten optimize execution performance and reduce JVM garbage collection overhead?",
+    explanation: "Tungsten manages its own memory off-heap (or on-heap byte arrays) using a 64-bit address encoding (sun.misc.Unsafe), storing row data in compact binary formats without JVM object headers, references, or boxing. It also uses Whole-Stage Code Generation to collapse multiple pipeline stages into a single synthesized Java loop, maximizing CPU L1/L2 cache locality.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s82-22a", body: "It allocates off-heap raw memory buffers bypassing JVM object overhead and synthesizes whole-stage Java bytecode loops for CPU cache locality", orderIndex: 0 },
+      { id: "opt-s82-22b", body: "It translates all DataFrame transformations directly into native C++ CUDA kernels for GPU execution", orderIndex: 1 },
+      { id: "opt-s82-22c", body: "It compiles PySpark scripts into WebAssembly modules executed by V8 runtime threads", orderIndex: 2 },
+      { id: "opt-s82-22d", body: "It replaces all distributed shuffle exchanges with uncompressed peer-to-peer UDP broadcasts", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-22a",
+  },
+  {
+    id: "pq-s82-23",
+    topicId: "topic-etl-pipelines",
+    topicSlug: "etl-pipelines-data-engineering",
+    body: "What causes severe data skew in distributed shuffle joins, and what is the industry-standard mitigation strategy?",
+    explanation: "Data skew occurs when a partition key (e.g., null values or top customer IDs) has a disproportionately high frequency, causing one executor task to process gigabytes while other workers finish in seconds. The standard mitigation is 'salting': appending a bounded random integer (0..K-1) to the skewed key on the left table, and exploding/replicating the right table's matching keys by K, evenly distributing the workload across partitions.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s82-23a", body: "Uneven key distribution concentrates work on single executors; resolved by 'salting' the skewed key with random suffixes and replicating join keys", orderIndex: 0 },
+      { id: "opt-s82-23b", body: "Network packet loss during shuffle; resolved by disabling TCP window scaling on cluster nodes", orderIndex: 1 },
+      { id: "opt-s82-23c", body: "Memory fragmentation in JVM heap; resolved by restarting the Spark master node after every stage", orderIndex: 2 },
+      { id: "opt-s82-23d", body: "Mismatched timestamp timezones; resolved by converting all date columns to UTC epoch integers", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-23a",
+  },
+  {
+    id: "pq-s82-24",
+    topicId: "topic-etl-pipelines",
+    topicSlug: "etl-pipelines-data-engineering",
+    body: "In Lakehouse table architectures (such as Delta Lake and Apache Iceberg), how are ACID transactions guaranteed on object storage without distributed file locks?",
+    explanation: "Lakehouse formats write new immutable Parquet data files alongside an append-only, ordered transaction log (Delta JSON/commit logs, Iceberg manifest lists and snapshot metadata). Commits use Optimistic Concurrency Control (OCC) and atomic storage primitives (e.g., put-if-absent / atomic pointer swap) to ensure serializable transaction commit ordering.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s82-24a", body: "Immutable Parquet files managed by an append-only transaction log using Optimistic Concurrency Control and atomic metadata swaps", orderIndex: 0 },
+      { id: "opt-s82-24b", body: "Distributed POSIX file locks acquired through an external NFS server", orderIndex: 1 },
+      { id: "opt-s82-24c", body: "Synchronous Two-Phase Commit locks held across all compute executor nodes until files finish uploading", orderIndex: 2 },
+      { id: "opt-s82-24d", body: "Database triggers executed by the underlying S3/Blob storage API", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-24a",
+  },
+  {
+    id: "pq-s82-25",
+    topicId: "topic-etl-pipelines",
+    topicSlug: "etl-pipelines-data-engineering",
+    body: "In stream processing systems like Apache Flink, what is the purpose of a Bounded Watermark?",
+    explanation: "A watermark of timestamp T is a control event flowing through the data stream that asserts: 'All events with EventTime <= T have arrived.' It allows window operators to close windows and emit results even when network delays cause events to arrive out of order, providing a deterministic balance between completeness and latency.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s82-25a", body: "A streaming progress marker asserting that no future events will arrive with event timestamps earlier than T (allowing window closure)", orderIndex: 0 },
+      { id: "opt-s82-25b", body: "A memory limit boundary that triggers spillover from JVM heap to local SSD NVMe storage", orderIndex: 1 },
+      { id: "opt-s82-25c", body: "A cryptographic hash that authenticates the integrity of streaming data payloads against tampering", orderIndex: 2 },
+      { id: "opt-s82-25d", body: "A network heartbeat message that checks whether upstream Kafka broker partitions are still online", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-25a",
+  },
+  {
+    id: "pq-s82-26",
+    topicId: "topic-etl-pipelines",
+    topicSlug: "etl-pipelines-data-engineering",
+    body: "How does the Chandy-Lamport distributed snapshot barrier algorithm achieve consistent state checkpointing in stream processing without stopping stream ingestion?",
+    explanation: "Checkpoint barriers are injected into input streams and flow along with records. When an operator receives a barrier from an input channel, it aligns channels (buffering records from faster channels until barriers arrive on all inputs), writes its local state (e.g., to RocksDB), and propagates the barrier downstream without ever freezing the entire pipeline.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s82-26a", body: "Checkpoint barriers flow inline with event data; operators align input barriers, snapshot local state asynchronously, and propagate barriers downstream", orderIndex: 0 },
+      { id: "opt-s82-26b", body: "The master coordinator pauses all stream consumers and dumps entire worker memory contents to an S3 tarball", orderIndex: 1 },
+      { id: "opt-s82-26c", body: "All stream partitions are replayed from offset 0 upon every checkpoint interval", orderIndex: 2 },
+      { id: "opt-s82-26d", body: "Workers write all in-flight messages into an external distributed relational database table under serializable isolation", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-26a",
+  },
+  {
+    id: "pq-s82-27",
+    topicId: "topic-etl-pipelines",
+    topicSlug: "etl-pipelines-data-engineering",
+    body: "In Change Data Capture (CDC) pipelines, what is the principal advantage of log-based CDC (e.g., reading PostgreSQL WAL or MySQL binlog) over query-based polling (SELECT ... WHERE updated_at > last_sync)?",
+    explanation: "Log-based CDC reads database transaction commit logs directly at the storage engine level. It captures DELETE operations (which query polling misses without soft deletes), captures intermediate states between polling intervals, avoids adding read overhead or full table scans to production databases, and preserves transaction boundaries.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s82-27a", body: "Captures hard DELETEs, records all intermediate state changes, preserves transaction ordering, and incurs zero query load on database tables", orderIndex: 0 },
+      { id: "opt-s82-27b", body: "Requires writing bespoke database trigger procedures for every table schema update", orderIndex: 1 },
+      { id: "opt-s82-27c", body: "Eliminates network latency by streaming CDC events over local UNIX domain sockets directly to web clients", orderIndex: 2 },
+      { id: "opt-s82-27d", body: "Guarantees that consumer pipelines will never require schema migration handling", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-27a",
+  },
+  {
+    id: "pq-s82-28",
+    topicId: "topic-etl-pipelines",
+    topicSlug: "etl-pipelines-data-engineering",
+    body: "In Dimensional Modeling for Data Warehouses, what characterizes a Slowly Changing Dimension Type 2 (SCD2)?",
+    explanation: "SCD2 tracks historical accuracy by creating a new record in the dimension table whenever an attribute changes. Each record contains the dimensional attributes along with metadata columns such as effective_start_date, effective_end_date, and an is_current boolean flag, preserving historical context for fact transactions.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s82-28a", body: "Creates a new row with effective start/end timestamps and an active flag whenever an attribute changes, preserving full historical integrity", orderIndex: 0 },
+      { id: "opt-s82-28b", body: "Overwrites existing values in place without maintaining any prior historical record", orderIndex: 1 },
+      { id: "opt-s82-28c", body: "Adds a new column to the dimension table for every historical revision", orderIndex: 2 },
+      { id: "opt-s82-28d", body: "Stores historical revisions in an unindexed JSON blob column within the fact table", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-28a",
+  },
+  {
+    id: "pq-s82-29",
+    topicId: "topic-etl-pipelines",
+    topicSlug: "etl-pipelines-data-engineering",
+    body: "Why does the Apache Parquet file format achieve dramatically higher compression ratios and faster analytical query throughput than row-based formats like CSV or JSON?",
+    explanation: "Parquet stores data column-by-column. Because values in the same column share the same data type and often similar values, column-specific encoding schemes (Dictionary Encoding, Run-Length Encoding, Bit-Packing) achieve superior compression. Furthermore, Parquet files contain metadata (column min/max stats, dictionary pages) that allow query engines to skip entire row groups without reading them from disk.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s82-29a", body: "Columnar layout groups homogeneous data for high-efficiency encoding (RLE/Dictionary) and enables projection pruning and row-group stat skipping", orderIndex: 0 },
+      { id: "opt-s82-29b", body: "Parquet automatically translates textual strings into pre-computed binary machine code executables", orderIndex: 1 },
+      { id: "opt-s82-29c", body: "Parquet enforces a fixed 1024-byte row width that aligns with CPU hardware cache lines", orderIndex: 2 },
+      { id: "opt-s82-29d", body: "Parquet strips all schema types and column names from files to minimize disk footprint", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-29a",
+  },
+  {
+    id: "pq-s82-30",
+    topicId: "topic-etl-pipelines",
+    topicSlug: "etl-pipelines-data-engineering",
+    body: "In Apache Spark, what is the critical performance difference between a Narrow Transformation (e.g., `map`, `filter`) and a Wide Transformation (e.g., `groupByKey`, `reduceByKey`, `join`)?",
+    explanation: "In a narrow transformation, each partition of the parent RDD is used by at most one partition of the child RDD, allowing operations to execute in-memory across partitions without network communication. In a wide transformation, multiple child partitions depend on data from multiple parent partitions, forcing an expensive network shuffle exchange and disk serialization.",
+    difficulty: "EASY",
+    options: [
+      { id: "opt-s82-30a", body: "Narrow transformations evaluate within local partition memory without shuffles; wide transformations require an all-to-all network shuffle across cluster nodes", orderIndex: 0 },
+      { id: "opt-s82-30b", body: "Narrow transformations write output to disk; wide transformations retain output strictly in CPU L1 cache", orderIndex: 1 },
+      { id: "opt-s82-30c", body: "Narrow transformations require user authentication; wide transformations can run unauthenticated", orderIndex: 2 },
+      { id: "opt-s82-30d", body: "Narrow transformations operate on SQL strings; wide transformations operate exclusively on Python lists", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-30a",
+  },
+  {
+    id: "pq-s82-31",
+    topicId: "topic-etl-pipelines",
+    topicSlug: "etl-pipelines-data-engineering",
+    body: "Why is `reduceByKey` strongly preferred over `groupByKey` when aggregating large datasets in Apache Spark?",
+    explanation: "`reduceByKey` performs map-side partial aggregation (combiner step) locally on each executor partition before shuffling data across the network, dramatically reducing network I/O. `groupByKey` sends every single key-value pair over the network unaggregated, causing severe network congestion and JVM OutOfMemory errors.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s82-31a", body: "`reduceByKey` performs map-side local combination before shuffling, dramatically reducing network transmission and executor memory pressure", orderIndex: 0 },
+      { id: "opt-s82-31b", body: "`groupByKey` converts all keys to floating point numbers, causing mathematical precision loss", orderIndex: 1 },
+      { id: "opt-s82-31c", body: "`reduceByKey` writes all intermediate results directly into an external Redis cache", orderIndex: 2 },
+      { id: "opt-s82-31d", body: "`groupByKey` cannot be used in pipelines that contain filter operations", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-31a",
+  },
+  {
+    id: "pq-s82-32",
+    topicId: "topic-etl-pipelines",
+    topicSlug: "etl-pipelines-data-engineering",
+    body: "In distributed streaming architectures, how do systems handle Poisson-distributed micro-bursts and upstream processing spikes without crashing downstream workers?",
+    explanation: "Distributed streaming pipelines implement backpressure mechanisms: when a downstream operator's input queue fills up, it slows down or pauses reading from upstream buffers. In credit-based or reactive stream flow control (as in Flink/Akka/TCP), credit feedback propagates back to the source operators, throttling ingestion rates to match the maximum processing capacity.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s82-32a", body: "Credit-based or buffer-fill backpressure feedback propagates upstream through channel buffers to throttle source ingestion rates", orderIndex: 0 },
+      { id: "opt-s82-32b", body: "Workers immediately drop 50% of incoming payloads using random Poisson rejection sampling", orderIndex: 1 },
+      { id: "opt-s82-32c", body: "The operating system forcibly terminates and restarts slow downstream worker processes", orderIndex: 2 },
+      { id: "opt-s82-32d", body: "All streaming records are diverted into unindexed local temporary text files on the edge gateway", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-32a",
+  },
+  {
+    id: "pq-s82-33",
+    topicId: "topic-etl-pipelines",
+    topicSlug: "etl-pipelines-data-engineering",
+    body: "What is the function of a Dead Letter Queue (DLQ) in automated ETL ingestion pipelines?",
+    explanation: "A Dead Letter Queue isolates malformed, corrupt, or unparseable messages that fail processing or schema validation. Instead of crashing the entire pipeline or dropping records silently, failed payloads are routed to the DLQ with error metadata, enabling alerting, root-cause debugging, and schema-migration reprocessing.",
+    difficulty: "EASY",
+    options: [
+      { id: "opt-s82-33a", body: "Isolates unparseable or schema-violating records into a dedicated queue for inspection and reprocessing without blocking pipeline throughput", orderIndex: 0 },
+      { id: "opt-s82-33b", body: "Stores expired authorization tokens for automated audit log archiving", orderIndex: 1 },
+      { id: "opt-s82-33c", body: "Caches database connection handles that failed during TCP socket handshakes", orderIndex: 2 },
+      { id: "opt-s82-33d", body: "Compacts deleted partition files during S3 lifecycle retention cleanups", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-33a",
+  },
+  {
+    id: "pq-s82-34",
+    topicId: "topic-etl-pipelines",
+    topicSlug: "etl-pipelines-data-engineering",
+    body: "Why is file splittability critical when storing massive datasets in distributed object storage for MapReduce/Spark processing, and which compression codec preserves splittability?",
+    explanation: "Splittability allows multiple worker nodes to read and decompress independent byte ranges of a single massive file simultaneously. Traditional gzip is not splittable because its LZ77/Huffman dictionary depends on prior stream context. Codecs like Bzip2, or container formats like Snappy-compressed Parquet (split at row-group boundaries), allow parallel partition processing.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s82-34a", body: "Splittability enables workers to read independent byte ranges of a file in parallel; containerized formats (e.g. Parquet) or codecs like Bzip2 preserve splittability", orderIndex: 0 },
+      { id: "opt-s82-34b", body: "Standard raw gzip files can be split at arbitrary 64KB byte boundaries without decoding errors", orderIndex: 1 },
+      { id: "opt-s82-34c", body: "Splittability eliminates the need for data replication across cloud availability zones", orderIndex: 2 },
+      { id: "opt-s82-34d", body: "Only uncompressed plain text ASCII files can ever be processed by distributed engines", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-34a",
+  },
+  {
+    id: "pq-s82-35",
+    topicId: "topic-etl-pipelines",
+    topicSlug: "etl-pipelines-data-engineering",
+    body: "What is the distinction between a Tumbling Window and a Sliding (Hopping) Window in stream processing?",
+    explanation: "A Tumbling Window has a fixed duration (e.g., 5 minutes) and non-overlapping, contiguous boundaries; every event belongs to exactly one window. A Sliding Window has a fixed duration (e.g., 5 minutes) but advances by a slide interval shorter than its duration (e.g., every 1 minute), causing windows to overlap and records to be evaluated in multiple concurrent windows.",
+    difficulty: "EASY",
+    options: [
+      { id: "opt-s82-35a", body: "Tumbling windows are contiguous and non-overlapping; sliding windows advance by a hop interval smaller than window size, causing overlapping evaluation", orderIndex: 0 },
+      { id: "opt-s82-35b", body: "Tumbling windows count records; sliding windows count wall-clock milliseconds", orderIndex: 1 },
+      { id: "opt-s82-35c", body: "Tumbling windows require relational databases; sliding windows only run in distributed message brokers", orderIndex: 2 },
+      { id: "opt-s82-35d", body: "Tumbling windows emit results once per day; sliding windows emit results continuously without state", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-35a",
+  },
+  {
+    id: "pq-s82-36",
+    topicId: "topic-etl-pipelines",
+    topicSlug: "etl-pipelines-data-engineering",
+    body: "In data warehouse architectures, why is a Star Schema often favored over a highly normalized Snowflake Schema for OLAP analytical queries?",
+    explanation: "A Star Schema denormalizes dimension tables around centralized fact tables. While it introduces controlled data redundancy in dimensions, it drastically simplifies query readability and reduces the number of expensive relational joins required for aggregations, boosting OLAP columnar scan efficiency.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s82-36a", body: "Denormalized dimensions eliminate multiple expensive relational joins, optimizing analytical aggregation and columnar scan performance", orderIndex: 0 },
+      { id: "opt-s82-36b", body: "Star schemas guarantee Third Normal Form (3NF) relational compliance across all entity attributes", orderIndex: 1 },
+      { id: "opt-s82-36c", body: "Snowflake schemas require distributed NoSQL key-value stores to execute aggregations", orderIndex: 2 },
+      { id: "opt-s82-36d", body: "Star schemas require zero foreign key relationships between tables", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-36a",
+  },
+  {
+    id: "pq-s82-37",
+    topicId: "topic-etl-pipelines",
+    topicSlug: "etl-pipelines-data-engineering",
+    body: "How does Spark's Broadcast Hash Join (BHJ) avoid shuffle overhead, and when is it automatically selected by the optimizer?",
+    explanation: "When joining a large table with a small table that falls below the broadcast threshold (e.g., `spark.sql.autoBroadcastJoinThreshold`, default 10MB), the driver collects the small table and broadcasts a complete copy to every executor node. Each executor builds an in-memory hash table of the small relation and streams the local partition of the large table through it, avoiding any network shuffle.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s82-37a", body: "The small table is broadcast to all worker nodes to join locally against large table partitions in memory without any network shuffle", orderIndex: 0 },
+      { id: "opt-s82-37b", body: "Both tables are sorted by join key and merged sequentially across cluster executor nodes", orderIndex: 1 },
+      { id: "opt-s82-37c", body: "The large table is split into Cartesian product arrays broadcast to driver memory", orderIndex: 2 },
+      { id: "opt-s82-37d", body: "It replaces inner joins with distributed Bloom filter approximations", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-37a",
+  },
+  {
+    id: "pq-s82-38",
+    topicId: "topic-etl-pipelines",
+    topicSlug: "etl-pipelines-data-engineering",
+    body: "In workflow orchestrators (such as Apache Airflow), why is idempotent task design an essential prerequisite for robust production data pipelines?",
+    explanation: "Distributed networks, spot instance evictions, and transient database timeouts inevitably cause tasks to fail and trigger automated retries. An idempotent task guarantees that running it multiple times with the exact same input parameters produces the exact same outcome without duplicating records or corrupting state (e.g., using atomic partition overwrites).",
+    difficulty: "EASY",
+    options: [
+      { id: "opt-s82-38a", body: "Ensures that retrying a failed task or backfilling historical runs produces identical results without creating duplicate records or state corruption", orderIndex: 0 },
+      { id: "opt-s82-38b", body: "Ensures that DAG tasks always execute in strict alphabetical order regardless of dependency definitions", orderIndex: 1 },
+      { id: "opt-s82-38c", body: "Forces tasks to execute exclusively on single-core CPU instances to prevent race conditions", orderIndex: 2 },
+      { id: "opt-s82-38d", body: "Guarantees that database connection pools will never timeout during long-running batch queries", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-38a",
+  },
+  {
+    id: "pq-s82-39",
+    topicId: "topic-etl-pipelines",
+    topicSlug: "etl-pipelines-data-engineering",
+    body: "What is the primary operational challenge associated with the 'Small File Problem' in data lake table formats on distributed object storage?",
+    explanation: "Having millions of tiny files (e.g., a few kilobytes each) causes severe performance degradation: metadata catalogs and object storage API listings become overwhelmed by millions of HTTP GET requests, query planning overhead skyrockets, and distributed executors spend more time opening/closing file handles than reading actual columnar data.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s82-39a", body: "Overwhelms storage API metadata listing limits and executor file-handle overhead; resolved via compaction/bin-packing into optimal 128MB-512MB files", orderIndex: 0 },
+      { id: "opt-s82-39b", body: "Causes distributed object storage to automatically delete files smaller than 10MB after 24 hours", orderIndex: 1 },
+      { id: "opt-s82-39c", body: "Prevents encryption keys from being applied to files under 1MB", orderIndex: 2 },
+      { id: "opt-s82-39d", body: "Prevents data from being serialized using columnar compression codecs", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-39a",
+  },
+  {
+    id: "pq-s82-40",
+    topicId: "topic-etl-pipelines",
+    topicSlug: "etl-pipelines-data-engineering",
+    body: "How does the Two-Phase Commit (2PC) protocol ensure end-to-end exactly-once delivery in streaming pipelines connecting to transactional sinks?",
+    explanation: "In Phase 1 (Prepare), the streaming sink writes uncommitted transactional files and prepares the transaction, ensuring all data is persisted. When the stream checkpoint barrier passes and the coordinator confirms all operators successfully snapshotted, Phase 2 (Commit) atomically commits the external transaction. If any worker fails before Phase 2, the transaction is aborted.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s82-40a", body: "The sink opens a transaction during checkpointing, writes data in pre-commit state, and commits only when the coordinator confirms global checkpoint success", orderIndex: 0 },
+      { id: "opt-s82-40b", body: "The sink drops all duplicate records by computing cryptographic sha256 checksums on Kafka offset numbers", orderIndex: 1 },
+      { id: "opt-s82-40c", body: "The stream coordinator forces all consumer groups to restart from offset zero every 60 seconds", orderIndex: 2 },
+      { id: "opt-s82-40d", body: "The sink locks the entire destination relational database table in exclusive mode throughout the entire streaming day", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-40a",
+  },
+  {
+    id: "pq-s82-41",
+    topicId: "topic-fullstack-js",
+    topicSlug: "fullstack-javascript-apis",
+    body: "In the Node.js Event Loop, what is the exact execution priority between `process.nextTick()`, `Promise.then()` microtasks, and `setTimeout(fn, 0)` timers?",
+    explanation: "Microtasks execute immediately after the currently executing JavaScript operation finishes, before the event loop advances to the next phase. Within microtasks, `process.nextTick` queue has absolute priority and is completely drained before the `Promise` microtask queue (resolve/reject callbacks) is drained. Macro-timers like `setTimeout` execute in the Timers phase of the event loop only after microtask queues are empty.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s82-41a", body: "`process.nextTick()` queue drains first, followed by `Promise` microtasks, and only then does the Timers phase execute `setTimeout`", orderIndex: 0 },
+      { id: "opt-s82-41b", body: "`setTimeout(fn, 0)` runs before any microtasks because it is scheduled directly in the Poll phase", orderIndex: 1 },
+      { id: "opt-s82-41c", body: "`Promise.then()` microtasks preempt `process.nextTick()` callbacks in modern V8 engines", orderIndex: 2 },
+      { id: "opt-s82-41d", body: "All three execute concurrently across background worker threads in the libuv threadpool", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-41a",
+  },
+  {
+    id: "pq-s82-42",
+    topicId: "topic-fullstack-js",
+    topicSlug: "fullstack-javascript-apis",
+    body: "How does the V8 JavaScript engine optimize property access on objects, and what causes an inline cache to transition from Monomorphic to Megamorphic?",
+    explanation: "V8 dynamically generates hidden classes ('Shapes' or 'Maps') based on the order and names of properties added to objects. Inline caches (IC) remember the hidden class offset at call sites. If a call site encounters 1 hidden class, it is Monomorphic (fastest). If it encounters 2-4 hidden classes, it becomes Polymorphic. Encountering 5 or more distinct hidden classes transitions the call site to Megamorphic, disabling inline optimization and falling back to hash table lookups.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s82-42a", body: "Objects with identical hidden classes use Monomorphic inline caches; encountering 5+ different hidden classes transitions the call site to Megamorphic (slow hash lookup)", orderIndex: 0 },
+      { id: "opt-s82-42b", body: "Monomorphic objects are allocated on the stack; Megamorphic objects are stored in the operating system swap space", orderIndex: 1 },
+      { id: "opt-s82-42c", body: "Megamorphic transitions occur when an object has more than 1,000 properties defined in its constructor", orderIndex: 2 },
+      { id: "opt-s82-42d", body: "V8 compiles Monomorphic objects to WebAssembly and Megamorphic objects to C++", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-42a",
+  },
+  {
+    id: "pq-s82-43",
+    topicId: "topic-fullstack-js",
+    topicSlug: "fullstack-javascript-apis",
+    body: "In HTTP/2 and HTTP/3, how does protocol multiplexing resolve the Head-of-Line (HoL) blocking problem present in HTTP/1.1?",
+    explanation: "In HTTP/1.1, a single TCP connection can only process one request-response cycle at a time; pipelining requires FIFO responses. HTTP/2 introduces binary framing, dividing messages into interleaved frames with stream IDs over a single TCP connection, allowing concurrent bidirectional transfer without application-layer HoL blocking. (HTTP/3 uses QUIC over UDP to eliminate transport-layer TCP packet-drop HoL blocking as well).",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s82-43a", body: "Binary framing divides requests into independent interleaved frames tagged with stream IDs over a single connection, eliminating FIFO request blocking", orderIndex: 0 },
+      { id: "opt-s82-43b", body: "HTTP/2 opens 100 simultaneous TCP sockets per domain to send one asset per socket", orderIndex: 1 },
+      { id: "opt-s82-43c", body: "HTTP/2 replaces textual JSON with compressed XML schemas over UDP broadcast", orderIndex: 2 },
+      { id: "opt-s82-43d", body: "HTTP/2 caches all server files inside the client operating system kernel memory", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-43a",
+  },
+  {
+    id: "pq-s82-44",
+    topicId: "topic-fullstack-js",
+    topicSlug: "fullstack-javascript-apis",
+    body: "What triggers a Cross-Origin Resource Sharing (CORS) Preflight `OPTIONS` request in web browsers?",
+    explanation: "Browsers send an automatic preflight `OPTIONS` request if an HTTP request is NOT a 'Simple Request'. A request triggers preflight if: 1) It uses methods other than GET, HEAD, or POST; 2) It uses POST with Content-Type other than `application/x-www-form-urlencoded`, `multipart/form-data`, or `text/plain` (such as `application/json`); or 3) It sets custom headers (e.g., `Authorization`, `X-Custom-Header`).",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s82-44a", body: "Using non-simple HTTP methods (PUT/DELETE/PATCH), setting `application/json` Content-Type, or including custom headers like `Authorization`", orderIndex: 0 },
+      { id: "opt-s82-44b", body: "Any request sent over an encrypted HTTPS connection to a third-party domain", orderIndex: 1 },
+      { id: "opt-s82-44c", body: "Requests where the client URL hostname contains fewer than 3 subdomain labels", orderIndex: 2 },
+      { id: "opt-s82-44d", body: "Whenever the response payload size exceeds 64 kilobytes", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-44a",
+  },
+  {
+    id: "pq-s82-45",
+    topicId: "topic-fullstack-js",
+    topicSlug: "fullstack-javascript-apis",
+    body: "How does the DataLoader library solve the classic N+1 query problem in GraphQL and relational API resolvers?",
+    explanation: "DataLoader uses Node.js event loop scheduling (`process.nextTick`) to batch individual data-fetch requests that occur within the same execution frame. When multiple resolvers request items by ID, DataLoader collects all IDs and executes a single batched database query (e.g., `SELECT * FROM authors WHERE id IN (...)`), while providing in-memory request-level memoization caching.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s82-45a", body: "Coalesces individual ID lookups into a single batched `WHERE id IN (...)` query using event loop nextTick scheduling and memoizes results", orderIndex: 0 },
+      { id: "opt-s82-45b", body: "Transforms GraphQL schema queries into pre-computed static HTML files on edge servers", orderIndex: 1 },
+      { id: "opt-s82-45c", body: "Executes database queries in a child worker process using shared memory ring buffers", orderIndex: 2 },
+      { id: "opt-s82-45d", body: "Forces all relational foreign keys to be indexed using full-text search indexes", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-45a",
+  },
+  {
+    id: "pq-s82-46",
+    topicId: "topic-fullstack-js",
+    topicSlug: "fullstack-javascript-apis",
+    body: "How should an API implement Idempotency Keys to safely handle retried POST requests (e.g., payment charges or order creations)?",
+    explanation: "The client sends a unique `Idempotency-Key` header with the request. The server uses an atomic distributed lock or cache (e.g., Redis `SET key value NX EX seconds`) to check if the key was already seen. If processing, subsequent concurrent requests receive 409 or wait; if already completed, the server returns the cached response body and status code without re-executing business logic.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s82-46a", body: "Stores the client-provided key in Redis via atomic `SET key result NX EX`, returning the cached result if the key already exists", orderIndex: 0 },
+      { id: "opt-s82-46b", body: "Appends a cryptographic digital signature to the client's session cookie upon every HTTP GET request", orderIndex: 1 },
+      { id: "opt-s82-46c", body: "Rejects any request with an idempotency key with an HTTP 400 Bad Request error", orderIndex: 2 },
+      { id: "opt-s82-46d", body: "Deletes the record from the database before inserting the new revision", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-46a",
+  },
+  {
+    id: "pq-s82-47",
+    topicId: "topic-fullstack-js",
+    topicSlug: "fullstack-javascript-apis",
+    body: "What is the security risk of the `alg: none` header in JSON Web Token (JWT) implementations?",
+    explanation: "If a poorly implemented backend JWT validation library blindly trusts the `alg` field in the JWT header without enforcing a configured algorithm, an attacker can modify token claims (e.g., setting `role: admin`), set `alg: \"none\"`, and strip the signature. If accepted, the attacker gains unauthorized privileged access.",
+    difficulty: "EASY",
+    options: [
+      { id: "opt-s82-47a", body: "Allows malicious clients to tamper with payload claims, set algorithm to 'none', and omit the signature if the server fails to enforce expected algorithms", orderIndex: 0 },
+      { id: "opt-s82-47b", body: "Forces the server to re-encrypt token payloads using plain text base64 encoding", orderIndex: 1 },
+      { id: "opt-s82-47c", body: "Exposes database connection strings in the JWT header section", orderIndex: 2 },
+      { id: "opt-s82-47d", body: "Causes the browser to reject all HTTPS TLS certificates for the domain", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-47a",
+  },
+  {
+    id: "pq-s82-48",
+    topicId: "topic-fullstack-js",
+    topicSlug: "fullstack-javascript-apis",
+    body: "How does the Sliding Window Counter algorithm improve upon the Fixed Window Counter algorithm for API rate limiting?",
+    explanation: "Fixed Window resets request counts at rigid interval boundaries (e.g., 00:00, 00:01), allowing a client to send their entire quota at 00:00:59 and another quota at 00:01:01, effectively bursting 2x the allowed limit in 2 seconds. The Sliding Window Counter estimates current window load by weighting the previous window count based on the current timestamp offset, smoothing out boundary bursts.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s82-48a", body: "Combines weighted counts from the previous and current window intervals to prevent double-quota traffic bursts at window boundary edges", orderIndex: 0 },
+      { id: "opt-s82-48b", body: "Allocates a new dedicated Redis cluster for every individual IP address connecting to the server", orderIndex: 1 },
+      { id: "opt-s82-48c", body: "Requires clients to solve Proof-of-Work cryptographic puzzles before submitting HTTP requests", orderIndex: 2 },
+      { id: "opt-s82-48d", body: "Disables rate limiting for all authenticated administrators automatically", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-48a",
+  },
+  {
+    id: "pq-s82-49",
+    topicId: "topic-fullstack-js",
+    topicSlug: "fullstack-javascript-apis",
+    body: "In Node.js streams, what causes a stream to enter 'paused mode', and how is backpressure handled when piping a fast readable stream into a slow writable stream?",
+    explanation: "When `writable.write(chunk)` returns `false`, it signals that the writable stream's internal highWaterMark buffer is full. In response, `readable.pipe(writable)` automatically calls `readable.pause()`, halting data reads. Once the writable stream drains its buffer, it emits the `'drain'` event, prompting the pipe to call `readable.resume()`.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s82-49a", body: "When `writable.write()` returns `false`, the pipe pauses the readable source until the writable buffer flushes and emits the `'drain'` event", orderIndex: 0 },
+      { id: "opt-s82-49b", body: "The operating system forcibly terminates the Node.js process to prevent VRAM memory leaks", orderIndex: 1 },
+      { id: "opt-s82-49c", body: "Excess chunks are compressed using Gzip and written to the system temporary directory", orderIndex: 2 },
+      { id: "opt-s82-49d", body: "The readable stream drops 50% of its data packets to match the writable stream throughput", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-49a",
+  },
+  {
+    id: "pq-s82-50",
+    topicId: "topic-fullstack-js",
+    topicSlug: "fullstack-javascript-apis",
+    body: "What is the primary difference between Node.js `Worker Threads` and the `Cluster` module for CPU-intensive parallel processing?",
+    explanation: "`Cluster` spawns multiple independent OS child processes that share server ports via IPC/master socket handoffs; each process has its own separate V8 instance, event loop, and memory space. `Worker Threads` run multiple V8 threads within the same OS process, sharing the same process memory and allowing zero-copy memory sharing via `SharedArrayBuffer`.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s82-50a", body: "`Cluster` spawns separate OS processes with isolated memory spaces; `Worker Threads` run within a single process and can share memory via `SharedArrayBuffer`", orderIndex: 0 },
+      { id: "opt-s82-50b", body: "`Cluster` is only supported on Linux; `Worker Threads` only run on Windows", orderIndex: 1 },
+      { id: "opt-s82-50c", body: "`Worker Threads` cannot execute JavaScript code and must be written in Rust or C++", orderIndex: 2 },
+      { id: "opt-s82-50d", body: "`Cluster` eliminates the Node.js event loop and executes synchronous blocking operations", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-50a",
+  },
+  {
+    id: "pq-s82-51",
+    topicId: "topic-fullstack-js",
+    topicSlug: "fullstack-javascript-apis",
+    body: "In React Server Components (RSC) architectures (such as Next.js App Router), what is transmitted from the server to the browser during a client-side navigation to an RSC page?",
+    explanation: "The server does NOT send HTML during client-side navigation. Instead, it streams a special compact binary/JSON-like RSC payload containing serialized React elements, component props, and placeholders/references for client components, allowing the client-side React runtime to reconcile the virtual DOM tree without re-rendering unaffected client state.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s82-51a", body: "A serialized RSC stream containing the React virtual DOM tree representation and client component module references, not raw HTML", orderIndex: 0 },
+      { id: "opt-s82-51b", body: "A full HTML document that completely refreshes the browser page", orderIndex: 1 },
+      { id: "opt-s82-51c", body: "Raw SQL database query results that are executed by client-side WebAssembly", orderIndex: 2 },
+      { id: "opt-s82-51d", body: "A compiled Webpack bundle containing the entire backend Node.js runtime codebase", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-51a",
+  },
+  {
+    id: "pq-s82-52",
+    topicId: "topic-fullstack-js",
+    topicSlug: "fullstack-javascript-apis",
+    body: "What security protection does the `SameSite=Strict` cookie attribute provide against Cross-Site Request Forgery (CSRF)?",
+    explanation: "With `SameSite=Strict`, the browser will NEVER send the cookie in cross-site requests, including when following a standard link (e.g., clicking a link on a malicious forum to `https://bank.com/transfer`). This completely eliminates CSRF attacks initiated from external origins.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s82-52a", body: "Prevents the browser from including the cookie in any cross-site request, even when following regular external top-level navigation links", orderIndex: 0 },
+      { id: "opt-s82-52b", body: "Encrypts the cookie payload using client-side WebCrypto AES-GCM keys", orderIndex: 1 },
+      { id: "opt-s82-52c", body: "Blocks JavaScript from accessing the cookie via `document.cookie` (which is actually HttpOnly)", orderIndex: 2 },
+      { id: "opt-s82-52d", body: "Restricts cookie transmission strictly to localhost 127.0.0.1 loopback connections", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-52a",
+  },
+  {
+    id: "pq-s82-53",
+    topicId: "topic-fullstack-js",
+    topicSlug: "fullstack-javascript-apis",
+    body: "What is the primary architectural difference between Server-Sent Events (SSE) and WebSockets for real-time web applications?",
+    explanation: "WebSockets provide a full-duplex, bidirectional binary/text communication channel over a single long-lived TCP connection via an HTTP Upgrade handshake. SSE provides a unidirectional, text-based (UTF-8) stream from server to client over standard HTTP/1.1 or HTTP/2, with native browser auto-reconnection and event ID tracking.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s82-53a", body: "WebSockets are full-duplex bidirectional communication channels; SSE is a unidirectional server-to-client text stream over standard HTTP", orderIndex: 0 },
+      { id: "opt-s82-53b", body: "WebSockets only run over UDP; SSE runs exclusively over TLS TCP connections", orderIndex: 1 },
+      { id: "opt-s82-53c", body: "SSE requires third-party browser plugins while WebSockets are natively built into HTML4", orderIndex: 2 },
+      { id: "opt-s82-53d", body: "WebSockets cannot transmit JSON data; SSE is restricted to raw binary byte buffers", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-53a",
+  },
+  {
+    id: "pq-s82-54",
+    topicId: "topic-fullstack-js",
+    topicSlug: "fullstack-javascript-apis",
+    body: "How does Content-Security-Policy (CSP) with a cryptographic nonce mitigate Cross-Site Scripting (XSS) attacks?",
+    explanation: "The server generates a cryptographically random, single-use nonce for every HTTP response and includes it in the `Content-Security-Policy: script-src 'nonce-{RANDOM}'` header and on trusted script tags `<script nonce=\"{RANDOM}\">`. The browser executes ONLY scripts whose nonce attribute exactly matches the HTTP header, blocking injected scripts inserted by attackers.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s82-54a", body: "The browser only executes `<script>` tags whose `nonce` matches a unique, per-response random token declared in the CSP header, blocking injected scripts", orderIndex: 0 },
+      { id: "opt-s82-54b", body: "It encrypts all HTML input fields using the user's private RSA key", orderIndex: 1 },
+      { id: "opt-s82-54c", body: "It blocks web browsers from sending HTTP POST requests to third-party domains", orderIndex: 2 },
+      { id: "opt-s82-54d", body: "It compiles all JavaScript functions into obfuscated assembly code before network transmission", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-54a",
+  },
+  {
+    id: "pq-s82-55",
+    topicId: "topic-fullstack-js",
+    topicSlug: "fullstack-javascript-apis",
+    body: "In relational database connection pooling for Node.js backends, why is keeping connection pool size too large (e.g., 500 connections on a 4-core database server) counterproductive?",
+    explanation: "A database server has a fixed number of CPU cores and disk I/O channels. When hundreds of connections compete for CPU attention, the database spends excessive time on OS context switching, lock contention, and memory overhead rather than running query work. Smaller pools (e.g., 20-50 connections) allow CPUs to run queries to completion efficiently.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s82-55a", body: "Excessive connections trigger severe CPU context-switching overhead and lock contention at the database engine, degrading overall transaction throughput", orderIndex: 0 },
+      { id: "opt-s82-55b", body: "Node.js can only maintain a maximum of 10 simultaneous TCP sockets per operating system thread", orderIndex: 1 },
+      { id: "opt-s82-55c", body: "Database connection pools consume GPU tensor cores that are required for SQL parsing", orderIndex: 2 },
+      { id: "opt-s82-55d", body: "PostgreSQL automatically drops all queries if the number of active connections exceeds 16", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-55a",
+  },
+  {
+    id: "pq-s82-56",
+    topicId: "topic-fullstack-js",
+    topicSlug: "fullstack-javascript-apis",
+    body: "What is the primary function of the Next.js `generateStaticParams` function in static site generation?",
+    explanation: "`generateStaticParams` defines the list of dynamic route parameters (e.g., `[slug]`) that Next.js should pre-render into static HTML pages at build time, replacing the legacy Pages router `getStaticPaths` method.",
+    difficulty: "EASY",
+    options: [
+      { id: "opt-s82-56a", body: "Specifies dynamic route parameters that should be pre-rendered as static HTML pages at build time instead of on-demand at request time", orderIndex: 0 },
+      { id: "opt-s82-56b", body: "Validates incoming query string parameters against a TypeScript Zod schema at runtime", orderIndex: 1 },
+      { id: "opt-s82-56c", body: "Generates cryptographic salts for user password hashing during registration", orderIndex: 2 },
+      { id: "opt-s82-56d", body: "Configures database connection pooling parameters for background microservices", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-56a",
+  },
+  {
+    id: "pq-s82-57",
+    topicId: "topic-fullstack-js",
+    topicSlug: "fullstack-javascript-apis",
+    body: "In V8 memory management, how does the Scavenge (Cheney's Copying Algorithm) garbage collector clean the Young Generation (Nursery)?",
+    explanation: "The Young Generation is divided into two equal semi-spaces: 'From-Space' and 'To-Space'. During a Scavenge cycle, live objects in From-Space are copied contiguously into To-Space (compacting memory and eliminating fragmentation), while dead objects are abandoned. Objects that survive multiple scavenges are promoted to the Old Generation space.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s82-57a", body: "Copies surviving live objects from 'From-Space' into 'To-Space', compacting memory and discarding dead objects without fragmentation", orderIndex: 0 },
+      { id: "opt-s82-57b", body: "Suspends the operating system kernel and sweeps entire virtual memory addresses using mark-compact passes", orderIndex: 1 },
+      { id: "opt-s82-57c", body: "Compresses all variables using Snappy compression before storing them in the browser localStorage", orderIndex: 2 },
+      { id: "opt-s82-57d", body: "Converts unused JavaScript objects into null pointers using C++ destructor functions", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-57a",
+  },
+  {
+    id: "pq-s82-58",
+    topicId: "topic-fullstack-js",
+    topicSlug: "fullstack-javascript-apis",
+    body: "When designing RESTful APIs, which HTTP status code should be returned when a client makes a syntactically valid JSON request that violates semantic domain business rules (e.g., transferring more money than available balance)?",
+    explanation: "HTTP 400 Bad Request indicates malformed syntax. HTTP 422 Unprocessable Entity (RFC 4918/9110) specifically indicates that the request was syntactically correct and the content type was understood, but the server was unable to process the contained instructions due to semantic validation or domain rule violations.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s82-58a", body: "422 Unprocessable Entity (syntax is valid and understood, but contained domain instructions fail semantic validation)", orderIndex: 0 },
+      { id: "opt-s82-58b", body: "400 Bad Request (syntax error in JSON string formatting)", orderIndex: 1 },
+      { id: "opt-s82-58c", body: "500 Internal Server Error (server application crash)", orderIndex: 2 },
+      { id: "opt-s82-58d", body: "404 Not Found (resource endpoint does not exist)", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-58a",
+  },
+  {
+    id: "pq-s82-59",
+    topicId: "topic-fullstack-js",
+    topicSlug: "fullstack-javascript-apis",
+    body: "How does the `stale-while-revalidate` HTTP `Cache-Control` directive improve API and web application perceived latency?",
+    explanation: "`Cache-Control: max-age=600, stale-while-revalidate=30` instructs the browser or CDN that a cached asset is fresh for 600s. If accessed within the subsequent 30s window, the client immediately receives the cached (stale) response without waiting, while the cache asynchronously fetches the fresh version in the background for future requests.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s82-59a", body: "Immediately returns stale cached content to the user while asynchronously fetching fresh content in the background for future requests", orderIndex: 0 },
+      { id: "opt-s82-59b", body: "Forces all API responses to be purged from CDN edge servers every 30 seconds", orderIndex: 1 },
+      { id: "opt-s82-59c", body: "Disables browser caching completely and enforces strict end-to-end HTTPS TLS renegotiation", orderIndex: 2 },
+      { id: "opt-s82-59d", body: "Compresses JSON responses using Brotli compression algorithms before storage", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-59a",
+  },
+  {
+    id: "pq-s82-60",
+    topicId: "topic-fullstack-js",
+    topicSlug: "fullstack-javascript-apis",
+    body: "Why is `Array.prototype.sort()` in modern V8 (Node.js and Chrome) guaranteed to be a stable sort, and what underlying algorithm does it use?",
+    explanation: "ECMAScript 2019 formally specified that `Array.prototype.sort()` MUST be stable (preserving relative order of elements with equal sort keys). Modern V8 uses TimSort (an adaptive merge sort / insertion sort hybrid derived from Python), which is stable with O(N log N) worst-case time complexity, replacing the previously unstable QuickSort.",
+    difficulty: "EASY",
+    options: [
+      { id: "opt-s82-60a", body: "It uses TimSort (adaptive merge sort hybrid), guaranteeing stability and O(N log N) worst-case performance as mandated by ECMAScript 2019", orderIndex: 0 },
+      { id: "opt-s82-60b", body: "It uses Hoare's QuickSort, which sacrifices stability for O(1) auxiliary space complexity", orderIndex: 1 },
+      { id: "opt-s82-60c", body: "It uses HeapSort, which guarantees O(N) linear time sorting on integer arrays", orderIndex: 2 },
+      { id: "opt-s82-60d", body: "It uses BubbleSort on arrays with fewer than 10,000 items to conserve battery power", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-60a",
+  },
+  {
+    id: "pq-s82-61",
+    topicId: "topic-qa-testing",
+    topicSlug: "qa-automation-testing",
+    body: "In automated End-to-End (E2E) browser testing, why is Playwright's architecture (using direct Chrome DevTools Protocol over WebSockets) fundamentally faster and less flaky than legacy Selenium HTTP JSON Wire Protocol?",
+    explanation: "Selenium issues an individual synchronous HTTP request for every command (e.g., findElement, click), causing high network round-trip overhead and race conditions that require arbitrary sleeps. Playwright establishes a single long-lived bi-directional WebSocket connection to the browser's native debugging protocol (CDP/Bidi), enabling real-time event-driven subscriptions, auto-waiting for element actionability, and millisecond execution.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s82-61a", body: "Playwright uses a single bidirectional WebSocket connection with auto-waiting for actionability, eliminating synchronous HTTP round-trip latencies and race conditions", orderIndex: 0 },
+      { id: "opt-s82-61b", body: "Playwright compiles TypeScript directly into machine code executed by the client graphics card", orderIndex: 1 },
+      { id: "opt-s82-61c", body: "Playwright runs all browser tabs headless without loading JavaScript or CSS stylesheets", orderIndex: 2 },
+      { id: "opt-s82-61d", body: "Playwright completely mocks out the browser DOM using a local Node.js string buffer", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-61a",
+  },
+  {
+    id: "pq-s82-62",
+    topicId: "topic-qa-testing",
+    topicSlug: "qa-automation-testing",
+    body: "What is the primary architectural improvement of the Screenplay Pattern over the traditional Page Object Model (POM) in large test automation suites?",
+    explanation: "Traditional Page Object Model classes tend to become bloated 'god objects' that mix page UI locators with business interaction logic, violating the Single Responsibility Principle. The Screenplay Pattern applies SOLID principles by framing tests around Actors, Abilities (e.g., BrowseTheWeb), Tasks (high-level goals like Checkout), and Interactions (clicking buttons), producing highly reusable, decoupled, and composable test code.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s82-62a", body: "Decomposes bloated page classes into Actors, Tasks, and Interactions adhering to Single Responsibility and Open-Closed principles", orderIndex: 0 },
+      { id: "opt-s82-62b", body: "Automates the generation of video recordings for all passing test scenarios", orderIndex: 1 },
+      { id: "opt-s82-62c", body: "Translates Gherkin feature files directly into binary unit test executables", orderIndex: 2 },
+      { id: "opt-s82-62d", body: "Restricts all UI testing strictly to headless terminal command lines", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-62a",
+  },
+  {
+    id: "pq-s82-63",
+    topicId: "topic-qa-testing",
+    topicSlug: "qa-automation-testing",
+    body: "In software testing, what is Mutation Testing (e.g., Stryker or PIT), and what does the 'Mutation Score' represent?",
+    explanation: "Mutation Testing evaluates the quality and effectiveness of test suites by injecting deliberate bugs ('mutants') into source code (such as flipping `>` to `<`, changing `+` to `-`, or deleting function calls). If the test suite fails when run against a mutant, the mutant is 'killed'. The Mutation Score is the percentage of killed mutants over total mutants, exposing weak tests that have high line coverage but poor assertions.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s82-63a", body: "Injects artificial faults into source code to verify that test suites fail; mutation score is the percentage of mutants detected and killed by tests", orderIndex: 0 },
+      { id: "opt-s82-63b", body: "Simulates database connection dropouts during peak load testing", orderIndex: 1 },
+      { id: "opt-s82-63c", body: "Measures how rapidly developers refactor code in Git feature branches", orderIndex: 2 },
+      { id: "opt-s82-63d", body: "Tests browser compatibility across different operating system patch levels", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-63a",
+  },
+  {
+    id: "pq-s82-64",
+    topicId: "topic-qa-testing",
+    topicSlug: "qa-automation-testing",
+    body: "Why are Explicit Waits (e.g., waiting for element condition) strongly preferred over arbitrary thread sleeps (e.g., `sleep(5000)`) in UI automation frameworks?",
+    explanation: "Arbitrary thread sleeps block the execution thread for a fixed duration regardless of when the element becomes ready, causing tests to run sluggishly if the sleep is too long or fail flakily if network/server latency exceeds the sleep threshold. Explicit waits poll the DOM condition at short intervals (e.g., every 100ms) with a timeout, advancing immediately once satisfied.",
+    difficulty: "EASY",
+    options: [
+      { id: "opt-s82-64a", body: "Explicit waits advance immediately when conditions become true with a timeout fallback, minimizing execution time and eliminating sleep-based flakiness", orderIndex: 0 },
+      { id: "opt-s82-64b", body: "Arbitrary sleeps corrupt the browser's internal JavaScript garbage collection tables", orderIndex: 1 },
+      { id: "opt-s82-64c", body: "Explicit waits bypass CORS security protections enforced by test runners", orderIndex: 2 },
+      { id: "opt-s82-64d", body: "Thread sleeps are completely forbidden by the W3C WebDriver specification", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-64a",
+  },
+  {
+    id: "pq-s82-65",
+    topicId: "topic-qa-testing",
+    topicSlug: "qa-automation-testing",
+    body: "In automated testing doubles, what is the precise distinction between a Mock and a Stub?",
+    explanation: "A Stub is a canned implementation that provides pre-programmed responses to method calls during a test without verifying how it was called. A Mock is a test double configured with expectations on how it will be interacted with (e.g., verifying that a method was called exactly once with specific arguments), focusing on behavior verification rather than state.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s82-65a", body: "Stubs return canned state data without interaction verification; Mocks verify behavior and interaction expectations (e.g. call counts and arguments)", orderIndex: 0 },
+      { id: "opt-s82-65b", body: "Stubs only work in frontend tests; Mocks only work in backend microservices", orderIndex: 1 },
+      { id: "opt-s82-65c", body: "Mocks are written in compiled C++; Stubs are written in dynamic languages", orderIndex: 2 },
+      { id: "opt-s82-65d", body: "Stubs replace entire operating system sockets; Mocks replace single integers", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-65a",
+  },
+  {
+    id: "pq-s82-66",
+    topicId: "topic-qa-testing",
+    topicSlug: "qa-automation-testing",
+    body: "What is Property-Based Testing (e.g., using `fast-check` in TypeScript or `QuickCheck`), and how does it uncover edge-case regressions?",
+    explanation: "Instead of asserting hand-crafted example inputs, Property-Based Testing asserts universal invariant properties that must hold true for all valid inputs (e.g., `decode(encode(x)) === x` or `sort(list).length === list.length`). The framework generates hundreds of pseudo-random, adversarial inputs and automatically 'shrinks' failing inputs to the minimal reproducing example.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s82-66a", body: "Generates hundreds of randomized inputs to test universal invariant properties, automatically shrinking failing cases to minimal reproductions", orderIndex: 0 },
+      { id: "opt-s82-66b", body: "Verifies that all object properties in a database schema have valid SQL data types", orderIndex: 1 },
+      { id: "opt-s82-66c", body: "Tests CSS style properties across different responsive screen breakpoints", orderIndex: 2 },
+      { id: "opt-s82-66d", body: "Checks whether intellectual property and copyright notices exist in source code headers", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-66a",
+  },
+  {
+    id: "pq-s82-67",
+    topicId: "topic-qa-testing",
+    topicSlug: "qa-automation-testing",
+    body: "In modern web component architectures, why do standard CSS selectors fail to locate elements inside a Shadow DOM, and how do modern test runners resolve this?",
+    explanation: "Shadow DOM encapsulates internal DOM trees behind a shadow root, preventing standard `document.querySelector` calls from traversing into the encapsulated component subtree. Modern test engines (like Playwright) automatically pierce shadow DOM boundaries by default with engine-native piercing locators, or provide explicit `>>>` shadow combinators.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s82-67a", body: "Shadow roots encapsulate DOM subtrees from standard document traversal; modern engines support shadow-piercing locators by default", orderIndex: 0 },
+      { id: "opt-s82-67b", body: "Shadow DOM elements are encrypted with AES-128 keys that require private browser keys to decrypt", orderIndex: 1 },
+      { id: "opt-s82-67c", body: "Shadow DOM runs in Web Workers that cannot be inspected by developer tools", orderIndex: 2 },
+      { id: "opt-s82-67d", body: "CSS selectors can only target HTML4 elements, not HTML5 web components", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-67a",
+  },
+  {
+    id: "pq-s82-68",
+    topicId: "topic-qa-testing",
+    topicSlug: "qa-automation-testing",
+    body: "In Consumer-Driven Contract Testing (e.g., Pact), what is the primary benefit over traditional end-to-end integration testing environments?",
+    explanation: "Contract testing allows consumer and provider microservice teams to independently verify that API schemas and behavioral expectations match without deploying an entire live cluster of microservices. The consumer defines a pact contract file during unit tests, which the provider verifies against its own codebase, catching breaking API changes early in CI.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s82-68a", body: "Enables independent verification of API contracts between microservices without deploying complex, brittle live multi-service staging environments", orderIndex: 0 },
+      { id: "opt-s82-68b", body: "Eliminates the need for backend unit tests by running automated fuzzing on production databases", orderIndex: 1 },
+      { id: "opt-s82-68c", body: "Guarantees that third-party cloud infrastructure will maintain 99.999% uptime SLAs", orderIndex: 2 },
+      { id: "opt-s82-68d", body: "Enforces legal copyright agreements on open-source npm dependencies", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-68a",
+  },
+  {
+    id: "pq-s82-69",
+    topicId: "topic-qa-testing",
+    topicSlug: "qa-automation-testing",
+    body: "What is the primary difference between a Soak (Endurance) Test and a Spike Test in performance engineering?",
+    explanation: "A Soak Test subjects a system to a steady, sustained expected load over an extended period (hours or days) to discover memory leaks, disk space exhaustion, or connection pool degradation over time. A Spike Test subjects the system to sudden, dramatic surges in traffic (e.g., 10x traffic jump in 5 seconds) to observe how the system recovers and sheds load under extreme shock.",
+    difficulty: "EASY",
+    options: [
+      { id: "opt-s82-69a", body: "Soak tests run sustained steady load over long durations to detect slow memory leaks and resource exhaustion; Spike tests evaluate recovery from sudden extreme traffic surges", orderIndex: 0 },
+      { id: "opt-s82-69b", body: "Soak tests measure client-side CSS render speeds; Spike tests measure DNS lookup latencies", orderIndex: 1 },
+      { id: "opt-s82-69c", body: "Soak tests are run exclusively in production; Spike tests can only run on developer laptops", orderIndex: 2 },
+      { id: "opt-s82-69d", body: "Spike tests measure battery consumption on mobile devices during background sync", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-69a",
+  },
+  {
+    id: "pq-s82-70",
+    topicId: "topic-qa-testing",
+    topicSlug: "qa-automation-testing",
+    body: "In Visual Regression Testing, what is the purpose of the Structural Similarity Index Measure (SSIM) compared to simple pixel-by-pixel color difference?",
+    explanation: "Simple pixel diffing flags false positive regressions from sub-pixel font rendering differences, browser anti-aliasing variations, or minor 1-pixel layout shifts across GPU drivers. SSIM compares image luminance, contrast, and structure in localized patches, aligning closer with human visual perception and dramatically reducing CI build flakiness.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s82-70a", body: "Evaluates image luminance, contrast, and structural degradation matching human perception, preventing false failures from sub-pixel anti-aliasing shifts", orderIndex: 0 },
+      { id: "opt-s82-70b", body: "Converts PNG screenshots to SVG vector paths to accelerate comparison speed", orderIndex: 1 },
+      { id: "opt-s82-70c", body: "Extracts OCR text from screenshots to check spelling and grammar in UI buttons", orderIndex: 2 },
+      { id: "opt-s82-70d", body: "Compresses test screenshots using lossy JPEG algorithms to save Git repository space", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-70a",
+  },
+  {
+    id: "pq-s82-71",
+    topicId: "topic-qa-testing",
+    topicSlug: "qa-automation-testing",
+    body: "When running integration tests against a real relational database, why is the Transaction Rollback strategy favored over table truncation or dropping tables between tests?",
+    explanation: "Transactional rollback wraps each test case inside a database transaction (`BEGIN ... ROLLBACK`). Because the changes are never committed to disk and the transaction is cleanly aborted at test teardown, the database remains in its pristine initial state with near-zero latency, avoiding the expensive overhead of truncating dozens of foreign-keyed tables.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s82-71a", body: "Wraps each test in an uncommitted transaction rolled back at teardown, resetting state in milliseconds without expensive schema truncations", orderIndex: 0 },
+      { id: "opt-s82-71b", body: "Writes all database operations directly to in-memory SQLite tables that ignore foreign key constraints", orderIndex: 1 },
+      { id: "opt-s82-71c", body: "Prevents developers from writing invalid SQL syntax inside test queries", orderIndex: 2 },
+      { id: "opt-s82-71d", body: "Disables database transaction logs to double query execution speed", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-71a",
+  },
+  {
+    id: "pq-s82-72",
+    topicId: "topic-qa-testing",
+    topicSlug: "qa-automation-testing",
+    body: "What is Modified Condition/Decision Coverage (MC/DC), and why is it required in safety-critical software testing?",
+    explanation: "MC/DC requires that every decision condition is tested as true and false, every entry/exit point is invoked, and each condition has been shown to independently affect the decision outcome (by varying that single condition while holding others fixed). It provides thorough testing of complex Boolean expressions without the exponential test explosion of full multiple condition coverage ($2^N$).",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s82-72a", body: "Demonstrates that each Boolean condition independently affects decision outcomes with linear test cases (N+1) instead of exponential (2^N) combinations", orderIndex: 0 },
+      { id: "opt-s82-72b", body: "Measures the percentage of comments and docstrings written per line of application code", orderIndex: 1 },
+      { id: "opt-s82-72c", body: "Verifies that all asynchronous promises have an explicit `.catch()` rejection handler", orderIndex: 2 },
+      { id: "opt-s82-72d", body: "Calculates the cyclomatic complexity of CSS selectors in user interface templates", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-72a",
+  },
+  {
+    id: "pq-s82-73",
+    topicId: "topic-qa-testing",
+    topicSlug: "qa-automation-testing",
+    body: "What is the primary risk of using automated Record-and-Playback tools for production test automation?",
+    explanation: "Record-and-playback tools typically generate brittle, absolute locators (e.g., `/html/body/div[2]/div[1]/form/div[4]/button`), hardcoded sleep delays, and duplicated step scripts. The resulting test suites are unmaintainable, breaking upon minor DOM or styling updates and lacking modular abstractions like Page Objects or Screenplay tasks.",
+    difficulty: "EASY",
+    options: [
+      { id: "opt-s82-73a", body: "Generates brittle, absolute XPath locators and unmodularized scripts that break upon trivial UI or markup refactoring", orderIndex: 0 },
+      { id: "opt-s82-73b", body: "Violates browser security sandboxes by downloading unauthorized browser extensions", orderIndex: 1 },
+      { id: "opt-s82-73c", body: "Causes automated tests to run exclusively on physical mobile devices", orderIndex: 2 },
+      { id: "opt-s82-73d", body: "Forces test code to be compiled into Java bytecode before execution", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-73a",
+  },
+  {
+    id: "pq-s82-74",
+    topicId: "topic-qa-testing",
+    topicSlug: "qa-automation-testing",
+    body: "In continuous testing pipelines, how does Test Impact Analysis (TIA) optimize CI build cycle duration?",
+    explanation: "Test Impact Analysis maps code changes (via Git diffs and static/dynamic dependency call graphs) to the specific automated test suites that cover those modified code paths. Instead of running the entire 2-hour test suite on every commit, CI selectively executes only the relevant subset of affected tests, dramatically reducing feedback time.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s82-74a", body: "Analyzes Git diffs and code coverage call graphs to execute only the subset of tests affected by the commit rather than the full suite", orderIndex: 0 },
+      { id: "opt-s82-74b", body: "Automatically deletes tests that have failed more than three consecutive times", orderIndex: 1 },
+      { id: "opt-s82-74c", body: "Converts integration tests into unit tests using AST code rewriting", orderIndex: 2 },
+      { id: "opt-s82-74d", body: "Replaces manual QA testing with randomized monkey testing bots", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-74a",
+  },
+  {
+    id: "pq-s82-75",
+    topicId: "topic-qa-testing",
+    topicSlug: "qa-automation-testing",
+    body: "What makes an automated test 'flaky', and which architectural pattern is the most effective preventative measure?",
+    explanation: "Flakiness (intermittent passes and failures without code changes) is predominantly caused by non-deterministic factors: race conditions, reliance on wall-clock timeouts, shared mutable database state between parallel workers, and unmocked external network dependencies. Deterministic explicit waiting, isolated database sandboxes (e.g., Testcontainers), and hermetic mock boundaries eliminate these root causes.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s82-75a", body: "Non-deterministic timing races and shared mutable state; resolved via deterministic explicit waits and isolated per-test sandbox environments", orderIndex: 0 },
+      { id: "opt-s82-75b", body: "Running tests on Linux rather than Windows operating systems", orderIndex: 1 },
+      { id: "opt-s82-75c", body: "Using TypeScript instead of compiled assembly language for test scripts", orderIndex: 2 },
+      { id: "opt-s82-75d", body: "Having more than 50 assertions per test suite file", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-75a",
+  },
+  {
+    id: "pq-s82-76",
+    topicId: "topic-adv-sql",
+    topicSlug: "advanced-sql-optimization",
+    body: "In a B-Tree index on a relational database, what is the 'Leftmost Prefix Rule' for composite indexes on `(A, B, C)`?",
+    explanation: "A composite index sorts tuples lexicographically by A, then B, then C. Queries filtering on `A`, or `(A, B)`, or `(A, B, C)` can utilize the index for efficient range/equality seeks. Queries filtering only on `B`, or only on `C`, or `(B, C)` cannot seek directly into the B-Tree because the primary sorting order begins with column A.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s82-76a", body: "Queries must filter on leading index columns in order (A, then B, then C) to perform index seeks; filtering on B or C alone cannot seek the index", orderIndex: 0 },
+      { id: "opt-s82-76b", body: "The leftmost column must always be an auto-incrementing 64-bit primary key", orderIndex: 1 },
+      { id: "opt-s82-76c", body: "Index scans are only permitted if the query reads table rows from left to right across physical disk sectors", orderIndex: 2 },
+      { id: "opt-s82-76d", body: "All string columns in the composite index must be stored in ASCII lowercase format", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-76a",
+  },
+  {
+    id: "pq-s82-77",
+    topicId: "topic-adv-sql",
+    topicSlug: "advanced-sql-optimization",
+    body: "What is an Index-Only Scan (Covering Index), and why does it deliver significant performance improvements for read-heavy queries?",
+    explanation: "An Index-Only Scan occurs when all columns requested in the query's `SELECT`, `WHERE`, `JOIN`, and `ORDER BY` clauses are satisfied directly from the index structure (including `INCLUDE` columns). The storage engine completely bypasses reading table heap pages (eliminating random disk I/O to fetch row tuples), reading data solely from the index buffer pool.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s82-77a", body: "All requested columns are contained within the index, completely bypassing table heap page reads and eliminating random disk I/O", orderIndex: 0 },
+      { id: "opt-s82-77b", body: "The index is loaded into CPU registers to avoid accessing RAM memory entirely", orderIndex: 1 },
+      { id: "opt-s82-77c", body: "It converts all SQL SELECT statements into direct disk block memory copies", orderIndex: 2 },
+      { id: "opt-s82-77d", body: "It forces the query to return results without checking transaction isolation locks", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-77a",
+  },
+  {
+    id: "pq-s82-78",
+    topicId: "topic-adv-sql",
+    topicSlug: "advanced-sql-optimization",
+    body: "Under what database query engine conditions will a Cost-Based Optimizer (CBO) choose a Hash Join over a Nested Loop Join?",
+    explanation: "Nested Loop Joins excel when the outer table is very small and the inner table has an efficient index on the join key (O(N * log M)). When both relations are large, unsorted, and lack suitable indexes on join keys, Hash Join builds an in-memory hash table of the smaller relation (O(M)) and probes it with rows from the larger relation (O(N)), resulting in linear O(M + N) complexity.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s82-78a", body: "When joining two large unindexed relations where an in-memory hash table of the smaller relation yields linear O(M + N) scan time", orderIndex: 0 },
+      { id: "opt-s82-78b", body: "When both tables have fewer than 10 rows and are stored in the same physical disk block", orderIndex: 1 },
+      { id: "opt-s82-78c", body: "When the join condition uses the `LIKE '%value%'` wild-card operator", orderIndex: 2 },
+      { id: "opt-s82-78d", body: "When the query is executed inside an uncommitted read-only transaction", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-78a",
+  },
+  {
+    id: "pq-s82-79",
+    topicId: "topic-adv-sql",
+    topicSlug: "advanced-sql-optimization",
+    body: "What is a Partial (Filtered) Index in PostgreSQL/SQL Server, and what are its primary operational advantages?",
+    explanation: "A Partial Index is created with an explicit `WHERE` clause (e.g., `CREATE INDEX ON orders (created_at) WHERE status = 'PENDING'`). It only indexes rows satisfying the predicate. For tables with millions of completed orders and only a few thousand pending orders, the index footprint is 99% smaller, fits entirely in RAM, and requires zero maintenance overhead during updates to completed records.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s82-79a", body: "Indexes only rows matching an explicit WHERE filter, drastically reducing index size, RAM consumption, and write-amplification overhead", orderIndex: 0 },
+      { id: "opt-s82-79b", body: "Indexes only the first 50 characters of long textual columns", orderIndex: 1 },
+      { id: "opt-s82-79c", body: "Splits an index into multiple separate files distributed across cloud availability zones", orderIndex: 2 },
+      { id: "opt-s82-79d", body: "Encrypts table columns using asymmetric RSA key pairs", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-79a",
+  },
+  {
+    id: "pq-s82-80",
+    topicId: "topic-adv-sql",
+    topicSlug: "advanced-sql-optimization",
+    body: "In PostgreSQL's MVCC (Multi-Version Concurrency Control) storage engine, what causes 'Table Bloat' and why is `VACUUM` required?",
+    explanation: "In PostgreSQL, `UPDATE` operations do not overwrite existing data; they write a new row version (tuple) and mark the old version as dead (`xmax` set). `DELETE` marks tuples as dead. Dead tuples continue consuming physical disk pages until reclaimed by `VACUUM`. Table bloat occurs when dead tuples accumulate faster than autovacuum reclaims them, increasing table scan times and disk usage.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s82-80a", body: "Updates write new tuple versions and deletes mark tuples as dead; VACUUM reclaims dead tuple space for reuse to prevent file expansion and scan bloat", orderIndex: 0 },
+      { id: "opt-s82-80b", body: "Table bloat is caused by storing binary image files in VARCHAR columns", orderIndex: 1 },
+      { id: "opt-s82-80c", body: "VACUUM re-encrypts database tables using rotated master database keys", orderIndex: 2 },
+      { id: "opt-s82-80d", body: "VACUUM terminates idle background worker threads that exceed their memory quotas", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-80a",
+  },
+  {
+    id: "pq-s82-81",
+    topicId: "topic-adv-sql",
+    topicSlug: "advanced-sql-optimization",
+    body: "In SQL Window Functions, what is the crucial difference between `RANK()` and `DENSE_RANK()` when processing tied scores?",
+    explanation: "When encountering tied values, `RANK()` assigns identical ranks to the tied items and then leaves gaps in the subsequent rank sequence (e.g., 1, 2, 2, 4). `DENSE_RANK()` assigns identical ranks to tied items without skipping any subsequent ranks (e.g., 1, 2, 2, 3).",
+    difficulty: "EASY",
+    options: [
+      { id: "opt-s82-81a", body: "`RANK()` leaves rank gaps after ties (1, 2, 2, 4); `DENSE_RANK()` does not skip rank values after ties (1, 2, 2, 3)", orderIndex: 0 },
+      { id: "opt-s82-81b", body: "`RANK()` computes floating-point percentiles; `DENSE_RANK()` computes integers", orderIndex: 1 },
+      { id: "opt-s82-81c", body: "`DENSE_RANK()` requires an active full-text search index on the partitioning column", orderIndex: 2 },
+      { id: "opt-s82-81d", body: "`RANK()` can only be used with `ORDER BY ... DESC` clauses", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-81a",
+  },
+  {
+    id: "pq-s82-82",
+    topicId: "topic-adv-sql",
+    topicSlug: "advanced-sql-optimization",
+    body: "What is an Expression (Functional) Index, and why would you create `CREATE INDEX idx_lower_email ON users (LOWER(email))`?",
+    explanation: "Standard B-Tree indexes on `email` store the original case-sensitive string. When a query uses `WHERE LOWER(email) = 'user@test.com'`, the database cannot use the standard index because applying a function prevents direct B-Tree seeks. A functional index computes and stores `LOWER(email)` in the index, allowing the optimizer to perform an index seek.",
+    difficulty: "EASY",
+    options: [
+      { id: "opt-s82-82a", body: "Indexes the computed result of an expression or function, enabling index seeks for queries that filter on that transformed expression", orderIndex: 0 },
+      { id: "opt-s82-82b", body: "Validates email address syntax using regular expressions during database inserts", orderIndex: 1 },
+      { id: "opt-s82-82c", body: "Prevents duplicate email addresses from being stored in the database", orderIndex: 2 },
+      { id: "opt-s82-82d", body: "Translates email domains into numeric IP addresses during query execution", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-82a",
+  },
+  {
+    id: "pq-s82-83",
+    topicId: "topic-adv-sql",
+    topicSlug: "advanced-sql-optimization",
+    body: "In relational query execution plans, what is the fundamental difference between a Bitmap Index Scan and an Index Scan in PostgreSQL?",
+    explanation: "An Index Scan traverses the B-Tree and immediately fetches the corresponding table tuple from heap memory for each index match (resulting in random I/O if tuples are scattered). A Bitmap Index Scan first traverses the index to build a memory bitmap of physical page numbers containing matching tuples, and then performs a sequential Bitmap Heap Scan over physical blocks, converting random disk I/O into sequential I/O.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s82-83a", body: "Index Scan fetches heap tuples immediately (random I/O); Bitmap Index Scan constructs an in-memory page bitmap to read heap blocks sequentially", orderIndex: 0 },
+      { id: "opt-s82-83b", body: "Bitmap Index Scans are only supported on 64-bit integer primary key columns", orderIndex: 1 },
+      { id: "opt-s82-83c", body: "Index Scans execute asynchronously across multi-node clusters; Bitmap Scans execute on single cores", orderIndex: 2 },
+      { id: "opt-s82-83d", body: "Bitmap Index Scans convert query results into PNG raster images", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-83a",
+  },
+  {
+    id: "pq-s82-84",
+    topicId: "topic-adv-sql",
+    topicSlug: "advanced-sql-optimization",
+    body: "How does Partition Pruning enhance query performance on large partitioned relational tables?",
+    explanation: "Partition Pruning is an optimizer optimization where the query engine analyzes `WHERE` clause filter predicates against table partition boundary definitions (e.g., `sale_date >= '2026-01-01'`) and completely excludes non-matching physical partitions from the execution plan, eliminating disk I/O and scans for 90%+ of table data.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s82-84a", body: "The query optimizer evaluates filter predicates to skip and avoid scanning physical partition files that cannot contain matching rows", orderIndex: 0 },
+      { id: "opt-s82-84b", body: "Automatically deletes older partition tables when database storage capacity reaches 90%", orderIndex: 1 },
+      { id: "opt-s82-84c", body: "Compresses historical partitions using gzip compression algorithms", orderIndex: 2 },
+      { id: "opt-s82-84d", body: "Restricts partition access to users with administrative database credentials", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-84a",
+  },
+  {
+    id: "pq-s82-85",
+    topicId: "topic-adv-sql",
+    topicSlug: "advanced-sql-optimization",
+    body: "In PostgreSQL 12+, what is the performance significance of the `WITH ... AS MATERIALIZED` Common Table Expression (CTE) modifier?",
+    explanation: "Historically in PostgreSQL, CTEs were strict optimization barriers: they were always materialized (evaluated and written to a temporary buffer), preventing the optimizer from pushing predicates into the CTE. In modern versions, CTEs are inlined by default like subqueries. Specifying `AS MATERIALIZED` forces the CTE to act as an optimization barrier, which is useful to prevent expensive re-evaluations or control execution order.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s82-85a", body: "Forces the CTE to be evaluated once and stored in memory as an optimization barrier, preventing query rewrite inlining", orderIndex: 0 },
+      { id: "opt-s82-85b", body: "Stores CTE query results permanently on disk as a new relational table", orderIndex: 1 },
+      { id: "opt-s82-85c", body: "Enables distributed sharding of CTE results across remote PostgreSQL foreign servers", orderIndex: 2 },
+      { id: "opt-s82-85d", body: "Disables ACID transaction guarantees for operations inside the CTE body", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-85a",
+  },
+  {
+    id: "pq-s82-86",
+    topicId: "topic-adv-sql",
+    topicSlug: "advanced-sql-optimization",
+    body: "Why does the query `SELECT * FROM users WHERE status != 'INACTIVE'` typically result in a slow Full Table Scan even if an index on `status` exists?",
+    explanation: "If 95% of users have status `ACTIVE` and only 5% are `INACTIVE`, the condition `!= 'INACTIVE'` matches 95% of the table rows. The Cost-Based Optimizer determines that random disk I/O seeking through an index 950,000 times is substantially slower than streaming the entire table sequentially via a fast sequential scan.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s82-86a", body: "Negative conditions (`!=`) typically match a high percentage of rows, where sequential heap scans are cheaper than millions of random index lookups", orderIndex: 0 },
+      { id: "opt-s82-86b", body: "Relational databases do not support the inequality operator (`!=`) in index B-Trees", orderIndex: 1 },
+      { id: "opt-s82-86c", body: "Index lookup operations cannot evaluate string comparisons", orderIndex: 2 },
+      { id: "opt-s82-86d", body: "Inequality queries automatically corrupt B-Tree leaf node page pointers", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-86a",
+  },
+  {
+    id: "pq-s82-87",
+    topicId: "topic-adv-sql",
+    topicSlug: "advanced-sql-optimization",
+    body: "How does Serializable Snapshot Isolation (SSI) prevent write skew anomalies in distributed and relational databases without using pessimistic row locks?",
+    explanation: "SSI tracks rw-antidependencies (si-read locks) between concurrent transactions during execution. When the engine detects a cycle of dependencies (indicating that transaction T1's read conflicted with T2's write and vice versa, which would produce a non-serializable schedule), it aborts one of the conflicting transactions with a serialization failure error, guaranteeing strict serializability with optimistic concurrency.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s82-87a", body: "Tracks read-write anti-dependency conflicts dynamically and aborts one transaction if a cycle is detected, ensuring strict serializability without locking", orderIndex: 0 },
+      { id: "opt-s82-87b", body: "Acquires an exclusive global database table lock for every single SELECT statement", orderIndex: 1 },
+      { id: "opt-s82-87c", body: "Executes all transactions sequentially on a single dedicated CPU core", orderIndex: 2 },
+      { id: "opt-s82-87d", body: "Forces all database transactions to wait for synchronized GPS atomic clocks", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-87a",
+  },
+  {
+    id: "pq-s82-88",
+    topicId: "topic-adv-sql",
+    topicSlug: "advanced-sql-optimization",
+    body: "What is the B-Tree Index Fill Factor parameter, and why should high-frequency UPDATE tables use a fill factor below 100 (e.g., 70-80)?",
+    explanation: "Fill factor sets the percentage of space on each index/heap page reserved for initial inserts (e.g., 80% full, 20% empty). Reserving free space allows subsequent `UPDATE` operations on that row to stay on the same page (HOT - Heap-Only Tuple updates in Postgres), avoiding expensive B-Tree page splits and secondary index updates.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s82-88a", body: "Leaves free headroom on data/index pages to accommodate future updates on the same page, preventing costly B-tree page splits and index churn", orderIndex: 0 },
+      { id: "opt-s82-88b", body: "Defines the maximum percentage of RAM memory allocated to the database query cache", orderIndex: 1 },
+      { id: "opt-s82-88c", body: "Caps the maximum number of rows permitted in an individual database table", orderIndex: 2 },
+      { id: "opt-s82-88d", body: "Determines how frequently database transaction logs are archived to cloud storage", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-88a",
+  },
+  {
+    id: "pq-s82-89",
+    topicId: "topic-adv-sql",
+    topicSlug: "advanced-sql-optimization",
+    body: "In SQL aggregation queries, what is the performance difference between `COUNT(*)` and `COUNT(column_name)`?",
+    explanation: "`COUNT(*)` counts the total number of rows returned by the query regardless of nullability, allowing the optimizer to scan any available narrow index without inspecting row values. `COUNT(column_name)` must inspect every individual row and evaluate whether `column_name IS NOT NULL`, which prevents certain index-only optimizations and incurs evaluation overhead.",
+    difficulty: "EASY",
+    options: [
+      { id: "opt-s82-89a", body: "`COUNT(*)` counts total rows allowing use of any index; `COUNT(column)` must evaluate nullability for every row, requiring specific column reads", orderIndex: 0 },
+      { id: "opt-s82-89b", body: "`COUNT(*)` runs in O(N^2) time while `COUNT(column)` runs in O(1) constant time", orderIndex: 1 },
+      { id: "opt-s82-89c", body: "`COUNT(*)` returns an approximate estimate while `COUNT(column)` is always mathematically exact", orderIndex: 2 },
+      { id: "opt-s82-89d", body: "`COUNT(*)` is deprecated in ANSI SQL standards and replaced by `COUNT(1)`", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-89a",
+  },
+  {
+    id: "pq-s82-90",
+    topicId: "topic-adv-sql",
+    topicSlug: "advanced-sql-optimization",
+    body: "What role does HyperLogLog (HLL) play in modern database cost-based optimizers and analytical engines?",
+    explanation: "HyperLogLog is a probabilistic algorithm that estimates the number of distinct elements (cardinality) in a dataset with extreme memory efficiency (e.g., a few kilobytes for billions of items) and typical relative error below 1-2%. Optimizers use HLL to maintain high-accuracy distinct-value statistics for query planning without storing expensive set structures.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s82-90a", body: "Probabilistic cardinality estimation algorithm providing distinct-value statistics with negligible memory footprint and high accuracy for query planning", orderIndex: 0 },
+      { id: "opt-s82-90b", body: "Cryptographic hash function used to generate primary key UUIDs", orderIndex: 1 },
+      { id: "opt-s82-90c", body: "Compression algorithm used to pack floating-point numbers into integer arrays", orderIndex: 2 },
+      { id: "opt-s82-90d", body: "Distributed consensus protocol for master election in database clusters", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-90a",
+  },
+  {
+    id: "pq-s82-91",
+    topicId: "topic-cloud-security",
+    topicSlug: "cloud-cybersecurity-defense",
+    body: "How does the OAuth 2.0 Proof Key for Code Exchange (PKCE) extension protect public clients (such as Single-Page Apps and mobile apps) against Authorization Code Interception attacks?",
+    explanation: "Public clients cannot securely store a `client_secret`. With PKCE, the client generates a cryptographically random `code_verifier` and sends its SHA-256 hash (`code_challenge`) in the authorization request. When exchanging the authorization code for tokens, the client sends the plaintext `code_verifier`. The authorization server hashes it and verifies that it matches the original challenge, ensuring stolen authorization codes cannot be redeemed by an attacker without the verifier.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s82-91a", body: "The client generates a secret `code_verifier` and sends its SHA-256 hash in authorization; token exchange requires revealing the verifier, preventing intercepted codes from being redeemed", orderIndex: 0 },
+      { id: "opt-s82-91b", body: "It encrypts the entire user password using the client's public RSA certificate before transmission", orderIndex: 1 },
+      { id: "opt-s82-91c", body: "It eliminates the need for authorization codes by sending JWT access tokens directly in URL hash fragments", orderIndex: 2 },
+      { id: "opt-s82-91d", body: "It restricts API authentication strictly to physical hardware FIDO2 security keys", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-91a",
+  },
+  {
+    id: "pq-s82-92",
+    topicId: "topic-cloud-security",
+    topicSlug: "cloud-cybersecurity-defense",
+    body: "Why is Argon2id currently recognized as the state-of-the-art algorithm for password hashing over legacy algorithms like PBKDF2 and SHA-256?",
+    explanation: "PBKDF2 and standard SHA hashes are purely compute-bound; attackers using cheap GPUs, ASICs, or FPGAs can compute billions of candidate hashes per second. Argon2id is a hybrid memory-hard algorithm: it utilizes memory-filling passes (Argon2d) to provide maximum defense against GPU/ASIC attacks, combined with data-independent memory access (Argon2i) to eliminate side-channel cache-timing vulnerabilities.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s82-92a", body: "It is a memory-hard algorithm that requires massive RAM allocation, neutralizing GPU/ASIC cracking while preventing side-channel cache-timing attacks", orderIndex: 0 },
+      { id: "opt-s82-92b", body: "It generates reversible password hashes that can be recovered by system administrators", orderIndex: 1 },
+      { id: "opt-s82-92c", body: "It executes password hashing exclusively inside hardware TPM security chips", orderIndex: 2 },
+      { id: "opt-s82-92d", body: "It relies on quantum entanglement to verify password string identity", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-92a",
+  },
+  {
+    id: "pq-s82-93",
+    topicId: "topic-cloud-security",
+    topicSlug: "cloud-cybersecurity-defense",
+    body: "How does Authenticated Encryption with Associated Data (AEAD), such as AES-256-GCM, prevent Ciphertext Tampering and Bit-Flipping attacks?",
+    explanation: "Traditional encryption (like AES-CBC) only guarantees confidentiality; an attacker modifying ciphertext bits can cause targeted changes to decrypted plaintext. AES-GCM (Galois/Counter Mode) computes a cryptographic Authentication Tag over both the ciphertext and unencrypted Associated Data (AAD). If a single bit in the ciphertext is altered, tag verification fails and the entire message is rejected before decryption.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s82-93a", body: "Computes a cryptographic authentication tag over ciphertext and associated data, guaranteeing both confidentiality and tamper-proof message integrity", orderIndex: 0 },
+      { id: "opt-s82-93b", body: "Generates a new 2048-bit RSA key pair for every individual network packet", orderIndex: 1 },
+      { id: "opt-s82-93c", body: "Encrypts data twice using alternating symmetric and asymmetric cipher streams", orderIndex: 2 },
+      { id: "opt-s82-93d", body: "Embeds digital steganographic watermarks into plaintext characters before encryption", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-93a",
+  },
+  {
+    id: "pq-s82-94",
+    topicId: "topic-cloud-security",
+    topicSlug: "cloud-cybersecurity-defense",
+    body: "How does the AWS Instance Metadata Service Version 2 (IMDSv2) successfully mitigate Server-Side Request Forgery (SSRF) vulnerabilities on cloud compute instances?",
+    explanation: "In IMDSv1, metadata and IAM instance role credentials could be fetched via a simple HTTP GET request to `http://169.254.169.254/latest/meta-data/`, which simple SSRF bugs easily exploit. IMDSv2 is session-oriented: it requires an explicit `PUT` request with a mandatory `X-aws-ec2-metadata-token-ttl-seconds` header to acquire a temporary session token, and sets the IP TTL hop count to 1 to block forwarded requests.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s82-94a", body: "Enforces a session-oriented PUT request with custom headers to obtain a token and caps IP TTL at 1, blocking standard HTTP GET-based SSRF vectors", orderIndex: 0 },
+      { id: "opt-s82-94b", body: "Replaces internal IP 169.254.169.254 with an external public DNS domain requiring OAuth2 authentication", orderIndex: 1 },
+      { id: "opt-s82-94c", body: "Requires physical biometric authentication from the cloud administrator before instances can access credentials", orderIndex: 2 },
+      { id: "opt-s82-94d", body: "Encrypts instance metadata with user-defined PGP private keys stored in Git repositories", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-94a",
+  },
+  {
+    id: "pq-s82-95",
+    topicId: "topic-cloud-security",
+    topicSlug: "cloud-cybersecurity-defense",
+    body: "Why must cryptographic secret comparisons (e.g., verifying HMAC signatures or authentication tokens) be performed using constant-time comparison functions like `crypto.timingSafeEqual`?",
+    explanation: "Standard string equality operators (`===` or `strcmp`) exit early at the first byte mismatch. An attacker measuring microscopic network latency differences (timing side-channel attacks) can deduce which byte matched, iteratively guessing secret keys byte-by-byte. Constant-time comparison takes the exact same number of clock cycles regardless of where or whether bytes differ.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s82-95a", body: "Standard equality operators exit early on first byte mismatch, enabling timing side-channel attacks; constant-time functions take identical execution time regardless of differences", orderIndex: 0 },
+      { id: "opt-s82-95b", body: "Constant-time comparison executes inside the CPU L1 data cache to prevent disk memory swapping", orderIndex: 1 },
+      { id: "opt-s82-95c", body: "Standard operators can only compare ASCII strings up to 32 characters in length", orderIndex: 2 },
+      { id: "opt-s82-95d", body: "Constant-time comparisons automatically rotate cryptographic encryption keys after every check", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-95a",
+  },
+  {
+    id: "pq-s82-96",
+    topicId: "topic-cloud-security",
+    topicSlug: "cloud-cybersecurity-defense",
+    body: "In Zero Trust Architecture (ZTA, NIST SP 800-207), what is the core tenet regarding network perimeter security?",
+    explanation: "Zero Trust explicitly assumes that attackers are already present inside the network. Network locality (e.g., being on the corporate intranet or behind a VPN) confers zero implied trust. Every access request—regardless of origin—must be dynamically authenticated, authorized, and encrypted based on user identity, device health, and environmental context before granting least-privilege access.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s82-96a", body: "No implicit trust is granted based on network location; every transaction must be explicitly authenticated, authorized, and encrypted under least-privilege policies", orderIndex: 0 },
+      { id: "opt-s82-96b", body: "All internal enterprise firewalls are decommissioned and replaced by public DNS entries", orderIndex: 1 },
+      { id: "opt-s82-96c", body: "Users must change their passwords every 24 hours to prevent credential stuffing", orderIndex: 2 },
+      { id: "opt-s82-96d", body: "All corporate servers must run in completely air-gapped data centers without internet access", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-96a",
+  },
+  {
+    id: "pq-s82-97",
+    topicId: "topic-cloud-security",
+    topicSlug: "cloud-cybersecurity-defense",
+    body: "What is Mutual TLS (mTLS), and why is it standard practice in microservice service mesh architectures (e.g., Istio)?",
+    explanation: "Standard TLS only authenticates the server to the client. Mutual TLS (mTLS) authenticates both ends of the connection: the server validates the client's X.509 certificate and the client validates the server's certificate. In a service mesh, mTLS enforces cryptographically verified service identities (e.g., SPIFFE IDs), encrypts all east-west inter-service traffic, and enables strict service-to-service authorization.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s82-97a", body: "Both client and server present and authenticate cryptographic X.509 certificates to each other, enabling encrypted traffic and verified microservice identities", orderIndex: 0 },
+      { id: "opt-s82-97b", body: "The web browser and web server execute identical JavaScript scripts to verify page checksums", orderIndex: 1 },
+      { id: "opt-s82-97c", body: "It establishes two independent TCP connections to the same host for redundant failover", orderIndex: 2 },
+      { id: "opt-s82-97d", body: "It encrypts DNS resolution queries using the client's private SSH key", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-97a",
+  },
+  {
+    id: "pq-s82-98",
+    topicId: "topic-cloud-security",
+    topicSlug: "cloud-cybersecurity-defense",
+    body: "How does OCSP Stapling (Online Certificate Status Protocol) improve both TLS handshake performance and user privacy?",
+    explanation: "In traditional OCSP, the client queries the Certificate Authority's OCSP server during the TLS handshake to verify certificate validity, introducing latency and leaking the user's browsing history to the CA. With OCSP Stapling, the web server periodically queries the CA, caches the time-stamped cryptographically signed OCSP response, and 'staples' it directly into the TLS handshake to the client.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s82-98a", body: "The web server periodically queries the CA and 'staples' the signed revocation status directly into the TLS handshake, eliminating CA lookup latency and client privacy leaks", orderIndex: 0 },
+      { id: "opt-s82-98b", body: "The web browser downloads the entire Certificate Revocation List (CRL) into browser local storage", orderIndex: 1 },
+      { id: "opt-s82-98c", body: "It compresses the public X.509 certificate into a 16-bit integer hash", orderIndex: 2 },
+      { id: "opt-s82-98d", body: "It allows web servers to issue their own root certificates without third-party validation", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-98a",
+  },
+  {
+    id: "pq-s82-99",
+    topicId: "topic-cloud-security",
+    topicSlug: "cloud-cybersecurity-defense",
+    body: "In cloud key management, what is Envelope Encryption, and why is it used to protect massive databases and storage buckets?",
+    explanation: "Encrypting large volumes of data directly with a central Key Management Service (KMS) Customer Master Key (CMK) would overwhelm KMS API rate limits and saturate network bandwidth. In Envelope Encryption, the KMS generates a Data Encryption Key (DEK). The local service uses the plaintext DEK to encrypt data locally, stores the encrypted DEK alongside the ciphertext, and wipes the plaintext DEK from memory.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s82-99a", body: "Data is encrypted locally using a fast Data Encryption Key (DEK); the DEK itself is encrypted using a central KMS Root Key and stored alongside the ciphertext", orderIndex: 0 },
+      { id: "opt-s82-99b", body: "All sensitive files are compressed inside password-protected ZIP envelopes before upload", orderIndex: 1 },
+      { id: "opt-s82-99c", body: "Encryption keys are split into 5 physical pieces stored in tamper-proof bank vaults", orderIndex: 2 },
+      { id: "opt-s82-99d", body: "Data is sent unencrypted over VPN tunnels and encrypted only when reaching the physical disk head", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-99a",
+  },
+  {
+    id: "pq-s82-100",
+    topicId: "topic-cloud-security",
+    topicSlug: "cloud-cybersecurity-defense",
+    body: "What is the primary mechanism by which SYN Flood DDoS attacks exhaust server resources, and how do SYN Cookies defeat them?",
+    explanation: "In a SYN Flood, attackers send thousands of TCP SYN packets with spoofed IPs and never complete the 3-way handshake, exhausting the server's SYN backlog queue memory. With SYN Cookies, the server allocates NO state or memory upon receiving a SYN. Instead, it encodes the connection parameters into the initial sequence number (cookie) of the SYN-ACK. When the client returns the final ACK, the server reconstructs the connection state.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s82-100a", body: "Encodes TCP connection state into the SYN-ACK sequence number rather than allocating backlog queue memory, defeating state exhaustion attacks", orderIndex: 0 },
+      { id: "opt-s82-100b", body: "Rejects all incoming TCP connections whose source port is greater than 1024", orderIndex: 1 },
+      { id: "opt-s82-100c", body: "Sends HTTP 429 Too Many Requests status codes to all incoming IP addresses", orderIndex: 2 },
+      { id: "opt-s82-100d", body: "Forces connecting clients to install third-party browser tracking cookies", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-100a",
+  },
+  {
+    id: "pq-s82-101",
+    topicId: "topic-cloud-security",
+    topicSlug: "cloud-cybersecurity-defense",
+    body: "What is the key difference between Role-Based Access Control (RBAC) and Attribute-Based Access Control (ABAC)?",
+    explanation: "RBAC determines access permissions based strictly on predefined static roles assigned to users (e.g., `role: editor`). ABAC evaluates dynamic policies based on attributes of the subject (user department, clearance), resource (document classification, owner), action (read, write), and environment (time of day, device location, IP subnet), enabling fine-grained, contextual access control.",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s82-101a", body: "RBAC grants permissions based on static predefined roles; ABAC evaluates dynamic policies combining subject, resource, action, and contextual environmental attributes", orderIndex: 0 },
+      { id: "opt-s82-101b", body: "RBAC is used for hardware devices; ABAC is used exclusively for software databases", orderIndex: 1 },
+      { id: "opt-s82-101c", body: "ABAC requires biometric authentication while RBAC only requires passwords", orderIndex: 2 },
+      { id: "opt-s82-101d", body: "RBAC cannot be used in systems with more than 100 registered users", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-101a",
+  },
+  {
+    id: "pq-s82-102",
+    topicId: "topic-cloud-security",
+    topicSlug: "cloud-cybersecurity-defense",
+    body: "How do Prepared Statements with Parameterized Queries completely prevent SQL Injection (SQLi) attacks?",
+    explanation: "SQLi occurs when untrusted user input is concatenated into a SQL string, altering the query's syntactic AST structure. Prepared Statements send the SQL statement template to the database engine first for parsing and compilation. User input is transmitted separately as pure parameter data; the query engine never evaluates parameters as executable SQL syntax, rendering injection impossible.",
+    difficulty: "EASY",
+    options: [
+      { id: "opt-s82-102a", body: "The SQL structure is pre-compiled before user input is supplied; parameters are treated strictly as data literals and never evaluated as executable syntax", orderIndex: 0 },
+      { id: "opt-s82-102b", body: "Prepared statements escape single quotes with backslashes before executing queries", orderIndex: 1 },
+      { id: "opt-s82-102c", body: "Prepared statements convert user input into base64 strings before inserting them into tables", orderIndex: 2 },
+      { id: "opt-s82-102d", body: "Prepared statements restrict database access to read-only SELECT operations", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-102a",
+  },
+  {
+    id: "pq-s82-103",
+    topicId: "topic-cloud-security",
+    topicSlug: "cloud-cybersecurity-defense",
+    body: "What is Ephemeral Diffie-Hellman (ECDHE), and what security property does it provide in modern TLS 1.3 handshakes?",
+    explanation: "In ECDHE, the client and server generate temporary, single-session elliptic curve key pairs that are discarded immediately after negotiating the symmetric session key. This provides Perfect Forward Secrecy (PFS): even if an adversary records encrypted network traffic for years and later steals the server's private RSA/ECC certificate, they cannot decrypt the past recorded sessions.",
+    difficulty: "HARD",
+    options: [
+      { id: "opt-s82-103a", body: "Generates disposable single-session key pairs providing Perfect Forward Secrecy, ensuring past encrypted traffic cannot be decrypted if server private keys are later compromised", orderIndex: 0 },
+      { id: "opt-s82-103b", body: "Eliminates the need for public key infrastructure certificates in web browsers", orderIndex: 1 },
+      { id: "opt-s82-103c", body: "Encrypts data packets using quantum-resistant physical laser frequencies", orderIndex: 2 },
+      { id: "opt-s82-103d", body: "Allows clients to authenticate directly without transmitting user passwords", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-103a",
+  },
+  {
+    id: "pq-s82-104",
+    topicId: "topic-cloud-security",
+    topicSlug: "cloud-cybersecurity-defense",
+    body: "In Cross-Site Scripting (XSS) taxonomy, what distinguishes DOM-based XSS from Reflected or Stored XSS?",
+    explanation: "In Reflected and Stored XSS, the vulnerability originates in the backend server reflecting or storing malicious payloads inside the HTTP response HTML. In DOM-based XSS, the payload never touches the backend server; client-side JavaScript code reads data from an untrusted source (e.g., `location.hash` or `document.referrer`) and unsafely writes it to an execution sink (e.g., `element.innerHTML` or `eval()`).",
+    difficulty: "MEDIUM",
+    options: [
+      { id: "opt-s82-104a", body: "The vulnerability executes entirely in the client-side JavaScript DOM (source-to-sink) without the payload necessarily ever being sent to or returned by the server", orderIndex: 0 },
+      { id: "opt-s82-104b", body: "DOM-based XSS only affects mobile applications, not desktop web browsers", orderIndex: 1 },
+      { id: "opt-s82-104c", body: "DOM-based XSS requires administrative access to the backend database server", orderIndex: 2 },
+      { id: "opt-s82-104d", body: "DOM-based XSS can only occur over unencrypted HTTP connections", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-104a",
+  },
+  {
+    id: "pq-s82-105",
+    topicId: "topic-cloud-security",
+    topicSlug: "cloud-cybersecurity-defense",
+    body: "What protection does the `X-Content-Type-Options: nosniff` HTTP response header provide?",
+    explanation: "Without this header, older or aggressive browsers may perform MIME-type sniffing: if a file served as `text/plain` looks like HTML or JavaScript, the browser executes it as script. Setting `nosniff` forces browsers to strictly adhere to the declared `Content-Type`, preventing user-uploaded non-executable files (like profile photos or text uploads) from being executed as malicious scripts.",
+    difficulty: "EASY",
+    options: [
+      { id: "opt-s82-105a", body: "Forces browsers to strictly honor the declared Content-Type header and disables MIME-type sniffing, preventing non-script uploads from executing as code", orderIndex: 0 },
+      { id: "opt-s82-105b", body: "Compresses HTTP headers using Huffman coding algorithms", orderIndex: 1 },
+      { id: "opt-s82-105c", body: "Blocks search engine web crawlers from indexing sensitive API endpoints", orderIndex: 2 },
+      { id: "opt-s82-105d", body: "Encrypts the URL query string parameters during network transmission", orderIndex: 3 }
+    ],
+    correctOptionId: "opt-s82-105a",
+  },
 ];

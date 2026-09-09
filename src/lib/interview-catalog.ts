@@ -2273,6 +2273,559 @@ Therefore, if we reset slow = head and keep fast at the collision point, moving 
     ],
     relatedCurriculumSlug: 'ci-cd-security-supply-chain-and-gitops-workflows'
   }
+,
+  {
+    id: "dsa-08",
+    category: "Data Structures & Algorithms",
+    categorySlug: "dsa",
+    title: "How do you detect and find the cycle entry node in a Linked List using Floyd's Algorithm, and what is the mathematical proof?",
+    difficulty: "MEDIUM",
+    frequency: "VERY HIGH",
+    shortSummary: "Advance slow by 1 step and fast by 2 steps to detect cycle collision. Then reset slow to head while keeping fast at collision; advance both by 1 step until they meet at the cycle entry.",
+    deepAnswer: "Floyd's Tortoise and Hare cycle detection solves both cycle existence and cycle entry location in O(N) time and O(1) auxiliary space.\n\n1. Phase 1: Cycle Detection\n   - Initialize `slow = head` and `fast = head`.\n   - In each iteration, advance `slow = slow.next` (speed 1) and `fast = fast.next.next` (speed 2).\n   - If `fast` or `fast.next` reaches null, the list is acyclic; return null.\n   - If `slow === fast`, a cycle exists, and the collision node is confirmed.\n\n2. Phase 2: Finding Cycle Entry\n   - Keep `fast` at the collision node.\n   - Reset `slow = head`.\n   - Advance both pointers at the same speed (`slow = slow.next`, `fast = fast.next`).\n   - The node where they collide is mathematically guaranteed to be the cycle entry node.\n\n3. Mathematical Proof of Convergence:\n   - Let L = distance from list head to cycle entry.\n   - Let C = circumference (length) of the cycle.\n   - Let X = distance from cycle entry to Phase 1 collision point.\n   - At Phase 1 collision:\n     Distance traversed by slow: D_slow = L + X\n     Distance traversed by fast: D_fast = L + X + k * C (where k is integer laps)\n   - Since fast moves at twice the speed of slow:\n     2 * (L + X) = L + X + k * C  =>  L + X = k * C  =>  L = k * C - X = (k - 1) * C + (C - X)\n   - Note that (C - X) is the exact remaining distance from collision point to the cycle entry!\n   - Therefore, moving one pointer from head (distance L) and one pointer from collision node (distance (k-1)*C + (C-X)) at identical speeds of 1 will cause them to meet precisely at the cycle entry.",
+    interviewerCounterQuestions: [
+      "What happens if fast pointer moves at 3 steps instead of 2 steps?",
+      "Can this exact cycle-finding algorithm be used to detect duplicate numbers in an array of size N+1 with numbers 1..N (LeetCode 287) without modifying the array?"
+    ],
+    keyTakeaways: [
+      "Floyd's algorithm guarantees O(N) time and O(1) auxiliary memory without hash table allocations.",
+      "The mathematical relation L = (k - 1)*C + (C - X) proves identical travel distance from head and collision point."
+    ],
+    pitfalls: [
+      "Failing to verify fast.next !== null before reading fast.next.next, causing NullPointerException.",
+      "Advancing pointers at Phase 2 at double speed instead of single step speed."
+    ],
+    relatedCurriculumSlug: "binary-search-trees-and-avl-balancing"
+  },
+  {
+    id: "dsa-09",
+    category: "Data Structures & Algorithms",
+    categorySlug: "dsa",
+    title: "How do you design a Monotonic Stack to solve the Next Greater Element and Largest Rectangle in Histogram in O(N) time?",
+    difficulty: "HARD",
+    frequency: "VERY HIGH",
+    shortSummary: "Maintain elements in strictly increasing or decreasing order on the stack. When a newly inspected element violates monotonicity, pop top elements to resolve their boundary span in amortized O(1) time.",
+    deepAnswer: "A Monotonic Stack maintains its elements in monotonic order (strictly increasing or strictly decreasing). It is the premier pattern for nearest smaller/greater element queries in arrays.\n\n1. Mechanics & Invariant:\n   - For 'Next Greater Element': Maintain a monotonically decreasing stack of indices.\n   - When iterating over element A[i], while stack is not empty and A[i] > A[stack.top()]:\n     - The next greater element for stack.top() is A[i].\n     - Pop stack.top() and record its answer as A[i].\n   - Push index i onto the stack.\n\n2. Largest Rectangle in Histogram:\n   - Every bar can serve as the height of a candidate rectangle spanning from its nearest smaller element on the left to its nearest smaller element on the right.\n   - Maintain a monotonically increasing stack of bar indices.\n   - When encountering a bar shorter than stack.top():\n     - Pop index `mid = stack.pop()`.\n     - Height is `heights[mid]`.\n     - Right boundary is current index `i`.\n     - Left boundary is the new `stack.top()` (or -1 if stack is empty).\n     - Width = `i - left - 1`.\n     - Max area = max(maxArea, height * width).\n   - Append a sentinel 0 at the end of the array to flush remaining stack elements.\n\n3. Complexity Analysis:\n   - Each index is pushed onto the stack exactly once and popped at most once.\n   - Total operations across entire array = 2N, giving strict O(N) linear time and O(N) auxiliary space.",
+    interviewerCounterQuestions: [
+      "How would you adapt this monotonic stack technique to 2D matrices (Maximal Rectangle of 1s)?",
+      "Why does a monotonic queue differ from a monotonic stack, and when is it necessary (e.g. Sliding Window Maximum)?"
+    ],
+    keyTakeaways: [
+      "Monotonic stacks reduce brute-force O(N^2) range searches into amortized O(N) linear scans.",
+      "Every element is pushed once and popped at most once, maintaining linear amortized complexity."
+    ],
+    pitfalls: [
+      "Storing raw element values on the stack instead of indices, making distance/width calculation impossible.",
+      "Forgetting to flush remaining stack elements or omitting sentinel bounds."
+    ],
+    relatedCurriculumSlug: "asymptotic-complexity-and-master-theorem"
+  },
+  {
+    id: "dsa-10",
+    category: "Data Structures & Algorithms",
+    categorySlug: "dsa",
+    title: "How does the Trie (Prefix Tree) data structure enable O(L) prefix matching, autocomplete, and wild-card dictionary searches?",
+    difficulty: "MEDIUM",
+    frequency: "HIGH",
+    shortSummary: "Each node represents a character and contains a map of child nodes and an isEndOfWord flag. Common prefixes are shared along root-to-leaf paths, enabling O(L) insertions and searches where L is word length.",
+    deepAnswer: "A Trie (reTRIEval tree) is a specialized search tree used to store associative arrays where keys are strings.\n\n1. Structure & Storage:\n   - Each node contains:\n     a. `children: Map<char, TrieNode>` (or fixed array `TrieNode[26]` for lowercase English).\n     b. `isEndOfWord: boolean`: Indicates whether this node terminates a complete stored word.\n     c. Optional frequency/weight metadata for ranking autocomplete suggestions.\n   - All descendants of a node share a common prefix associated with that node.\n\n2. Operations:\n   - insert(word): Traverse from root character by character. If child node missing, create it. Mark final node `isEndOfWord = true`. Time: O(L) where L = word length.\n   - search(word): Traverse nodes for each character. If pointer becomes null, return false. Otherwise return `currentNode.isEndOfWord`. Time: O(L).\n   - startsWith(prefix): Identical to search, but returns true if node path exists regardless of `isEndOfWord`. Time: O(P) where P = prefix length.\n   - Autocomplete / Wildcard Search (e.g., '.' matches any char):\n     Use Depth-First Search (DFS) or BFS from the prefix node, traversing matching branches to collect candidate words.\n\n3. Memory Optimization (Radix Tree / Patricia Trie):\n   - In sparse Tries, chains of single-child nodes consume unnecessary memory. A Radix Tree compresses single-child chains into multi-character edge strings (e.g., \"inter\" -> \"view\"), reducing node allocations by 60-80%.",
+    interviewerCounterQuestions: [
+      "How would you serialize and deserialize a Trie to disk for compact transmission?",
+      "How does a Trie compare with a Hash Table for string lookups, and what are the cache-locality tradeoffs?"
+    ],
+    keyTakeaways: [
+      "Trie search complexity O(L) is independent of the number of words N in the dictionary.",
+      "Enables lexicographical sorting, longest-prefix matching, and prefix autocompletion impossible with hash sets."
+    ],
+    pitfalls: [
+      "Using fixed TrieNode[26] arrays for Unicode datasets, leading to massive memory bloat.",
+      "Forgetting to set isEndOfWord flag on prefix words (e.g., storing 'app' when 'apple' exists)."
+    ],
+    relatedCurriculumSlug: "binary-search-trees-and-avl-balancing"
+  },
+  {
+    id: "sys-09",
+    category: "System Design & Scalability",
+    categorySlug: "system-design",
+    title: "How do you design a real-time Collaborative Document Editing system (e.g. Google Docs) using OT vs CRDTs?",
+    difficulty: "EXPERT",
+    frequency: "HIGH",
+    shortSummary: "Operational Transformation (OT) transforms operations against concurrent operations using a central coordinator; Conflict-free Replicated Data Types (CRDTs) use mathematically commutative/associative state structures enabling peer-to-peer eventual consistency.",
+    deepAnswer: "Designing real-time collaborative text editing requires handling concurrent edits from globally distributed users without lost updates or character desynchronization.\n\n1. Operational Transformation (OT):\n   - Used historically by Google Docs. Relies on a centralized server that sequences all incoming operations into a canonical log.\n   - If Client A inserts character 'x' at index 3 while Client B concurrently inserts 'y' at index 2, Client A's operation must be transformed: T(opA, opB) shifts opA's index to 4 to account for opB's preceding insertion.\n   - Strengths: Compact operation payloads (character + index), minimal memory overhead.\n   - Weaknesses: Requires a single ordering server; transforming concurrent multi-user operations involves quadratic algorithmic complexity and edge-case fragility (Jupiter system).\n\n2. Conflict-free Replicated Data Types (CRDTs):\n   - State-based (CvRDT) or Operation-based (CmRDT) data structures (e.g., RGA, Yjs, Automerge).\n   - Every character is assigned a globally unique, immutable, fractional identifier (e.g., [1, 5, ClientId]).\n   - Edits are mathematical lattice merges that are commutative (A + B = B + A), associative ((A + B) + C = A + (B + C)), and idempotent (A + A = A).\n   - Strengths: Peer-to-peer friendly, works seamlessly offline with zero-coordinator asynchronous merging.\n   - Weaknesses: Metadata overhead (tombstones for deleted characters can bloat memory unless garbage collected via epoch compaction).\n\n3. Architecture:\n   - WebSocket gateway for low-latency full-duplex character streaming.\n   - Redis Pub/Sub room channels for cluster fanout.\n   - Document state snapshots stored in S3/Blob storage with write-ahead edit logs in PostgreSQL/Cassandra.",
+    interviewerCounterQuestions: [
+      "How do you handle character deletions in CRDTs without leaking memory over years of editing?",
+      "How do you display real-time cursor positions and selection highlights without overwhelming network bandwidth?"
+    ],
+    keyTakeaways: [
+      "OT requires centralized coordination and complex transform matrices; CRDTs guarantee mathematical convergence across distributed nodes.",
+      "CRDTs assign immutable fractional IDs to characters, turning text editing into an ordered set merge."
+    ],
+    pitfalls: [
+      "Using raw array indexes across asynchronous network connections without transformation, leading to text corruption.",
+      "Broadcasting cursor moves at 60fps without client-side throttling or debouncing."
+    ],
+    relatedCurriculumSlug: "distributed-transactions-2pc-saga-event-sourcing"
+  },
+  {
+    id: "sys-10",
+    category: "System Design & Scalability",
+    categorySlug: "system-design",
+    title: "How do you design a distributed, high-throughput Event-Driven Notification System with at-least-once delivery?",
+    difficulty: "HARD",
+    frequency: "VERY HIGH",
+    shortSummary: "Ingest events via Kafka/Pulsar, route through user preference and rate-limiting filters (Redis), render templates dynamically, and dispatch through prioritized channel workers with exponential backoff and DLQs.",
+    deepAnswer: "An enterprise notification engine must deliver billions of notifications across SMS, Email, Push, and In-App channels while enforcing user quiet hours, frequency capping, and delivery idempotency.\n\n1. System Architecture:\n   - API Gateway: Ingests notification requests from microservices with an `idempotency_key` to prevent duplicate dispatches.\n   - Message Broker (Kafka): Partitions messages by `user_id` to guarantee ordered delivery per user.\n   - Notification Orchestrator:\n     a. Preferences & Opt-out Check: Queries distributed cache (Redis) for user subscription preferences and quiet hours.\n     b. Frequency Capper (Rate Limiter): Enforces sliding-window limits (e.g., max 3 marketing emails/day) using Redis sliding logs.\n     c. Template Engine: Hydrates localized templates with event parameters.\n   - Channel-Specific Worker Pools:\n     Separate worker queues for Push (Apple APNs, Google FCM), Email (SendGrid/SES), SMS (Twilio), and In-App WebSockets.\n     Worker isolation ensures slow SMS gateway timeouts never degrade instant push notifications.\n\n2. Resilience & Reliability:\n   - At-Least-Once Delivery: Workers commit Kafka consumer offsets only after the third-party provider returns 200 OK or accepts the payload.\n   - Circuit Breakers: Trip downstream calls if a third-party gateway responds with 503 or error rate spikes above 15%.\n   - Exponential Backoff with Jitter: Retries failed network calls at 2s, 4s, 8s intervals with randomized jitter.\n   - Dead Letter Queue (DLQ): Unrecoverable errors (e.g., invalid phone number) route to DLQ for alerting and analysis.",
+    interviewerCounterQuestions: [
+      "How do you prioritize critical transactional notifications (e.g., OTP codes) over marketing campaigns during traffic spikes?",
+      "How do you guarantee user-side idempotency if a push notification provider sends duplicate alerts?"
+    ],
+    keyTakeaways: [
+      "Isolate channel worker pools to prevent third-party SMS/Email latency from blocking push notification queues.",
+      "Partition message queues by user ID to maintain sequential ordering and avoid race conditions on user notification feeds."
+    ],
+    pitfalls: [
+      "Using a single shared queue for all notification types, causing OTP verification codes to queue behind bulk newsletter dispatches.",
+      "Retrying third-party API failures without exponential backoff, causing cascading thundering herd outages."
+    ],
+    relatedCurriculumSlug: "realtime-stream-processing-flink-and-cdc"
+  },
+  {
+    id: "sys-11",
+    category: "System Design & Scalability",
+    categorySlug: "system-design",
+    title: "How do you architect a Global Real-Time Leaderboard serving 100M active players with sub-second queries?",
+    difficulty: "HARD",
+    frequency: "HIGH",
+    shortSummary: "Use Redis Sorted Sets (ZSET) partitioned by score buckets or user ID hashes. For global top-100 queries, read from a centralized top-K cache; for individual user rank queries, use logarithmic skip-list rank queries.",
+    deepAnswer: "A global gaming leaderboard must support two core operations at scale: updating a player's score in real time and querying player ranks / global top-K rankings.\n\n1. Core Data Structure - Redis Sorted Sets (ZSET):\n   - Implemented internally using a dual structure: a Hash Table (mapping member -> score in O(1)) and a Skip List (maintaining scores in sorted order in O(log N)).\n   - `ZADD leaderboard <score> <user_id>`: Updates player score in O(log N).\n   - `ZREVRANGE leaderboard 0 99 WITHSCORES`: Retrieves global Top 100 players in O(log N + M).\n   - `ZREVRANK leaderboard <user_id>`: Retrieves exact global rank of player in O(log N).\n\n2. Scaling to 100 Million Users (Sharding Strategy):\n   - A single Redis instance holding 100M players consumes ~15GB RAM and encounters single-thread CPU bottlenecks under 100K+ updates/sec.\n   - Sharding Approach 1 (Score-Partitioned Ranges):\n     Shard players into distinct score buckets (e.g. Shard 1: 0-1,000 pts, Shard 2: 1,001-5,000 pts, Shard 3: 5,001+ pts).\n     To query rank of user with score 3,500: rank = (sum of all players in higher score shards) + local rank in current shard.\n   - Sharding Approach 2 (Read-Replicas with Local Caching):\n     Direct score writes to Kafka topic; consumers batch-update Redis primary; read replicas serve top-100 queries cached in memory with 5-second TTL.\n\n3. Tie-Breaking & Consistency:\n   - When players share the identical score, resolve ties deterministically by encoding timestamp into the fractional score: `Score = user_points + (1 - unix_timestamp / 1e11)`. Earlier achievers rank higher.",
+    interviewerCounterQuestions: [
+      "How do you design leaderboards that reset periodically (e.g., weekly or monthly) without downtime?",
+      "How do you build a 'friend leaderboard' showing ranks among only a player's 50 friends without querying 100M records?"
+    ],
+    keyTakeaways: [
+      "Redis Sorted Sets leverage Skip Lists to deliver O(log N) score updates and rank lookups.",
+      "Encoding timestamps into fractional floating-point scores provides deterministic, zero-overhead tie breaking."
+    ],
+    pitfalls: [
+      "Executing ZRANGE 0 -1 across 100 million entries, blocking the single-threaded Redis event loop and taking down production.",
+      "Querying relational SQL databases with `ORDER BY score DESC LIMIT 100` under millions of writes per second."
+    ],
+    relatedCurriculumSlug: "distributed-cache-redis-internals-and-eviction"
+  },
+  {
+    id: "db-08",
+    category: "Databases & Storage Internals",
+    categorySlug: "databases",
+    title: "What is the internal mechanism of Write-Ahead Logging (WAL) and the ARIES recovery algorithm in relational databases?",
+    difficulty: "HARD",
+    frequency: "HIGH",
+    shortSummary: "Write-Ahead Logging mandates that log records describing data page changes must be flushed to durable disk before dirty data pages are written to table storage, enabling crash recovery via ARIES (Analysis, Redo, Undo).",
+    deepAnswer: "Write-Ahead Logging (WAL) is the foundational protocol that guarantees the Atomicity and Durability (ACID) properties of relational database engines.\n\n1. The WAL Invariant:\n   - Database buffer pools cache table pages in RAM. When a transaction modifies a row, it creates a log record with a monotonically increasing Log Sequence Number (LSN).\n   - Invariant: A dirty page cannot be flushed to disk until the corresponding WAL record with LSN <= page.LSN has been flushed and fsynced to disk.\n   - This allows commits to occur quickly by fsyncing small, sequential append-only log records rather than performing slow random disk writes to scattered table pages.\n\n2. The ARIES Recovery Algorithm (Algorithms for Recovery and Isolation Exploiting Semantics):\n   Following a sudden server crash or power failure, ARIES recovers consistent state in three sequential passes:\n   - Pass 1: Analysis Pass:\n     Scans WAL forward from the last checkpoint to determine: 1) Active dirty pages in the buffer pool at crash time, and 2) Uncommitted transactions ('loser transactions').\n   - Pass 2: Redo Pass (Repeating History):\n     Scans forward from the oldest un-flushed LSN (recLSN) and re-executes all logged changes (for committed and uncommitted transactions alike) to restore the exact physical memory state at the moment of crash.\n   - Pass 3: Undo Pass:\n     Scans backward from the end of the log, rolling back the changes of all 'loser' uncommitted transactions by generating Compensation Log Records (CLRs) to ensure crash recovery itself is idempotent.",
+    interviewerCounterQuestions: [
+      "Why does ARIES repeat history during the Redo phase for transactions that will subsequently be undone?",
+      "What is a Compensation Log Record (CLR) and why does it contain an UndoNextLSN pointer?"
+    ],
+    keyTakeaways: [
+      "WAL replaces random I/O data page writes with fast sequential append-only disk logging.",
+      "ARIES recovery consists of three phases: Analysis (find state), Redo (repeat history), and Undo (rollback uncommitted transactions)."
+    ],
+    pitfalls: [
+      "Disabling fsync in production databases for false benchmark speedups, risking total catastrophic database corruption upon crash.",
+      "Confusing transaction commit (fsyncing WAL record) with writing dirty pages to disk table files."
+    ],
+    relatedCurriculumSlug: "database-query-optimizer-and-cbo-internals"
+  },
+  {
+    id: "db-09",
+    category: "Databases & Storage Internals",
+    categorySlug: "databases",
+    title: "How does LSM-Tree compaction (Size-Tiered vs Leveled) balance the RUM Conjecture in distributed NoSQL engines?",
+    difficulty: "EXPERT",
+    frequency: "HIGH",
+    shortSummary: "Log-Structured Merge-Trees write sequentially to MemTable and SSTables, trading read amplification for O(1) write performance. Compaction reorganizes SSTables, balancing Read, Update, and Memory (RUM) trade-offs.",
+    deepAnswer: "LSM-Trees (Log-Structured Merge-Trees) underpin high-throughput storage engines (RocksDB, Cassandra, Bigtable). They write sequentially to an in-memory MemTable and flush immutable Sorted String Tables (SSTables) to disk.\n\n1. The RUM Conjecture:\n   - Proves that storage systems cannot simultaneously optimize Read Amplification (RA), Write Amplification (WA), and Space Amplification (SA); optimizing two always degrades the third.\n   - Write Amplification (WA): Ratio of bytes written to disk versus bytes written by user.\n   - Read Amplification (RA): Number of disk reads required to satisfy a single user query.\n   - Space Amplification (SA): Ratio of total disk space consumed versus actual live data size.\n\n2. Compaction Strategies:\n   - Size-Tiered Compaction Strategy (STCS):\n     - Triggered when a fixed number of SSTables of similar size accumulate (e.g. 4 tables of 100MB). They are merged into one 400MB table.\n     - Low Write Amplification: Fewer merge passes, making it ideal for write-heavy logging workloads.\n     - High Space Amplification: Can require up to 50% free disk headroom during compaction.\n     - High Read Amplification: Range scans may need to check multiple overlapping SSTables per tier.\n   - Leveled Compaction Strategy (LCS):\n     - Organizes data into exponential levels (L0, L1=10MB, L2=100MB, L3=1GB).\n     - Each level above L0 is partitioned into non-overlapping key ranges.\n     - Low Read Amplification: Point reads check at most one SSTable per level plus Bloom filters (fast reads).\n     - Low Space Amplification: Only ~10% disk headroom needed.\n     - High Write Amplification: Repeated re-sorting and merging increases disk write churn.",
+    interviewerCounterQuestions: [
+      "How do Bloom filters accelerate point lookups in SSTables without checking disk pages?",
+      "What is write stall in RocksDB, and what compaction conditions trigger it?"
+    ],
+    keyTakeaways: [
+      "Size-Tiered compaction minimizes write amplification at the cost of high space and read amplification.",
+      "Leveled compaction provides deterministic non-overlapping key ranges for fast point reads at the cost of higher write amplification."
+    ],
+    pitfalls: [
+      "Using Leveled Compaction on write-dominant workloads, burning out NVMe SSD endurance through excessive write amplification.",
+      "Running Size-Tiered compaction on disks with greater than 60% capacity utilization, causing disk-full crashes during compaction."
+    ],
+    relatedCurriculumSlug: "database-query-optimizer-and-cbo-internals"
+  },
+  {
+    id: "db-10",
+    category: "Databases & Storage Internals",
+    categorySlug: "databases",
+    title: "What is the operational difference between Optimistic Concurrency Control (OCC) and Two-Phase Locking (2PL)?",
+    difficulty: "HARD",
+    frequency: "VERY HIGH",
+    shortSummary: "2PL uses pessimistic shared/exclusive locks to block conflicting transactions during execution; OCC allows transactions to execute without locking in local memory, validating conflicts only at commit time and aborting on overlap.",
+    deepAnswer: "Concurrency control algorithms guarantee serializable execution of concurrent transactions while maximizing throughput.\n\n1. Two-Phase Locking (2PL - Pessimistic):\n   - Growing Phase: Transaction acquires locks (Shared for read, Exclusive for write) as needed. No locks can be released.\n   - Shrinking Phase: Locks are released; no new locks can be acquired. (Strict 2PL holds all locks until transaction COMMIT/ROLLBACK to prevent cascading aborts).\n   - Strengths: Guaranteed serializability; transactions rarely abort due to conflicts (they wait in lock queues).\n   - Weaknesses: High lock overhead, concurrency bottlenecks on hot records, and vulnerability to Deadlocks (requiring wait-for graphs or timeout detection).\n   - Optimal For: High contention workloads where conflicts are frequent and repeated aborts would waste compute.\n\n2. Optimistic Concurrency Control (OCC):\n   - Read Phase: Transaction reads data and writes modifications to private, local in-memory workspace without acquiring any database locks.\n   - Validation Phase (Check): At commit time, the engine checks whether any concurrent transaction modified the records in this transaction's read set.\n   - Write Phase: If validation passes, changes are flushed to durable storage. If a conflict is detected, the transaction aborts and restarts.\n   - Strengths: Zero lock contention; high read/write throughput when conflicts are rare.\n   - Weaknesses: Severe throughput degradation under high contention ('abort storm') where transactions continuously re-run and collide.\n   - Optimal For: Low contention workloads (e.g. distributed web requests, document stores).",
+    interviewerCounterQuestions: [
+      "How does Multi-Version Concurrency Control (MVCC) eliminate read-write lock contention in modern databases like PostgreSQL?",
+      "What is Write Skew anomaly and why does standard Snapshot Isolation fail to prevent it without SSI or explicit SELECT FOR UPDATE?"
+    ],
+    keyTakeaways: [
+      "2PL blocks conflicting transactions using locks, excelling under high write contention.",
+      "OCC avoids locks by validating read sets at commit time, excelling under low write contention."
+    ],
+    pitfalls: [
+      "Using OCC on hot inventory decrements (flash sales), causing 90%+ transaction abort rates.",
+      "Holding locks in 2PL across external network HTTP calls, causing global database lock exhaustion."
+    ],
+    relatedCurriculumSlug: "distributed-transactions-2pc-saga-event-sourcing"
+  },
+  {
+    id: "os-08",
+    category: "Operating Systems & Linux",
+    categorySlug: "os-linux",
+    title: "What happens under the hood during a Linux Page Fault, and how does the kernel handle Demand Paging and Copy-On-Write?",
+    difficulty: "HARD",
+    frequency: "VERY HIGH",
+    shortSummary: "When CPU MMU encounters an invalid page table entry, it raises a hardware interrupt. The kernel inspects the VMA: allocating physical frames for Demand Paging or duplicating shared pages upon write under Copy-On-Write.",
+    deepAnswer: "Virtual memory isolates process memory spaces and maps virtual addresses to physical RAM frames via CPU Memory Management Units (MMU) and Page Tables.\n\n1. Page Fault Hardware Trigger:\n   - When CPU executes an instruction referencing a virtual address, the MMU checks the Translation Lookaside Buffer (TLB) and multi-level page table.\n   - If the Present bit is 0 or permissions are violated, the MMU halts execution and triggers a hardware Exception (Interrupt 14 on x86_64), passing the faulting address in CR2 register to the kernel's `do_page_fault` handler.\n\n2. Kernel Handling Mechanics:\n   - The kernel walks the process Virtual Memory Areas (VMA via mm_struct red-black tree).\n   - Case A: Segmentation Fault (SIGSEGV): If the address does not fall within any valid VMA, or operation violates permissions (e.g. writing to code segment), kernel sends SIGSEGV.\n   - Case B: Minor Page Fault (Demand Paging): Address is valid, but physical RAM has not yet been allocated. Kernel allocates a physical frame from the page allocator, zeroes it out, updates the page table entry (PTE), flushes TLB, and resumes process.\n   - Case C: Major Page Fault (Disk I/O): Page was swapped to disk or backed by a mapped file. Kernel suspends thread, issues asynchronous disk read, loads page into RAM, updates PTE, and wakes thread.\n   - Case D: Copy-On-Write (COW):\n     When `fork()` duplicates a process, parent and child share physical pages marked read-only. When either process attempts a write, a page fault fires. The kernel detects the VMA is writable, allocates a fresh physical frame, copies the 4KB data, updates the writing process PTE to read-write, and re-executes the write instruction.",
+    interviewerCounterQuestions: [
+      "What is the difference between Transparent Huge Pages (THP) and standard 4KB pages, and why do databases often disable THP?",
+      "Why does frequent Major Page Faulting cause severe system thrashing?"
+    ],
+    keyTakeaways: [
+      "Demand Paging delays physical RAM allocation until the exact instruction that first touches the memory address.",
+      "Copy-On-Write makes fork() nearly instantaneous by sharing read-only physical frames until an explicit write occurs."
+    ],
+    pitfalls: [
+      "Assuming malloc() immediately allocates physical RAM; it only creates virtual memory mappings until pages are written.",
+      "Ignoring major page fault spikes in production monitoring, which signal memory pressure and active swapping to disk."
+    ],
+    relatedCurriculumSlug: "virtual-memory-paging-and-tlb-hardware"
+  },
+  {
+    id: "os-09",
+    category: "Operating Systems & Linux",
+    categorySlug: "os-linux",
+    title: "What is the Linux Completely Fair Scheduler (CFS), and how does it use virtual runtime (vruntime) to balance CPU time?",
+    difficulty: "HARD",
+    frequency: "HIGH",
+    shortSummary: "CFS models an ideal multi-tasking CPU using virtual runtime (vruntime) tracked in a self-balancing Red-Black Tree. It always schedules the task with the lowest vruntime, scaling vruntime increments inversely by task nice weight.",
+    deepAnswer: "The Completely Fair Scheduler (CFS) is the default CPU scheduling algorithm for general-purpose tasks in Linux.\n\n1. The Ideal Multi-Tasking Model:\n   - An ideal multi-tasking CPU would run N runnable tasks simultaneously, giving each task 1/N of total CPU speed.\n   - Because real hardware must time-slice, CFS tracks how much virtual CPU time each task has received through a 64-bit value: `vruntime`.\n\n2. Virtual Runtime (`vruntime`) Calculation:\n   - When task i executes on a physical CPU for wall-clock time `delta_exec`:\n     `vruntime += delta_exec * (NICE_0_LOAD / task_weight)`\n   - High-priority tasks (negative nice values) have large weights, so their `vruntime` increases very slowly.\n   - Low-priority tasks (positive nice values) have small weights, so their `vruntime` increases rapidly.\n\n3. Red-Black Tree Scheduling:\n   - All runnable tasks are stored in a time-ordered Red-Black tree sorted by `vruntime`.\n   - The scheduler always picks the leftmost node (`rb_leftmost`), which represents the task that has received the least virtual CPU time.\n   - Selecting the next task is O(1) because CFS caches the leftmost pointer; re-inserting the task after execution takes O(log N).\n\n4. Latency Target & Granularity:\n   - `sysctl_sched_latency` defines the period during which all runnable tasks must run at least once.\n   - `sysctl_sched_min_granularity` enforces a minimum execution time slice to prevent excessive context-switching overhead.",
+    interviewerCounterQuestions: [
+      "What happens to the vruntime of a sleeping thread when it wakes up, and why is it not allowed to retain its ancient small vruntime?",
+      "How do SCHED_FIFO and SCHED_RR real-time schedulers interact with standard CFS tasks?"
+    ],
+    keyTakeaways: [
+      "CFS schedules the task with minimum virtual runtime (leftmost node in Red-Black tree).",
+      "Nice levels modulate the rate of vruntime advancement rather than granting rigid time slice slices."
+    ],
+    pitfalls: [
+      "Assuming higher priority tasks run indefinitely without interruption; CFS balances time fairly based on weight ratios.",
+      "Setting min_granularity too low, causing high context-switch thrashing and CPU cache invalidation."
+    ],
+    relatedCurriculumSlug: "process-scheduling-cfs-and-real-time-kernels"
+  },
+  {
+    id: "os-10",
+    category: "Operating Systems & Linux",
+    categorySlug: "os-linux",
+    title: "How does Linux Memory Cgroups (v2) enforce memory limits, and what triggers the Out-Of-Memory (OOM) Killer?",
+    difficulty: "HARD",
+    frequency: "HIGH",
+    shortSummary: "Memory Cgroups v2 organizes processes into a unified hierarchy with memory.high (throttling) and memory.max (hard limit). Exceeding memory.max triggers reclaim and the OOM Killer, which terminates processes based on oom_score.",
+    deepAnswer: "Control Groups (cgroups v2) provide resource isolation, limiting CPU, Memory, and I/O for containerized environments (Docker, Kubernetes).\n\n1. Memory Limits Hierarchy in Cgroups v2:\n   - `memory.min`: Hard memory protection. If memory usage is below this, memory is never reclaimed or reclaimed to swap.\n   - `memory.low`: Best-effort soft memory protection. Reclaimed only if no unprotected memory is available.\n   - `memory.high`: Throttle limit. When exceeded, the kernel throttles process execution and forces memory reclaim without killing tasks.\n   - `memory.max`: Hard memory ceiling. If usage reaches `memory.max` and reclaim fails to free memory, the cgroup triggers the OOM killer.\n\n2. The Out-Of-Memory (OOM) Killer Invocation:\n   - When an allocation cannot be fulfilled and all reclaim efforts fail:\n     The kernel executes `out_of_memory()` to prevent global system panic.\n   - In cgroup scope: The OOM killer is restricted to the specific container cgroup, leaving the host system intact.\n\n3. OOM Scoring Heuristic:\n   - Every process has an `oom_score` (0 to 1000) representing the percentage of available RAM it consumes.\n   - Operators can bias this score using `oom_score_adj` (-1000 to +1000). A value of -1000 (e.g., sshd, kubelet) makes the process immune to OOM termination.\n   - The OOM killer selects the process with the highest score to reclaim the maximum memory with a single termination, generating a kernel SIGKILL.",
+    interviewerCounterQuestions: [
+      "Why did Linux migrate from Cgroups v1 to unified Cgroups v2, and how did it resolve conflicting per-controller hierarchies?",
+      "How does memory overcommit (vm.overcommit_memory = 0, 1, 2) influence OOM killer behavior?"
+    ],
+    keyTakeaways: [
+      "memory.high triggers throttling and background reclaim; memory.max triggers OOM termination.",
+      "oom_score_adj enables protection of critical system daemons from containerized memory leaks."
+    ],
+    pitfalls: [
+      "Setting memory.max without setting memory.high, causing sudden OOM crashes instead of graceful backpressure throttling.",
+      "Configuring Java heap (-Xmx) to match memory.max exactly, ignoring off-heap JVM memory, Metaspace, and thread stack overhead."
+    ],
+    relatedCurriculumSlug: "linux-kernel-architecture-and-ebpf-tracing"
+  },
+  {
+    id: "net-07",
+    category: "Computer Networks & Security",
+    categorySlug: "networking",
+    title: "How does TCP BBR congestion control fundamentally differ from loss-based algorithms like Cubic and Reno?",
+    difficulty: "HARD",
+    frequency: "HIGH",
+    shortSummary: "Loss-based algorithms (Cubic/Reno) interpret packet loss as congestion, bloating intermediate router buffers (bufferbloat). BBR models physical bottleneck bandwidth (BtlBw) and round-trip propagation time (RTprop) to operate at Kleinrock optimal point without inducing packet loss.",
+    deepAnswer: "Traditional TCP congestion control algorithms conflate packet loss with network congestion. Modern high-speed networks and shallow buffers expose the flaws in this assumption.\n\n1. Flaws of Loss-Based Algorithms (Reno, Cubic):\n   - Increase congestion window (CWND) until a router queue overflows and drops a packet.\n   - Causes 'Bufferbloat': Router buffers stay perpetually full, adding tens or hundreds of milliseconds of artificial latency without increasing throughput.\n   - On lossy wireless connections, transient RF packet drops cause Cubic to mistakenly slash its transmission rate in half.\n\n2. BBR (Bottleneck Bandwidth and Round-trip propagation time):\n   - Grounded in Kleinrock's optimal operating point: maximize throughput while minimizing delay.\n   - At the Kleinrock point, inflight data equals the Bandwidth-Delay Product: `BDP = BtlBw * RTprop`.\n   - BBR decouples packet loss from congestion control:\n     a. Measures Bottleneck Bandwidth (`BtlBw`) by tracking the maximum delivery rate over a moving window.\n     b. Measures Minimum Round-Trip Time (`RTprop`) by periodically draining queues to observe pure physical propagation delay.\n   - Paces packet departures smoothly based on measured delivery rates, keeping buffers empty and latency minimal.\n\n3. State Machine Phases:\n   - Startup: Exponentially increases pacing rate to discover bottleneck capacity.\n   - Drain: Reduces pacing rate to clear any queue formed during startup.\n   - ProbeBW: Cyclically paces slightly above and below BtlBw to test for newly available capacity.\n   - ProbeRTT: Periodically drops inflight packets to 4 packets for 200ms to measure fresh RTprop.",
+    interviewerCounterQuestions: [
+      "Why can BBR be unfair to Cubic flows sharing the same bottleneck link, and how did BBRv2 address this?",
+      "What is the Bandwidth-Delay Product (BDP) formula, and how does it determine socket buffer sizing?"
+    ],
+    keyTakeaways: [
+      "Loss-based algorithms fill router buffers until packets drop; BBR paces packets to match physical bottleneck bandwidth.",
+      "BBR operates at the Kleinrock optimal point (Inflight = BtlBw * RTprop), achieving maximum throughput with minimum buffer latency."
+    ],
+    pitfalls: [
+      "Confusing network latency with bandwidth; high BDP links require large TCP window sizes to achieve wire speed.",
+      "Running legacy loss-based congestion control on wireless/satellite links with non-congestive loss."
+    ],
+    relatedCurriculumSlug: "tcp-congestion-control-bbr-cubic-and-quic"
+  },
+  {
+    id: "net-08",
+    category: "Computer Networks & Security",
+    categorySlug: "networking",
+    title: "What is the sequence of the TLS 1.3 Handshake, and how does 0-RTT Early Data work alongside its replay vulnerability?",
+    difficulty: "HARD",
+    frequency: "VERY HIGH",
+    shortSummary: "TLS 1.3 reduces handshake latency to a single round-trip (1-RTT) by combining key share negotiation into ClientHello/ServerHello. Resumed sessions can send 0-RTT Early Data using cached session tickets, which introduces replay attack risks.",
+    deepAnswer: "TLS 1.3 fundamentally redesigned the cryptographic transport handshake, reducing connection latency and eliminating insecure legacy cipher suites.\n\n1. 1-RTT Full Handshake Sequence:\n   - Step 1 (Client -> Server): `ClientHello`\n     Sends supported cipher suites, supported elliptic curves, and speculative Diffie-Hellman Key Shares (`key_share` extension).\n   - Step 2 (Server -> Client): `ServerHello + EncryptedExtensions + Certificate + CertificateVerify + Finished`\n     Selects cipher suite and matching key share, immediately computing the shared symmetric secret. All subsequent messages from the server are encrypted!\n   - Step 3 (Client -> Server): `Finished`\n     Verifies MAC tag and completes handshake. Application data can flow immediately with this packet.\n   - Handshake duration is reduced from 2 round-trips in TLS 1.2 to exactly 1 round-trip (1-RTT).\n\n2. 0-RTT Early Data (Session Resumption):\n   - In a prior session, the server issues a Pre-Shared Key (PSK) / Session Ticket.\n   - Upon reconnecting, the client can encrypt HTTP application data immediately using the PSK and send it inside the initial `ClientHello` without waiting for the server response (0-RTT).\n\n3. The 0-RTT Replay Vulnerability:\n   - An active network adversary can capture the client's 0-RTT packet and replay it multiple times to the server.\n   - The server will accept the replayed early data because it is validly encrypted with the PSK!\n   - Defenses: 0-RTT MUST only be permitted for idempotent HTTP methods (GET, HEAD) and never for state-changing operations (POST /transfer). Servers also employ single-use ticket tracking and client hello timestamp window validation.",
+    interviewerCounterQuestions: [
+      "Why did TLS 1.3 remove RSA key exchange and mandate Ephemeral Diffie-Hellman (ECDHE)?",
+      "How does ALPN (Application-Layer Protocol Negotiation) negotiate HTTP/2 inside the TLS handshake?"
+    ],
+    keyTakeaways: [
+      "TLS 1.3 achieves 1-RTT by sending client key shares speculatively in ClientHello.",
+      "0-RTT early data is vulnerable to network replay attacks and must be restricted to idempotent requests."
+    ],
+    pitfalls: [
+      "Allowing state-modifying requests (e.g. POST /charge-card) over 0-RTT TLS connections.",
+      "Assuming TLS 1.2 provides Forward Secrecy when static RSA key transport ciphers are enabled."
+    ],
+    relatedCurriculumSlug: "enterprise-security-cryptography-and-oauth2"
+  },
+  {
+    id: "net-09",
+    category: "Computer Networks & Security",
+    categorySlug: "networking",
+    title: "How does DNS resolution operate from client stub resolver to root, TLD, and authoritative nameservers with Anycast?",
+    difficulty: "MEDIUM",
+    frequency: "HIGH",
+    shortSummary: "Stub resolvers query recursive resolvers (ISP/8.8.8.8). The recursive resolver traverses the hierarchy: Root (.) -> TLD (.com) -> Authoritative Nameserver (domain.com). Anycast BGP routes queries to the physically closest server instance.",
+    deepAnswer: "The Domain Name System (DNS) is a hierarchical, distributed naming database that translates human-readable hostnames into IP addresses.\n\n1. Resolution Walkthrough (Recursive Query):\n   - Step 1: Browser checks local cache (browser cache -> OS DNS cache / etc/hosts).\n   - Step 2: Stub Resolver queries Recursive Resolver (e.g. 1.1.1.1 or ISP resolver) via UDP port 53.\n   - Step 3: Recursive resolver checks its cache. If missing, it queries a Root Nameserver (one of 13 logical root IP addresses: a.root-servers.net to m.root-servers.net).\n   - Step 4: Root server responds with referral to TLD (Top-Level Domain) nameservers for '.com'.\n   - Step 5: Recursive resolver queries '.com' TLD nameserver, which responds with NS records for the domain's Authoritative Nameserver.\n   - Step 6: Recursive resolver queries Authoritative Nameserver, which returns the final 'A' (IPv4) or 'AAAA' (IPv6) record with a Time-To-Live (TTL).\n   - Step 7: Recursive resolver caches the result for TTL duration and returns the IP to the client.\n\n2. Anycast BGP Routing in DNS:\n   - Although there are only 13 root server IP addresses, there are thousands of physical root and recursive server nodes worldwide.\n   - BGP (Border Gateway Protocol) Anycast advertises the identical IP prefix from hundreds of data centers globally. Routers route traffic to the topologically closest node, providing DDoS resilience and sub-10ms query latencies.\n\n3. DNS Record Types:\n   - A / AAAA: Hostname to IPv4 / IPv6 mapping.\n   - CNAME: Canonical Name (alias pointing to another hostname).\n   - MX: Mail Exchange routing records.\n   - TXT: Arbitrary text used for SPF, DKIM, and domain ownership verification.",
+    interviewerCounterQuestions: [
+      "What is DNS amplification attack, and how do open resolvers enable massive DDoS volume?",
+      "How does DNSSEC (DNS Security Extensions) use cryptographic signatures to prevent DNS cache poisoning?"
+    ],
+    keyTakeaways: [
+      "DNS hierarchy flows from Root (.) to TLD (.com) to Authoritative nameservers.",
+      "BGP Anycast allows hundreds of globally distributed physical servers to share a single Anycast IP address."
+    ],
+    pitfalls: [
+      "Setting excessively high TTLs, making emergency IP address cutovers impossible during outages.",
+      "Creating CNAME chains that point to other CNAMEs, adding multiple recursive lookup round-trips."
+    ],
+    relatedCurriculumSlug: "api-design-rest-graphql-and-grpc"
+  },
+  {
+    id: "java-07",
+    category: "Core Java & JVM Internals",
+    categorySlug: "java-jvm",
+    title: "How do Java 21 Virtual Threads (Project Loom) implement lightweight concurrency on top of carrier threads?",
+    difficulty: "HARD",
+    frequency: "VERY HIGH",
+    shortSummary: "Virtual threads are user-mode threads managed by the JVM rather than the OS. When a virtual thread performs blocking I/O, the JVM unmounts its execution continuation from the carrier ForkJoinPool worker thread, mounting another runnable thread without blocking OS kernel threads.",
+    deepAnswer: "Traditional Java threads (`java.lang.Thread`) are 1:1 wrappers around OS kernel threads. OS threads allocate ~1MB stack memory and incur expensive kernel context switches, capping concurrent connections at a few thousand threads (Thread-per-Request bottleneck).\n\n1. The M:N Scheduling Architecture:\n   - Virtual Threads (M) run on top of a small pool of standard OS 'Carrier Threads' (N, typically equal to CPU core count) managed by a `ForkJoinPool`.\n   - Virtual thread stacks are allocated in JVM heap memory and grow/shrink dynamically from a few hundred bytes, enabling millions of concurrent threads.\n\n2. Continuation Suspension & Unmounting:\n   - When a virtual thread performs a blocking operation (e.g. `SocketChannel.read()`, `Thread.sleep()`, or `ReentrantLock.lock()`), the underlying JDK internal API intercepts the call.\n   - Instead of blocking the OS carrier thread, the JVM unmounts the virtual thread: it saves the execution stack frame continuation to heap and parks the virtual thread.\n   - The carrier thread is immediately released to execute another runnable virtual thread.\n   - When the asynchronous I/O completion event fires (via epoll/kqueue), the virtual thread is re-queued, mounted onto any available carrier thread, and continues execution seamlessly.\n\n3. Thread Pinning Pitfall:\n   - A virtual thread becomes 'pinned' to its carrier thread if it blocks inside a `synchronized` block/method or native JNI call. Pinning prevents unmounting and blocks the underlying OS thread.\n   - Migration: Replace `synchronized` with `java.util.concurrent.locks.ReentrantLock` to ensure complete non-blocking unmounting.",
+    interviewerCounterQuestions: [
+      "Why should you never pool Virtual Threads using Executors.newFixedThreadPool?",
+      "How do Scoped Values (JEP 446) provide a safer, faster alternative to ThreadLocal in virtual thread architectures?"
+    ],
+    keyTakeaways: [
+      "Virtual threads decouple application thread concurrency from OS kernel thread limits.",
+      "Blocking I/O unmounts virtual thread continuations, preserving carrier thread availability."
+    ],
+    pitfalls: [
+      "Blocking inside synchronized blocks, which pins virtual threads to carrier threads and halts concurrency.",
+      "Pooling virtual threads using Thread Pools instead of launching ephemeral virtual threads per task."
+    ],
+    relatedCurriculumSlug: "jvm-internals-classloading-and-bytecode"
+  },
+  {
+    id: "java-08",
+    category: "Core Java & JVM Internals",
+    categorySlug: "java-jvm",
+    title: "What is the Java Memory Model (JMM) Happens-Before relationship, and how does volatile enforce ordering?",
+    difficulty: "HARD",
+    frequency: "VERY HIGH",
+    shortSummary: "The Java Memory Model defines the formal rules governing memory visibility across threads. If action A happens-before action B, A is guaranteed to be visible to B. volatile fields enforce visibility and prevent compiler/CPU instruction reordering via memory fences.",
+    deepAnswer: "Modern CPUs utilize out-of-order execution pipelines, store buffers, and multi-level L1/L2 caches. Without a formal memory model, thread writes to shared variables may never be visible to other threads, or may appear out of chronological order.\n\n1. The Happens-Before Invariant:\n   - If action A happens-before action B (`A -> hb B`), the results of A are guaranteed to be observable by B, and A is ordered before B.\n   - Core Happens-Before Rules:\n     a. Program Order Rule: Within a single thread, each action happens-before any subsequent action in program order.\n     b. Monitor Lock Rule: An unlock on a monitor happens-before every subsequent lock on that same monitor.\n     c. Volatile Variable Rule: A write to a `volatile` field happens-before every subsequent read of that same `volatile` field.\n     d. Thread Start Rule: Calling `thread.start()` happens-before any action in the started thread.\n     e. Thread Termination Rule: Any action in a thread happens-before any other thread detects its termination (via `join()`).\n     f. Transitivity: If `A -> hb B` and `B -> hb C`, then `A -> hb C`.\n\n2. The Mechanics of `volatile`:\n   - Visibility: When thread writes to a `volatile` variable, the CPU flushes the store buffer directly to main cache/RAM. When reading, it invalidates local registers/L1 cache and reads fresh data.\n   - Ordering (Memory Barriers):\n     The compiler and CPU are prohibited from reordering instructions across volatile boundaries:\n     - Write: Injects a `StoreStore` barrier before and a `StoreLoad` barrier after the write.\n     - Read: Injects a `LoadLoad` and `LoadStore` barrier after the read.\n   - Volatile guarantees Visibility and Ordering, but NOT Atomicity (e.g. `count++` is still not thread-safe without `AtomicInteger`).",
+    interviewerCounterQuestions: [
+      "Why is double-checked locking broken in Java without the volatile keyword on the singleton instance?",
+      "What is the difference between VarHandle acquire/release semantics and full volatile fences?"
+    ],
+    keyTakeaways: [
+      "Happens-before guarantees visibility of memory writes across threads without requiring full heavyweight locks.",
+      "volatile enforces cache visibility and prevents instruction reordering via CPU memory barriers, but does not provide compound atomicity."
+    ],
+    pitfalls: [
+      "Assuming volatile makes increment operations (i++) thread-safe; compound operations require atomic CAS or locks.",
+      "Implementing double-checked locking without volatile, risking exposure of partially constructed objects."
+    ],
+    relatedCurriculumSlug: "jvm-internals-classloading-and-bytecode"
+  },
+  {
+    id: "java-09",
+    category: "Core Java & JVM Internals",
+    categorySlug: "java-jvm",
+    title: "How does the Z Garbage Collector (ZGC) achieve sub-millisecond maximum pause times on multi-terabyte heaps?",
+    difficulty: "EXPERT",
+    frequency: "HIGH",
+    shortSummary: "ZGC is a concurrent, single-generation (now generational in JDK 21) GC that performs marking, relocation, and compaction concurrently with application threads using Colored Pointers and Load Barriers.",
+    deepAnswer: "Traditional collectors (Parallel GC, G1 GC) pause application threads (Stop-The-World) for durations proportional to the size of live data during relocation and compaction, causing multi-second latency spikes on 100GB+ heaps. ZGC guarantees maximum pause times below 1 millisecond, regardless of heap capacity (up to 16TB).\n\n1. Core Innovation 1: Colored Pointers:\n   - ZGC stores metadata bits directly inside 64-bit reference pointers rather than inside object headers.\n   - Uses bits 42-45 on x86_64:\n     - `Marked0` / `Marked1`: Object liveness flags.\n     - `Remapped`: Indicates pointer is updated to the object's new relocated address.\n   - Enables reference coloring: testing whether an object is alive or needs relocation requires a single bitwise CPU test on the pointer without dereferencing memory.\n\n2. Core Innovation 2: Load Barriers:\n   - When an application thread reads a reference from an object (`obj.field`), the JIT-compiled Load Barrier intercepts the pointer.\n   - If the pointer has the `Remapped` bit set, execution proceeds immediately with zero overhead.\n   - If the pointer points to an object currently being relocated to a new memory page, the load barrier steps in:\n     It looks up the new address in a forwarding table (or relocates the object itself!), updates the reference pointer to the new address, and sets the `Remapped` bit.\n   - This 'self-healing' mechanism allows memory compaction and page freeing to proceed 100% concurrently while user threads are actively running!\n\n3. Generational ZGC (JDK 21):\n   - Separates heap into Young and Old generations to exploit the Weak Generational Hypothesis (most objects die young), drastically reducing CPU overhead and allocation stall frequencies.",
+    interviewerCounterQuestions: [
+      "How does Shenandoah GC compare with ZGC, and why does Shenandoah use Brooks Pointers instead of Colored Pointers?",
+      "What causes Allocation Stall in concurrent collectors, and how is it resolved?"
+    ],
+    keyTakeaways: [
+      "ZGC uses Colored Pointers to store reference metadata directly within 64-bit memory addresses.",
+      "Concurrent Load Barriers allow application threads to self-heal and update relocated pointers without Stop-The-World pauses."
+    ],
+    pitfalls: [
+      "Running ZGC on servers with severely restricted CPU core budgets, as concurrent GC threads compete with application worker threads.",
+      "Assuming zero-pause time means zero CPU overhead; concurrent collectors trade CPU cycles for sub-millisecond latency."
+    ],
+    relatedCurriculumSlug: "garbage-collection-algorithms-and-tuning"
+  },
+  {
+    id: "py-06",
+    category: "Python & Asynchronous Runtimes",
+    categorySlug: "python-concurrency",
+    title: "How does Python asyncio coordinate coroutines, tasks, and futures, and why do CPU-bound calls block the event loop?",
+    difficulty: "HARD",
+    frequency: "VERY HIGH",
+    shortSummary: "asyncio is a single-threaded cooperative multitasking runtime powered by generators and epoll. When a coroutine awaits an asynchronous future, control yields to the event loop. Synchronous CPU-bound operations do not yield, starving all concurrent tasks.",
+    deepAnswer: "Python's `asyncio` provides asynchronous, single-threaded cooperative multitasking for high-concurrency network I/O.\n\n1. Fundamental Building Blocks:\n   - Coroutine: A function defined with `async def`. Calling it does not execute code; it returns a coroutine object.\n   - Future: A low-level object representing an eventual result of an asynchronous operation (contains state: PENDING, FINISHED, CANCELLED).\n   - Task: A subclass of Future that wraps a coroutine and schedules its execution on the event loop.\n\n2. Event Loop Execution Loop:\n   - Built on OS multiplexing primitives (`epoll` on Linux, `kqueue` on macOS, `IOCP` on Windows).\n   - In each tick:\n     a. Checks timers for scheduled callbacks.\n     b. Polls I/O selectors for ready file descriptors and wakes corresponding futures.\n     c. Advances runnable tasks step-by-step using `coroutine.send(None)`.\n   - When a task reaches `await future`, it yields control back to the event loop. The loop switches to another runnable task while the I/O completes.\n\n3. The Blocking Pitfall & Mitigation:\n   - Because asyncio runs on a single thread, if a function executes a CPU-heavy loop (`for i in range(10**8)`) or synchronous blocking I/O (`time.sleep()`, `requests.get()`), it never yields control.\n   - The event loop is completely starved; zero timers fire and zero network packets are read.\n   - Solution: Offload CPU-bound tasks to a thread pool or process pool:\n     `await loop.run_in_executor(concurrent.futures.ProcessPoolExecutor(), cpu_bound_func, arg)`.",
+    interviewerCounterQuestions: [
+      "What is the difference between asyncio.gather() and asyncio.wait()?",
+      "How does asyncio prevent Task cancellation from leaving database connections in a corrupt state?"
+    ],
+    keyTakeaways: [
+      "asyncio uses single-threaded cooperative multitasking; coroutines yield explicitly via await expressions.",
+      "CPU-bound or synchronous blocking calls freeze the entire event loop and must be offloaded to ProcessPoolExecutor."
+    ],
+    pitfalls: [
+      "Using synchronous libraries (like requests or time.sleep) inside async functions, freezing all concurrent requests.",
+      "Creating coroutines without scheduling them as Tasks or awaiting them, resulting in RuntimeWarnings and unexecuted code."
+    ],
+    relatedCurriculumSlug: "concurrency-models-threads-processes-and-event-loops"
+  },
+  {
+    id: "py-07",
+    category: "Python & Asynchronous Runtimes",
+    categorySlug: "python-concurrency",
+    title: "What is PEP 703 (Free-Threaded Python / No-GIL), and how does it enable true multi-core scaling?",
+    difficulty: "EXPERT",
+    frequency: "HIGH",
+    shortSummary: "PEP 703 removes the Global Interpreter Lock in CPython 3.13+ by replacing global GIL synchronization with Mimic-Biased Reference Counting, immortal objects, and fine-grained per-object locking, enabling true multi-core thread scaling.",
+    deepAnswer: "Historically, CPython enforced the Global Interpreter Lock (GIL)—a single mutex preventing multiple native OS threads from executing Python bytecode simultaneously. Multi-threaded CPU programs were bottlenecked on a single core.\n\n1. The Challenges of Removing the GIL:\n   - CPython relies heavily on Reference Counting (`ob_refcnt`). Without the GIL, two threads incrementing or decrementing an object's reference counter in parallel cause race conditions and memory corruption.\n   - Naively making all reference counter operations atomic (`atomic_fetch_add`) incurs a devastating 30-40% single-threaded performance penalty due to CPU bus-locking overhead.\n\n2. PEP 703 Technical Solutions:\n   - Mimic-Biased Reference Counting (BRC):\n     Threads only manipulate local, non-atomic reference counts for objects they created. If an object is shared across threads, updates to its reference counter use thread-safe lock-free techniques.\n   - Immortal Objects:\n     Frequently accessed core objects (small integers, interned strings, None, True, False) have their reference counting disabled entirely (marked with a special immortal flag), eliminating cache coherence line-bouncing across CPU cores.\n   - Thread-Safe Memory Allocator (mimalloc):\n     Replaces pymalloc with a lock-free, thread-local slab allocator (mimalloc) to prevent memory allocation lock contention across parallel threads.\n   - Fine-Grained Container Locking:\n     Python dictionaries and lists implement per-instance reader-writer locks or scalable concurrent hash tables to allow parallel reads and thread-safe writes.",
+    interviewerCounterQuestions: [
+      "Why does multi-processing remain a valuable concurrency pattern even in free-threaded Python?",
+      "What are the implications of the No-GIL build for existing C extension modules (e.g. NumPy, Cython)?"
+    ],
+    keyTakeaways: [
+      "PEP 703 removes the GIL in CPython without imposing major atomic locking penalties on single-threaded code.",
+      "Biased Reference Counting and immortal objects prevent CPU cache line thrashing across multi-threaded cores."
+    ],
+    pitfalls: [
+      "Assuming free-threaded Python eliminates application-level race conditions; mutable shared state still requires locks.",
+      "Running legacy C extensions that assume the GIL protects their internal global static variables."
+    ],
+    relatedCurriculumSlug: "concurrency-models-threads-processes-and-event-loops"
+  },
+  {
+    id: "py-08",
+    category: "Python & Asynchronous Runtimes",
+    categorySlug: "python-concurrency",
+    title: "How do Python Descriptors power @property, methods, and ORM attribute mapping under the hood?",
+    difficulty: "HARD",
+    frequency: "HIGH",
+    shortSummary: "A Descriptor is an object attribute that implements __get__, __set__, or __delete__. When an attribute lookup occurs on a class instance, Python invokes the descriptor methods instead of directly accessing __dict__.",
+    deepAnswer: "Python's descriptor protocol is the underlying mechanism that powers nearly all advanced object-oriented features in Python, including `@property`, `@classmethod`, `@staticmethod`, and database ORM column definitions (SQLAlchemy, Django).\n\n1. The Descriptor Protocol:\n   - An object is a descriptor if it defines at least one of:\n     `__get__(self, obj, objtype=None)`\n     `__set__(self, obj, value)`\n     `__delete__(self, obj)`\n   - Data Descriptor: Implements both `__get__` and `__set__` (or `__delete__`).\n   - Non-Data Descriptor: Implements only `__get__` (e.g. standard Python functions and methods).\n\n2. Attribute Lookup Precedence Rules:\n   When accessing `instance.attribute`, Python executes `type(instance).__getattribute__(instance, 'attribute')` following strict priority:\n   - Step 1: Look for a Data Descriptor in the class and its MRO (Method Resolution Order). If found, invoke its `__get__` method. (Data descriptors override instance dictionaries!).\n   - Step 2: Look in the instance dictionary (`instance.__dict__['attribute']`). If present, return it.\n   - Step 3: Look for a Non-Data Descriptor in the class MRO. If found, invoke its `__get__` method. (This is how functions bind into methods!).\n   - Step 4: Look for a standard class attribute in class `__dict__`.\n   - Step 5: If all fail, call `__getattr__` if defined, or raise `AttributeError`.\n\n3. How Functions Become Methods:\n   - Every standard Python function is a non-data descriptor defining `__get__`.\n   - When you access `user.get_name`, the function descriptor's `__get__(user, User)` is called, returning a bound method object that pre-fills `self` with `user`!",
+    interviewerCounterQuestions: [
+      "What is the difference in lookup priority between __getattr__ and __getattribute__?",
+      "How do ORMs use descriptors to track dirty/modified state on model columns?"
+    ],
+    keyTakeaways: [
+      "Descriptors intercept dot-attribute lookups via __get__ and __set__ protocols.",
+      "Data descriptors take absolute precedence over instance __dict__ keys; non-data descriptors yield to instance __dict__."
+    ],
+    pitfalls: [
+      "Storing instance-specific state on the descriptor instance itself (`self.val`) rather than in the target instance's dictionary, causing state sharing across all class instances.",
+      "Confusing __getattr__ (fallback handler for missing attributes) with __getattribute__ (unconditional interceptor for all lookups)."
+    ],
+    relatedCurriculumSlug: "design-patterns-gof-in-modern-engineering"
+  },
+  {
+    id: "cloud-06",
+    category: "Cloud Architecture & DevOps",
+    categorySlug: "cloud-devops",
+    title: "How do Kubernetes Controllers, Informers, and the Reconciliation Loop maintain declarative cluster state?",
+    difficulty: "HARD",
+    frequency: "VERY HIGH",
+    shortSummary: "Kubernetes controllers continuously watch cluster state via Informers and DeltaFIFOs. The Reconciliation Loop compares Current State against Desired State and executes idempotent mutations until convergence.",
+    deepAnswer: "Kubernetes operates on a declarative control loop model. Rather than executing imperative commands, operators declare desired state (YAML manifests), and controllers ensure the real-world cluster matches that state.\n\n1. The Level-Triggered Reconciliation Loop:\n   - Operating principle: `Reconcile(Request) -> (Result, error)`\n   - In each loop, the controller executes three steps:\n     a. Observe: Reads the Current State of physical resources from the API server.\n     b. Analyze: Compares Current State against the Desired State specified in the Spec.\n     c. Act: Issues mutations (create pod, terminate container, re-route service) to drive Current State toward Desired State.\n   - Level-triggered design ensures that if network interruptions drop intermediate events, the next reconciliation cycle still observes the final discrepancy and corrects it.\n\n2. Shared Informers & DeltaFIFO:\n   - Naively polling the API server from dozens of controllers would overwhelm `kube-apiserver` and `etcd`.\n   - Informers establish a single persistent HTTP chunked `Watch` stream with the API server.\n   - Events are buffered in a `DeltaFIFO` queue and cached locally in an in-memory `Indexer` (cache.Store).\n   - Controller worker threads read from a rate-limiting work queue, querying the local cache rather than hitting etcd.\n\n3. Custom Resource Definitions (CRDs) & Operator Pattern:\n   - Developers extend Kubernetes by defining custom schemas (CRDs).\n   - A custom Controller watches the CRD events and manages external domain resources (e.g. automating PostgreSQL cluster failover or Kafka backups) using native Kubernetes API semantics.",
+    interviewerCounterQuestions: [
+      "Why is Kubernetes designed to be level-triggered rather than edge-triggered?",
+      "How does optimistic concurrency control (resourceVersion) prevent race conditions when two controllers mutate the same object?"
+    ],
+    keyTakeaways: [
+      "Kubernetes controllers continuously compare observed state with desired spec in an idempotent reconciliation loop.",
+      "SharedInformers use Watch streams and local Indexer caches to protect etcd from read traffic."
+    ],
+    pitfalls: [
+      "Making controllers edge-triggered, leading to permanent state desynchronization if event notifications are dropped.",
+      "Mutating resources inside Reconcile() without checking resourceVersion, causing conflict errors."
+    ],
+    relatedCurriculumSlug: "kubernetes-internals-and-container-orchestration"
+  },
+  {
+    id: "cloud-07",
+    category: "Cloud Architecture & DevOps",
+    categorySlug: "cloud-devops",
+    title: "How does GitOps (ArgoCD / Flux) enforce declarative infrastructure state and prevent configuration drift?",
+    difficulty: "MEDIUM",
+    frequency: "VERY HIGH",
+    shortSummary: "Git is the single source of truth for all cluster infrastructure. In-cluster GitOps agents continuously compare live cluster state against the Git repository, detecting configuration drift and automatically reconciling or alerting.",
+    deepAnswer: "GitOps applies developer workflow practices (Git commits, pull requests, automated reviews) to infrastructure automation and application delivery.\n\n1. Core Tenets of GitOps:\n   - Declarative: The entire system (Kubernetes manifests, Helm charts, Kustomize overlays) is described declaratively.\n   - Versioned & Immutable: Desired state is stored in Git, providing a complete cryptographic audit trail of who changed what, when, and why.\n   - Pulled Automatically: Software agents running inside the cluster pull desired state from Git, eliminating the need to expose cluster administrative credentials to external CI runners.\n   - Continuously Reconciled: Agents continuously observe live cluster state and detect deviations.\n\n2. Drift Detection & Self-Healing:\n   - Configuration Drift occurs when an engineer manually alters live cluster resources (e.g. running `kubectl edit` or scaling replicas imperatively during an incident).\n   - The GitOps controller (ArgoCD/Flux) detects that the live etcd manifest differs from the Git commit hash.\n   - Depending on policy:\n     - OutOfSync Alert: Notifies engineers via Slack/PagerDuty of uncommitted changes.\n     - Automated Self-Healing: Immediately overwrites live changes with the declarative Git manifest, neutralizing unauthorized changes within seconds.\n\n3. Security Advantages:\n   - CI pipelines do not require administrative `kubeconfig` cluster credentials. CI only needs push access to the Git repository.\n   - Rollbacks are simple Git operations (`git revert`), instantly returning cluster state to a known stable snapshot.",
+    interviewerCounterQuestions: [
+      "How do you manage sensitive secrets (passwords, API tokens) in GitOps without committing plaintext secrets to Git?",
+      "What is the difference between ArgoCD Application and ApplicationSet for multi-cluster fleet management?"
+    ],
+    keyTakeaways: [
+      "GitOps treats Git as the single source of truth for both application and infrastructure state.",
+      "Pull-based in-cluster controllers detect configuration drift and self-heal live resources automatically."
+    ],
+    pitfalls: [
+      "Permitting manual 'hotfixes' directly via kubectl in production without committing them to Git, causing immediate rollbacks upon next GitOps sync.",
+      "Committing unencrypted secrets to Git repositories instead of using SealedSecrets, External Secrets Operator, or KMS."
+    ],
+    relatedCurriculumSlug: "ci-cd-pipelines-gitops-and-devsecops"
+  },
+  {
+    id: "cloud-08",
+    category: "Cloud Architecture & DevOps",
+    categorySlug: "cloud-devops",
+    title: "What is the architectural difference between Blue-Green, Canary, and Progressive Traffic Shifting with Service Meshes?",
+    difficulty: "MEDIUM",
+    frequency: "HIGH",
+    shortSummary: "Blue-Green runs two identical environments, switching 100% of traffic at the router once verified. Canary routes a small percentage (e.g. 5%) of live traffic to the new version. Service Meshes enable header-based progressive routing with automated metric analysis.",
+    deepAnswer: "Deployment strategies balance release risk, infrastructure cost, and rollout velocity during production software updates.\n\n1. Blue-Green Deployment:\n   - Two identical production environments exist: 'Blue' (current live) and 'Green' (new candidate).\n   - Deployment process:\n     a. Deploy new version to idle Green environment.\n     b. Run automated health checks and end-to-end integration tests on Green.\n     c. Switch the load balancer / ingress router pointer from Blue to Green (instantaneous cutover).\n   - Strengths: Zero downtime, instantaneous rollback (switch router back to Blue).\n   - Weaknesses: Requires 2x infrastructure resources, and all users immediately encounter any undetected bugs upon cutover.\n\n2. Canary Deployment:\n   - Deploys new version to a small subset of servers or pods alongside the current version.\n   - A fraction of user traffic (e.g. 5%) is routed to the canary instance.\n   - Engineers monitor error rates, p99 latencies, and APM metrics. If healthy, traffic is incrementally stepped up (10%, 25%, 50%, 100%).\n   - Strengths: Limits blast radius of bugs to a tiny percentage of users.\n   - Weaknesses: Slower rollout velocity; requires backward-compatible database schemas across concurrent running versions.\n\n3. Progressive Traffic Shifting (Envoy Service Mesh / Flagger / Argo Rollouts):\n   - Combines dynamic L7 traffic routing with automated statistical metric analysis (Prometheus/DataDog).\n   - Traffic can be partitioned by HTTP headers (e.g. `X-Beta-Tester: true` or specific user cookies) rather than coarse IP percentages.\n   - Automated Analysis: The rollout controller continuously queries Prometheus (e.g. error rate < 0.1%, latency < 200ms). If metrics degrade, it aborts and shifts 100% of traffic back to the stable version automatically.",
+    interviewerCounterQuestions: [
+      "How do you handle database migrations when running two different application versions simultaneously during a Canary deployment?",
+      "What is Shadow Traffic (Mirroring) and what are its performance and idempotency constraints?"
+    ],
+    keyTakeaways: [
+      "Blue-Green provides instant rollback by switching router endpoints between dual environments.",
+      "Canary and progressive delivery minimize blast radius through gradual traffic shifting and automated metric verification."
+    ],
+    pitfalls: [
+      "Introducing breaking database schema changes (e.g. dropping columns) during canary deployments, crashing the legacy version.",
+      "Using simple round-robin DNS for traffic shifting, which is thwarted by client-side DNS caching."
+    ],
+    relatedCurriculumSlug: "ci-cd-pipelines-gitops-and-devsecops"
+  },
 ];
 
 export function getInterviewQuestions(categorySlug?: string, searchQuery?: string): InterviewQAItem[] {
