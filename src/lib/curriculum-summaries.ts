@@ -2635,4 +2635,234 @@ export const CURRICULUM_SUMMARIES: CurriculumArticleSummary[] = [
   ],
   "practiceMcqsCount": 5
 },
+{
+  "id": "art-crypto-zk-snarks-groth16-plonk",
+  "slug": "zero-knowledge-succinct-non-interactive-arguments-zk-snarks",
+  "domainSlug": "cloud-cybersecurity-defense",
+  "domainName": "Cloud Infrastructure & Cybersecurity",
+  "title": "Zero-Knowledge Proofs: zk-SNARKs, R1CS Arithmetization, KZG Polynomial Commitments & PLONK",
+  "level": "ADVANCED",
+  "readTimeMinutes": 29,
+  "summary": "A mathematical and architectural deep dive into Zero-Knowledge Succinct Non-Interactive Arguments of Knowledge (zk-SNARKs): Rank-1 Constraint Systems (R1CS), Quadratic Arithmetic Programs (QAP), pairing-friendly elliptic curves (BLS12-381), trusted setup ceremonies, Kate-Zaverucha-Goldberg (KZG) polynomial commitments, and the universal PLONK proving system.",
+  "keyConcepts": [
+    "Arithmetization: Boolean & Arithmetic Circuits into R1CS Constraints",
+    "Quadratic Arithmetic Programs (QAP) & Polynomial Division",
+    "Pairing-Friendly Elliptic Curves (BLS12-381) & Bilinear Pairings $e(P, Q)$",
+    "Trusted Setup Ceremonies (Powers of Tau) vs Universal Setups",
+    "KZG Polynomial Commitments & PLONK Permutation Arguments"
+  ],
+  "relatedRoleSlugs": [
+    "systems-architect",
+    "backend-engineer",
+    "cloud-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-crypto-post-quantum-kyber-dilithium",
+  "slug": "post-quantum-cryptography-kyber-and-dilithium",
+  "domainSlug": "cloud-cybersecurity-defense",
+  "domainName": "Cloud Infrastructure & Cybersecurity",
+  "title": "Post-Quantum Cryptography: NIST Standards, ML-KEM (Kyber), ML-DSA (Dilithium) & Lattice Mathematics",
+  "level": "ADVANCED",
+  "readTimeMinutes": 28,
+  "summary": "A definitive guide to post-quantum cryptography (PQC) and NIST FIPS standards: Shor’s quantum algorithm threat against RSA and ECC, Learning With Errors (LWE) and Ring/Module-LWE lattices, ML-KEM (CRYSTALS-Kyber) key encapsulation, ML-DSA (CRYSTALS-Dilithium) digital signatures, and hybrid TLS 1.3 key exchanges.",
+  "keyConcepts": [
+    "Shor’s Algorithm & the Quantum Cryptanalytic Threat (Period Finding)",
+    "Lattice Hardness: Shortest Vector Problem (SVP) & Learning With Errors (LWE)",
+    "Module-LWE & NTT (Number Theoretic Transform) Vector Operations",
+    "ML-KEM (Kyber): Key Generation, Encapsulation, and Decapsulation",
+    "ML-DSA (Dilithium): \"Fiat-Shamir with Aborts\" Digital Signatures"
+  ],
+  "relatedRoleSlugs": [
+    "systems-architect",
+    "cloud-engineer",
+    "backend-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-crypto-smpc-garbled-circuits",
+  "slug": "secure-multi-party-computation-and-garbled-circuits",
+  "domainSlug": "cloud-cybersecurity-defense",
+  "domainName": "Cloud Infrastructure & Cybersecurity",
+  "title": "Secure Multi-Party Computation (SMPC): Yao’s Garbled Circuits, Oblivious Transfer & Secret Sharing",
+  "level": "ADVANCED",
+  "readTimeMinutes": 28,
+  "summary": "An architectural exploration of Secure Multi-Party Computation (SMPC): Yao’s Millionaires’ Problem, Boolean Garbled Circuits, Free-XOR and Half-Gates optimizations, 1-out-of-2 Oblivious Transfer (OT), Shamir/Beaver Triple Secret Sharing (BGW and SPDZ), and privacy-preserving collaborative analytics.",
+  "keyConcepts": [
+    "Yao’s Two-Party Garbled Circuits: Wire Labels and Encrypted Truth Tables",
+    "1-out-of-2 Oblivious Transfer (OT) Protocol Mechanics",
+    "Garbled Circuit Optimizations: Point-and-Permute, Free-XOR, and Half-Gates",
+    "Arithmetic Secret Sharing & Beaver Multiplicative Triples (SPDZ Protocol)",
+    "Semi-Honest vs Malicious Adversary Security Models"
+  ],
+  "relatedRoleSlugs": [
+    "systems-architect",
+    "cloud-engineer",
+    "backend-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-crypto-hsm-tpm-confidential-computing",
+  "slug": "hardware-security-modules-tpm2-and-confidential-computing",
+  "domainSlug": "operating-systems-internals",
+  "domainName": "Operating Systems & Linux Kernel Engineering",
+  "title": "Hardware Security & Confidential Computing: TPM 2.0, Measured Boot, AMD SEV-SNP & Intel SGX/TDX",
+  "level": "ADVANCED",
+  "readTimeMinutes": 29,
+  "summary": "A comprehensive study of hardware root-of-trust engineering: Trusted Platform Module (TPM 2.0) architecture, Platform Configuration Registers (PCRs), Measured Boot chains, encrypted memory enclaves (Intel SGX, Intel TDX, AMD SEV-SNP), and hardware-rooted Remote Attestation.",
+  "keyConcepts": [
+    "TPM 2.0 Architecture: Endorsement Keys (EK), Storage Root Keys (SRK), and PCRs",
+    "Measured Boot & Static Root of Trust for Measurement (SRTM)",
+    "Memory Enclave Hardware: Intel SGX PRM & Page Cryptography",
+    "Confidential VMs: AMD SEV-SNP (Secure Nested Paging) & Intel TDX",
+    "Remote Attestation Protocols: Quoting, Verifiable Quotes, and Intel/AMD CAs"
+  ],
+  "relatedRoleSlugs": [
+    "systems-architect",
+    "sre-infrastructure",
+    "cloud-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-crypto-homomorphic-encryption-bfv-ckks",
+  "slug": "homomorphic-encryption-bfv-ckks-and-encrypted-analytics",
+  "domainSlug": "databases-storage-engines",
+  "domainName": "Database Engines & Storage Systems",
+  "title": "Fully Homomorphic Encryption (FHE): BFV vs CKKS Schemes, SIMD Slot Batching & Bootstrapping",
+  "level": "ADVANCED",
+  "readTimeMinutes": 28,
+  "summary": "A deep mathematical analysis of Fully Homomorphic Encryption (FHE): Ring Learning With Errors (RLWE) foundations, the BFV scheme for exact integer arithmetic, the CKKS scheme for approximate floating-point computations, SIMD slot packing via Chinese Remainder Theorem, relinearization, and bootstrapping noise mitigation.",
+  "keyConcepts": [
+    "RLWE Foundations: Ciphertexts as Polynomial Pairs $(c_0, c_1) \\in R_q^2$",
+    "BFV Scheme: Modular Integer Arithmetic & Scale Multiplication",
+    "CKKS Scheme: Fixed-Point Arithmetic & Rescaling Noise Management",
+    "SIMD Slot Batching via Chinese Remainder Theorem (CRT) Isomorphisms",
+    "Relinearization & Bootstrapping: Refreshing Inherent Ciphertext Noise"
+  ],
+  "relatedRoleSlugs": [
+    "systems-architect",
+    "data-engineer",
+    "backend-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-dist-bft-pbft-hotstuff-consensus",
+  "slug": "byzantine-fault-tolerant-consensus-pbft-and-hotstuff",
+  "domainSlug": "distributed-systems-architecture",
+  "domainName": "Distributed Systems Architecture",
+  "title": "Byzantine Fault Tolerance: From PBFT Quadratic View-Change to HotStuff Linear Chained Consensus",
+  "level": "ADVANCED",
+  "readTimeMinutes": 29,
+  "summary": "A definitive study of state machine replication under Byzantine failures: Castro & Liskov’s Practical Byzantine Fault Tolerance (PBFT), the three-phase commit protocol (Pre-prepare, Prepare, Commit), the O(N^2) view-change bottleneck, HotStuff linear view-change via Threshold Signatures (BLS), and pipelined three-chain BFT consensus.",
+  "keyConcepts": [
+    "Byzantine Failure Model & 3f + 1 Quorum Tolerances",
+    "Classical PBFT: Pre-Prepare, Prepare, and Commit Phases",
+    "The Quadratic View-Change ($O(N^2)$ to $O(N^3)$) Scalability Bottleneck",
+    "HotStuff Innovation: Linear View Change ($O(N)$) via Leader-Centric Quorums",
+    "Threshold Signatures (BLS) & Three-Chain Pipelined Commitments"
+  ],
+  "relatedRoleSlugs": [
+    "systems-architect",
+    "backend-engineer",
+    "cloud-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-dist-apache-pulsar-bookkeeper",
+  "slug": "apache-pulsar-segmented-storage-and-bookkeeper",
+  "domainSlug": "distributed-systems-architecture",
+  "domainName": "Distributed Systems Architecture",
+  "title": "Apache Pulsar Architecture: Decoupled Stateless Brokers & Apache BookKeeper Segmented Storage",
+  "level": "ADVANCED",
+  "readTimeMinutes": 28,
+  "summary": "A comprehensive study of cloud-native messaging and streaming architecture: Apache Pulsar stateless broker tier, Apache BookKeeper distributed ledger log segments (Bookies), Ledger Fragments, Ensemble Size ($E$), Write Quorum ($Qw$), Ack Quorum ($Qa$), Last Add Confirmed (LAC), and multi-tenancy isolation.",
+  "keyConcepts": [
+    "Stateless Compute vs Segmented Storage Decoupled Architecture",
+    "Apache BookKeeper: Ledgers, Fragments, and Bookie Daemons",
+    "Quorum Parameters: Ensemble Size ($E$), Write Quorum ($Q_w$), Ack Quorum ($Q_a$)",
+    "Last Add Confirmed (LAC) Monotonic Read Protocol",
+    "Tiered Storage Offloading to Object Storage (S3/GCS)"
+  ],
+  "relatedRoleSlugs": [
+    "systems-architect",
+    "data-engineer",
+    "backend-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-dist-nats-jetstream-meta-raft",
+  "slug": "nats-jetstream-and-distributed-meta-raft",
+  "domainSlug": "distributed-systems-architecture",
+  "domainName": "Distributed Systems Architecture",
+  "title": "NATS JetStream Architecture: Subject-Based Addressing, Meta-Raft & At-Least-Once Streaming",
+  "level": "ADVANCED",
+  "readTimeMinutes": 27,
+  "summary": "A deep architectural analysis of NATS and NATS JetStream: subject-based hierarchical routing (wildcards * and >), NATS Core at-most-once in-memory pub/sub, JetStream persistence engine, distributed Meta-Raft consensus, deduplication windows, consumer ack policies, and KV/Object store abstractions.",
+  "keyConcepts": [
+    "NATS Subject Hierarchies & Wildcard Matchers (* single token, > greedy tail)",
+    "NATS Core (Fire-and-Forget) vs JetStream (At-Least-Once Persistence)",
+    "Meta-Raft Consensus: Dynamic Cluster Placements & Stream Replication",
+    "Consumer Invariants: Ephemeral vs Durable, AckPolicy, and MaxDeliver Retries",
+    "Idempotent Message Deduplication Windows (Nats-Msg-Id Header)"
+  ],
+  "relatedRoleSlugs": [
+    "systems-architect",
+    "backend-engineer",
+    "cloud-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-storage-vector-databases-hnsw-ivf-pq",
+  "slug": "vector-databases-hnsw-indexing-and-ivf-pq",
+  "domainSlug": "databases-storage-engines",
+  "domainName": "Database Engines & Storage Systems",
+  "title": "Vector Databases: HNSW Graph Indexing, IVF-PQ Compression & SIMD Similarity Search",
+  "level": "ADVANCED",
+  "readTimeMinutes": 29,
+  "summary": "A deep architectural inspection of vector similarity search engines: high-dimensional embedding spaces, distance metrics (Euclidean L2, Cosine, Inner Product), Hierarchical Navigable Small World (HNSW) multi-layer graphs, Inverted File Product Quantization (IVF-PQ) vector compression, and AVX-512 distance kernel acceleration.",
+  "keyConcepts": [
+    "High-Dimensional Vector Spaces & The Curse of Dimensionality",
+    "Distance Metrics: Euclidean ($L_2$), Cosine Distance, and Dot Product",
+    "Hierarchical Navigable Small World (HNSW): Multi-Layer Skip-Graphs",
+    "Inverted File with Product Quantization (IVF-PQ): Centroid Clustering & Sub-Vectors",
+    "SIMD Vectorized Distance Acceleration (AVX-512 & NEON FMA)"
+  ],
+  "relatedRoleSlugs": [
+    "systems-architect",
+    "data-engineer",
+    "backend-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-net-quic-datagrams-webtransport",
+  "slug": "quic-datagrams-and-webtransport-realtime-streaming",
+  "domainSlug": "computer-networks-protocols",
+  "domainName": "Computer Networks & Protocols",
+  "title": "WebTransport & QUIC Datagrams: Low-Latency Streaming, Unreliable Datagrams & Multiplexed Streams",
+  "level": "ADVANCED",
+  "readTimeMinutes": 28,
+  "summary": "A deep architectural breakdown of WebTransport over HTTP/3: eliminating WebSocket TCP head-of-line blocking, unreliable out-of-order QUIC datagrams (RFC 9221), unidirectional and bidirectional reliable streams, pool-based congestion control, and low-latency audio/video/gaming architectures.",
+  "keyConcepts": [
+    "WebTransport Session Establishment over HTTP/3 Extended CONNECT",
+    "QUIC Unreliable Datagrams (RFC 9221) vs Reliable Streams",
+    "Unidirectional vs Bidirectional Stream Multiplexing",
+    "Unified Congestion Control & Flow Control across Mixed Traffic",
+    "WebSockets vs WebRTC vs WebTransport Comparative Analysis"
+  ],
+  "relatedRoleSlugs": [
+    "systems-architect",
+    "backend-engineer",
+    "cloud-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
 ];
