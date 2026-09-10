@@ -16366,4 +16366,1579 @@ export const FALLBACK_TOPIC_QUESTIONS: RawTopicQuestion[] = [
     ],
     correctOptionId: 'opt-s122-105b',
   },
+  {
+    id: 'cat-q-s127-001',
+    topicId: 'topic-os',
+    topicSlug: 'operating-systems-internals',
+    body: "In modern Linux kernels, what mechanism does eBPF (Extended Berkeley Packet Filter) utilize to guarantee that arbitrary user-submitted bytecode cannot crash the kernel or execute unbounded loops?",
+    explanation: "The eBPF in-kernel verifier conducts static analysis via Abstract Interpretation of the Control Flow Graph (CFG) prior to JIT compilation. It enforces bounded complexity (instruction count limits, back-edge loop detection with bounded iterations), verifies valid register/stack access bounds, and prevents out-of-bounds pointer arithmetic.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-001a', body: "It executes all eBPF programs inside an isolated user-space Docker container with seccomp filters.", orderIndex: 0 },
+      { id: 'opt-s127-001b', body: "The in-kernel static verifier performs formal CFG analysis and abstract interpretation to verify memory safety, instruction limits, and absence of unbounded loops before JIT compilation.", orderIndex: 1 },
+      { id: 'opt-s127-001c', body: "It relies solely on runtime memory segmentation faults to terminate malfunctioning programs.", orderIndex: 2 },
+      { id: 'opt-s127-001d', body: "It interprets all programs in an emulated WebAssembly virtual machine running in ring 3.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-001b',
+  },
+  {
+    id: 'cat-q-s127-002',
+    topicId: 'topic-os',
+    topicSlug: 'operating-systems-internals',
+    body: "When configuring Linux cgroups v2 memory limits, what is the precise semantic distinction between `memory.high` and `memory.max`?",
+    explanation: "`memory.high` is a soft throttling throttle limit: exceeding it puts the cgroup processes under proactive reclaim and forces proportional throttling delays on memory allocations. `memory.max` is a hard ceiling: exceeding it immediately triggers synchronous out-of-memory (OOM) killer eviction if page reclaim fails.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-002a', body: "`memory.high` applies only to swap space, while `memory.max` applies only to physical RAM.", orderIndex: 0 },
+      { id: 'opt-s127-002b', body: "`memory.high` triggers proactive page reclaim and allocation throttling delays without killing processes, whereas `memory.max` is a hard wall that triggers the OOM killer if direct reclaim fails.", orderIndex: 1 },
+      { id: 'opt-s127-002c', body: "`memory.high` is deprecated and ignored in cgroups v2.", orderIndex: 2 },
+      { id: 'opt-s127-002d', body: "`memory.max` permits temporary bursting for up to 30 seconds before throttling.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-002b',
+  },
+  {
+    id: 'cat-q-s127-003',
+    topicId: 'topic-os',
+    topicSlug: 'operating-systems-internals',
+    body: "What is the function of the `io_uring` submission queue (SQ) and completion queue (CQ) ring buffers shared between user space and kernel space?",
+    explanation: "`io_uring` maps two lockless ring buffers (SQ and CQ) into user-space virtual memory via `mmap()`. The application submits I/O requests to the SQ and reaps completed events from the CQ via atomic head/tail pointers, eliminating syscall overhead and achieving zero-copy kernel context transitions.",
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-s127-003a', body: "To encrypt all network packets before saving to disk.", orderIndex: 0 },
+      { id: 'opt-s127-003b', body: "To provide lockless, zero-syscall asynchronous I/O submission and completion tracking via shared memory atomic head/tail pointers.", orderIndex: 1 },
+      { id: 'opt-s127-003c', body: "To manage thread pools inside user-space glibc.", orderIndex: 2 },
+      { id: 'opt-s127-003d', body: "To emulate synchronous POSIX read and write calls.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-003b',
+  },
+  {
+    id: 'cat-q-s127-004',
+    topicId: 'topic-os',
+    topicSlug: 'operating-systems-internals',
+    body: "How does the Linux Completely Fair Scheduler (CFS) use `vruntime` (virtual runtime) and red-black trees to balance CPU allocation across tasks with different nice levels?",
+    explanation: "CFS tracks execution time scaled inversely by task priority weight: $vruntime += \\Delta exec\\_time \\times \\frac{NICE\\_0\\_LOAD}{weight}$. The scheduler always picks the leftmost task (smallest $vruntime$) in the self-balancing red-black tree, guaranteeing proportional progress.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-004a', body: "Tasks with lower nice values (higher priority) advance their $vruntime$ faster, causing them to be scheduled less often.", orderIndex: 0 },
+      { id: 'opt-s127-004b', body: "Each task's elapsed time is weighted inversely by priority; the task with the minimum $vruntime$ (leftmost node in the red-black tree) is always dispatched next.", orderIndex: 1 },
+      { id: 'opt-s127-004c', body: "CFS rotates tasks strictly through a round-robin array of 140 priority queues without tracking execution history.", orderIndex: 2 },
+      { id: 'opt-s127-004d', body: "Tasks are sorted based solely on their total resident set size (RSS).", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-004b',
+  },
+  {
+    id: 'cat-q-s127-005',
+    topicId: 'topic-os',
+    topicSlug: 'operating-systems-internals',
+    body: "In Linux page cache management, what occurs during Transparent Huge Pages (THP) collapse performed by `khugepaged`?",
+    explanation: "The kernel background daemon `khugepaged` scans contiguous ranges of 512 standard 4KB physical pages mapped to a 2MB-aligned virtual address, allocates a single 2MB huge page, copies data, and updates the Page Middle Directory (PMD) entry to point to the huge page, freeing TLB entries.",
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-s127-005a', body: "It divides 2MB pages into 4KB pages to reclaim fragmented heap memory.", orderIndex: 0 },
+      { id: 'opt-s127-005b', body: "It consolidates 512 contiguous 4KB pages into a single 2MB page, replacing 512 PTE entries with 1 PMD entry to minimize TLB misses.", orderIndex: 1 },
+      { id: 'opt-s127-005c', body: "It compresses inactive swap pages using LZ4.", orderIndex: 2 },
+      { id: 'opt-s127-005d', body: "It invalidates all user-space dirty pages and writes them synchronously to NVMe.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-005b',
+  },
+  {
+    id: 'cat-q-s127-006',
+    topicId: 'topic-os',
+    topicSlug: 'operating-systems-internals',
+    body: "Why does memory overcommit handling in Linux (`vm.overcommit_memory = 0` or `1`) occasionally lead to invocation of the Out-Of-Memory (OOM) Killer during active heap writes?",
+    explanation: "Linux employs optimistic memory allocation: `malloc()` / `mmap()` succeeds immediately by granting virtual address space without backing physical RAM pages. Physical frames are allocated lazily via page faults when written. If demand exceeds physical RAM and swap, the OOM killer must terminate tasks.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-006a', body: "Because the CPU hardware registers run out of clock cycles during pointer dereference.", orderIndex: 0 },
+      { id: 'opt-s127-006b', body: "Because virtual address space is granted optimistically on `malloc()`, but physical memory is allocated lazily on first write; if physical pages run out, the kernel must kill processes.", orderIndex: 1 },
+      { id: 'opt-s127-006c', body: "Because the disk controller blocks swap access when temperatures rise.", orderIndex: 2 },
+      { id: 'opt-s127-006d', body: "Because the glibc runtime runs a garbage collection cycle that panics.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-006b',
+  },
+  {
+    id: 'cat-q-s127-007',
+    topicId: 'topic-os',
+    topicSlug: 'operating-systems-internals',
+    body: "What is the primary role of the Translation Lookaside Buffer (TLB) in CPU memory management?",
+    explanation: "The TLB is a high-speed hardware associative cache on the CPU that stores recent virtual-to-physical address translations, avoiding multi-level page table walks in main memory on every instruction fetch and data access.",
+    difficulty: 'EASY',
+    options: [
+      { id: 'opt-s127-007a', body: "To cache compiled machine instructions in L1 cache.", orderIndex: 0 },
+      { id: 'opt-s127-007b', body: "To cache virtual-to-physical address translations to accelerate memory access and bypass multi-level page table walks.", orderIndex: 1 },
+      { id: 'opt-s127-007c', body: "To store CPU register state during an interrupt.", orderIndex: 2 },
+      { id: 'opt-s127-007d', body: "To manage thread synchronization primitives like mutexes.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-007b',
+  },
+  {
+    id: 'cat-q-s127-008',
+    topicId: 'topic-os',
+    topicSlug: 'operating-systems-internals',
+    body: "What problem does the RCU (Read-Copy Update) synchronization mechanism solve in the Linux kernel for read-heavy data structures?",
+    explanation: "RCU enables concurrent readers to traverse linked data structures without locks, atomic operations, or memory bus synchronization. Writers create updated copies of elements, atomically swing pointers, and defer reclamation of old elements until a grace period passes where all concurrent readers have completed.",
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-s127-008a', body: "It allows multiple writers to concurrently modify the same memory word without locking.", orderIndex: 0 },
+      { id: 'opt-s127-008b', body: "It allows zero-overhead, lock-free reads while deferring memory reclamation of old copies until all existing read-side critical sections finish (grace period).", orderIndex: 1 },
+      { id: 'opt-s127-008c', body: "It encrypts kernel data structures to prevent side-channel attacks.", orderIndex: 2 },
+      { id: 'opt-s127-008d', body: "It serializes all reader and writer threads through a fair FIFO semaphore.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-008b',
+  },
+  {
+    id: 'cat-q-s127-009',
+    topicId: 'topic-os',
+    topicSlug: 'operating-systems-internals',
+    body: "In multi-processor Linux systems, what is NUMA (Non-Uniform Memory Access) balancing and what problem does NUMA node interleaving mitigate?",
+    explanation: "In NUMA architectures, accessing memory attached to a local CPU socket is significantly faster than accessing memory attached to a remote socket across interconnects. Automatic NUMA balancing migrates memory pages closer to the CPU executing the thread, while round-robin interleaving avoids hotspotting a single node's memory channels.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-009a', body: "NUMA divides disk drives across RAID controllers.", orderIndex: 0 },
+      { id: 'opt-s127-009b', body: "It minimizes remote socket memory access latency by migrating physical pages to the NUMA node where accessing threads reside.", orderIndex: 1 },
+      { id: 'opt-s127-009c', body: "It converts 64-bit virtual pointers into 32-bit offsets to save space.", orderIndex: 2 },
+      { id: 'opt-s127-009d', body: "It forces all CPU cores to share a single centralized memory controller.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-009b',
+  },
+  {
+    id: 'cat-q-s127-010',
+    topicId: 'topic-os',
+    topicSlug: 'operating-systems-internals',
+    body: "What is the difference between hard interrupts (top-half handlers) and softirqs/tasklets (bottom-half handlers) in the Linux interrupt handling architecture?",
+    explanation: "Top-half handlers execute in interrupt context with hardware interrupts disabled, performing minimal urgent actions (e.g., acknowledging the hardware device). They schedule bottom-half mechanisms (softirqs, tasklets, workqueues) to process heavier tasks with interrupts re-enabled, preventing system freeze.",
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-s127-010a', body: "Top-half handlers run in user space, whereas bottom-half handlers run in kernel space.", orderIndex: 0 },
+      { id: 'opt-s127-010b', body: "Top-half handlers run immediately with interrupts masked to acknowledge hardware, deferring non-urgent computation to bottom halves with interrupts enabled.", orderIndex: 1 },
+      { id: 'opt-s127-010c', body: "Bottom-half handlers can sleep and take mutexes, while top-half handlers cannot use pointers.", orderIndex: 2 },
+      { id: 'opt-s127-010d', body: "There is no difference; modern Linux kernels execute all interrupt logic inside user-space threads.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-010b',
+  },
+  {
+    id: 'cat-q-s127-011',
+    topicId: 'topic-os',
+    topicSlug: 'operating-systems-internals',
+    body: "What is the purpose of the Linux `splice()` system call, and how does it achieve true zero-copy data streaming between file descriptors?",
+    explanation: "`splice()` moves data between two file descriptors (at least one of which is a pipe) by transferring page references in the pipe buffer table without copying data between kernel buffers and user space, or even between kernel buffers.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-011a', body: "It splits a single file into two separate chunks on disk.", orderIndex: 0 },
+      { id: 'opt-s127-011b', body: "It re-maps physical page buffer references between descriptors via pipe buffers without copying payload bytes across kernel or user boundaries.", orderIndex: 1 },
+      { id: 'opt-s127-011c', body: "It converts TCP streams into UDP datagrams.", orderIndex: 2 },
+      { id: 'opt-s127-011d', body: "It executes in-memory string concatenations inside glibc.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-011b',
+  },
+  {
+    id: 'cat-q-s127-012',
+    topicId: 'topic-os',
+    topicSlug: 'operating-systems-internals',
+    body: "What mechanism causes a \"zombie process\" in Unix/Linux operating systems, and how is its kernel resource entry finally reaped?",
+    explanation: "A child process that terminates becomes a zombie, retaining an entry in the kernel process table with its exit status code until its parent process invokes `wait()` or `waitpid()`. If the parent exits without reaping, init/systemd (PID 1) inherits and reaps it.",
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-s127-012a', body: "A process that enters an infinite while loop and consumes 100% CPU.", orderIndex: 0 },
+      { id: 'opt-s127-012b', body: "A terminated process whose process table entry remains allocated until the parent process reads its exit status via `wait()`/`waitpid()`.", orderIndex: 1 },
+      { id: 'opt-s127-012c', body: "A process that has been swapped out entirely to swap space.", orderIndex: 2 },
+      { id: 'opt-s127-012d', body: "A thread that failed to acquire a pthread mutex.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-012b',
+  },
+  {
+    id: 'cat-q-s127-013',
+    topicId: 'topic-os',
+    topicSlug: 'operating-systems-internals',
+    body: "How does Meltdown (CVE-2017-5754) exploit out-of-order execution and how does Kernel Page-Table Isolation (KPTI) remediate it?",
+    explanation: "Meltdown exploits transient out-of-order execution across user-kernel privilege boundaries: unauthorized loads from kernel memory complete transiently before the hardware raises an architectural exception, leaving cache footprints that leak data via side channels. KPTI isolates user and kernel page tables, unmapping kernel space while running user mode.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-013a', body: "Meltdown overwrites the BIOS flash chip; KPTI enforces write-protect pins on the motherboard.", orderIndex: 0 },
+      { id: 'opt-s127-013b', body: "Meltdown reads unauthorized kernel memory during speculative execution and leaks bytes via cache timing side-channels; KPTI prevents this by completely unmapping kernel memory tables when running in user space.", orderIndex: 1 },
+      { id: 'opt-s127-013c', body: "Meltdown injects malicious shellcode into `glibc`; KPTI disables dynamic linking.", orderIndex: 2 },
+      { id: 'opt-s127-013d', body: "Meltdown exhausts CPU L3 cache bandwidth; KPTI throttles hyperthreading.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-013b',
+  },
+  {
+    id: 'cat-q-s127-014',
+    topicId: 'topic-os',
+    topicSlug: 'operating-systems-internals',
+    body: "What is the purpose of the `futex` (Fast Userspace Mutex) system call in Linux threading implementations?",
+    explanation: "A futex allows uncontended lock acquisitions and releases to occur entirely in user space via atomic compare-and-swap (CAS) instructions without entering the kernel. The kernel `futex()` syscall is only invoked when lock contention occurs and a thread must sleep or be woken up.",
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-s127-014a', body: "To allocate thread stack memory in user space.", orderIndex: 0 },
+      { id: 'opt-s127-014b', body: "To enable lock acquisition and release in user space via atomic instructions without syscall overhead when uncontended, only entering the kernel on contention.", orderIndex: 1 },
+      { id: 'opt-s127-014c', body: "To replace all POSIX signals with synchronous IPC pipes.", orderIndex: 2 },
+      { id: 'opt-s127-014d', body: "To synchronize file systems across network storage nodes.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-014b',
+  },
+  {
+    id: 'cat-q-s127-015',
+    topicId: 'topic-os',
+    topicSlug: 'operating-systems-internals',
+    body: "In Linux filesystem architecture, what is the role of the dentry (directory entry) cache (dcache) and inode cache?",
+    explanation: "The dcache caches string path components and links them to underlying vfs inodes, avoiding costly disk reads during path resolution (e.g. `/var/log/syslog`). If a dentry is cached, path traversal requires zero block I/O operations.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-015a', body: "To cache the raw file data payload blocks in DRAM.", orderIndex: 0 },
+      { id: 'opt-s127-015b', body: "To cache hierarchical path component mappings to disk inodes in memory, enabling fast pathname resolution without disk seeks.", orderIndex: 1 },
+      { id: 'opt-s127-015c', body: "To encrypt file metadata before saving to flash storage.", orderIndex: 2 },
+      { id: 'opt-s127-015d', body: "To manage directory access permissions in SELinux.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-015b',
+  },
+  {
+    id: 'cat-q-s127-016',
+    topicId: 'topic-os',
+    topicSlug: 'operating-systems-internals',
+    body: "What happens when a user thread attempts to acquire a standard POSIX spinlock that is currently held by another thread?",
+    explanation: "The acquiring thread repeatedly loops (busy-waits / spins) polling the lock variable in a tight loop on the CPU without yielding the processor or sleeping, which is efficient only if lock hold times are shorter than context switch latencies.",
+    difficulty: 'EASY',
+    options: [
+      { id: 'opt-s127-016a', body: "The thread is put to sleep and added to a kernel wait queue.", orderIndex: 0 },
+      { id: 'opt-s127-016b', body: "The thread busy-waits in a continuous CPU polling loop until the lock is released.", orderIndex: 1 },
+      { id: 'opt-s127-016c', body: "The thread is terminated by SIGSEGV.", orderIndex: 2 },
+      { id: 'opt-s127-016d', body: "The thread yields its time slice immediately via `sched_yield()`.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-016b',
+  },
+  {
+    id: 'cat-q-s127-017',
+    topicId: 'topic-os',
+    topicSlug: 'operating-systems-internals',
+    body: "What is the function of the `CLONE_NEWPID` flag in the Linux `clone()` system call, and what happens when the first process in a new PID namespace terminates?",
+    explanation: "`CLONE_NEWPID` creates an isolated PID namespace where the new child becomes PID 1. If this PID 1 process terminates, the kernel sends `SIGKILL` to all other processes residing within that namespace and destroys it.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-017a', body: "It generates a random UUID for the process.", orderIndex: 0 },
+      { id: 'opt-s127-017b', body: "It isolates the process ID space, making the cloned process PID 1; if this PID 1 terminates, the kernel terminates all remaining processes in that namespace.", orderIndex: 1 },
+      { id: 'opt-s127-017c', body: "It assigns the process to a separate network bridge interface.", orderIndex: 2 },
+      { id: 'opt-s127-017d', body: "It prevents the process from spawning child threads.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-017b',
+  },
+  {
+    id: 'cat-q-s127-018',
+    topicId: 'topic-os',
+    topicSlug: 'operating-systems-internals',
+    body: "Why does memory thrashing occur in virtual memory systems, and how does the Working Set Model prevent it?",
+    explanation: "Thrashing occurs when total memory demanded by active processes exceeds physical RAM, causing the OS to spend more time swapping pages to/from disk than executing code. The Working Set Model monitors page reference sets and only runs processes whose entire working sets fit in memory.",
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-s127-018a', body: "Thrashing happens when the CPU frequency fluctuates wildly; the Working Set Model locks the CPU multiplier.", orderIndex: 0 },
+      { id: 'opt-s127-018b', body: "Thrashing occurs when active processes exceed physical RAM and spend all time servicing page faults; the Working Set Model suspends processes whose working set exceeds available frames.", orderIndex: 1 },
+      { id: 'opt-s127-018c', body: "Thrashing is caused by fragmented disk sectors; the Working Set Model runs defragmentation.", orderIndex: 2 },
+      { id: 'opt-s127-018d', body: "Thrashing occurs when network buffers overflow into video RAM.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-018b',
+  },
+  {
+    id: 'cat-q-s127-019',
+    topicId: 'topic-os',
+    topicSlug: 'operating-systems-internals',
+    body: "What is the role of Memory Barriers (fences) in multi-core out-of-order processor architectures when implementing lock-free data structures?",
+    explanation: "Modern CPUs and optimizing compilers reorder memory read and write instructions for performance. A memory barrier enforces strict ordering across instructions, preventing compiler and CPU hardware pipelines from reordering stores or loads across the fence boundary.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-019a', body: "They isolate private memory addresses between user processes.", orderIndex: 0 },
+      { id: 'opt-s127-019b', body: "They instruct the compiler and CPU hardware pipeline to preserve strict memory access order, preventing reordering of loads and stores across the fence.", orderIndex: 1 },
+      { id: 'opt-s127-019c', body: "They flush dirty page table entries directly to persistent SSD storage.", orderIndex: 2 },
+      { id: 'opt-s127-019d', body: "They disable CPU hardware interrupts on all available cores.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-019b',
+  },
+  {
+    id: 'cat-q-s127-020',
+    topicId: 'topic-os',
+    topicSlug: 'operating-systems-internals',
+    body: "What is the significance of the `O_DIRECT` flag when opening a file via the Linux `open()` system call?",
+    explanation: "`O_DIRECT` bypasses the OS page cache entirely, causing read and write operations to transfer data directly between user-space memory buffers and the block storage device via DMA, requiring sector-aligned buffers and lengths.",
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-s127-020a', body: "It guarantees atomic file writes across power failures.", orderIndex: 0 },
+      { id: 'opt-s127-020b', body: "It bypasses the kernel page cache and performs direct DMA transfers between user memory buffers and the storage device.", orderIndex: 1 },
+      { id: 'opt-s127-020c', body: "It opens the file in read-only mode with encryption enabled.", orderIndex: 2 },
+      { id: 'opt-s127-020d', body: "It forces synchronous directory metadata updates to disk.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-020b',
+  },
+  {
+    id: 'cat-q-s127-021',
+    topicId: 'topic-dist-sys',
+    topicSlug: 'distributed-systems-architecture',
+    body: "In distributed consensus protocols (e.g., Raft and Multi-Paxos), what ensures that an elected leader possesses all committed log entries from prior terms?",
+    explanation: "In Raft, candidate voting rules require that a candidate's log must be at least as up-to-date as the voter's log (higher term, or same term with equal/greater log index). Because any committed entry is present on a majority of nodes and an election requires a majority, at least one voting node contains all committed entries and will reject outdated candidates.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-021a', body: "The new leader downloads all missing logs from disk mirrors in the cloud.", orderIndex: 0 },
+      { id: 'opt-s127-021b', body: "The quorum intersection property: an election requires a majority of votes, and any committed entry exists on a majority; therefore, the candidate's log-comparison rule guarantees election only if it has all committed entries.", orderIndex: 1 },
+      { id: 'opt-s127-021c', body: "A centralized coordinator node passes log metadata during term transitions.", orderIndex: 2 },
+      { id: 'opt-s127-021d', body: "Followers rewrite their logs backward until their state matches the candidate.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-021b',
+  },
+  {
+    id: 'cat-q-s127-022',
+    topicId: 'topic-dist-sys',
+    topicSlug: 'distributed-systems-architecture',
+    body: "What is the \"Split-Brain\" problem in distributed clusters, and how does quorum-based fencing prevent data corruption?",
+    explanation: "Split-brain occurs when network partition isolates nodes into disconnected groups, each believing the other is dead and claiming primary leadership. Quorum-based fencing ensures only the partition with a strict majority ($> N/2$) can make progress, and generation numbers/fencing tokens reject stale writes from former primaries.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-022a', body: "It refers to a CPU dual-core synchronization fault; resolved by restarting the server.", orderIndex: 0 },
+      { id: 'opt-s127-022b', body: "It occurs when a network partition creates multiple active leaders writing conflicting data; prevented by requiring majority quorum ($> N/2$) and monotonically incrementing fencing tokens.", orderIndex: 1 },
+      { id: 'opt-s127-022c', body: "It happens when RAM memory chips disagree on parity bits.", orderIndex: 2 },
+      { id: 'opt-s127-022d', body: "It is a load balancer defect that forwards traffic to port 80 instead of 443.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-022b',
+  },
+  {
+    id: 'cat-q-s127-023',
+    topicId: 'topic-dist-sys',
+    topicSlug: 'distributed-systems-architecture',
+    body: "In event-driven architectures, what guarantees does the Transactional Outbox Pattern provide for database state mutations and asynchronous message publishing?",
+    explanation: "The Transactional Outbox Pattern writes the business entity changes and the corresponding outbound message events into the same relational database within a single local ACID transaction. A separate relay process polls or tails the database transaction log to publish messages reliably to the broker, ensuring At-Least-Once delivery without dual-write inconsistency.",
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-s127-023a', body: "It guarantees Exactly-Once processing without requiring idempotent consumers.", orderIndex: 0 },
+      { id: 'opt-s127-023b', body: "It avoids dual-write race conditions by committing entity updates and outbound event records within the same local ACID transaction, ensuring reliable At-Least-Once event publishing.", orderIndex: 1 },
+      { id: 'opt-s127-023c', body: "It eliminates the need for a message broker by having databases exchange peer-to-peer TCP packets.", orderIndex: 2 },
+      { id: 'opt-s127-023d', body: "It encrypts outbox tables using public-key cryptography.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-023b',
+  },
+  {
+    id: 'cat-q-s127-024',
+    topicId: 'topic-dist-sys',
+    topicSlug: 'distributed-systems-architecture',
+    body: "In Spanner and TrueTime architectures, why must a write transaction wait out the uncertainty window (wait-out-the-uncertainty / commit wait) before returning a commit confirmation to the client?",
+    explanation: "TrueTime returns a time interval $[t.earliest, t.latest]$ representing absolute GPS/atomic clock uncertainty $\\epsilon$. To guarantee external consistency (strict serializability across global nodes without cross-datacenter locks), the coordinator picks commit timestamp $s = t.latest$ and waits until $t.earliest > s$, guaranteeing no future transaction can pick an earlier timestamp.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-024a', body: "To allow SSD write buffers to cool down.", orderIndex: 0 },
+      { id: 'opt-s127-024b', body: "To guarantee that the transaction's assigned commit timestamp has passed in absolute real physical time across the entire globe, preserving linearizable ordering without inter-node clock synchronization locking.", orderIndex: 1 },
+      { id: 'opt-s127-024c', body: "To verify client cryptographic signatures via an external HSM.", orderIndex: 2 },
+      { id: 'opt-s127-024d', body: "To let DNS records propagate across all regional nameservers.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-024b',
+  },
+  {
+    id: 'cat-q-s127-025',
+    topicId: 'topic-dist-sys',
+    topicSlug: 'distributed-systems-architecture',
+    body: "What is the primary operational trade-off between the Choreography and Orchestration approaches in distributed microservice Sagas?",
+    explanation: "Choreography decentralizes workflow logic through event pub/sub, offering loose coupling but making complex multi-step workflows difficult to monitor and debug. Orchestration centralizes workflow state and compensation inside an orchestrator coordinator, improving visibility but introducing a potential single point of failure or tight coupling.",
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-s127-025a', body: "Choreography is only compatible with SQL databases, whereas Orchestration requires NoSQL databases.", orderIndex: 0 },
+      { id: 'opt-s127-025b', body: "Choreography uses decentralized event pub/sub with higher flexibility but harder traceability; Orchestration uses a centralized coordinator with clear state tracking at the risk of higher coupling.", orderIndex: 1 },
+      { id: 'opt-s127-025c', body: "Choreography guarantees zero latency, whereas Orchestration adds 5 minutes of overhead per request.", orderIndex: 2 },
+      { id: 'opt-s127-025d', body: "There is no difference; the terms are interchangeable synonyms.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-025b',
+  },
+  {
+    id: 'cat-q-s127-026',
+    topicId: 'topic-dist-sys',
+    topicSlug: 'distributed-systems-architecture',
+    body: "How does consistent hashing with virtual nodes (vnodes) address the non-uniform data distribution and \"cascading failover\" problems in distributed key-value stores?",
+    explanation: "Basic consistent hashing assigns 1 position per physical node, which creates uneven key distribution and causes a failing node's entire load to crash its immediate successor. Virtual nodes map each physical machine to hundreds of pseudo-random points along the hash ring, distributing keys and failover loads uniformly across all surviving machines.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-026a', body: "Virtual nodes encrypt hash keys using AES-256 before insertion.", orderIndex: 0 },
+      { id: 'opt-s127-026b', body: "Virtual nodes assign multiple ring tokens per physical server, balancing key load evenly across all nodes and spreading a failing node's traffic across the entire cluster rather than a single neighbor.", orderIndex: 1 },
+      { id: 'opt-s127-026c', body: "Virtual nodes compress data payload chunks using zstandard.", orderIndex: 2 },
+      { id: 'opt-s127-026d', body: "Virtual nodes force all database operations to route through a single primary server.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-026b',
+  },
+  {
+    id: 'cat-q-s127-027',
+    topicId: 'topic-dist-sys',
+    topicSlug: 'distributed-systems-architecture',
+    body: "What is the role of Vector Clocks in distributed systems compared to Lamport Timestamps?",
+    explanation: "Lamport timestamps provide a total order consistent with causality but cannot detect concurrency ($A \\to B$ or $A || B$). Vector clocks maintain an array of clocks across all $N$ nodes, allowing algorithms to determine whether two events are causally related ($V_1 < V_2$ or $V_2 < V_1$) or concurrent ($V_1 \\parallel V_2$, indicating a conflict).",
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-s127-027a', body: "Lamport timestamps detect concurrency, while vector clocks only measure physical hardware clock drift.", orderIndex: 0 },
+      { id: 'opt-s127-027b', body: "Vector clocks track causality across all nodes independently, enabling the detection of concurrent conflicting updates ($V_1 \\parallel V_2$), whereas Lamport timestamps only establish an arbitrary total order.", orderIndex: 1 },
+      { id: 'opt-s127-027c', body: "Vector clocks synchronize server clocks with GPS satellites.", orderIndex: 2 },
+      { id: 'opt-s127-027d', body: "Vector clocks require centralized NTP time servers to operate.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-027b',
+  },
+  {
+    id: 'cat-q-s127-028',
+    topicId: 'topic-dist-sys',
+    topicSlug: 'distributed-systems-architecture',
+    body: "In the CAP theorem, what does Partition Tolerance ($P$) dictate for any real-world distributed system operating across physical networks?",
+    explanation: "Physical network links inevitably experience packet drops, delays, and partitions. A distributed system *must* tolerate partitions; therefore, when a partition occurs, it must choose between Consistency ($C$, refusing requests to avoid stale data) and Availability ($A$, responding with potentially stale data).",
+    difficulty: 'EASY',
+    options: [
+      { id: 'opt-s127-028a', body: "Networks can be configured to guarantee 100% reliability, making $P$ optional.", orderIndex: 0 },
+      { id: 'opt-s127-028b', body: "Network partitions are inevitable in distributed systems; when a partition occurs, the system must trade off between strict consistency ($C$) and high availability ($A$).", orderIndex: 1 },
+      { id: 'opt-s127-028c', body: "Partitions only apply to relational SQL databases.", orderIndex: 2 },
+      { id: 'opt-s127-028d', body: "Partition tolerance means data is partitioned across multiple hard drives.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-028b',
+  },
+  {
+    id: 'cat-q-s127-029',
+    topicId: 'topic-dist-sys',
+    topicSlug: 'distributed-systems-architecture',
+    body: "What is the difference between linearizability and serializability in distributed database consistency classifications?",
+    explanation: "Serializability is a multi-operation, multi-object transactional isolation property guaranteeing that concurrent execution yields the same outcome as some serial order. Linearizability is a single-operation, single-object real-time recency property guaranteeing that every read reflects the most recent write in physical time.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-029a', body: "Linearizability applies only to multi-table SQL joins, while serializability applies to NoSQL document lookups.", orderIndex: 0 },
+      { id: 'opt-s127-029b', body: "Serializability is a transactional property guaranteeing some serial execution order, whereas linearizability is a real-time recency property guaranteeing that operations take effect instantaneously between invocation and response.", orderIndex: 1 },
+      { id: 'opt-s127-029c', body: "Linearizability requires locks, whereas serializability is always lock-free.", orderIndex: 2 },
+      { id: 'opt-s127-029d', body: "They are identical concepts with different names in academic literature.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-029b',
+  },
+  {
+    id: 'cat-q-s127-030',
+    topicId: 'topic-dist-sys',
+    topicSlug: 'distributed-systems-architecture',
+    body: "Why are Idempotency Keys essential in distributed payment APIs, and how should an idempotent service process duplicate requests?",
+    explanation: "Network timeouts often leave clients uncertain if a request succeeded. An Idempotency Key uniquely identifies the logical action: the server caches the operation state and response mapped to that key in an atomic datastore, returning the original response on retries without executing the payment a second time.",
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-s127-030a', body: "Idempotency keys encrypt credit card numbers in transit.", orderIndex: 0 },
+      { id: 'opt-s127-030b', body: "They allow clients to safely retry failed or timed-out requests by returning the previously computed response when a duplicate key is detected without executing side effects twice.", orderIndex: 1 },
+      { id: 'opt-s127-030c', body: "They compress HTTP request payloads to decrease latency.", orderIndex: 2 },
+      { id: 'opt-s127-030d', body: "They force all payment requests to execute synchronously on the database primary.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-030b',
+  },
+  {
+    id: 'cat-q-s127-031',
+    topicId: 'topic-dist-sys',
+    topicSlug: 'distributed-systems-architecture',
+    body: "In CRDTs (Conflict-free Replicated Data Types), what mathematical algebraic properties must the merge operator $\\sqcup$ satisfy to guarantee Strong Eventual Consistency?",
+    explanation: "A state-based CRDT (CvRDT) forms a Join-Semilattice where the state merge function $\\sqcup$ must be Commutative ($a \\sqcup b = b \\sqcup a$), Associative ($(a \\sqcup b) \\sqcup c = a \\sqcup (b \\sqcup c)$), and Idempotent ($a \\sqcup a = a$), ensuring all replicas converge to identical states regardless of delivery order or duplication.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-031a', body: "Linearity, Orthogonality, and Differentiability.", orderIndex: 0 },
+      { id: 'opt-s127-031b', body: "Commutativity, Associativity, and Idempotency.", orderIndex: 1 },
+      { id: 'opt-s127-031c', body: "Invertibility, Transitivity, and Reflexivity.", orderIndex: 2 },
+      { id: 'opt-s127-031d', body: "Homomorphism, Monotonicity, and Injectivity.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-031b',
+  },
+  {
+    id: 'cat-q-s127-032',
+    topicId: 'topic-dist-sys',
+    topicSlug: 'distributed-systems-architecture',
+    body: "What is the role of a dead-letter queue (DLQ) in an asynchronous message processing system?",
+    explanation: "A DLQ holds messages that repeatedly fail processing after exceeding maximum retry thresholds or experiencing unrecoverable poison-pill serialization errors, isolating bad messages from blocking the primary processing pipeline and allowing offline debugging.",
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-s127-032a', body: "To store deleted messages permanently for regulatory compliance.", orderIndex: 0 },
+      { id: 'opt-s127-032b', body: "To quarantine poison-pill messages that repeatedly fail processing, preventing them from blocking consumer queues while preserving them for analysis and redelivery.", orderIndex: 1 },
+      { id: 'opt-s127-032c', body: "To prioritize urgent VIP messages over standard traffic.", orderIndex: 2 },
+      { id: 'opt-s127-032d', body: "To compress incoming log streams before writing to S3.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-032b',
+  },
+  {
+    id: 'cat-q-s127-033',
+    topicId: 'topic-dist-sys',
+    topicSlug: 'distributed-systems-architecture',
+    body: "How does the Two-Phase Commit (2PC) protocol handle coordinator failure during the commit phase, and why is 2PC considered a blocking protocol?",
+    explanation: "If the coordinator crashes after participants vote \"YES\" in Phase 1 but before broadcasting \"COMMIT\" or \"ABORT\" in Phase 2, participants remain blocked in doubt, holding locks indefinitely because they cannot independently decide whether to commit or abort without violating consistency.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-033a', body: "Participants immediately roll back and restart the cluster automatically.", orderIndex: 0 },
+      { id: 'opt-s127-033b', body: "Participants holding resources remain blocked and cannot release transactional locks until the coordinator recovers or an election elects a new coordinator, creating potential system-wide lock stalls.", orderIndex: 1 },
+      { id: 'opt-s127-033c', body: "2PC is non-blocking because participants default to committing after 5 seconds.", orderIndex: 2 },
+      { id: 'opt-s127-033d', body: "The operating system kernel kills the database server process automatically.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-033b',
+  },
+  {
+    id: 'cat-q-s127-034',
+    topicId: 'topic-dist-sys',
+    topicSlug: 'distributed-systems-architecture',
+    body: "What is the purpose of the Circuit Breaker pattern (e.g. CLOSED, OPEN, HALF-OPEN states) in microservice architectures?",
+    explanation: "The Circuit Breaker tracks downstream dependency failure rates. When errors exceed a threshold, it transitions from CLOSED to OPEN, immediately failing subsequent requests without calling the failing service. After a timeout, it transitions to HALF-OPEN, testing recovery with limited canary traffic.",
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-s127-034a', body: "To disconnect electrical power to servers during hardware faults.", orderIndex: 0 },
+      { id: 'opt-s127-034b', body: "To prevent cascading failures across microservices by failing fast when downstream services become unhealthy and testing recovery with limited trial traffic.", orderIndex: 1 },
+      { id: 'opt-s127-034c', body: "To load balance requests round-robin across Kubernetes pods.", orderIndex: 2 },
+      { id: 'opt-s127-034d', body: "To terminate long-running SQL queries after 100 milliseconds.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-034b',
+  },
+  {
+    id: 'cat-q-s127-035',
+    topicId: 'topic-dist-sys',
+    topicSlug: 'distributed-systems-architecture',
+    body: "In an LSM-tree (Log-Structured Merge-tree) based distributed storage engine, how do Bloom Filters accelerate read operations for non-existent keys?",
+    explanation: "Bloom filters are space-efficient probabilistic data structures in DRAM that track key membership for each SSTable file on disk. A bloom filter guarantees zero false negatives: if it returns \"key not present\", the storage engine can skip reading the SSTable entirely, avoiding costly random disk I/O.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-035a', body: "Bloom filters store the full key and value in memory for instant lookups.", orderIndex: 0 },
+      { id: 'opt-s127-035b', body: "They probabilistically determine key membership in an SSTable with zero false negatives, allowing the engine to skip reading SSTables on disk that definitely do not contain the target key.", orderIndex: 1 },
+      { id: 'opt-s127-035c', body: "They sort SSTables alphabetically during background compaction.", orderIndex: 2 },
+      { id: 'opt-s127-035d', body: "They compress raw data blocks using dictionary encodings.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-035b',
+  },
+  {
+    id: 'cat-q-s127-036',
+    topicId: 'topic-dist-sys',
+    topicSlug: 'distributed-systems-architecture',
+    body: "What is the primary benefit of deploying a Read Replica in a distributed relational database setup?",
+    explanation: "Read replicas offload read-heavy query traffic (SELECT statements, reporting, analytics) from the primary database instance, reducing primary CPU/memory load while keeping the primary dedicated to processing write transactions.",
+    difficulty: 'EASY',
+    options: [
+      { id: 'opt-s127-036a', body: "To allow concurrent write operations on multiple servers simultaneously without locks.", orderIndex: 0 },
+      { id: 'opt-s127-036b', body: "To offload read queries from the primary database, increasing read throughput and preserving primary capacity for writes.", orderIndex: 1 },
+      { id: 'opt-s127-036c', body: "To eliminate the need for regular database backups.", orderIndex: 2 },
+      { id: 'opt-s127-036d', body: "To encrypt database data at rest using customer-managed keys.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-036b',
+  },
+  {
+    id: 'cat-q-s127-037',
+    topicId: 'topic-dist-sys',
+    topicSlug: 'distributed-systems-architecture',
+    body: "What is Read-After-Write Consistency (monotonic read consistency) in an asynchronously replicated distributed database, and how is it typically implemented?",
+    explanation: "Read-after-write consistency guarantees that a user who writes data will immediately observe their own update on subsequent reads. Because asynchronous replication lags, systems route reads for recently updated entities to the primary database (or a replica confirmed to have caught up) for that specific user session.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-037a', body: "It requires all replicas across the globe to synchronously commit writes before returning.", orderIndex: 0 },
+      { id: 'opt-s127-037b', body: "It ensures a user immediately observes their own submitted updates by routing recent reads from that user session to the primary or a sufficiently updated replica.", orderIndex: 1 },
+      { id: 'opt-s127-037c', body: "It prevents users from reading any data written in the last 24 hours.", orderIndex: 2 },
+      { id: 'opt-s127-037d', body: "It automatically clears browser cookies after each POST request.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-037b',
+  },
+  {
+    id: 'cat-q-s127-038',
+    topicId: 'topic-dist-sys',
+    topicSlug: 'distributed-systems-architecture',
+    body: "What is the \"Thundering Herd\" problem in caching layers, and how does Cache Mutex / Singleflight mitigate it?",
+    explanation: "When a popular cached key expires, thousands of concurrent incoming requests experience a cache miss simultaneously and hammer the origin database with identical expensive queries. Singleflight / cache mutexes ensure only one worker query computes the value while all other concurrent requests wait on that single promise/result.",
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-s127-038a', body: "It is a network congestion collapse caused by broadcast ping storms.", orderIndex: 0 },
+      { id: 'opt-s127-038b', body: "It occurs when a popular cache key expires and thousands of requests overwhelm the origin database simultaneously; mitigated by coalescing concurrent misses into a single origin request.", orderIndex: 1 },
+      { id: 'opt-s127-038c', body: "It happens when Redis runs out of memory and crashes all cluster nodes.", orderIndex: 2 },
+      { id: 'opt-s127-038d', body: "It is an attack where malicious actors flood a DNS server with fake domain requests.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-038b',
+  },
+  {
+    id: 'cat-q-s127-039',
+    topicId: 'topic-dist-sys',
+    topicSlug: 'distributed-systems-architecture',
+    body: "In distributed event streaming architectures (such as Kafka), what mechanism enables parallel consumer scaling while preserving strict in-order message processing?",
+    explanation: "Topics are partitioned, and message ordering is strictly preserved *within an individual partition*. A Consumer Group assigns each partition to exactly one consumer instance within the group, allowing parallel horizontal scaling up to the number of topic partitions without inter-message ordering violations.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-039a', body: "Global mutex locks synchronized across all consumer servers via ZooKeeper.", orderIndex: 0 },
+      { id: 'opt-s127-039b', body: "Partitioning topics by message keys, where messages within a partition are strictly ordered and each partition is consumed by exactly one consumer within a consumer group.", orderIndex: 1 },
+      { id: 'opt-s127-039c', body: "Random round-robin packet distribution across worker threads.", orderIndex: 2 },
+      { id: 'opt-s127-039d', body: "Batching all messages into 1-hour archive files before consumption.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-039b',
+  },
+  {
+    id: 'cat-q-s127-040',
+    topicId: 'topic-dist-sys',
+    topicSlug: 'distributed-systems-architecture',
+    body: "Why should microservice distributed tracing systems (e.g., OpenTelemetry, W3C TraceContext) use traceparent and tracestate headers across HTTP/gRPC boundaries?",
+    explanation: "The `traceparent` header propagates the 16-byte Trace ID, 8-byte Parent Span ID, and trace flags across process boundaries, allowing distributed observability collectors to reconstruct the entire causal tree of spans across disparate microservices.",
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-s127-040a', body: "To authenticate microservices using OAuth 2.0 bearer tokens.", orderIndex: 0 },
+      { id: 'opt-s127-040b', body: "To propagate unified Trace ID and Parent Span ID context across asynchronous service hops, allowing distributed systems to correlate distributed latency spans into a single execution graph.", orderIndex: 1 },
+      { id: 'opt-s127-040c', body: "To compress JSON payloads before sending them over HTTP/2.", orderIndex: 2 },
+      { id: 'opt-s127-040d', body: "To route requests to specific blue/green canary deployments.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-040b',
+  },
+  {
+    id: 'cat-q-s127-041',
+    topicId: 'topic-networks',
+    topicSlug: 'computer-networks-protocols',
+    body: "In TCP BBR (Bottleneck Bandwidth and RTT) congestion control, how does the algorithm avoid the bufferbloat problem inherent to loss-based algorithms like CUBIC?",
+    explanation: "Loss-based algorithms (Reno, CUBIC) treat packet loss as the sole signal of congestion, filling intermediate router buffers to maximum capacity before backing off. BBR models the physical network by continuously probing two orthogonal limits: maximum bottleneck bandwidth ($BtlBw$) and minimum round-trip time ($RTprop$), pacing packets at $BtlBw$ to keep queues empty.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-041a', body: "BBR increases packet transmission rates until 50% packet loss is observed.", orderIndex: 0 },
+      { id: 'opt-s127-041b', body: "BBR decouples congestion control from packet loss by measuring maximum bottleneck bandwidth and minimum propagation RTT, pacing traffic to keep the bottleneck queue near zero.", orderIndex: 1 },
+      { id: 'opt-s127-041c', body: "BBR replaces TCP acknowledgments with periodic UDP heartbeats.", orderIndex: 2 },
+      { id: 'opt-s127-041d', body: "BBR enforces fixed 10 Mbps bandwidth caps on all connections.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-041b',
+  },
+  {
+    id: 'cat-q-s127-042',
+    topicId: 'topic-networks',
+    topicSlug: 'computer-networks-protocols',
+    body: "How does HTTP/3 resolve the multi-stream \"Head-of-Line (HoL) Blocking\" problem inherent to HTTP/2 over TCP?",
+    explanation: "In HTTP/2, multiple application streams are multiplexed over a single TCP connection. If one TCP packet drops, TCP's in-order byte stream abstraction stalls *all* streams until the lost packet is retransmitted. HTTP/3 runs over UDP-based QUIC: packet loss on one stream halts only that specific stream, allowing independent streams to proceed unimpeded.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-042a', body: "HTTP/3 creates a separate physical network card for every open browser tab.", orderIndex: 0 },
+      { id: 'opt-s127-042b', body: "QUIC provides independent per-stream transport framing over UDP, ensuring a lost packet on one stream only stalls that specific stream without blocking other multiplexed streams.", orderIndex: 1 },
+      { id: 'opt-s127-042c', body: "HTTP/3 disables packet acknowledgments to avoid waiting.", orderIndex: 2 },
+      { id: 'opt-s127-042d', body: "HTTP/3 sends all data over WebSocket channels.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-042b',
+  },
+  {
+    id: 'cat-q-s127-043',
+    topicId: 'topic-networks',
+    topicSlug: 'computer-networks-protocols',
+    body: "What critical security enhancement did TLS 1.3 introduce by deprecating static RSA key exchanges in favor of Ephemeral Diffie-Hellman (ECDHE)?",
+    explanation: "TLS 1.3 mandates Forward Secrecy: ECDHE generates unique ephemeral session keys for each TLS handshake. Even if an attacker records encrypted network traffic and steals the server's private key years later, they cannot decrypt historical recorded sessions.",
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-s127-043a', body: "ECDHE allows users to browse websites without entering passwords.", orderIndex: 0 },
+      { id: 'opt-s127-043b', body: "It enforces Perfect Forward Secrecy (PFS), ensuring that past recorded traffic sessions cannot be decrypted even if the server's long-term private key is compromised in the future.", orderIndex: 1 },
+      { id: 'opt-s127-043c', body: "It removes the need for CA-signed SSL/TLS certificates entirely.", orderIndex: 2 },
+      { id: 'opt-s127-043d', body: "It speeds up DNS resolutions by caching IP addresses locally.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-043b',
+  },
+  {
+    id: 'cat-q-s127-044',
+    topicId: 'topic-networks',
+    topicSlug: 'computer-networks-protocols',
+    body: "In BGP (Border Gateway Protocol) routing, what is the purpose of BGP AS-Path prepending when an autonomous system advertises an IP prefix to upstream transit providers?",
+    explanation: "BGP selects routes based on shortest AS-Path length. An organization with multiple upstream transit ISPs prepends its own Autonomous System Number (ASN) multiple times to route announcements on the secondary link to make that path appear artificially longer, steering primary inbound traffic to the preferred provider.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-044a', body: "To encrypt the routing updates across border routers.", orderIndex: 0 },
+      { id: 'opt-s127-044b', body: "To artificially lengthen the AS-Path on a secondary backup link, influencing upstream BGP path selection to prefer the primary lower-latency transit route.", orderIndex: 1 },
+      { id: 'opt-s127-044c', body: "To prevent BGP routers from running out of memory.", orderIndex: 2 },
+      { id: 'opt-s127-044d', body: "To bypass firewalls on the ISP border.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-044b',
+  },
+  {
+    id: 'cat-q-s127-045',
+    topicId: 'topic-networks',
+    topicSlug: 'computer-networks-protocols',
+    body: "What is the role of MTU (Maximum Transmission Unit) and MSS (Maximum Segment Size) in IP networking, and what occurs when a packet with the \"Don't Fragment\" (DF) bit set exceeds an intermediate router's MTU?",
+    explanation: "MTU is the largest link-layer frame size (typically 1500 bytes for standard Ethernet). MSS is the maximum TCP payload ($MSS = MTU - 40$ bytes for IP+TCP headers). If a packet with $DF=1$ exceeds an MTU, the router drops the packet and sends an ICMP Type 3 Code 4 (\"Fragmentation Needed and DF set\") message back to the sender for Path MTU Discovery.",
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-s127-045a', body: "The router compresses the packet automatically using gzip and forwards it.", orderIndex: 0 },
+      { id: 'opt-s127-045b', body: "The router drops the packet and transmits an ICMP \"Fragmentation Needed and DF set\" message back to the sender, facilitating Path MTU Discovery (PMTUD).", orderIndex: 1 },
+      { id: 'opt-s127-045c', body: "The router buffers the packet in flash memory for 10 seconds.", orderIndex: 2 },
+      { id: 'opt-s127-045d', body: "The router splits the packet into two anyway, ignoring the DF flag.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-045b',
+  },
+  {
+    id: 'cat-q-s127-046',
+    topicId: 'topic-networks',
+    topicSlug: 'computer-networks-protocols',
+    body: "How does QUIC 0-RTT Connection Resumption work, and what security vulnerability (replay attack) must application servers protect against when handling 0-RTT early data?",
+    explanation: "QUIC enables clients reconnecting to a known server to transmit early application data in the very first packet (`0-RTT`) using pre-shared encryption keys (`PSK`) derived from previous sessions. Because 0-RTT packets lack server randomness, attackers can record and replay them; servers must never allow non-idempotent operations in 0-RTT early data.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-046a', body: "0-RTT transmits unencrypted data across the open internet; servers must verify IP addresses.", orderIndex: 0 },
+      { id: 'opt-s127-046b', body: "0-RTT allows immediate data transmission using cached session keys; because early data can be replayed by eavesdroppers, servers must restrict 0-RTT data to strictly idempotent requests.", orderIndex: 1 },
+      { id: 'opt-s127-046c', body: "0-RTT disables DNS lookups to save round-trips.", orderIndex: 2 },
+      { id: 'opt-s127-046d', body: "0-RTT establishes a direct peer-to-peer WebRTC mesh with other clients.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-046b',
+  },
+  {
+    id: 'cat-q-s127-047',
+    topicId: 'topic-networks',
+    topicSlug: 'computer-networks-protocols',
+    body: "What is the function of the TCP TIME_WAIT state, and why is its duration typically configured to $2 \\times MSL$ (Maximum Segment Lifetime)?",
+    explanation: "`TIME_WAIT` prevents delayed duplicate packets from an old, closed connection from being misdelivered to a newly opened connection reusing the same 4-tuple (source IP, source port, dest IP, dest port), and ensures the remote peer receives the final ACK to close gracefully.",
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-s127-047a', body: "To keep the server socket open for incoming downloads.", orderIndex: 0 },
+      { id: 'opt-s127-047b', body: "To ensure delayed packets lingering in the internet network expire before the socket 4-tuple is reused, and to guarantee the remote peer received the closing ACK.", orderIndex: 1 },
+      { id: 'opt-s127-047c', body: "To allow the client to download cached browser assets without refreshing.", orderIndex: 2 },
+      { id: 'opt-s127-047d', body: "To calculate the total round-trip latency of the finished connection.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-047b',
+  },
+  {
+    id: 'cat-q-s127-048',
+    topicId: 'topic-networks',
+    topicSlug: 'computer-networks-protocols',
+    body: "What is the difference between an authoritative DNS server and a recursive DNS resolver?",
+    explanation: "A recursive resolver (e.g. ISP or public DNS 8.8.8.8) takes a client's query, traverses the DNS hierarchy (Root, TLD, Authoritative), and caches results. An authoritative server holds the definitive master DNS zone records (A, AAAA, CNAME) configured by the domain owner.",
+    difficulty: 'EASY',
+    options: [
+      { id: 'opt-s127-048a', body: "Authoritative servers cache results for 30 days, whereas recursive resolvers do not cache.", orderIndex: 0 },
+      { id: 'opt-s127-048b', body: "A recursive resolver queries the hierarchy on behalf of the client, whereas an authoritative nameserver holds the actual definitive zone records for a specific domain.", orderIndex: 1 },
+      { id: 'opt-s127-048c', body: "Authoritative servers only work with IPv4 addresses.", orderIndex: 2 },
+      { id: 'opt-s127-048d', body: "Recursive resolvers are located inside consumer home routers only.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-048b',
+  },
+  {
+    id: 'cat-q-s127-049',
+    topicId: 'topic-networks',
+    topicSlug: 'computer-networks-protocols',
+    body: "In high-throughput datacenter networking, why does TCP Incast occur in partition-aggregate distributed architectures (e.g., MapReduce or distributed search)?",
+    explanation: "When an aggregator dispatches queries to hundreds of leaf nodes simultaneously, the leaf nodes respond concurrently with synchronized burst traffic destined for the aggregator's switch port. The switch port's shallow buffer overflows within microseconds, dropping packets and triggering TCP timeouts that collapse throughput.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-049a', body: "Because leaf nodes broadcast ARP requests that crash switches.", orderIndex: 0 },
+      { id: 'opt-s127-049b', body: "Because hundreds of worker nodes reply simultaneously to an aggregator, causing synchronized microbursts that overflow the top-of-rack switch port buffer and cause massive packet drops.", orderIndex: 1 },
+      { id: 'opt-s127-049c', body: "Because TCP checksum calculations overwhelm the aggregator's CPU cores.", orderIndex: 2 },
+      { id: 'opt-s127-049d', body: "Because DNS servers fail to resolve internal node hostnames.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-049b',
+  },
+  {
+    id: 'cat-q-s127-050',
+    topicId: 'topic-networks',
+    topicSlug: 'computer-networks-protocols',
+    body: "What is the function of the Nagle Algorithm in TCP socket implementations, and why do latency-sensitive applications disable it using `TCP_NODELAY`?",
+    explanation: "The Nagle algorithm coalesces small outbound data buffers into full MSS-sized segments before sending, buffering small packets if unacknowledged data is in flight. When interacting with TCP Delayed ACKs, this creates artificial 200ms delays; latency-sensitive apps disable it with `TCP_NODELAY` to send packets immediately.",
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-s127-050a', body: "Nagle encrypts packets; `TCP_NODELAY` disables encryption to improve speed.", orderIndex: 0 },
+      { id: 'opt-s127-050b', body: "Nagle buffers small outbound writes until previous data is acknowledged to prevent small-packet overhead; disabling it via `TCP_NODELAY` sends data immediately, eliminating 200ms ACK stalls in interactive protocols.", orderIndex: 1 },
+      { id: 'opt-s127-050c', body: "Nagle balances traffic across multiple NICs.", orderIndex: 2 },
+      { id: 'opt-s127-050d', body: "`TCP_NODELAY` bypasses the operating system network stack entirely.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-050b',
+  },
+  {
+    id: 'cat-q-s127-051',
+    topicId: 'topic-networks',
+    topicSlug: 'computer-networks-protocols',
+    body: "In VXLAN (Virtual Extensible LAN) overlay networks, how are Layer 2 Ethernet frames transported across a Layer 3 IP underlay network?",
+    explanation: "VXLAN encapsulates original Ethernet MAC frames inside standard UDP datagrams (destination UDP port 4789) with an 8-byte VXLAN header containing a 24-bit Virtual Network Identifier (VNI), allowing up to 16 million isolated tenant L2 networks over standard routed L3 spine-leaf fabrics.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-051a', body: "By running physical fiber cables between all server racks.", orderIndex: 0 },
+      { id: 'opt-s127-051b', body: "By encapsulating L2 Ethernet frames inside UDP/IP packets with a 24-bit VNI header, enabling multi-tenant Layer 2 virtual topologies across Layer 3 routed underlays.", orderIndex: 1 },
+      { id: 'opt-s127-051c', body: "By converting MAC addresses into HTTP cookies.", orderIndex: 2 },
+      { id: 'opt-s127-051d', body: "By using PPPoE tunneling across internet gateways.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-051b',
+  },
+  {
+    id: 'cat-q-s127-052',
+    topicId: 'topic-networks',
+    topicSlug: 'computer-networks-protocols',
+    body: "What is the primary difference between symmetric NAT (Network Address Translation) and Full Cone NAT when establishing WebRTC peer-to-peer connections?",
+    explanation: "Full Cone NAT maps an internal IP:port to an external IP:port and allows *any* external host to send packets to that mapped port. Symmetric NAT creates a *unique* external port mapping for every distinct destination IP:port, preventing direct P2P hole-punching and forcing WebRTC to fall back to a TURN relay.",
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-s127-052a', body: "Full Cone NAT is encrypted, whereas Symmetric NAT is unencrypted.", orderIndex: 0 },
+      { id: 'opt-s127-052b', body: "Full Cone NAT permits any external host to reach the mapped port, while Symmetric NAT maps a different external port for each remote destination, making STUN NAT hole-punching fail and requiring TURN relays.", orderIndex: 1 },
+      { id: 'opt-s127-052c', body: "Symmetric NAT only works with IPv6 addresses.", orderIndex: 2 },
+      { id: 'opt-s127-052d', body: "Full Cone NAT requires fiber-optic broadband.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-052b',
+  },
+  {
+    id: 'cat-q-s127-053',
+    topicId: 'topic-networks',
+    topicSlug: 'computer-networks-protocols',
+    body: "What is the purpose of BGP Anycast in Content Delivery Networks (CDNs) and global DNS architectures?",
+    explanation: "BGP Anycast announces the exact same IP address/prefix from multiple geographic edge datacenters simultaneously. The internet's global BGP routing fabric automatically directs each client's traffic to the topologically closest edge datacenter, providing automatic localization, load shedding, and DDoS resilience.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-053a', body: "To broadcast every user HTTP request to all servers globally.", orderIndex: 0 },
+      { id: 'opt-s127-053b', body: "To advertise a single IP address from multiple worldwide physical locations, allowing BGP routing to automatically steer users to the topologically nearest edge PoP.", orderIndex: 1 },
+      { id: 'opt-s127-053c', body: "To convert IPv4 packets into IPv6 addresses at the edge.", orderIndex: 2 },
+      { id: 'opt-s127-053d', body: "To prevent users from using VPNs.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-053b',
+  },
+  {
+    id: 'cat-q-s127-054',
+    topicId: 'topic-networks',
+    topicSlug: 'computer-networks-protocols',
+    body: "What is Server Name Indication (SNI) in the TLS handshake, and why is Encrypted SNI (ECH - Encrypted Client Hello) critical for user privacy?",
+    explanation: "SNI sends the requested hostname in plaintext in the initial TLS ClientHello packet so the server can present the correct digital certificate on multi-tenant hosting. Because it is unencrypted, network eavesdroppers can inspect which domain the user visits; ECH encrypts the entire ClientHello using the server's public DNS key.",
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-s127-054a', body: "SNI encrypts DNS responses; ECH compresses HTML files.", orderIndex: 0 },
+      { id: 'opt-s127-054b', body: "SNI indicates the target domain name in plaintext during the TLS handshake for certificate selection; ECH encrypts this metadata to prevent ISPs and eavesdroppers from monitoring visited domain names.", orderIndex: 1 },
+      { id: 'opt-s127-054c', body: "SNI is a replacement for TCP ports.", orderIndex: 2 },
+      { id: 'opt-s127-054d', body: "ECH accelerates GPU ray tracing over network links.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-054b',
+  },
+  {
+    id: 'cat-q-s127-055',
+    topicId: 'topic-networks',
+    topicSlug: 'computer-networks-protocols',
+    body: "How does Equal-Cost Multi-Path (ECMP) routing distribute network flows across multiple parallel links in modern Clos/Fat-Tree datacenter topologies?",
+    explanation: "ECMP hashes the 5-tuple header fields (Source IP, Destination IP, Protocol, Source Port, Destination Port) of incoming packets to select the egress link. Because packets belonging to the same flow produce the identical hash value, all packets in a flow follow the same physical path, preventing TCP packet reordering.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-055a', body: "It sends packet 1 down link A, packet 2 down link B, alternating round-robin packet by packet.", orderIndex: 0 },
+      { id: 'opt-s127-055b', body: "It hashes the 5-tuple header fields of each flow to choose an egress path, ensuring that all packets within an individual flow travel over the same physical link to avoid packet reordering.", orderIndex: 1 },
+      { id: 'opt-s127-055c', body: "It measures the temperature of each cable and routes traffic through the coolest wire.", orderIndex: 2 },
+      { id: 'opt-s127-055d', body: "It routes all TCP traffic through link 1 and all UDP traffic through link 2.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-055b',
+  },
+  {
+    id: 'cat-q-s127-056',
+    topicId: 'topic-networks',
+    topicSlug: 'computer-networks-protocols',
+    body: "What is the standard purpose of the Address Resolution Protocol (ARP) in an Ethernet local area network?",
+    explanation: "ARP translates a known 32-bit IPv4 address into a 48-bit physical MAC address on the local network link so Ethernet frames can be constructed and addressed to the correct hardware interface.",
+    difficulty: 'EASY',
+    options: [
+      { id: 'opt-s127-056a', body: "To translate domain names into IP addresses.", orderIndex: 0 },
+      { id: 'opt-s127-056b', body: "To map an IPv4 address to its corresponding physical Layer 2 MAC address on a local Ethernet segment.", orderIndex: 1 },
+      { id: 'opt-s127-056c', body: "To encrypt Wi-Fi network passwords.", orderIndex: 2 },
+      { id: 'opt-s127-056d', body: "To route packets across international boundaries.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-056b',
+  },
+  {
+    id: 'cat-q-s127-057',
+    topicId: 'topic-networks',
+    topicSlug: 'computer-networks-protocols',
+    body: "What is the role of explicit TCP Fast Open (TFO, RFC 7413) cookies during connection establishment?",
+    explanation: "TFO allows data to be carried directly inside the initial TCP SYN packet. On the first connection, the server issues an encrypted TFO cookie to the client. On subsequent connections, the client sends the cookie and application payload in the SYN, enabling 1-RTT reduction for data exchange.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-057a', body: "To track user sessions for web advertising cookies.", orderIndex: 0 },
+      { id: 'opt-s127-057b', body: "To allow clients to include application data payloads directly within the initial TCP SYN packet using a cryptographically validated server cookie, saving a full RTT.", orderIndex: 1 },
+      { id: 'opt-s127-057c', body: "To bypass firewall port 443 restrictions.", orderIndex: 2 },
+      { id: 'opt-s127-057d', body: "To dynamically alter the client's IP address.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-057b',
+  },
+  {
+    id: 'cat-q-s127-058',
+    topicId: 'topic-networks',
+    topicSlug: 'computer-networks-protocols',
+    body: "Why does DNS over HTTPS (DoH) use port 443 instead of standard DNS port 53 or DNS over TLS (DoT) port 853?",
+    explanation: "DoH encapsulates DNS queries inside standard HTTPS traffic on port 443 alongside normal web browsing. This makes DNS requests virtually indistinguishable from regular web traffic, preventing network operators from selectively blocking, inspecting, or hijacking user DNS queries.",
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-s127-058a', body: "Because port 53 is reserved for video streaming only.", orderIndex: 0 },
+      { id: 'opt-s127-058b', body: "By multiplexing DNS queries inside standard HTTPS port 443 traffic, DoH blends into regular web traffic, preventing censorship, eavesdropping, and port-based blocking by intermediate networks.", orderIndex: 1 },
+      { id: 'opt-s127-058c', body: "Because port 443 allows faster UDP transport.", orderIndex: 2 },
+      { id: 'opt-s127-058d', body: "Because browsers cannot open ports other than 443.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-058b',
+  },
+  {
+    id: 'cat-q-s127-059',
+    topicId: 'topic-networks',
+    topicSlug: 'computer-networks-protocols',
+    body: "What is the vulnerability known as the \"BGP Route Hijack\", and how does RPKI (Resource Public Key Infrastructure) mitigate it?",
+    explanation: "BGP lacks built-in cryptographic verification: any autonomous system can falsely announce ownership of IP prefixes belonging to another entity, redirecting or intercepting global traffic. RPKI binds IP address blocks to authorized Autonomous System Numbers (Route Origin Authorizations, ROAs) signed by cryptographic certificates, allowing border routers to drop invalid announcements.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-059a', body: "It is a physical wiretapping attack; RPKI installs fiber shields.", orderIndex: 0 },
+      { id: 'opt-s127-059b', body: "A malicious or misconfigured AS announces IP prefixes it does not own, hijacking traffic; RPKI uses cryptographically signed Route Origin Authorizations (ROAs) to validate route announcements and discard invalid origins.", orderIndex: 1 },
+      { id: 'opt-s127-059c', body: "It is an SQL injection attack against DNS databases; RPKI sanitizes input queries.", orderIndex: 2 },
+      { id: 'opt-s127-059d', body: "It is a password brute-force attack on router SSH logins; RPKI enforces MFA.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-059b',
+  },
+  {
+    id: 'cat-q-s127-060',
+    topicId: 'topic-networks',
+    topicSlug: 'computer-networks-protocols',
+    body: "In HTTP/2 and HTTP/3, what is the role of HPACK and QPACK header compression algorithms?",
+    explanation: "HTTP requests repeatedly transmit redundant headers (e.g., User-Agent, Cookie, Accept). HPACK (HTTP/2) and QPACK (HTTP/3) use static and dynamic tables with Huffman encoding to transmit compact integer indices instead of raw header strings, cutting header bandwidth by over 80%.",
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-s127-060a', body: "To encrypt HTTP headers with public key cryptography.", orderIndex: 0 },
+      { id: 'opt-s127-060b', body: "To eliminate repetitive HTTP header transmission overhead by indexing previously sent headers in synchronized client/server lookup tables and compressing text via Huffman coding.", orderIndex: 1 },
+      { id: 'opt-s127-060c', body: "To convert JSON bodies into binary protobuf formats.", orderIndex: 2 },
+      { id: 'opt-s127-060d', body: "To validate SSL certificate expiration dates.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-060b',
+  },
+  {
+    id: 'cat-q-s127-061',
+    topicId: 'topic-core-java',
+    topicSlug: 'core-java-multithreading',
+    body: "In the Java Virtual Machine (HotSpot), what is the difference between biased locking, lightweight locking (thin locks), and heavyweight locking (monitors)?",
+    explanation: "Biased locking (deprecated/disabled in modern JDKs) optimizes uncontended locks by recording the acquiring thread ID directly in the object's Mark Word without atomic operations. Lightweight locking uses a Compare-And-Swap (CAS) loop to store a pointer to the thread's execution stack frame. Heavyweight locking allocates an OS-level mutex/condition monitor (`ObjectMonitor`), putting contending threads into a kernel wait queue.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-061a', body: "Biased locking uses OS mutexes, lightweight locking uses thread pools, and heavyweight locking uses database locks.", orderIndex: 0 },
+      { id: 'opt-s127-061b', body: "Biased locking records thread ownership in the Mark Word without CAS; lightweight locking uses atomic CAS to point to a stack frame lock record; heavyweight locking inflates into a kernel-backed ObjectMonitor with thread parking.", orderIndex: 1 },
+      { id: 'opt-s127-061c', body: "Heavyweight locks are used exclusively for primitive data types.", orderIndex: 2 },
+      { id: 'opt-s127-061d', body: "Lightweight locking executes lock acquisition inside the garbage collection thread.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-061b',
+  },
+  {
+    id: 'cat-q-s127-062',
+    topicId: 'topic-core-java',
+    topicSlug: 'core-java-multithreading',
+    body: "In the Java Memory Model (JMM, JSR-133), what memory visibility and ordering guarantees does a `volatile` variable write and read provide via happens-before relationships?",
+    explanation: "A write to a `volatile` field happens-before every subsequent read of that same `volatile` field. Under the hood, the JVM emits a StoreStore + StoreLoad barrier on writes and a LoadLoad + LoadStore barrier on reads, ensuring that all memory writes made by thread A prior to writing volatile variable V are guaranteed visible to thread B after it reads V.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-062a', body: "`volatile` guarantees that compound operations like `i++` execute atomically.", orderIndex: 0 },
+      { id: 'opt-s127-062b', body: "A write to a volatile variable happens-before subsequent reads of that variable, flushing preceding writes from CPU store buffers and preventing compiler/CPU reordering across the access.", orderIndex: 1 },
+      { id: 'opt-s127-062c', body: "`volatile` allocates the variable in off-heap direct native memory.", orderIndex: 2 },
+      { id: 'opt-s127-062d', body: "`volatile` automatically wraps the variable in a synchronized block.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-062b',
+  },
+  {
+    id: 'cat-q-s127-063',
+    topicId: 'topic-core-java',
+    topicSlug: 'core-java-multithreading',
+    body: "What is the role of the Z Garbage Collector (ZGC) Colored Pointers and Load Barriers in maintaining sub-millisecond maximum pause times?",
+    explanation: "ZGC uses reference coloring (storing metadata bits such as Marked0, Marked1, Remapped directly in unused high bits of 64-bit virtual pointers). When an application thread dereferences an object pointer, the JIT-compiled Load Barrier checks the color bits in ~2ns; if the object was relocated, the load barrier repairs the reference in-flight concurrently without stopping the world.",
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-s127-063a', body: "ZGC halts all application threads whenever an object is moved in memory.", orderIndex: 0 },
+      { id: 'opt-s127-063b', body: "ZGC embeds GC metadata bits inside 64-bit pointers (colored pointers) and uses JIT-injected load barriers to lazily heal relocated object references during application thread execution without global stop-the-world pauses.", orderIndex: 1 },
+      { id: 'opt-s127-063c', body: "ZGC compresses the entire heap using zlib on every garbage collection cycle.", orderIndex: 2 },
+      { id: 'opt-s127-063d', body: "ZGC deletes unreferenced objects without tracing the reference graph.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-063b',
+  },
+  {
+    id: 'cat-q-s127-064',
+    topicId: 'topic-core-java',
+    topicSlug: 'core-java-multithreading',
+    body: "How does the ForkJoinPool's work-stealing algorithm prevent thread contention between task owners and stealing worker threads?",
+    explanation: "Each worker thread in a ForkJoinPool maintains a double-ended queue (deque). The worker thread pushes and pops its own sub-tasks exclusively from the head (LIFO order, maximizing CPU cache locality). Idle worker threads steal tasks from the opposite end (tail, FIFO order), minimizing concurrent lock contention on the deque.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-064a', body: "Worker threads synchronize globally on a centralized priority queue.", orderIndex: 0 },
+      { id: 'opt-s127-064b', body: "Each worker thread operates on a double-ended deque: the owning thread pushes/pops tasks from the head (LIFO), while stealing threads steal tasks from the tail (FIFO), eliminating contention on common operations.", orderIndex: 1 },
+      { id: 'opt-s127-064c', body: "Tasks are assigned strictly by the OS kernel scheduler.", orderIndex: 2 },
+      { id: 'opt-s127-064d', body: "Worker threads terminate when their local queue empties rather than stealing.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-064b',
+  },
+  {
+    id: 'cat-q-s127-065',
+    topicId: 'topic-core-java',
+    topicSlug: 'core-java-multithreading',
+    body: "What happens when an unhandled exception is thrown inside a `CompletableFuture` asynchronous pipeline, and how should it be caught?",
+    explanation: "Exceptions in `CompletableFuture` pipelines are captured and stored in the stage's result object as an `ExecutionException` or `CompletionException`. Downstream stages are bypassed until an `.exceptionally()` or `.handle()` error recovery block is reached.",
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-s127-065a', body: "The JVM process terminates immediately with an exit code of 1.", orderIndex: 0 },
+      { id: 'opt-s127-065b', body: "The stage completes exceptionally, skipping normal downstream transform stages and propagating the failure until an `.exceptionally()` or `.handle()` callback handles it.", orderIndex: 1 },
+      { id: 'opt-s127-065c', body: "The exception is silently swallowed and replaced with a null value.", orderIndex: 2 },
+      { id: 'opt-s127-065d', body: "The exception is converted into a checked IOException.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-065b',
+  },
+  {
+    id: 'cat-q-s127-066',
+    topicId: 'topic-core-java',
+    topicSlug: 'core-java-multithreading',
+    body: "In Java 21 Virtual Threads (Project Loom), what occurs at the JVM level when a virtual thread executes a blocking socket read or `Thread.sleep()` operation?",
+    explanation: "When a virtual thread initiates a blocking operation, the Loom runtime catches the event via JDK non-blocking primitives and unmounts (yields) the virtual thread's continuation from its underlying carrier platform thread (ForkJoinPool worker). The carrier thread immediately executes another runnable virtual thread while the blocked continuation waits on the epoll/kqueue event loop.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-066a', body: "The underlying operating system platform thread is put to sleep in the kernel, wasting OS resources.", orderIndex: 0 },
+      { id: 'opt-s127-066b', body: "The virtual thread unmounts its continuation from the carrier platform thread, freeing the carrier thread to execute other virtual threads while waiting for I/O readiness on an internal event loop.", orderIndex: 1 },
+      { id: 'opt-s127-066c', body: "The JVM throws an `UnsupportedOperationException` because virtual threads cannot perform I/O.", orderIndex: 2 },
+      { id: 'opt-s127-066d', body: "The virtual thread is converted into a native pthread.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-066b',
+  },
+  {
+    id: 'cat-q-s127-067',
+    topicId: 'topic-core-java',
+    topicSlug: 'core-java-multithreading',
+    body: "Why is `ConcurrentHashMap` in Java 8+ implemented using synchronized nodes on tree/bucket bins rather than the segment-level locks used in Java 7?",
+    explanation: "Java 7 used `Segment<K,V>[]` (an array of ReentrantLocks), limiting concurrency to the segment count (default 16). Java 8+ locks at the individual bucket level using `synchronized` on the head node of a hash bucket (or CAS for empty bins), dramatically reducing lock contention and memory footprint.",
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-s127-067a', body: "Java 8 removed all concurrency from ConcurrentHashMap to improve single-threaded speed.", orderIndex: 0 },
+      { id: 'opt-s127-067b', body: "Java 8+ locks only the individual bucket's head node (or uses atomic CAS for empty slots), scaling concurrent write throughput to the number of hash bins rather than a fixed segment count.", orderIndex: 1 },
+      { id: 'opt-s127-067c', body: "Java 8 stores all entries in flat arrays without hashing.", orderIndex: 2 },
+      { id: 'opt-s127-067d', body: "Java 8 uses database row locks for ConcurrentHashMap.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-067b',
+  },
+  {
+    id: 'cat-q-s127-068',
+    topicId: 'topic-core-java',
+    topicSlug: 'core-java-multithreading',
+    body: "What is the function of the `sun.misc.Unsafe` (and its modern replacement `VarHandle` / Foreign Function & Memory API) in high-performance Java libraries?",
+    explanation: "`VarHandle` and low-level memory APIs provide low-overhead direct memory access, precise memory fence controls (acquire/release/opaque/volatile semantics), off-heap native memory allocation, and atomic compare-and-swap operations on object fields without reflection overhead.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-068a', body: "To bypass Java security managers to execute malicious native binaries.", orderIndex: 0 },
+      { id: 'opt-s127-068b', body: "To perform fine-grained atomic operations, explicit memory fence semantics (acquire/release), and direct off-heap native memory allocations with zero JNI reflection overhead.", orderIndex: 1 },
+      { id: 'opt-s127-068c', body: "To compile Java bytecode directly into JavaScript.", orderIndex: 2 },
+      { id: 'opt-s127-068d', body: "To override garbage collection pauses by disabling object allocation.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-068b',
+  },
+  {
+    id: 'cat-q-s127-069',
+    topicId: 'topic-core-java',
+    topicSlug: 'core-java-multithreading',
+    body: "What is the consequence of failing to provide a `hashCode()` implementation when overriding `equals()` in a custom Java class stored in a `HashSet`?",
+    explanation: "The contract states that equal objects must have equal hash codes. If `hashCode()` is not overridden, two objects that are `equals()` will produce different default identity hash codes, causing `HashSet.contains()` or `HashMap.get()` to look in the wrong hash bucket and fail to find the element.",
+    difficulty: 'EASY',
+    options: [
+      { id: 'opt-s127-069a', body: "The code fails to compile.", orderIndex: 0 },
+      { id: 'opt-s127-069b', body: "Equal objects will produce different hash codes, causing hash-based collections (`HashSet`, `HashMap`) to fail to retrieve or deduplicate elements properly.", orderIndex: 1 },
+      { id: 'opt-s127-069c', body: "The JVM throws a `NullPointerException` at runtime.", orderIndex: 2 },
+      { id: 'opt-s127-069d', body: "The collection will automatically delete all stored objects.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-069b',
+  },
+  {
+    id: 'cat-q-s127-070',
+    topicId: 'topic-core-java',
+    topicSlug: 'core-java-multithreading',
+    body: "What is the purpose of Escape Analysis performed by the JVM C2 Just-In-Time (JIT) compiler during object allocation?",
+    explanation: "Escape analysis determines whether an object allocated inside a method can escape outside the method's execution scope (e.g. by being returned or assigned to a global field). If it does not escape, the compiler can perform Scalar Replacement (allocating fields in CPU registers or stack rather than the heap) and lock elision.",
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-s127-070a', body: "To verify that strings do not contain SQL injection characters.", orderIndex: 0 },
+      { id: 'opt-s127-070b', body: "To determine if an object reference escapes its allocating method; if not, the compiler optimizes it via Scalar Replacement (stack/register allocation) and removes redundant synchronization locks.", orderIndex: 1 },
+      { id: 'opt-s127-070c', body: "To detect infinite loops before program execution.", orderIndex: 2 },
+      { id: 'opt-s127-070d', body: "To free memory immediately when a method returns without invoking GC.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-070b',
+  },
+  {
+    id: 'cat-q-s127-071',
+    topicId: 'topic-core-java',
+    topicSlug: 'core-java-multithreading',
+    body: "Why should Java developers be cautious when using `ThreadLocal` variables in application servers running fixed-size thread pools (e.g., Tomcat / Netty)?",
+    explanation: "Worker threads in a thread pool are long-lived and reused across distinct client requests. If a request handler stores state in a `ThreadLocal` without explicitly calling `.remove()` in a `finally` block, the data leaks across requests, causing memory leaks and security data contamination across users.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-071a', body: "Because `ThreadLocal` variables cannot store strings or integers.", orderIndex: 0 },
+      { id: 'opt-s127-071b', body: "Because thread pool threads are long-lived and reused; failing to call `.remove()` causes memory leaks and cross-request state contamination between different client requests.", orderIndex: 1 },
+      { id: 'opt-s127-071c', body: "Because `ThreadLocal` locks the entire JVM during read operations.", orderIndex: 2 },
+      { id: 'opt-s127-071d', body: "Because `ThreadLocal` forces the thread to downgrade to single-threaded mode.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-071b',
+  },
+  {
+    id: 'cat-q-s127-072',
+    topicId: 'topic-core-java',
+    topicSlug: 'core-java-multithreading',
+    body: "What is the difference between `ReentrantLock` and standard Java `synchronized` blocks in terms of functionality?",
+    explanation: "`ReentrantLock` provides advanced concurrency features not available in `synchronized`: timed lock acquisition (`tryLock(timeout)`), interruptible lock acquisition (`lockInterruptibly()`), non-block checking (`tryLock()`), fairness policies (`new ReentrantLock(true)`), and multiple independent `Condition` variables.",
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-s127-072a', body: "`synchronized` is reentrant, while `ReentrantLock` is non-reentrant.", orderIndex: 0 },
+      { id: 'opt-s127-072b', body: "`ReentrantLock` offers non-blocking attempts (`tryLock`), interruptible locks, fairness options, and multiple Condition queues, which are not supported by standard `synchronized` keywords.", orderIndex: 1 },
+      { id: 'opt-s127-072c', body: "`ReentrantLock` executes in user space, while `synchronized` always invokes kernel drivers.", orderIndex: 2 },
+      { id: 'opt-s127-072d', body: "`synchronized` can only be used with static methods.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-072b',
+  },
+  {
+    id: 'cat-q-s127-073',
+    topicId: 'topic-core-java',
+    topicSlug: 'core-java-multithreading',
+    body: "In modern G1 Garbage Collector (G1 GC), how does the SATB (Snapshot-At-The-Beginning) write barrier maintain reference graph consistency during concurrent marking?",
+    explanation: "SATB captures a logical snapshot of the object graph at the beginning of marking. When an application thread mutates an existing reference ($A.f = B \\to A.f = C$), the pre-write barrier catches the reference being overwritten ($B$) and pushes it to an SATB buffer, ensuring the concurrent marker visits any object that was reachable at marking start.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-073a', body: "It stops all user threads whenever any pointer is reassigned.", orderIndex: 0 },
+      { id: 'opt-s127-073b', body: "A pre-write barrier intercepts overwritten object references and stores them in thread-local SATB buffers, guaranteeing the concurrent marker traces all objects that were reachable at the start of GC marking.", orderIndex: 1 },
+      { id: 'opt-s127-073c', body: "It snapshots the entire heap to an SSD temporary file.", orderIndex: 2 },
+      { id: 'opt-s127-073d', body: "It prevents threads from writing to old-generation objects.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-073b',
+  },
+  {
+    id: 'cat-q-s127-074',
+    topicId: 'topic-core-java',
+    topicSlug: 'core-java-multithreading',
+    body: "What is the primary function of the `String.intern()` method in Java?",
+    explanation: "`String.intern()` checks the JVM String Constant Pool: if the pool contains a string equal to this string object, the canonical reference from the pool is returned; otherwise, this string is added to the pool and returned.",
+    difficulty: 'EASY',
+    options: [
+      { id: 'opt-s127-074a', body: "To translate English strings into localized international languages.", orderIndex: 0 },
+      { id: 'opt-s127-074b', body: "To return a canonical reference to the string from the JVM String Constant Pool, deduplicating identical string values in memory.", orderIndex: 1 },
+      { id: 'opt-s127-074c', body: "To convert a mutable StringBuilder into an immutable String.", orderIndex: 2 },
+      { id: 'opt-s127-074d', body: "To encode a string into Base64 format.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-074b',
+  },
+  {
+    id: 'cat-q-s127-075',
+    topicId: 'topic-core-java',
+    topicSlug: 'core-java-multithreading',
+    body: "Why is using `Executors.newFixedThreadPool()` or `Executors.newCachedThreadPool()` directly in production often considered an anti-pattern in enterprise systems?",
+    explanation: "`newFixedThreadPool` uses an unbounded `LinkedBlockingQueue` (`Integer.MAX_VALUE`), which can lead to memory exhaustion (OOM) under sustained request spikes. `newCachedThreadPool` uses a `SynchronousQueue` with an unbounded maximum thread count (`Integer.MAX_VALUE`), which can spawn thousands of threads and exhaust CPU/OS thread limits.",
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-s127-075a', body: "Because Executors cannot execute Runnable or Callable tasks.", orderIndex: 0 },
+      { id: 'opt-s127-075b', body: "Because their default factory settings use unbounded queues or unbounded thread limits, risking OutOfMemoryError under load; production code should instantiate ThreadPoolExecutor directly with bounded queues and saturation policies.", orderIndex: 1 },
+      { id: 'opt-s127-075c', body: "Because Executors only support single-core CPU architectures.", orderIndex: 2 },
+      { id: 'opt-s127-075d', body: "Because modern Java has deprecated the ThreadPoolExecutor class.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-075b',
+  },
+  {
+    id: 'cat-q-s127-076',
+    topicId: 'topic-fullstack',
+    topicSlug: 'fullstack-javascript-apis',
+    body: "In the Node.js libuv Event Loop, what is the exact execution order of phases, and where do `process.nextTick()` and `Promise.then()` microtasks execute relative to these phases?",
+    explanation: "The libuv phases run in sequence: Timers $\\to$ Pending Callbacks $\\to$ Idle/Prepare $\\to$ Poll $\\to$ Check $\\to$ Close Callbacks. Microtasks execute immediately after the current operation finishes, before the event loop transitions to the next phase. `process.nextTick()` microtasks take precedence over Promise microtasks.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-076a', body: "Microtasks execute only in the Poll phase after network packets arrive.", orderIndex: 0 },
+      { id: 'opt-s127-076b', body: "The event loop processes Timers -> Pending -> Poll -> Check -> Close; microtasks (with `process.nextTick` prioritizing over Promises) drain immediately after each callback finishes, before moving to the next phase.", orderIndex: 1 },
+      { id: 'opt-s127-076c', body: "Microtasks run on a separate background worker thread in parallel with the main thread.", orderIndex: 2 },
+      { id: 'opt-s127-076d', body: "The phases execute in reverse order when running inside Docker.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-076b',
+  },
+  {
+    id: 'cat-q-s127-077',
+    topicId: 'topic-fullstack',
+    topicSlug: 'fullstack-javascript-apis',
+    body: "In React 18+ Concurrent Mode, how does the Fiber reconciler achieve interruptible rendering without leaving the DOM in an inconsistent partial state?",
+    explanation: "React divides work into two phases: the asynchronous Render Phase (working on a draft work-in-progress Fiber tree that can be paused, aborted, or prioritized based on lane models) and the synchronous Commit Phase (which mutates the real DOM in a single atomic burst only after render finishes).",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-077a', body: "React updates the DOM directly node by node, rolling back on error.", orderIndex: 0 },
+      { id: 'opt-s127-077b', body: "React separates work into an interruptible, purely computational Render Phase on an offscreen Fiber tree, and an atomic, non-interruptible Commit Phase that applies finished mutations to the real DOM.", orderIndex: 1 },
+      { id: 'opt-s127-077c', body: "React offloads all DOM rendering to Web Workers.", orderIndex: 2 },
+      { id: 'opt-s127-077d', body: "React uses HTML canvas to bypass DOM nodes completely.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-077b',
+  },
+  {
+    id: 'cat-q-s127-078',
+    topicId: 'topic-fullstack',
+    topicSlug: 'fullstack-javascript-apis',
+    body: "What is the purpose of the `SameSite` attribute on HTTP cookies, and how does `SameSite=Lax` differ from `SameSite=Strict`?",
+    explanation: "`SameSite` defends against Cross-Site Request Forgery (CSRF). `Strict` never sends the cookie in cross-site requests, even when following top-level links. `Lax` withholds cookies on cross-site sub-requests (images, iframes, AJAX POST) but includes cookies when a user navigates to the origin via top-level safe GET requests (e.g. clicking a link).",
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-s127-078a', body: "`Strict` encrypts cookies; `Lax` stores cookies in plaintext.", orderIndex: 0 },
+      { id: 'opt-s127-078b', body: "`Strict` blocks cookies on all cross-site requests unconditionally; `Lax` blocks cookies on cross-site sub-requests (AJAX, POST, images) but permits cookies on top-level safe GET navigations like clicking external links.", orderIndex: 1 },
+      { id: 'opt-s127-078c', body: "`SameSite` limits cookies to mobile devices only.", orderIndex: 2 },
+      { id: 'opt-s127-078d', body: "`Lax` allows third-party ad trackers full access to user cookies.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-078b',
+  },
+  {
+    id: 'cat-q-s127-079',
+    topicId: 'topic-fullstack',
+    topicSlug: 'fullstack-javascript-apis',
+    body: "In Next.js App Router (React Server Components), why cannot React Server Components (RSC) import or use client hooks like `useState`, `useEffect`, or browser event handlers?",
+    explanation: "Server Components execute exclusively on the server at request/build time, serializing into a JSON-like stream of UI virtual tree descriptions (RSC Payload) without sending JavaScript component bundles to the client. Because they never hydrate in the browser, they cannot manage interactive client state or attach DOM listeners.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-079a', body: "Because Node.js does not support JavaScript functions.", orderIndex: 0 },
+      { id: 'opt-s127-079b', body: "Server Components render solely on the server into static RSC wire format without shipping component code to the client; lacking client-side execution and hydration, they cannot attach DOM event listeners or maintain browser runtime state.", orderIndex: 1 },
+      { id: 'opt-s127-079c', body: "Because Server Components run in an isolated WebAssembly sandbox that bans state.", orderIndex: 2 },
+      { id: 'opt-s127-079d', body: "Because Next.js compiles all Server Components into C++ binaries.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-079b',
+  },
+  {
+    id: 'cat-q-s127-080',
+    topicId: 'topic-fullstack',
+    topicSlug: 'fullstack-javascript-apis',
+    body: "What causes the \"Stale Closure\" problem in React hooks (such as `useEffect` or `useCallback`), and how is it corrected?",
+    explanation: "A closure captures variables from the render scope in which it was created. If a callback or effect function is memoized without declaring a referenced state variable in its dependency array, it continues referencing the captured stale value from that earlier render. Adding the variable to dependencies (or using functional state updates `setCount(c => c + 1)`) resolves it.",
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-s127-080a', body: "It is a browser memory corruption bug fixed by clearing cache.", orderIndex: 0 },
+      { id: 'opt-s127-080b', body: "A memoized function captures variables from an earlier render cycle; failing to list dynamic variables in the dependency array causes the closure to retain and read outdated state snapshots.", orderIndex: 1 },
+      { id: 'opt-s127-080c', body: "It happens when React components render without JSX tags.", orderIndex: 2 },
+      { id: 'opt-s127-080d', body: "It occurs when CSS stylesheet classes conflict with JavaScript variable names.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-080b',
+  },
+  {
+    id: 'cat-q-s127-081',
+    topicId: 'topic-fullstack',
+    topicSlug: 'fullstack-javascript-apis',
+    body: "What is the role of JavaScript V8 engine Hidden Classes (Shapes/Maps) and Inline Caching (IC) in optimizing property access on dynamic objects?",
+    explanation: "JavaScript objects have dynamic properties. V8 assigns each object an internal hidden class (Shape/Map) defining property offsets. When a function repeatedly accesses `obj.x`, Inline Caching (IC) patches the call site with direct memory offsets matching that shape, enabling monomorphic fast-path access equivalent to compiled C++ struct lookups.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-081a', body: "Hidden classes encrypt sensitive object fields in memory.", orderIndex: 0 },
+      { id: 'opt-s127-081b', body: "V8 assigns shared structural Shapes to objects with identical property layouts; Inline Caching caches the memory offset at property access sites, bypassing costly dictionary lookups when object shapes remain monomorphic.", orderIndex: 1 },
+      { id: 'opt-s127-081c', body: "Inline caching downloads CSS stylesheets ahead of time.", orderIndex: 2 },
+      { id: 'opt-s127-081d', body: "Hidden classes convert JavaScript objects into relational SQL tables.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-081b',
+  },
+  {
+    id: 'cat-q-s127-082',
+    topicId: 'topic-fullstack',
+    topicSlug: 'fullstack-javascript-apis',
+    body: "What is the difference between `IntersectionObserver` and traditional scroll event listeners (`window.onscroll`) for implementing lazy loading and infinite scrolling?",
+    explanation: "Traditional scroll listeners execute synchronously on the main UI thread during scrolling, triggering layout thrashing and frame drops unless heavily throttled. `IntersectionObserver` runs asynchronously off the main thread, notifying the application only when target elements intersect the viewport or a bounding box threshold.",
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-s127-082a', body: "`IntersectionObserver` only works with image elements, while `onscroll` works with any element.", orderIndex: 0 },
+      { id: 'opt-s127-082b', body: "`IntersectionObserver` evaluates element visibility asynchronously without blocking the main browser thread or causing layout thrashing, unlike synchronous `scroll` event loops.", orderIndex: 1 },
+      { id: 'opt-s127-082c', body: "`onscroll` runs in a Web Worker, while `IntersectionObserver` runs in the main thread.", orderIndex: 2 },
+      { id: 'opt-s127-082d', body: "`IntersectionObserver` requires a paid third-party library subscription.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-082b',
+  },
+  {
+    id: 'cat-q-s127-083',
+    topicId: 'topic-fullstack',
+    topicSlug: 'fullstack-javascript-apis',
+    body: "What is the purpose of the `Content-Security-Policy` (CSP) HTTP response header in modern web security?",
+    explanation: "CSP instructs the browser to restrict which origins and protocols are authorized to load executable scripts, stylesheets, images, and fonts, and restricts inline script execution, mitigating Cross-Site Scripting (XSS) attacks.",
+    difficulty: 'EASY',
+    options: [
+      { id: 'opt-s127-083a', body: "To compress website images into WebP format.", orderIndex: 0 },
+      { id: 'opt-s127-083b', body: "To restrict the domains and resources from which the browser is permitted to execute scripts and load assets, mitigating Cross-Site Scripting (XSS) and data injection attacks.", orderIndex: 1 },
+      { id: 'opt-s127-083c', body: "To enforce user password complexity rules.", orderIndex: 2 },
+      { id: 'opt-s127-083d', body: "To manage browser cookie expiration dates.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-083b',
+  },
+  {
+    id: 'cat-q-s127-084',
+    topicId: 'topic-fullstack',
+    topicSlug: 'fullstack-javascript-apis',
+    body: "In JavaScript memory management, how can Detached DOM Nodes cause significant single-page application (SPA) memory leaks?",
+    explanation: "A detached DOM node is an element removed from the active document DOM tree via `removeChild()`, but still referenced by a lingering JavaScript variable, event listener closure, or global array. Because the garbage collector traces references from the root, the detached element and its entire subtree cannot be reclaimed.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-084a', body: "Detached nodes consume all available network bandwidth.", orderIndex: 0 },
+      { id: 'opt-s127-084b', body: "DOM nodes removed from the visible page tree remain pinned in heap memory because lingering JavaScript closures or references prevent the garbage collector from freeing them and their subtrees.", orderIndex: 1 },
+      { id: 'opt-s127-084c', body: "Detached nodes crash the browser GPU compositor.", orderIndex: 2 },
+      { id: 'opt-s127-084d', body: "Detached nodes convert JavaScript memory into read-only flash storage.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-084b',
+  },
+  {
+    id: 'cat-q-s127-085',
+    topicId: 'topic-fullstack',
+    topicSlug: 'fullstack-javascript-apis',
+    body: "What is the purpose of the `AbortController` API in modern JavaScript when making asynchronous `fetch()` requests?",
+    explanation: "`AbortController` provides a `signal` passed into `fetch()`. Calling `controller.abort()` cancels the underlying network request and immediately rejects the promise with an `AbortError`, preventing race conditions when user interactions change before a slow response returns.",
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-s127-085a', body: "To reboot the web server when a request fails.", orderIndex: 0 },
+      { id: 'opt-s127-085b', body: "To cancel an ongoing in-flight HTTP fetch request and stop processing its response, preventing race conditions when components unmount or user queries change.", orderIndex: 1 },
+      { id: 'opt-s127-085c', body: "To bypass HTTPS certificate validation.", orderIndex: 2 },
+      { id: 'opt-s127-085d', body: "To pause JavaScript execution for a specified number of seconds.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-085b',
+  },
+  {
+    id: 'cat-q-s127-086',
+    topicId: 'topic-fullstack',
+    topicSlug: 'fullstack-javascript-apis',
+    body: "How does Service Worker Background Sync API enable offline-first web applications to reliably post form data when connectivity returns?",
+    explanation: "When offline, the web app registers a sync event (`registration.sync.register(\"sync-orders\")`) and stores payload data in IndexedDB. When the browser detects network restoration, it wakes up the Service Worker in the background to dispatch the `sync` event, allowing it to read IndexedDB and post data even if the page is closed.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-086a', body: "It continuously pings the server every 10 milliseconds over Bluetooth.", orderIndex: 0 },
+      { id: 'opt-s127-086b', body: "It persists outbound requests in client IndexedDB and registers a background sync event that the browser triggers upon network restoration, executing the sync handler even if the user has navigated away from the page.", orderIndex: 1 },
+      { id: 'opt-s127-086c', body: "It converts the web application into an Android native APK file.", orderIndex: 2 },
+      { id: 'opt-s127-086d', body: "It transmits data through SMS text messages when Wi-Fi is disconnected.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-086b',
+  },
+  {
+    id: 'cat-q-s127-087',
+    topicId: 'topic-fullstack',
+    topicSlug: 'fullstack-javascript-apis',
+    body: "What is the difference between `requestAnimationFrame` (rAF) and `setTimeout` with 16ms delay when implementing smooth 60fps browser animations?",
+    explanation: "`setTimeout(..., 16)` runs on timer ticks regardless of the display refresh cycle, leading to frame drops and jitter (tearing). `requestAnimationFrame` aligns callback execution precisely with the browser's VSYNC compositor cycle just before rendering the next frame, automatically pausing when the tab is hidden.",
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-s127-087a', body: "`setTimeout` is hardware accelerated by the GPU, whereas `requestAnimationFrame` runs in software.", orderIndex: 0 },
+      { id: 'opt-s127-087b', body: "`requestAnimationFrame` synchronizes execution with the browser's display refresh cycle (VSYNC) before painting, eliminating visual stutter and pausing when the tab is backgrounded.", orderIndex: 1 },
+      { id: 'opt-s127-087c', body: "`requestAnimationFrame` can only be called from WebAssembly.", orderIndex: 2 },
+      { id: 'opt-s127-087d', body: "There is no difference; `requestAnimationFrame` is an alias for `setTimeout(cb, 16)`.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-087b',
+  },
+  {
+    id: 'cat-q-s127-088',
+    topicId: 'topic-fullstack',
+    topicSlug: 'fullstack-javascript-apis',
+    body: "What is the role of the `WeakMap` data structure in JavaScript, and why is it ideal for storing private metadata associated with DOM elements?",
+    explanation: "`WeakMap` keys must be objects and are held weakly. If no other references to the key object exist, the key-value entry is eligible for garbage collection. Associating metadata with DOM nodes using a WeakMap ensures that removing the DOM node automatically reclaims the associated metadata without memory leaks.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-088a', body: "`WeakMap` values can be read by other browser windows across origins.", orderIndex: 0 },
+      { id: 'opt-s127-088b', body: "`WeakMap` holds object keys weakly without preventing garbage collection; when the referenced DOM node is deleted, its metadata entry in the WeakMap is automatically collected without manual cleanup.", orderIndex: 1 },
+      { id: 'opt-s127-088c', body: "`WeakMap` sorts all keys in alphabetical order.", orderIndex: 2 },
+      { id: 'opt-s127-088d', body: "`WeakMap` serializes data to local storage automatically.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-088b',
+  },
+  {
+    id: 'cat-q-s127-089',
+    topicId: 'topic-fullstack',
+    topicSlug: 'fullstack-javascript-apis',
+    body: "What is the purpose of the CORS (Cross-Origin Resource Sharing) Preflight `OPTIONS` request in web browsers?",
+    explanation: "When making non-simple cross-origin HTTP requests (e.g. custom headers like `Authorization` or methods like `PUT`/`DELETE`), the browser sends an automated `OPTIONS` request first to verify that the target server explicitly permits the origin, method, and headers before transmitting the actual request.",
+    difficulty: 'EASY',
+    options: [
+      { id: 'opt-s127-089a', body: "To download favicon icons for the website.", orderIndex: 0 },
+      { id: 'opt-s127-089b', body: "To check with the remote server whether the cross-origin request method and headers are permitted before sending the actual HTTP payload.", orderIndex: 1 },
+      { id: 'opt-s127-089c', body: "To test internet connection speed.", orderIndex: 2 },
+      { id: 'opt-s127-089d', body: "To verify user credentials against Active Directory.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-089b',
+  },
+  {
+    id: 'cat-q-s127-090',
+    topicId: 'topic-fullstack',
+    topicSlug: 'fullstack-javascript-apis',
+    body: "Why is `dangerouslySetInnerHTML` in React prefixed with \"dangerously\", and what vulnerability does it expose if un-sanitized user content is passed to it?",
+    explanation: "It directly injects raw HTML strings into the DOM without escaping, exposing the application to Cross-Site Scripting (XSS) where malicious script tags or event handlers (`<img src=x onerror=...>`) execute in the victim's authenticated browser session.",
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-s127-090a', body: "Because it can crash the user's graphics card drivers.", orderIndex: 0 },
+      { id: 'opt-s127-090b', body: "It bypasses React's automatic string escaping, exposing the application to Cross-Site Scripting (XSS) attacks if user-supplied inputs are rendered without rigorous sanitization (e.g. DOMPurify).", orderIndex: 1 },
+      { id: 'opt-s127-090c', body: "Because it permanently modifies the server-side source code.", orderIndex: 2 },
+      { id: 'opt-s127-090d', body: "Because it disables SSL/TLS encryption for the current page.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-090b',
+  },
+  {
+    id: 'cat-q-s127-091',
+    topicId: 'topic-cloud-sec',
+    topicSlug: 'cloud-cybersecurity-defense',
+    body: "In cloud security architecture, what is the principle of IAM Role AssumeRole (STS - Security Token Service) and how does it prevent long-term credential leakage?",
+    explanation: "AssumeRole issues temporary, cryptographically signed credentials (access key, secret key, and session token) with short expiration periods (e.g. 15 minutes to 12 hours) dynamically to authorized workloads. This eliminates the need to embed static long-lived API keys in application configuration files or source repositories.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-091a', body: "AssumeRole generates permanent root administrator credentials stored in a database.", orderIndex: 0 },
+      { id: 'opt-s127-091b', body: "It generates short-lived, dynamically rotated temporary credentials for workloads without requiring static, long-lived API keys to be embedded in application code or configuration.", orderIndex: 1 },
+      { id: 'opt-s127-091c', body: "It disables all firewall rules for authenticated administrators.", orderIndex: 2 },
+      { id: 'opt-s127-091d', body: "It converts cloud virtual machines into local bare-metal servers.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-091b',
+  },
+  {
+    id: 'cat-q-s127-092',
+    topicId: 'topic-cloud-sec',
+    topicSlug: 'cloud-cybersecurity-defense',
+    body: "How does a Server-Side Request Forgery (SSRF) attack compromise cloud environments via the Instance Metadata Service (IMDSv1), and how does IMDSv2 mitigate this threat?",
+    explanation: "In IMDSv1, simple HTTP GET requests to `http://169.254.169.254/latest/meta-data/` return instance IAM credentials; an attacker exploiting SSRF can trick the application into fetching and leaking these credentials. IMDSv2 is session-oriented, requiring a `PUT` request with custom header `X-aws-ec2-metadata-token-ttl-seconds` to acquire an ephemeral token, which SSRF attacks cannot easily forge.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-092a', body: "IMDSv1 requires biometric authentication; IMDSv2 uses passwords.", orderIndex: 0 },
+      { id: 'opt-s127-092b', body: "IMDSv1 returns sensitive instance credentials via simple GET requests easily exploited by SSRF; IMDSv2 enforces session-oriented tokens requiring custom HTTP PUT headers and restricts IP packet hop limits to block reverse proxies.", orderIndex: 1 },
+      { id: 'opt-s127-092c', body: "IMDSv2 completely disables all network access to cloud virtual machines.", orderIndex: 2 },
+      { id: 'opt-s127-092d', body: "IMDSv1 encrypts metadata with AES-128; IMDSv2 upgrades to AES-256.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-092b',
+  },
+  {
+    id: 'cat-q-s127-093',
+    topicId: 'topic-cloud-sec',
+    topicSlug: 'cloud-cybersecurity-defense',
+    body: "What is the operational difference between Kubernetes NetworkPolicies and Cloud Provider Security Groups in containerized infrastructure?",
+    explanation: "Cloud Provider Security Groups operate at the host VM/node level (filtering traffic between physical EC2/compute instances). Kubernetes NetworkPolicies operate at the internal pod overlay network layer (enforced by CNI plugins like Calico or Cilium), filtering traffic between individual pods via label selectors regardless of which node they run on.",
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-s127-093a', body: "Security groups control container CPU limits; NetworkPolicies control memory limits.", orderIndex: 0 },
+      { id: 'opt-s127-093b', body: "Security Groups enforce packet filtering at the underlying host VM/NIC boundary, whereas Kubernetes NetworkPolicies enforce micro-segmentation at the pod level based on Kubernetes namespace and label selectors.", orderIndex: 1 },
+      { id: 'opt-s127-093c', body: "NetworkPolicies only work with public IP addresses.", orderIndex: 2 },
+      { id: 'opt-s127-093d', body: "Security Groups are managed by developers; NetworkPolicies are physical hardware routers.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-093b',
+  },
+  {
+    id: 'cat-q-s127-094',
+    topicId: 'topic-cloud-sec',
+    topicSlug: 'cloud-cybersecurity-defense',
+    body: "In Zero Trust Architecture (NIST SP 800-207), what replaces the traditional \"perimeter security\" model (castle-and-moat) for authenticating service-to-service requests?",
+    explanation: "Zero Trust eliminates implicit trust based on network location (e.g. being inside a corporate VPN or private subnet). Every single request must be explicitly authenticated, authorized, and encrypted continuously, typically using mutual TLS (mTLS) with short-lived X.509 certificates and cryptographically verified SPIFFE IDs.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-094a', body: "A single high-powered firewall appliance at the datacenter gateway.", orderIndex: 0 },
+      { id: 'opt-s127-094b', body: "Continuous per-request authentication, authorization, and mutual TLS encryption based on identity and context, eliminating implicit trust based on network perimeter or internal IP addresses.", orderIndex: 1 },
+      { id: 'opt-s127-094c', body: "Requiring developers to use physical hardware security keys for every API call.", orderIndex: 2 },
+      { id: 'opt-s127-094d', body: "Migrating all applications to public unencrypted HTTP subnets.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-094b',
+  },
+  {
+    id: 'cat-q-s127-095',
+    topicId: 'topic-cloud-sec',
+    topicSlug: 'cloud-cybersecurity-defense',
+    body: "What is the function of KMS (Key Management Service) Envelope Encryption when securing large volumes of persistent cloud storage data?",
+    explanation: "Envelope encryption encrypts plaintext data locally using a freshly generated Data Encryption Key (DEK). The DEK is then encrypted using a root Key Encryption Key (KEK) managed securely inside the KMS hardware security module (HSM), avoiding sending large data payloads across the KMS network.",
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-s127-095a', body: "To mail physical encryption keys inside sealed paper envelopes.", orderIndex: 0 },
+      { id: 'opt-s127-095b', body: "Data is encrypted locally using a fast symmetric Data Encryption Key (DEK), and only the DEK itself is encrypted by the KMS root Key Encryption Key (KEK), minimizing network transfers and KMS HSM load.", orderIndex: 1 },
+      { id: 'opt-s127-095c', body: "To compress database backups before saving them to tape drives.", orderIndex: 2 },
+      { id: 'opt-s127-095d', body: "To rotate user account passwords every 30 days.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-095b',
+  },
+  {
+    id: 'cat-q-s127-096',
+    topicId: 'topic-cloud-sec',
+    topicSlug: 'cloud-cybersecurity-defense',
+    body: "In OAuth 2.0 and OpenID Connect (OIDC), what specific security threat does the Proof Key for Code Exchange (PKCE) protocol mitigate for Public Clients (SPA and Mobile apps)?",
+    explanation: "Public clients cannot securely store client secrets. An attacker intercepting the authorization code (via custom URL schemes or OS app hijacking) could exchange it for access tokens. PKCE uses a cryptographic challenge: the client creates a random `code_verifier` and sends its hash `code_challenge`; when exchanging the code, it reveals the verifier to prove it is the legitimate requester.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-096a', body: "It prevents SQL injection attacks against the authorization database.", orderIndex: 0 },
+      { id: 'opt-s127-096b', body: "It protects public clients from authorization code interception attacks by binding the authorization request to a dynamically generated cryptographic code verifier.", orderIndex: 1 },
+      { id: 'opt-s127-096c', body: "It forces users to enter a one-time SMS verification code on every login.", orderIndex: 2 },
+      { id: 'opt-s127-096d', body: "It encrypts access tokens using asymmetric quantum algorithms.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-096b',
+  },
+  {
+    id: 'cat-q-s127-097',
+    topicId: 'topic-cloud-sec',
+    topicSlug: 'cloud-cybersecurity-defense',
+    body: "What is the purpose of an egress NAT Gateway in a private cloud VPC subnet?",
+    explanation: "An egress NAT Gateway allows instances located in private subnets (which lack public IPv4 addresses) to initiate outbound connections to the internet (e.g., to download OS security patches or third-party API webhooks) while preventing outside internet hosts from initiating inbound connections to those private instances.",
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-s127-097a', body: "To expose private databases directly to public internet users.", orderIndex: 0 },
+      { id: 'opt-s127-097b', body: "To enable private subnet instances to initiate outbound connections to the internet for updates while blocking incoming unsolicited connections from reaching private instances.", orderIndex: 1 },
+      { id: 'opt-s127-097c', body: "To accelerate internal DNS queries within the VPC.", orderIndex: 2 },
+      { id: 'opt-s127-097d', body: "To balance HTTP traffic across web server instances.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-097b',
+  },
+  {
+    id: 'cat-q-s127-098',
+    topicId: 'topic-cloud-sec',
+    topicSlug: 'cloud-cybersecurity-defense',
+    body: "What is the mechanism of a Distributed Denial of Service (DDoS) DNS Amplification attack, and how do open resolvers contribute to the attack volume?",
+    explanation: "The attacker sends spoofed UDP DNS queries (requesting large record sets like `ANY` or DNSSEC keys) to open recursive DNS resolvers on the internet, spoofing the victim's IP address as the source. Because the DNS response is 50x to 70x larger than the query, the open resolvers flood the victim's network pipes with massive amplified traffic.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-098a', body: "Attackers hack into DNS root servers and delete domain zone records.", orderIndex: 0 },
+      { id: 'opt-s127-098b', body: "Attackers send small spoofed UDP requests with the victim's source IP to open DNS resolvers requesting large records, amplifying the response traffic by up to 70x directly against the victim's bandwidth.", orderIndex: 1 },
+      { id: 'opt-s127-098c', body: "Attackers flood recursive resolvers with TCP SYN packets to crash them.", orderIndex: 2 },
+      { id: 'opt-s127-098d', body: "Attackers poison the local browser cache with incorrect IP addresses.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-098b',
+  },
+  {
+    id: 'cat-q-s127-099',
+    topicId: 'topic-cloud-sec',
+    topicSlug: 'cloud-cybersecurity-defense',
+    body: "What is the principle of Least Privilege in cloud access management (IAM)?",
+    explanation: "Users, services, and workloads should be granted only the minimum set of permissions necessary to perform their designated tasks, for the minimum duration required, reducing the blast radius of compromised credentials.",
+    difficulty: 'EASY',
+    options: [
+      { id: 'opt-s127-099a', body: "Giving all developers full administrator privileges to avoid permission bottlenecks.", orderIndex: 0 },
+      { id: 'opt-s127-099b', body: "Granting users and workloads only the minimal permissions strictly required to perform their assigned functions, minimizing the potential blast radius of a security breach.", orderIndex: 1 },
+      { id: 'opt-s127-099c', body: "Restricting access based solely on the user's physical office location.", orderIndex: 2 },
+      { id: 'opt-s127-099d', body: "Disabling all password authentication across the organization.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-099b',
+  },
+  {
+    id: 'cat-q-s127-100',
+    topicId: 'topic-cloud-sec',
+    topicSlug: 'cloud-cybersecurity-defense',
+    body: "How does an eBPF-based security agent (e.g. Cilium Tetragon, Falco) detect container escapes and zero-day kernel exploits with minimal CPU overhead?",
+    explanation: "eBPF security probes attach directly to kernel tracepoints, kprobes, and Linux Security Module (LSM) hooks inside the running kernel. They inspect syscall arguments, namespace transitions, and file descriptors at kernel execution speed in real time, alerting or terminating unauthorized processes before malicious syscalls execute without user-space context switch penalties.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-100a', body: "By running an antivirus scan over the entire container filesystem every minute.", orderIndex: 0 },
+      { id: 'opt-s127-100b', body: "By attaching verifiable in-kernel probes to syscalls and LSM hooks, monitoring process execution and namespace modifications at kernel speed without user-space context switch overhead.", orderIndex: 1 },
+      { id: 'opt-s127-100c', body: "By intercepting all network packets using an external hardware tap.", orderIndex: 2 },
+      { id: 'opt-s127-100d', body: "By recompiling the Linux kernel every time a new container starts.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-100b',
+  },
+  {
+    id: 'cat-q-s127-101',
+    topicId: 'topic-cloud-sec',
+    topicSlug: 'cloud-cybersecurity-defense',
+    body: "What is the purpose of an immutable cloud infrastructure deployment model (e.g. Golden AMIs / container images deployed via blue/green)?",
+    explanation: "In immutable infrastructure, production servers/containers are never modified or patched in-place. If an update or bugfix is needed, new replacement images are built, tested, and deployed fresh while old instances are terminated, eliminating configuration drift and snowflake server anomalies.",
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-s127-101a', body: "To prevent any code updates from being deployed after initial release.", orderIndex: 0 },
+      { id: 'opt-s127-101b', body: "Servers and containers are never modified in-place; changes require deploying new, tested machine images and retiring old ones, eliminating configuration drift and environment discrepancies.", orderIndex: 1 },
+      { id: 'opt-s127-101c', body: "To lock down cloud database files into read-only mode.", orderIndex: 2 },
+      { id: 'opt-s127-101d', body: "To store application binaries exclusively on write-once optical discs.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-101b',
+  },
+  {
+    id: 'cat-q-s127-102',
+    topicId: 'topic-cloud-sec',
+    topicSlug: 'cloud-cybersecurity-defense',
+    body: "In container security, why is dropping Linux capabilities (e.g. `CAP_SYS_ADMIN`, `CAP_NET_RAW`) and enabling `readOnlyRootFilesystem` a critical defense against container breakouts?",
+    explanation: "Containers share the host OS kernel. Standard root in a container still retains potent capabilities like `CAP_SYS_ADMIN` which can be leveraged to mount filesystems or exploit kernel bugs. Dropping unused capabilities and locking the root filesystem to read-only prevents attackers from executing binaries or writing exploit payloads.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-102a', body: "It speeds up container startup time by skipping disk checks.", orderIndex: 0 },
+      { id: 'opt-s127-102b', body: "It strips privileged kernel capabilities that attackers use to interact with host kernel subsystems, while a read-only filesystem prevents writing or modifying malware binaries inside the container.", orderIndex: 1 },
+      { id: 'opt-s127-102c', body: "It reduces container network latency by disabling TCP checksums.", orderIndex: 2 },
+      { id: 'opt-s127-102d', body: "It allows containers to run without requiring a container engine.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-102b',
+  },
+  {
+    id: 'cat-q-s127-103',
+    topicId: 'topic-cloud-sec',
+    topicSlug: 'cloud-cybersecurity-defense',
+    body: "What is the difference between asymmetric digital signatures and symmetric Message Authentication Codes (MAC / HMAC)?",
+    explanation: "HMAC uses a single shared secret key between sender and receiver to verify both data integrity and authenticity. Digital signatures use an asymmetric keypair: the sender signs with a private key, and anyone holding the public key can verify the signature without gaining the ability to forge signatures.",
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-s127-103a', body: "HMAC is used for video files; digital signatures are used for text.", orderIndex: 0 },
+      { id: 'opt-s127-103b', body: "HMAC relies on a shared secret key known to both parties, whereas digital signatures use asymmetric key cryptography allowing anyone with the public key to verify signatures without knowing the private signing key.", orderIndex: 1 },
+      { id: 'opt-s127-103c', body: "Digital signatures are deprecated in modern cryptography.", orderIndex: 2 },
+      { id: 'opt-s127-103d', body: "HMAC requires internet connectivity, while digital signatures work offline.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-103b',
+  },
+  {
+    id: 'cat-q-s127-104',
+    topicId: 'topic-cloud-sec',
+    topicSlug: 'cloud-cybersecurity-defense',
+    body: "What is the purpose of an SPIFFE/SPIRE identity framework in multi-cloud microservice environments?",
+    explanation: "SPIFFE (Secure Production Identity Framework for Everyone) provides a standard for cryptographically verifying workload identity across diverse platforms. SPIRE automatically issues and rotates short-lived X.509 SVID certificates to workloads based on platform attestations, enabling zero-trust mTLS without hardcoded credentials.",
+    difficulty: 'HARD',
+    options: [
+      { id: 'opt-s127-104a', body: "To manage user passwords across social media websites.", orderIndex: 0 },
+      { id: 'opt-s127-104b', body: "To provide platform-agnostic, cryptographically verifiable workload identity via automatically issued and rotated short-lived X.509 SVID certificates, enabling seamless zero-trust mTLS across clouds.", orderIndex: 1 },
+      { id: 'opt-s127-104c', body: "To replace DNS with blockchain lookups.", orderIndex: 2 },
+      { id: 'opt-s127-104d', body: "To scan source code repositories for syntax errors.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-104b',
+  },
+  {
+    id: 'cat-q-s127-105',
+    topicId: 'topic-cloud-sec',
+    topicSlug: 'cloud-cybersecurity-defense',
+    body: "Why is Cross-Origin Resource Sharing (CORS) NOT a defense against Cross-Site Request Forgery (CSRF) attacks?",
+    explanation: "CORS is a browser mechanism that restricts client-side scripts from reading responses across origins. It does not stop the browser from *sending* the request with authenticated cookies attached. A standard HTML form POST or image tag initiates a cross-origin state-modifying request regardless of CORS settings.",
+    difficulty: 'MEDIUM',
+    options: [
+      { id: 'opt-s127-105a', body: "Because CORS only applies to mobile devices.", orderIndex: 0 },
+      { id: 'opt-s127-105b', body: "CORS restricts client scripts from reading cross-origin responses, but does not prevent the browser from submitting cross-origin requests with authenticated cookies attached; CSRF tokens and SameSite cookies are required.", orderIndex: 1 },
+      { id: 'opt-s127-105c', body: "Because CORS is disabled by default in modern web browsers.", orderIndex: 2 },
+      { id: 'opt-s127-105d', body: "Because CSRF attacks only target desktop operating systems.", orderIndex: 3 }
+    ],
+    correctOptionId: 'opt-s127-105b',
+  },
 ];

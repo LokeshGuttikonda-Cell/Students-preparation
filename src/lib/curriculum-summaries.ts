@@ -3095,4 +3095,234 @@ export const CURRICULUM_SUMMARIES: CurriculumArticleSummary[] = [
   ],
   "practiceMcqsCount": 5
 },
+{
+  "id": "art-quantum-shor-grover",
+  "slug": "quantum-circuits-superposition-and-algorithms-shor-grover",
+  "domainSlug": "cybersecurity-cryptography",
+  "domainName": "Cybersecurity, AppSec & Cryptography",
+  "title": "Quantum Circuits, Superposition & Quantum Algorithms (Shor & Grover)",
+  "level": "ADVANCED",
+  "readTimeMinutes": 28,
+  "summary": "A mathematical and algorithmic deep dive into quantum computation: state vectors, the Bloch sphere, unitary transformation gates, the Quantum Fourier Transform (QFT), Shor’s polynomial-time prime factoring algorithm, and Grover’s quadratic search algorithm.",
+  "keyConcepts": [
+    "Qubit Formalism: Superposition $|\\psi\\rangle = \\alpha|0\\rangle + \\beta|1\\rangle$ and the Bloch Sphere",
+    "Unitary Gates: Pauli ($X, Y, Z$), Hadamard ($H$), Phase ($S, T$), and Entangling CNOT Gates",
+    "Quantum Phase Estimation (QPE) and the Discrete Quantum Fourier Transform (QFT)",
+    "Shor’s Algorithm: Reducing Prime Factoring to Order-Finding in $O((\\log N)^3)$ Time",
+    "Grover’s Search: Amplitude Amplification and Oracle Reflection in $O(\\sqrt{N})$"
+  ],
+  "relatedRoleSlugs": [
+    "systems-architect",
+    "backend-engineer",
+    "cloud-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-quantum-error-correction",
+  "slug": "quantum-error-correction-surface-codes-and-stabilizers",
+  "domainSlug": "cybersecurity-cryptography",
+  "domainName": "Cybersecurity, AppSec & Cryptography",
+  "title": "Quantum Error Correction, Surface Codes & Fault-Tolerant Quantum Memory",
+  "level": "ADVANCED",
+  "readTimeMinutes": 27,
+  "summary": "A deep examination of fault-tolerant quantum computing: continuous quantum decoherence, bit-flip ($X$) and phase-flip ($Z$) errors, stabilizer codes, 2D Surface Codes on planar qubit lattices, syndrome extraction, and Minimum-Weight Perfect Matching (MWPM) decoders.",
+  "keyConcepts": [
+    "Quantum Error Models: Continuous Errors Discretized into Pauli Bit-Flip ($X$) and Phase-Flip ($Z$)",
+    "The Stabilizer Formalism: Commuting Pauli Subgroups and Eigenvalue Syndrome Measurement",
+    "2D Planar Surface Codes: Data Qubits, Vertex Star Operators ($X$), and Plaquette Face Operators ($Z$)",
+    "Logical Qubits and Code Distance $d$: Tolerating $\\lfloor (d-1)/2 \\rfloor$ Physical Errors",
+    "Syndrome Decoding: Minimum-Weight Perfect Matching (MWPM) and Union-Find Graph Decoders"
+  ],
+  "relatedRoleSlugs": [
+    "systems-architect",
+    "backend-engineer",
+    "cloud-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-quantum-qkd-bb84",
+  "slug": "quantum-key-distribution-bb84-and-e91-protocols",
+  "domainSlug": "cybersecurity-cryptography",
+  "domainName": "Cybersecurity, AppSec & Cryptography",
+  "title": "Quantum Cryptography: BB84 Protocol, E91 & Quantum Key Distribution (QKD)",
+  "level": "ADVANCED",
+  "readTimeMinutes": 26,
+  "summary": "A mathematical dissection of Quantum Key Distribution (QKD): the BB84 protocol using non-orthogonal photon polarization bases, Ekert’s E91 entanglement protocol violating Bell’s inequalities, Quantum Bit Error Rate (QBER) analysis, error reconciliation (Cascade), and privacy amplification.",
+  "keyConcepts": [
+    "Quantum Key Distribution (QKD): Information-Theoretic Security vs Computational Hardness",
+    "The BB84 Protocol: Rectilinear ($+$) and Diagonal ($\\times$) Conjugate Polarization Bases",
+    "Eavesdropping Detection via Quantum Measurement Collapse and QBER Calculation",
+    "Ekert’s E91 Protocol: Entangled Bell Pairs and CHSH Inequality Violation",
+    "Post-Processing Pipeline: Sifting, Error Reconciliation (Cascade), and Privacy Amplification (Toeplitz Hashing)"
+  ],
+  "relatedRoleSlugs": [
+    "systems-architect",
+    "backend-engineer",
+    "cloud-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-quantum-nisq-vqe",
+  "slug": "variational-quantum-eigensolver-vqe-and-qaoa-nisq",
+  "domainSlug": "machine-learning-ai-systems",
+  "domainName": "Machine Learning, AI & LLM Systems",
+  "title": "NISQ Algorithms: Variational Quantum Eigensolver (VQE) & QAOA",
+  "level": "ADVANCED",
+  "readTimeMinutes": 27,
+  "summary": "An exploration of hybrid quantum-classical algorithms on Noisy Intermediate-Scale Quantum (NISQ) hardware: Parameterized Quantum Circuits (ansätze), the Variational Quantum Eigensolver (VQE) for molecular Hamiltonians, the Quantum Approximate Optimization Algorithm (QAOA), and the Barren Plateau gradient vanishing catastrophe.",
+  "keyConcepts": [
+    "The NISQ Era Constraints: Limited Qubit Counts (50–1000) and Shallow Circuit Depths without QEC",
+    "Hybrid Quantum-Classical Optimization Loop: Quantum State Preparation and Classical Gradient Descent",
+    "The Variational Principle: $\\langle \\psi(\\theta) | H | \\psi(\\theta) \\rangle \\ge E_0$",
+    "Quantum Approximate Optimization Algorithm (QAOA): Cost and Mixer Hamiltonians ($e^{-i\\gamma H_C}, e^{-i\\beta H_M}$)",
+    "Barren Plateaus: Exponential Concentration of Measure and Gradient Vanishing in Random Ansätze"
+  ],
+  "relatedRoleSlugs": [
+    "ai-engineer",
+    "systems-architect",
+    "backend-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-quantum-software-openqasm",
+  "slug": "quantum-software-engineering-openqasm-pulse-transpilation",
+  "domainSlug": "cybersecurity-cryptography",
+  "domainName": "Cybersecurity, AppSec & Cryptography",
+  "title": "Quantum Software Engineering: OpenQASM 3.0, Pulse Control & Transpilation",
+  "level": "ADVANCED",
+  "readTimeMinutes": 25,
+  "summary": "A systems-level examination of the quantum software stack: OpenQASM 3.0 specification, classical-quantum hybrid control flow, pulse-level microwave waveform calibration, quantum circuit transpilation over physical coupling graphs (routing via SWAP insertion), and Readout Error Mitigation (REM).",
+  "keyConcepts": [
+    "The Quantum Compilation Pipeline: High-Level Circuit $\\to$ Transpilation $\\to$ OpenQASM $\\to$ Microwave Pulses",
+    "OpenQASM 3.0: Classical Control Flow, Real-Time Feedback Loops, and Sub-Microsecond Branching",
+    "Circuit Transpilation: Basis Gate Synthesis, Qubit Allocation, and SWAP Network Routing on Constrained Topologies",
+    "Pulse-Level Control: Drag Pulses, Cross-Resonance Microwave Drives, and Hamiltonian Calibration",
+    "Readout Error Mitigation (REM): Calibration Matrices and Inverted Confusion Matrix Unfolding"
+  ],
+  "relatedRoleSlugs": [
+    "systems-architect",
+    "backend-engineer",
+    "devops-sre-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-fpga-hls-acceleration",
+  "slug": "fpga-acceleration-high-level-synthesis-and-spatial-computing",
+  "domainSlug": "operating-systems-internals",
+  "domainName": "Operating Systems & Systems Programming",
+  "title": "FPGA Acceleration, High-Level Synthesis (HLS) & Spatial Computing Architectures",
+  "level": "ADVANCED",
+  "readTimeMinutes": 26,
+  "summary": "An in-depth guide to spatial reconfigurable computing: FPGA hardware primitives (LUTs, DSP48 slices, BRAM, UltraRAM), High-Level Synthesis (HLS) from C/C++, loop pipelining and Initiation Interval (II=1), loop unrolling, memory banking/partitioning, dataflow architectures, and Amdahl’s Law in hardware offload.",
+  "keyConcepts": [
+    "FPGA Fabric Primitives: Configurable Logic Blocks (CLBs), 6-LUTs, DSP Slices, Block RAM (BRAM) & UltraRAM (URAM)",
+    "Spatial Computing vs Temporal Von Neumann: Pipelined Streaming Datapaths vs Instruction Fetch/Decode Cycles",
+    "High-Level Synthesis (HLS) Directives: `#pragma HLS PIPELINE II=1`, Loop Unrolling, and Dataflow Streaming",
+    "Memory Architecture & Bandwidth Bottlenecks: Cyclic/Block Array Partitioning to Eliminate Multi-Port BRAM Stalls",
+    "Initiation Interval (II) vs Latency: Loop Dependency Recurrences and Pipeline Scheduling"
+  ],
+  "relatedRoleSlugs": [
+    "systems-architect",
+    "backend-engineer",
+    "devops-sre-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-cxl-compute-express-link",
+  "slug": "compute-express-link-cxl-disaggregated-memory-and-cache-coherence",
+  "domainSlug": "operating-systems-internals",
+  "domainName": "Operating Systems & Systems Programming",
+  "title": "Compute Express Link (CXL 3.0): Disaggregated Memory Pooling, Sub-Protocols & Cache Coherence",
+  "level": "ADVANCED",
+  "readTimeMinutes": 27,
+  "summary": "A technical deconstruction of Compute Express Link (CXL 1.1/2.0/3.0): PCIe Gen5/Gen6 physical layer multiplexing, the tripartite sub-protocol architecture (CXL.io, CXL.cache, CXL.mem), device types (Type 1 accelerators, Type 2 co-processors, Type 3 memory expanders), multi-headed devices (MHD), memory pooling switches, and hardware back-invalidation protocols.",
+  "keyConcepts": [
+    "CXL Architecture Tripartite Sub-Protocols: CXL.io (Control/Discovery), CXL.cache (Device Coherent Cache), CXL.mem (Host Access to Device Memory)",
+    "Device Classifications: Type 1 SmartNICs (io+cache), Type 2 Accelerators/GPUs (io+cache+mem), Type 3 Memory Expanders (io+mem)",
+    "Disaggregated Composable Memory: Memory Pooling, Stranded DRAM Reclamation, and CXL Switches",
+    "Back-Invalidation (BI) and Snoop Coherence: Resolving Device vs Host Cache Divergence in Hardware",
+    "Physical Layer & Latency Characteristics: PCIe Gen5/Gen6 Flit Modes, Retimers, and Sub-100ns Direct Memory Access"
+  ],
+  "relatedRoleSlugs": [
+    "systems-architect",
+    "backend-engineer",
+    "devops-sre-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-nvlink-nvswitch-scale",
+  "slug": "nvlink-and-nvswitch-high-bandwidth-gpu-interconnects-and-all-reduce-fabrics",
+  "domainSlug": "system-design-architecture",
+  "domainName": "System Design & Software Architecture",
+  "title": "High-Bandwidth GPU Fabrics: NVLink, NVSwitch Crossbars & In-Network All-Reduce Communication",
+  "level": "ADVANCED",
+  "readTimeMinutes": 26,
+  "summary": "An architectural deep dive into scale-up multi-GPU communication: NVLink high-speed differential signaling, NVSwitch crossbar non-blocking switching fabrics, single-system unified shared memory address spaces, NCCL collective primitives (All-Reduce, All-to-All, Reduce-Scatter), and Scalable Hierarchical Aggregation and Reduction Protocol (SHARP) in-network hardware reduction.",
+  "keyConcepts": [
+    "Bandwidth Scaling: PCIe Gen5 (64 GB/s) Bottleneck vs NVLink 4/5 (900–1800 GB/s Bidirectional)",
+    "NVSwitch Crossbar Fabrics: Full-Mesh Non-Blocking Multi-GPU Topologies without Host CPU Traversals",
+    "Collective Communication Primitives: Ring All-Reduce vs Tree All-Reduce vs Hierarchical NVLink/InfiniBand All-Reduce",
+    "SHARP (In-Network Computing): Offloading Floating-Point Vector Reductions onto Switch ASICs",
+    "Memory Coherency and Shared Virtual Addressing: Direct Peer-to-Peer Load/Store Access Across 8+ Accelerators"
+  ],
+  "relatedRoleSlugs": [
+    "systems-architect",
+    "backend-engineer",
+    "ml-ai-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-rdma-roce-infiniband",
+  "slug": "rdma-rocev2-and-infiniband-kernel-bypass-networking-for-hpc",
+  "domainSlug": "computer-networks-protocols",
+  "domainName": "Computer Networks & Communications",
+  "title": "Remote Direct Memory Access (RDMA): RoCEv2, InfiniBand & Lossless Kernel-Bypass Networking",
+  "level": "ADVANCED",
+  "readTimeMinutes": 28,
+  "summary": "A comprehensive systems analysis of modern high-performance datacenter transport: RDMA verbs architecture, kernel-bypass zero-copy memory transfers, Queue Pairs (Send/Receive vs RDMA Read/Write), RDMA over Converged Ethernet (RoCEv2), Lossless Ethernet flow control (PFC and ECN/DCQCN), and InfiniBand subnet management.",
+  "keyConcepts": [
+    "RDMA Architectural Tenets: Zero-Copy, Kernel-Bypass, and Direct Hardware DMA Memory Offload",
+    "RDMA Verbs & Primitives: Queue Pairs (QP), Work Queue Elements (WQE), Completion Queues (CQ), Send/Recv vs One-Sided Read/Write",
+    "Memory Registration (MR): Virtual-to-Physical Address Pinning, Protection Domains (PD), and L_Key/R_Key Security",
+    "RoCEv2 vs Native InfiniBand: UDP Encapsulation, Priority Flow Control (PFC IEEE 802.1Qbb), and PFC Deadlock Avoidance",
+    "Congestion Management: Explicit Congestion Notification (ECN) and Data Center QCN (DCQCN) Rate Control Loops"
+  ],
+  "relatedRoleSlugs": [
+    "systems-architect",
+    "backend-engineer",
+    "devops-sre-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-cpu-cache-coherence-mesi-moesi",
+  "slug": "multi-core-cache-coherence-mesi-moesi-protocols-and-false-sharing",
+  "domainSlug": "operating-systems-internals",
+  "domainName": "Operating Systems & Systems Programming",
+  "title": "Multi-Core Cache Coherence: MESI/MOESI Protocols, Snooping vs Directory & False Sharing",
+  "level": "ADVANCED",
+  "readTimeMinutes": 27,
+  "summary": "A deep hardware and systems programming investigation into multi-core memory consistency: the cache coherence problem, the 4-state MESI and 5-state MOESI state machines, bus snooping vs directory-based scalable coherence, store buffers and invalidation queues leading to relaxed memory ordering, false sharing cache-line bouncing, and hardware padding solutions.",
+  "keyConcepts": [
+    "The Cache Coherence Invariant: Single-Writer Multiple-Reader (SWMR) Invariant Across Private L1/L2 Caches",
+    "The MESI Protocol: Modified, Exclusive, Shared, and Invalid Finite State Machine Transitions",
+    "The MOESI Enhancement: The Owner (O) State for Dirty Cache-to-Cache Transfers without DRAM Writeback",
+    "Snooping Buses vs Scalable Directory Systems: Bisection Traffic Limits and Sparse Directory Bitmaps for High Core Counts",
+    "Store Buffers, Memory Barriers, and False Sharing: Cache-Line Bouncing and Cache-Line Alignment (`alignas(64)`)"
+  ],
+  "relatedRoleSlugs": [
+    "systems-architect",
+    "backend-engineer",
+    "devops-sre-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
 ];
