@@ -2865,4 +2865,234 @@ export const CURRICULUM_SUMMARIES: CurriculumArticleSummary[] = [
   ],
   "practiceMcqsCount": 5
 },
+{
+  "id": "art-vllm-pagedattention",
+  "slug": "vllm-pagedattention-and-kvcache-memory-management",
+  "domainSlug": "machine-learning-ai-systems",
+  "domainName": "Machine Learning, AI & LLM Systems",
+  "title": "PagedAttention, Virtual Memory Management & KV-Cache Fragmentation Elimination",
+  "level": "ADVANCED",
+  "readTimeMinutes": 28,
+  "summary": "A deep architectural dissection of Large Language Model (LLM) serving runtimes, Key-Value (KV) cache memory bottlenecks, internal and external memory fragmentation, the PagedAttention algorithm inspired by OS virtual memory paging, block tables, continuous batching (iteration-level scheduling), and prefix caching.",
+  "keyConcepts": [
+    "KV-Cache Memory Scaling: $2 \\times 2 \\times n_{\\text{layers}} \\times n_{\\text{heads}} \\times d_{\\text{head}} \\times L_{\\text{seq}}$ Bytes per Request",
+    "Memory Fragmentation in Naive Serving: Internal Fragmentation vs Reservation Waste",
+    "PagedAttention Algorithm: Non-Contiguous Physical Block Mapping via Logical Block Tables",
+    "Continuous Batching (Iteration-Level Scheduling) vs Static Request Batching",
+    "Prefix Caching, Copy-on-Write (CoW) Forking & Beam Search Deduplication"
+  ],
+  "relatedRoleSlugs": [
+    "ai-engineer",
+    "systems-architect",
+    "backend-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-tensor-parallelism-megatron",
+  "slug": "tensor-parallelism-and-megatron-lm-distributed-training",
+  "domainSlug": "machine-learning-ai-systems",
+  "domainName": "Machine Learning, AI & LLM Systems",
+  "title": "3D Parallelism: Tensor, Pipeline & ZeRO Data Parallelism in Megatron-LM",
+  "level": "ADVANCED",
+  "readTimeMinutes": 30,
+  "summary": "An architectural investigation of scaling multi-billion parameter transformer models across GPU clusters: 1D Tensor Parallelism (column-parallel and row-parallel linear layers), Pipeline Parallelism (1F1B schedule and activation checkpointing), ZeRO Stage 1/2/3 memory partitioning, and 3D parallel orchestration.",
+  "keyConcepts": [
+    "Megatron-LM 1D Tensor Parallelism: Column-Parallel vs Row-Parallel Linear Layers",
+    "Minimizing Communication: Conjugating Column and Row Slices to Avoid Intermediate All-Reduce",
+    "Pipeline Parallelism: Interleaved 1F1B (One-Forward-One-Backward) Scheduling",
+    "ZeRO Memory Optimizations: Partitioning Optimizer States, Gradients, and Model Parameters",
+    "3D Parallel Topology: $N_{\\text{TP}} \\times N_{\\text{PP}} \\times N_{\\text{DP}} = N_{\\text{GPUs}}$"
+  ],
+  "relatedRoleSlugs": [
+    "ai-engineer",
+    "systems-architect",
+    "devops-sre-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-speculative-decoding",
+  "slug": "speculative-decoding-and-rejection-sampling-verification",
+  "domainSlug": "machine-learning-ai-systems",
+  "domainName": "Machine Learning, AI & LLM Systems",
+  "title": "Speculative Decoding: Draft Models, Rejection Sampling & Verification Trees",
+  "level": "ADVANCED",
+  "readTimeMinutes": 26,
+  "summary": "An exploration of accelerating auto-regressive LLM decoding via speculative execution: overcoming the memory-bandwidth-bound decoding wall, small draft model generation, parallel target model verification in a single forward pass, modified rejection sampling for mathematical distribution preservation, and tree-based speculation (Medusa / EAGLE).",
+  "keyConcepts": [
+    "The Arithmetic Intensity Bottleneck: Compute-Bound Prefill vs Memory-Bound Auto-Regressive Decoding",
+    "Draft-Then-Verify Paradigm: Speculating $K$ Tokens with a Lightweight Draft Model",
+    "Parallel Verification: Verifying $K$ Tokens in a Single Target Model Forward Pass",
+    "Modified Rejection Sampling: Proving Mathematical Equivalence to Target Model Probability Distribution",
+    "Tree-Based Speculation & Medusa Multi-Head Decoding"
+  ],
+  "relatedRoleSlugs": [
+    "ai-engineer",
+    "systems-architect",
+    "backend-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-quantization-awq-gptq",
+  "slug": "post-training-quantization-awq-and-gptq-internals",
+  "domainSlug": "machine-learning-ai-systems",
+  "domainName": "Machine Learning, AI & LLM Systems",
+  "title": "Post-Training LLM Quantization: AWQ, GPTQ, and Outlier-Preserved Matrix Multiplication",
+  "level": "ADVANCED",
+  "readTimeMinutes": 27,
+  "summary": "A mathematical and system-level deep dive into post-training quantization (PTQ) for LLMs: Uniform Affine Quantization, second-order Taylor series error minimization via the Hessian matrix in GPTQ, salient weight channel protection in Activation-aware Weight Quantization (AWQ), and fused INT4/FP16 dequantization GEMM kernels.",
+  "keyConcepts": [
+    "Quantization Mapping: Symmetric vs Asymmetric Uniform Affine Quantization",
+    "Second-Order Error Formulation: $\\Delta w = -\\frac{w_q - w}{[H^{-1}]_{qq}} H^{-1}_{:, q}$ in Optimal Brain Surgeon",
+    "GPTQ: Cholesky Decomposition, Lazy Batch Updates & $O(d^3)$ Quantization",
+    "AWQ: Salient Channel Identification via Activation Magnitudes without Backpropagation",
+    "Fused W4A16 GEMM: Bit-Packing Formats and On-the-Fly GPU Register Dequantization"
+  ],
+  "relatedRoleSlugs": [
+    "ai-engineer",
+    "systems-architect",
+    "backend-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-gpu-kernel-triton",
+  "slug": "triton-gpu-kernel-programming-and-flashattention-tiling",
+  "domainSlug": "machine-learning-ai-systems",
+  "domainName": "Machine Learning, AI & LLM Systems",
+  "title": "Modern GPU Kernel Programming: OpenAI Triton, Tile-Based Memory & FlashAttention-2",
+  "level": "ADVANCED",
+  "readTimeMinutes": 29,
+  "summary": "A deep dive into high-performance GPU kernel engineering without raw CUDA C++: OpenAI Triton compiler architecture, block-level programming model, memory hierarchy (SRAM/Shared Memory vs HBM), online Softmax mathematics, FlashAttention-2 tiling algorithms, and register bank conflict elimination.",
+  "keyConcepts": [
+    "GPU Memory Hierarchy: Registers vs Shared Memory (SRAM) vs High-Bandwidth Memory (HBM)",
+    "The Triton Programming Abstraction: Block-Level Operations and Automatic Coalesced Memory Access",
+    "The Attention Memory Bottleneck: Avoiding $O(N^2)$ Intermediate Matrix Materialization in HBM",
+    "Online Softmax Algorithm: Dynamic Rescaling via Running Maximum and Normalizer",
+    "FlashAttention-2 Forward Pass: Outer Loop over Key-Value Blocks and Inner Loop over Query Blocks"
+  ],
+  "relatedRoleSlugs": [
+    "ai-engineer",
+    "systems-architect",
+    "backend-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-webrtc-sfu-mcu",
+  "slug": "webrtc-sfu-mcu-architectures-and-simulcast-svc",
+  "domainSlug": "computer-networks-protocols",
+  "domainName": "Computer Networks & Communications",
+  "title": "Selective Forwarding Units (SFU) vs MCU Architectures: Simulcast & Scalable Video Coding (SVC)",
+  "level": "ADVANCED",
+  "readTimeMinutes": 26,
+  "summary": "A comprehensive architectural comparison of multi-party WebRTC topologies: Peer-to-Peer Full Mesh limitations, Multipoint Control Unit (MCU) server-side transcoding bottlenecks, Selective Forwarding Unit (SFU) packet routing, Simulcast multi-bitrate streams, and Scalable Video Coding (SVC) temporal/spatial layering.",
+  "keyConcepts": [
+    "Multi-Party WebRTC Topologies: Mesh ($O(N^2)$ Bandwidth) vs MCU ($O(N)$ CPU Transcoding) vs SFU ($O(N)$ Routing)",
+    "Selective Forwarding Units: RTP Packet Forwarding, Header Extensions, and Zero Transcoding Latency",
+    "Simulcast: Independent Multi-Resolution Encoding (1080p, 720p, 360p) with Dynamic BWE Switching",
+    "Scalable Video Coding (SVC): Base Layers and Enhancement Layers across Temporal ($T$), Spatial ($S$), and Quality ($Q$) Dimensions",
+    "VP9 / AV1 SVC Dependency Descriptors and Forward Error Correction (FEC)"
+  ],
+  "relatedRoleSlugs": [
+    "systems-architect",
+    "backend-engineer",
+    "devops-sre-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-webrtc-congestion-twcc",
+  "slug": "webrtc-transport-wide-congestion-control-and-gcc",
+  "domainSlug": "computer-networks-protocols",
+  "domainName": "Computer Networks & Communications",
+  "title": "Transport-Wide Congestion Control (TWCC) & Google Congestion Control (GCC)",
+  "level": "ADVANCED",
+  "readTimeMinutes": 27,
+  "summary": "A deep analysis of real-time UDP bandwidth estimation in WebRTC: Receiver Estimated Maximum Bitrate (REMB) limitations, Transport-Wide Congestion Control (TWCC, RFC 8888), Google Congestion Control (GCC) state machine, packet arrival time delta filtering, Trendline Kalman filters, and over-use detection.",
+  "keyConcepts": [
+    "Delay-Based vs Loss-Based Congestion Control in Interactive Real-Time Media",
+    "REMB vs TWCC: Shifting Bandwidth Estimation State from Receiver to Sender",
+    "Transport-Wide Sequence Numbers and RTCP Feedback Packets",
+    "Inter-Arrival Time Deltas: $d_i = (t_i - t_{i-1}) - (T_i - T_{i-1})$",
+    "GCC Over-Use Detector: Normal, Overusing, Underusing States and AIMD Rate Adaptation"
+  ],
+  "relatedRoleSlugs": [
+    "systems-architect",
+    "backend-engineer",
+    "devops-sre-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-video-codecs-av1-hevc",
+  "slug": "video-codec-internals-av1-hevc-and-dct-filtering",
+  "domainSlug": "computer-networks-protocols",
+  "domainName": "Computer Networks & Communications",
+  "title": "Modern Video Codec Internals: Intra/Inter Prediction, DCT & In-Loop Filters (AV1 vs HEVC)",
+  "level": "ADVANCED",
+  "readTimeMinutes": 25,
+  "summary": "A rigorous dissection of modern video compression engines: Superblock partitioning hierarchies, directional intra-prediction, sub-pixel motion compensation, Discrete Cosine Transform (DCT) & Asymmetric Discrete Sine Transform (ADST), and in-loop filtering stages (Deblocking, CDEF, and Loop Restoration in AV1 vs SAO in HEVC).",
+  "keyConcepts": [
+    "The Hybrid Video Coding Paradigm: Spatial and Temporal Redundancy Reduction",
+    "Block Partitioning: $64 \\times 64$ CTUs in HEVC vs $128 \\times 128$ Superblocks with Recursive Partitioning in AV1",
+    "Frequency Transformation: 2D-DCT, ADST, and Quantization Matrix Dead-Zones",
+    "Motion Estimation: Sub-Pixel Precision (1/4 and 1/8 Pel Interpolation) and Compound Prediction",
+    "In-Loop Filtering: Deblocking Filter (DBF), Constrained Directional Enhancement Filter (CDEF), and Loop Restoration"
+  ],
+  "relatedRoleSlugs": [
+    "systems-architect",
+    "backend-engineer",
+    "qa-automation-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-low-latency-dash-hls",
+  "slug": "low-latency-streaming-ll-hls-dash-and-cmaf",
+  "domainSlug": "computer-networks-protocols",
+  "domainName": "Computer Networks & Communications",
+  "title": "Low-Latency Streaming: LL-HLS, LL-DASH, and Chunked Media File Format (CMAF)",
+  "level": "ADVANCED",
+  "readTimeMinutes": 24,
+  "summary": "An architectural investigation of reducing HTTP live streaming latency from 30 seconds to under 2 seconds: Common Media Application Format (CMAF) chunking, HTTP/1.1 Chunked Transfer Encoding, LL-DASH, Apple LL-HLS partial segments with preload hints, and player buffer management.",
+  "keyConcepts": [
+    "The Traditional HTTP Streaming Latency Chain: Segment Duration $\\times$ Buffer Multipliers ($> 20\\text{s}$)",
+    "Common Media Application Format (CMAF): ISOBMFF `moof` + `mdat` Chunk Atom Hierarchy",
+    "HTTP Chunked Transfer Encoding: Streaming Sub-Second Media Chunks During Active Encoding",
+    "Apple Low-Latency HLS (LL-HLS): Partial Segments, Delta Playlists, and Preload Hints (`EXT-X-PRELOAD-HINT`)",
+    "Player Buffer Dynamics: Catch-Up Rate Acceleration and Drift Mitigation"
+  ],
+  "relatedRoleSlugs": [
+    "systems-architect",
+    "backend-engineer",
+    "devops-sre-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
+{
+  "id": "art-jitter-buffer-audio",
+  "slug": "real-time-audio-neteq-jitter-buffer-and-plc",
+  "domainSlug": "computer-networks-protocols",
+  "domainName": "Computer Networks & Communications",
+  "title": "Real-Time Audio Engines: NetEQ, Adaptive Jitter Buffering & Packet Loss Concealment (PLC)",
+  "level": "ADVANCED",
+  "readTimeMinutes": 25,
+  "summary": "A deep dive into real-time voice processing engines (NetEQ in WebRTC): adaptive jitter buffer state machines, time-scale modification algorithms (accelerate and preemptive expand without pitch shifting), Packet Loss Concealment (PLC) extrapolation, and the Opus hybrid codec architecture (SILK speech vs CELT music).",
+  "keyConcepts": [
+    "Network Jitter: Packet Inter-Arrival Variance and Buffer Underruns vs Overruns",
+    "NetEQ Architecture: The Unified Decoded Packet Buffer and Speech Processing Engine",
+    "Time-Scale Modification: Overlap-Add (OLA) and Pitch-Synchronous Waveform Similarity (WSOLA)",
+    "Packet Loss Concealment (PLC): Linear Predictive Coding (LPC) and Spectral Fade-Out",
+    "Opus Audio Codec Internals: SILK (Vocal Tract LPC) and CELT (MDCT Low-Latency Transform)"
+  ],
+  "relatedRoleSlugs": [
+    "systems-architect",
+    "backend-engineer",
+    "qa-automation-engineer"
+  ],
+  "practiceMcqsCount": 5
+},
 ];
