@@ -9,7 +9,7 @@ import {
 describe('Interview Catalog Data & Utility Tests', () => {
   it('contains at least 200 master technical interview questions', () => {
     expect(INTERVIEW_QUESTIONS.length).toBeGreaterThanOrEqual(200);
-    expect(INTERVIEW_QUESTIONS.length).toBe(300);
+    expect(INTERVIEW_QUESTIONS.length).toBe(325);
   });
 
   it('provides complete coverage across all 8 technical disciplines', () => {

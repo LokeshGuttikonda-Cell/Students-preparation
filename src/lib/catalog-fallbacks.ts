@@ -37,6 +37,15 @@ import {
 } from './catalog-questions';
 export { FALLBACK_TOPIC_QUESTIONS, type RawTopicQuestion };
 
+function shuffleOptions<T>(items: T[]): T[] {
+  const result = [...items];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
 export function getFallbackQuestionsForTopic(topicIdOrSlug: string): PracticeQuestion[] {
   const matched = FALLBACK_TOPIC_QUESTIONS.filter(
     (q) => q.topicId === topicIdOrSlug || q.topicSlug === topicIdOrSlug,
@@ -44,18 +53,21 @@ export function getFallbackQuestionsForTopic(topicIdOrSlug: string): PracticeQue
 
   const pool = matched.length > 0 ? matched : FALLBACK_TOPIC_QUESTIONS.slice(0, 3);
 
-  return pool.map((q) => ({
-    id: q.id,
-    topicId: q.topicId,
-    body: q.body,
-    difficulty: q.difficulty,
-    explanation: q.explanation,
-    options: q.options.map((o) => ({
-      id: o.id,
-      body: o.body,
-      orderIndex: o.orderIndex,
-    })),
-  }));
+  return pool.map((q) => {
+    const shuffled = shuffleOptions(q.options);
+    return {
+      id: q.id,
+      topicId: q.topicId,
+      body: q.body,
+      difficulty: q.difficulty,
+      explanation: q.explanation,
+      options: shuffled.map((o, idx) => ({
+        id: o.id,
+        body: o.body,
+        orderIndex: idx,
+      })),
+    };
+  });
 }
 
 export function getDomainTopicsForMockTest(mockTestIdOrSlug: string): string[] {
@@ -153,6 +165,7 @@ export function getMockTestQuestionsForDomain(mockTestIdOrSlug: string): Array<{
       subjectName: 'Engineering Competency',
     };
     const isFirstSection = idx < half;
+    const shuffled = shuffleOptions(q.options);
     return {
       id: q.id,
       topicId: q.topicId,
@@ -164,10 +177,10 @@ export function getMockTestQuestionsForDomain(mockTestIdOrSlug: string): Array<{
       subjectName: meta.subjectName,
       sectionId: isFirstSection ? 'sec-1' : 'sec-2',
       sectionTitle: isFirstSection ? sec1Title : sec2Title,
-      options: q.options.map((o) => ({
+      options: shuffled.map((o, optIdx) => ({
         id: o.id,
         body: o.body,
-        orderIndex: o.orderIndex,
+        orderIndex: optIdx,
         isCorrect: o.id === q.correctOptionId,
       })),
       correctOptionId: q.correctOptionId,
