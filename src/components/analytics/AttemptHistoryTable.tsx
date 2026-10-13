@@ -48,7 +48,26 @@ export const AttemptHistoryTable: React.FC<AttemptHistoryTableProps> = ({
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {items.map((item) => {
+            {isLoading ? (
+              Array.from({ length: 5 }).map((_, idx) => (
+                <tr key={`skeleton-${idx}`} className="animate-pulse">
+                  <td className="px-5 py-4"><div className="h-4 w-24 bg-border/60 rounded" /></td>
+                  <td className="px-5 py-4"><div className="h-4 w-16 bg-border/60 rounded" /></td>
+                  <td className="px-5 py-4"><div className="h-4 w-44 bg-border/60 rounded" /></td>
+                  <td className="px-5 py-4 text-center"><div className="h-4 w-12 bg-border/60 rounded mx-auto" /></td>
+                  <td className="px-5 py-4 text-center"><div className="h-4 w-12 bg-border/60 rounded mx-auto" /></td>
+                  <td className="px-5 py-4 text-center"><div className="h-5 w-20 bg-border/60 rounded mx-auto" /></td>
+                  <td className="px-5 py-4 text-right"><div className="h-7 w-20 bg-border/60 rounded ml-auto" /></td>
+                </tr>
+              ))
+            ) : items.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="px-5 py-8 text-center text-text-muted">
+                  No records found.
+                </td>
+              </tr>
+            ) : (
+              items.map((item) => {
               const formattedDate = new Date(item.startedAt).toLocaleDateString(
                 undefined,
                 { month: 'short', day: 'numeric', year: 'numeric' },
@@ -142,7 +161,7 @@ export const AttemptHistoryTable: React.FC<AttemptHistoryTableProps> = ({
                   </td>
                 </tr>
               );
-            })}
+            }))}
           </tbody>
         </table>
       </div>

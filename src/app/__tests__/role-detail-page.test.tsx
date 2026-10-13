@@ -91,4 +91,31 @@ describe('RoleDetailPage', () => {
     expect(screen.getByText('Interactive Code & SQL Sandbox')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Open Sandbox/i })).toBeInTheDocument();
   });
+
+  it('renders Rapid Flashcards button and opens the flashcards modal', async () => {
+    const { fireEvent } = await import('@testing-library/react');
+    render(<RoleDetailPage />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Rapid Flashcards/i })).toBeInTheDocument();
+    });
+
+    // Click Rapid Flashcards
+    const flashcardsBtn = screen.getByRole('button', { name: /Rapid Flashcards/i });
+    fireEvent.click(flashcardsBtn);
+
+    // Modal dialog is open
+    expect(
+      screen.getByRole('dialog', { name: /Role Technical Interview Flashcards/i }),
+    ).toBeInTheDocument();
+
+    // Close modal
+    const closeBtn = screen.getByLabelText(/Close flashcards modal/i);
+    fireEvent.click(closeBtn);
+
+    // Modal closed
+    expect(
+      screen.queryByRole('dialog', { name: /Role Technical Interview Flashcards/i }),
+    ).not.toBeInTheDocument();
+  });
 });

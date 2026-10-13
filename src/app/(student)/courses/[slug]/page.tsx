@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import type { Route } from 'next';
 import { useParams } from 'next/navigation';
 import {
   getCourse,
@@ -13,6 +14,8 @@ import {
 import { useAuth } from '../../../../context/AuthContext';
 import { Button } from '../../../../components/ui/Button';
 import { Card, CardContent } from '../../../../components/ui/Card';
+import { CheckCircle2, BookOpen, Terminal, ArrowRight, Target } from 'lucide-react';
+import { getCurriculumUrlForTopic } from '../../../../lib/topic-curriculum-map';
 
 export default function CourseDetailPage() {
   const routeParams = useParams<{ slug: string }>();
@@ -122,8 +125,8 @@ export default function CourseDetailPage() {
       <div className="max-w-content mx-auto space-y-8">
         {/* Navigation Breadcrumbs */}
         <div className="flex items-center gap-2 text-xs text-text-muted">
-          <Link href="/" className="hover:text-primary-700 transition-colors">
-            Home
+          <Link href="/dashboard" className="hover:text-primary-700 transition-colors">
+            Dashboard
           </Link>
           <span>/</span>
           <Link href="/courses" className="hover:text-primary-700 transition-colors">
@@ -221,8 +224,9 @@ export default function CourseDetailPage() {
                 </div>
 
                 {progressPct === 100 && (
-                  <p className="text-xs font-semibold text-emerald-800">
-                    🎉 Outstanding! You have completed all modules in this course pathway.
+                  <p className="text-xs font-semibold text-emerald-800 flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>Outstanding! You have completed all modules in this course pathway.</span>
                   </p>
                 )}
               </div>
@@ -273,7 +277,8 @@ export default function CourseDetailPage() {
                         </span>
                         {isCompleted && (
                           <span className="text-xs font-semibold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded flex items-center gap-1">
-                            <span>✓ Completed</span>
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>Completed</span>
                             {moduleProg?.accuracyPercentage !== null && (
                               <span className="text-emerald-700 font-medium">
                                 ({moduleProg?.accuracyPercentage}%)
@@ -301,26 +306,36 @@ export default function CourseDetailPage() {
 
                     <div className="flex flex-wrap items-center gap-2 shrink-0">
                       <Link
-                        href="/curriculum"
-                        className="text-xs font-semibold text-primary-700 hover:text-primary-900 px-2.5 py-1.5 rounded border border-primary-200 bg-primary-50/50 transition-colors"
-                        title="Read comprehensive theoretical guide in Knowledge Hub"
+                        href={
+                          getCurriculumUrlForTopic(
+                            mod.topicSlug,
+                            mod.topicName,
+                            mod.title
+                          ) as Route
+                        }
+                        className="text-xs font-semibold text-primary-700 hover:text-primary-900 px-2.5 py-1.5 rounded border border-primary-200 bg-primary-50/50 hover:bg-primary-100/70 transition-colors flex items-center gap-1 group/theory"
+                        title={`Read comprehensive theoretical guide for ${mod.topicName || mod.title} in Knowledge Hub`}
                       >
-                        📖 Theory
+                        <BookOpen className="w-3 h-3 text-primary-700 group-hover/theory:scale-110 transition-transform" />
+                        <span>Theory</span>
                       </Link>
                       <Link
                         href="/sandbox"
-                        className="text-xs font-semibold text-emerald-700 hover:text-emerald-900 px-2.5 py-1.5 rounded border border-emerald-200 bg-emerald-50/50 transition-colors"
+                        className="text-xs font-semibold text-emerald-700 hover:text-emerald-900 px-2.5 py-1.5 rounded border border-emerald-200 bg-emerald-50/50 transition-colors flex items-center gap-1"
                         title="Experiment in Applied Engineering Labs"
                       >
-                        🔬 Applied Lab
+                        <Terminal className="w-3 h-3 text-emerald-700" />
+                        <span>Applied Lab</span>
                       </Link>
                       {mod.topicId ? (
                         <Link href={`/practice/${mod.topicId}`}>
                           <Button
                             variant={isCompleted ? 'secondary' : 'primary'}
                             size="sm"
+                            className="group"
                           >
-                            {isCompleted ? 'Review Topic' : 'Start Practice &rarr;'}
+                            <span>{isCompleted ? 'Review Topic' : 'Start Practice'}</span>
+                            {!isCompleted && <ArrowRight className="w-3.5 h-3.5 ml-1 transition-transform group-hover:translate-x-0.5" />}
                           </Button>
                         </Link>
                       ) : (
@@ -338,7 +353,7 @@ export default function CourseDetailPage() {
           {/* Full-Spectrum Learning Continuum Banner */}
           <div className="bg-canvas-subtle border border-border rounded-xl p-5 sm:p-6 space-y-3">
             <div className="flex items-center gap-2">
-              <span className="text-sm">🎯</span>
+              <Target className="w-4 h-4 text-primary-700" />
               <h3 className="text-sm font-bold text-text uppercase tracking-wider">
                 Full-Spectrum Learning Continuum
               </h3>

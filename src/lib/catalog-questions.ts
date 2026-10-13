@@ -19435,4 +19435,3892 @@ export const FALLBACK_TOPIC_QUESTIONS: RawTopicQuestion[] = [
     ],
     correctOptionId: "opt-s132-105a",
   },
+  {
+    "id": "cat-q-s136-001",
+    "topicId": "topic-os",
+    "topicSlug": "operating-systems-internals",
+    "body": "In Linux eBPF virtual machine architecture, what is the primary function of the in-kernel Verifier during program loading?",
+    "explanation": "The eBPF verifier statically analyzes the control flow graph (DAG) of the bytecode before execution. It enforces termination, strictly bounds loop iterations, checks stack frame offsets, and verifies pointer types, preventing kernel crashes.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-001-a",
+        "body": "It performs formal abstract interpretation over all execution paths to prove the bytecode terminates without unbounded loops, never dereferences invalid pointers, and maintains memory safety",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-001-b",
+        "body": "It translates Python bytecode directly into x86-64 machine instructions without JIT compilation",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-001-c",
+        "body": "It schedules user-space threads onto isolated CPU cores using tickless kernel timers",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-001-d",
+        "body": "It verifies that all network packets arriving at the network card have valid TLS 1.3 certificates",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-001-a"
+  },
+  {
+    "id": "cat-q-s136-002",
+    "topicId": "topic-os",
+    "topicSlug": "operating-systems-internals",
+    "body": "Why does the eXpress Data Path (XDP) achieve significantly higher packet processing rates than traditional Linux iptables or netfilter?",
+    "explanation": "Standard Linux networking incurs high overhead by allocating an sk_buff data structure for each packet. XDP intercepts packets in the device driver before sk_buff allocation, making drop, redirect, or transmit decisions at wire speed.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-002-a",
+        "body": "Because XDP runs in user-space using non-blocking epoll sockets",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-002-b",
+        "body": "Because XDP executes eBPF bytecode directly in the network device driver layer on raw DMA ring descriptors before the kernel allocates an sk_buff structure",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-002-c",
+        "body": "Because XDP disables all hardware interrupt handling on the network card",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-002-d",
+        "body": "Because XDP converts TCP packets into raw UDP datagrams",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-002-b"
+  },
+  {
+    "id": "cat-q-s136-003",
+    "topicId": "topic-os",
+    "topicSlug": "operating-systems-internals",
+    "body": "When two co-located processes communicate via POSIX shared memory (shm_open and mmap), what fundamental performance bottleneck of traditional IPC (pipes or Unix domain sockets) is eliminated?",
+    "explanation": "Traditional IPC requires copying data from sender user memory to kernel buffer, and then from kernel buffer to receiver user memory. Shared memory maps the same physical frames into both virtual address spaces, enabling direct zero-copy access.",
+    "difficulty": "MEDIUM",
+    "options": [
+      {
+        "id": "opt-s136-003-a",
+        "body": "The need for mutex or semaphore synchronization",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-003-b",
+        "body": "The restriction to 32-bit memory addresses",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-003-c",
+        "body": "Data copying between user-space memory buffers and kernel-space page buffers, achieving true zero-copy data transfer",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-003-d",
+        "body": "The risk of cache-line false sharing",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-003-c"
+  },
+  {
+    "id": "cat-q-s136-004",
+    "topicId": "topic-os",
+    "topicSlug": "operating-systems-internals",
+    "body": "In the Linux kernel, how does a Futex (Fast Userspace Mutex) avoid system call overhead during uncontended lock acquisition and release?",
+    "explanation": "A futex optimizes the common uncontended case: a thread acquires or releases the lock using atomic CAS assembly instructions in user space without entering the kernel. It invokes sys_futex only when contention necessitates blocking or waking threads.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-004-a",
+        "body": "By delegating locking to a hardware floating-point register",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-004-b",
+        "body": "By polling the CPU timestamp counter in an infinite spin loop",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-004-c",
+        "body": "By using a kernel daemon that preempts conflicting processes",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-004-d",
+        "body": "By executing atomic compare-and-swap (CAS) operations purely in user space, issuing the sys_futex system call only when lock contention requires sleeping or waking threads",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-004-d"
+  },
+  {
+    "id": "cat-q-s136-005",
+    "topicId": "topic-os",
+    "topicSlug": "operating-systems-internals",
+    "body": "How does Linux io_uring eliminate the system call overhead associated with epoll when performing asynchronous I/O across thousands of operations?",
+    "explanation": "io_uring shares two memory-mapped lockless ring buffers (SQ and CQ) between user space and the kernel. An application places SQEs into the submission queue and reads CQEs from the completion queue, achieving high throughput without syscall transitions.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-005-a",
+        "body": "By using two lockless ring buffers (Submission Queue and Completion Queue) shared directly between user space and kernel space, allowing batched submissions without per-I/O syscalls",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-005-b",
+        "body": "By replacing the Linux VFS layer with a raw block device driver",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-005-c",
+        "body": "By running all file I/O operations inside dedicated GPU compute kernels",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-005-d",
+        "body": "By automatically buffering all writes in non-volatile SSD flash registers",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-005-a"
+  },
+  {
+    "id": "cat-q-s136-006",
+    "topicId": "topic-os",
+    "topicSlug": "operating-systems-internals",
+    "body": "In Linux memory management, how does the OOM (Out-of-Memory) Killer determine which process to terminate when physical RAM and swap are exhausted?",
+    "explanation": "The kernel calculates an oom_badness score proportional to the process physical memory footprint and page tables. The score is tuned by /proc/[pid]/oom_score_adj (-1000 disables OOM killing, +1000 prioritizes termination).",
+    "difficulty": "MEDIUM",
+    "options": [
+      {
+        "id": "opt-s136-006-a",
+        "body": "It terminates processes in reverse order of their process ID (PID)",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-006-b",
+        "body": "It computes an oom_badness score based on percentage of RAM consumed, adjusted by the process oom_score_adj value, targeting the highest-consuming non-privileged process",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-006-c",
+        "body": "It terminates the process that has been running the longest continuous time",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-006-d",
+        "body": "It terminates processes whose CPU utilization exceeds 90%",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-006-b"
+  },
+  {
+    "id": "cat-q-s136-007",
+    "topicId": "topic-os",
+    "topicSlug": "operating-systems-internals",
+    "body": "When memory is allocated via mmap with MAP_SHARED and MAP_ANONYMOUS across parent and child processes, what behavior occurs during write operations?",
+    "explanation": "MAP_SHARED specifies that updates to the mapped region are shared across all processes mapping the region. Unlike MAP_PRIVATE (which triggers Copy-on-Write on write), MAP_SHARED writes modify the underlying shared physical frames directly.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-007-a",
+        "body": "The operating system triggers Copy-on-Write (COW), giving the child an independent private copy",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-007-b",
+        "body": "The write fails with a SIGSEGV segmentation fault",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-007-c",
+        "body": "Writes made by either process are immediately visible to the other process in the shared physical page frame without creating separate copies",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-007-d",
+        "body": "The kernel synchronously flushes the written bytes to the root disk filesystem",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-007-c"
+  },
+  {
+    "id": "cat-q-s136-008",
+    "topicId": "topic-os",
+    "topicSlug": "operating-systems-internals",
+    "body": "What is the primary function of Transparent Huge Pages (THP, 2MB pages) in 64-bit virtual memory systems, and what performance tradeoff does it introduce?",
+    "explanation": "Standard pages are 4KB. A 2MB huge page covers 512 standard pages with a single TLB entry, drastically reducing TLB misses in memory-intensive databases. However, allocating contiguous 2MB physical frames can cause latency spikes during memory compaction.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-008-a",
+        "body": "It compresses virtual memory addresses from 48 bits down to 32 bits",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-008-b",
+        "body": "It forces all heap allocations to execute in contiguous CPU L1 data cache",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-008-c",
+        "body": "It disables virtual memory paging entirely to eliminate all page faults",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-008-d",
+        "body": "It reduces Translation Lookaside Buffer (TLB) miss rates by covering 512x more address space per entry, but increases memory fragmentation and compaction latency spikes",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-008-d"
+  },
+  {
+    "id": "cat-q-s136-009",
+    "topicId": "topic-os",
+    "topicSlug": "operating-systems-internals",
+    "body": "In Linux process scheduling, what does the Completely Fair Scheduler (CFS) use to track each thread CPU consumption and ensure fair resource distribution?",
+    "explanation": "CFS tracks execution time via vruntime, which increments based on actual execution time scaled by the task nice level (weight). CFS always picks the task with the smallest vruntime (leftmost node in the red-black tree).",
+    "difficulty": "MEDIUM",
+    "options": [
+      {
+        "id": "opt-s136-009-a",
+        "body": "vruntime (virtual runtime), a monotonic counter tracking the weighted CPU execution time of each task inside a red-black tree",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-009-b",
+        "body": "A round-robin FIFO queue with a fixed 10ms quantum timer",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-009-c",
+        "body": "A hardware counter monitoring L3 cache misses per thread",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-009-d",
+        "body": "The total number of system calls invoked by the process",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-009-a"
+  },
+  {
+    "id": "cat-q-s136-010",
+    "topicId": "topic-os",
+    "topicSlug": "operating-systems-internals",
+    "body": "What is the purpose of the Linux splice() and sendfile() system calls in network server architectures?",
+    "explanation": "splice() and sendfile() execute zero-copy data streaming in kernel space: data transfers directly from the page cache into the network socket buffer via pipe buffers, avoiding user-space context switches and memory copies.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-010-a",
+        "body": "To encrypt socket buffers using hardware AES accelerators",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-010-b",
+        "body": "To transfer data directly between file descriptors without copying data to user-space memory, reducing CPU cycles and memory bus bandwidth",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-010-c",
+        "body": "To combine multiple TCP sockets into a single virtual IP interface",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-010-d",
+        "body": "To compress incoming HTTP responses before browser parsing",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-010-b"
+  },
+  {
+    "id": "cat-q-s136-011",
+    "topicId": "topic-os",
+    "topicSlug": "operating-systems-internals",
+    "body": "In the Linux kernel network stack, what is the role of Receive Side Scaling (RSS) and Receive Packet Steering (RPS)?",
+    "explanation": "RSS hashes packet header 4-tuples in NIC hardware to steer packets into separate hardware RX queues assigned to different CPU cores. RPS is the software fallback that computes a hash in software to distribute interrupt handling across cores.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-011-a",
+        "body": "RSS compresses HTTP/2 headers, while RPS manages WebSocket frame fragmentation",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-011-b",
+        "body": "RSS encrypts incoming IP headers, while RPS decrypts TCP payload segments",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-011-c",
+        "body": "RSS uses NIC hardware hashing to distribute incoming packet queues across multiple CPU cores, while RPS implements software packet distribution when the NIC lacks multi-queue hardware",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-011-d",
+        "body": "RSS assigns public IPv4 addresses, while RPS assigns local IPv6 addresses",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-011-c"
+  },
+  {
+    "id": "cat-q-s136-012",
+    "topicId": "topic-os",
+    "topicSlug": "operating-systems-internals",
+    "body": "Why does an application encounter the \"EMFILE: too many open files\" error, and how is it resolved at the operating system level?",
+    "explanation": "EMFILE indicates that the process has reached its soft limit of open file descriptors (RLIMIT_NOFILE). Each socket, pipe, and file consumes one descriptor. The limit is raised using ulimit -n or adjusting system limits.",
+    "difficulty": "MEDIUM",
+    "options": [
+      {
+        "id": "opt-s136-012-a",
+        "body": "The filesystem superblock has become read-only due to hard disk block corruption",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-012-b",
+        "body": "The process has exhausted its virtual memory address space",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-012-c",
+        "body": "The system has run out of available TCP port numbers below 1024",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-012-d",
+        "body": "The process has exceeded its allocated file descriptor limit (RLIMIT_NOFILE), resolved by increasing the limit via ulimit -n or /etc/security/limits.conf",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-012-d"
+  },
+  {
+    "id": "cat-q-s136-013",
+    "topicId": "topic-os",
+    "topicSlug": "operating-systems-internals",
+    "body": "What synchronization invariant does Read-Copy Update (RCU) guarantee for concurrent lockless reader threads in operating system kernels?",
+    "explanation": "RCU enables zero-overhead reads: readers traverse pointers without locks. An updater publishes changes by atomically swapping a pointer to a newly allocated version. Memory reclamation of the old structure is deferred until all readers that started before the update finish (the grace period).",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-013-a",
+        "body": "Readers can traverse shared data structures concurrently without locks or atomic instructions, while updaters allocate a copy, update it, atomically swap the pointer, and defer memory reclamation until all existing readers complete a grace period",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-013-b",
+        "body": "Readers execute memory barriers on every dereference to invalidate cache lines",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-013-c",
+        "body": "Readers must acquire a shared reader-writer spinlock before traversing pointers",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-013-d",
+        "body": "Readers block writers until the active transaction reaches the commit phase",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-013-a"
+  },
+  {
+    "id": "cat-q-s136-014",
+    "topicId": "topic-os",
+    "topicSlug": "operating-systems-internals",
+    "body": "In Linux cgroups v2, how does the memory.high limit differ from the memory.max limit when managing container memory boundaries?",
+    "explanation": "In cgroups v2, memory.high is a soft throttle: exceeding it forces the processes in the cgroup into kernel memory reclaim and introduces throttling delays without killing them. memory.max is the hard limit: exceeding it invokes the OOM killer.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-014-a",
+        "body": "memory.high is measured in megabytes while memory.max is measured in gigabytes",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-014-b",
+        "body": "memory.high acts as a throttle threshold that triggers proactive page reclamation and slows processes, whereas breaching memory.max triggers the kernel OOM Killer if reclamation fails",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-014-c",
+        "body": "memory.high triggers the OOM killer immediately upon being breached",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-014-d",
+        "body": "memory.high applies only to kernel buffer memory while memory.max applies only to user heap memory",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-014-b"
+  },
+  {
+    "id": "cat-q-s136-015",
+    "topicId": "topic-dist-sys",
+    "topicSlug": "distributed-systems-architecture",
+    "body": "In the Raft consensus protocol, what is the primary risk of allowing arbitrary multi-server membership changes without Joint Consensus or single-server stepping?",
+    "explanation": "If multiple nodes are added/removed simultaneously without staged coordination, a majority of the old cluster and a majority of the new cluster can be disjoint. Both subsets could elect their own leader in the same term, causing split-brain.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-015-a",
+        "body": "The cluster is forced to switch from TCP transport to UDP multicast",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-015-b",
+        "body": "Log compaction deletes all uncommitted transactions permanently",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-015-c",
+        "body": "Disjoint majorities can form in C_old and C_new simultaneously, allowing two distinct leaders to be elected in the same term and causing split-brain data divergence",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-015-d",
+        "body": "Followers automatically reject all heartbeat RPCs from the leader",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-015-c"
+  },
+  {
+    "id": "cat-q-s136-016",
+    "topicId": "topic-dist-sys",
+    "topicSlug": "distributed-systems-architecture",
+    "body": "In Raft Joint Consensus (C_old,new), what requirement must be satisfied for a log entry or leader election to be committed?",
+    "explanation": "Joint Consensus enforces dual-quorum agreement: any decision requires affirmative votes from both a majority of C_old and a majority of C_new. This prevents either configuration from making unilateral decisions.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-016-a",
+        "body": "A unanimous vote from all nodes in C_old and C_new combined",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-016-b",
+        "body": "Approval from the majority of servers plus a hardware timestamp witness",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-016-c",
+        "body": "Only a majority of nodes in the newly added configuration C_new",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-016-d",
+        "body": "Agreement from an independent majority of nodes in C_old AND an independent majority of nodes in C_new",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-016-d"
+  },
+  {
+    "id": "cat-q-s136-017",
+    "topicId": "topic-dist-sys",
+    "topicSlug": "distributed-systems-architecture",
+    "body": "What is the purpose of the Pre-Vote extension in Raft leader election state machines?",
+    "explanation": "A partitioned node repeatedly times out and increments its term counter. When reconnected, its high term would force the true leader to step down. Pre-Vote requires candidate validation before term incrementation, shielding healthy clusters from disruption.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-017-a",
+        "body": "To test whether a candidate can gain majority support before it increments its term, preventing partitioned or lagging nodes from disrupting a healthy cluster upon reconnecting",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-017-b",
+        "body": "To serialize client write transactions into batch arrays",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-017-c",
+        "body": "To encrypt candidate votes with elliptic curve signatures",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-017-d",
+        "body": "To allow follower nodes to elect backup leaders in advance",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-017-a"
+  },
+  {
+    "id": "cat-q-s136-018",
+    "topicId": "topic-dist-sys",
+    "topicSlug": "distributed-systems-architecture",
+    "body": "How does the ReadIndex protocol guarantee linearizable reads in a Raft cluster without appending read operations to the replicated disk log?",
+    "explanation": "To serve linearizable reads without disk log I/O, the leader saves its commitIndex as readIndex, confirms leadership with a heartbeat quorum, waits for its local state machine to apply up to readIndex, and reads the state directly.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-018-a",
+        "body": "By reading from an in-memory Redis cache populated by followers",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-018-b",
+        "body": "The leader records its current commitIndex, exchanges a round of heartbeats with a majority to confirm it is still the legitimate leader, waits for its state machine to apply up to commitIndex, and returns the read",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-018-c",
+        "body": "By routing all read queries to a secondary database replica",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-018-d",
+        "body": "By using physical GPS clocks synchronized to within 200 nanoseconds",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-018-b"
+  },
+  {
+    "id": "cat-q-s136-019",
+    "topicId": "topic-dist-sys",
+    "topicSlug": "distributed-systems-architecture",
+    "body": "In Practical Byzantine Fault Tolerance (PBFT), why are at least 3f + 1 total replicas required to tolerate f arbitrary/Byzantine faulty nodes in an asynchronous network?",
+    "explanation": "In asynchronous networks, slow nodes are indistinguishable from dead nodes, so a protocol must proceed with N - f responses. If f of those responses are Byzantine, the remaining honest responses (N - 2f) must exceed f, giving N - 2f > f => N >= 3f + 1.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-019-a",
+        "body": "Because digital signatures require 3 separate cryptographic prime numbers",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-019-b",
+        "body": "Because each node must run on a separate physical CPU socket",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-019-c",
+        "body": "Because the protocol must make progress after receiving N - f responses, but up to f of those responses could be from Byzantine nodes, requiring (N - f) - f > f to ensure non-faulty nodes outvote faulty nodes",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-019-d",
+        "body": "Because network routers drop up to 33% of UDP packets under load",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-019-c"
+  },
+  {
+    "id": "cat-q-s136-020",
+    "topicId": "topic-dist-sys",
+    "topicSlug": "distributed-systems-architecture",
+    "body": "What is the role of the Prepare phase in the PBFT three-phase consensus algorithm (Pre-Prepare, Prepare, Commit)?",
+    "explanation": "A malicious primary could send sequence number n for request A to one node and sequence number n for request B to another. The Prepare phase forces replicas to exchange messages so a 2f + 1 quorum confirms the binding of sequence number to request digest.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-020-a",
+        "body": "To format the replica disks before writing state",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-020-b",
+        "body": "To calculate the CPU utilization of the backup nodes",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-020-c",
+        "body": "To establish a TLS session between client and replica",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-020-d",
+        "body": "To ensure that non-faulty replicas agree on the total ordering of request sequence number n within a specific view, preventing a malicious primary from equivocating",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-020-d"
+  },
+  {
+    "id": "cat-q-s136-021",
+    "topicId": "topic-dist-sys",
+    "topicSlug": "distributed-systems-architecture",
+    "body": "In Egalitarian Paxos (EPaxos), how does a command leader achieve 1-RTT commit latency on the Fast Path?",
+    "explanation": "EPaxos fast path takes 1 RTT: the command leader proposes its command with dependencies to a Fast Quorum. If no replica detects a concurrent conflicting command, all replicas return matching dependencies and the command commits immediately.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-021-a",
+        "body": "By proposing a command with its observed dependencies to a Fast Quorum; if all fast quorum replicas return identical dependencies (zero conflicts), the command commits in 1 RTT",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-021-b",
+        "body": "By routing all transactions through a single central sequencer node",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-021-c",
+        "body": "By bypassing all network communication and writing directly to disk",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-021-d",
+        "body": "By executing operations speculatively without verifying correctness",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-021-a"
+  },
+  {
+    "id": "cat-q-s136-022",
+    "topicId": "topic-dist-sys",
+    "topicSlug": "distributed-systems-architecture",
+    "body": "How do replicas in Egalitarian Paxos (EPaxos) resolve execution order when concurrent commands have circular dependencies (e.g. A depends on B, and B depends on A)?",
+    "explanation": "When concurrent commands form cycles in the dependency graph, EPaxos groups them into Strongly Connected Components (using Tarjan algorithm). Within each component, transactions are ordered deterministically by sequence number and replica ID.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-022-a",
+        "body": "They abort both transactions and force the clients to retry",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-022-b",
+        "body": "They construct a directed dependency graph, find Strongly Connected Components (SCCs) to isolate cycles, and sort instances within the SCC by sequence number and replica ID",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-022-c",
+        "body": "They query an external Raft cluster to break the tie",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-022-d",
+        "body": "They drop the dependencies and execute commands in random order",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-022-b"
+  },
+  {
+    "id": "cat-q-s136-023",
+    "topicId": "topic-dist-sys",
+    "topicSlug": "distributed-systems-architecture",
+    "body": "What is the primary benefit of the SWIM (Structured Weakly-Consistent Infection-Style Process Group Membership) protocol over traditional full-mesh heartbeat monitoring?",
+    "explanation": "In full-mesh heartbeating, network traffic scales as O(N^2), saturating switches in clusters with thousands of nodes. SWIM probes random members in O(1) messages and piggybacks gossip updates, scaling cleanly to massive clusters.",
+    "difficulty": "MEDIUM",
+    "options": [
+      {
+        "id": "opt-s136-023-a",
+        "body": "SWIM encrypts all inter-node traffic using quantum key distribution",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-023-b",
+        "body": "SWIM guarantees strict serializability for all database transactions",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-023-c",
+        "body": "SWIM bounds message overhead to O(1) per node per period and spreads membership updates via infection-style gossip in O(log N) time, avoiding network saturation in large clusters",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-023-d",
+        "body": "SWIM eliminates network packet drops across WAN links",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-023-c"
+  },
+  {
+    "id": "cat-q-s136-024",
+    "topicId": "topic-dist-sys",
+    "topicSlug": "distributed-systems-architecture",
+    "body": "In distributed storage systems, what is the Split-Brain scenario, and what architectural rule prevents it?",
+    "explanation": "Split-brain occurs when a network partition separates a cluster and both halves accept writes independently, causing irreconcilable state divergence. Requiring a strict majority (> N/2) ensures only one partition can make progress.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-024-a",
+        "body": "A scenario where CPU L1 cache splits across two sockets, prevented by disabling hyperthreading",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-024-b",
+        "body": "A scenario where an application spawns two main threads on startup",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-024-c",
+        "body": "A scenario where disk read heads access two platters simultaneously, prevented by using solid state drives",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-024-d",
+        "body": "A scenario where a network partition divides a cluster into two disconnected groups that both believe they are the authoritative primary, prevented by requiring a strict quorum majority (> 50% of total nodes) to elect leaders and commit writes",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-024-d"
+  },
+  {
+    "id": "cat-q-s136-025",
+    "topicId": "topic-dist-sys",
+    "topicSlug": "distributed-systems-architecture",
+    "body": "How do Vector Clocks differ from Lamport Timestamps in capturing distributed causality?",
+    "explanation": "Lamport timestamps provide a total ordering consistent with causality (if A -> B then L(A) < L(B)), but L(A) < L(B) does NOT imply A -> B. Vector clocks record a vector of logical times, allowing direct identification of concurrent independent updates.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-025-a",
+        "body": "Lamport Timestamps establish a total order but cannot distinguish whether two events are causally related or concurrent; Vector Clocks maintain per-node clocks, enabling exact detection of concurrent conflicting events",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-025-b",
+        "body": "Vector Clocks use 128-bit integers while Lamport Timestamps use 32-bit integers",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-025-c",
+        "body": "Vector Clocks require GPS hardware clock synchronization",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-025-d",
+        "body": "Lamport Timestamps are only supported in single-node applications",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-025-a"
+  },
+  {
+    "id": "cat-q-s136-026",
+    "topicId": "topic-dist-sys",
+    "topicSlug": "distributed-systems-architecture",
+    "body": "What is the role of a Fencing Token in distributed lock managers (such as Chubby or Zookeeper)?",
+    "explanation": "If a client holding a lock pauses (e.g. stop-the-world GC), its lock lease can expire and be granted to another client. When the first client resumes, it might write stale data. A fencing token incremented on each grant allows storage to reject obsolete writes.",
+    "difficulty": "MEDIUM",
+    "options": [
+      {
+        "id": "opt-s136-026-a",
+        "body": "To encrypt client lock requests over public networks",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-026-b",
+        "body": "A monotonically increasing number issued with each lock grant; downstream storage rejects writes from clients holding stale fencing tokens, protecting against client pauses caused by GC pauses",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-026-c",
+        "body": "To balance incoming HTTP traffic across web server instances",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-026-d",
+        "body": "To terminate idle client connections after 30 seconds",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-026-b"
+  },
+  {
+    "id": "cat-q-s136-027",
+    "topicId": "topic-dist-sys",
+    "topicSlug": "distributed-systems-architecture",
+    "body": "In the Raft protocol, what guarantees that a newly elected leader already contains all committed log entries from prior terms?",
+    "explanation": "A candidate must collect votes from a majority of nodes. Any committed entry must exist on at least one node in that voting majority. Raft voting rules reject candidates with less up-to-date logs, ensuring the winning candidate contains all committed entries.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-027-a",
+        "body": "Followers copy their missing entries to the leader immediately upon election",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-027-b",
+        "body": "The leader queries an external cloud storage bucket before serving traffic",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-027-c",
+        "body": "The leader election rule requires voters to reject candidate votes unless the candidate log is at least as up-to-date as the voter own log (comparing term, then length)",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-027-d",
+        "body": "The election protocol forces all nodes to delete uncommitted entries before voting",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-027-c"
+  },
+  {
+    "id": "cat-q-s136-028",
+    "topicId": "topic-dist-sys",
+    "topicSlug": "distributed-systems-architecture",
+    "body": "What is the primary difference between a Conflict-Free Replicated Data Type (CRDT) and operational transformation (OT) in collaborative editing systems?",
+    "explanation": "Operational Transformation requires a centralized coordinator to transform concurrent operations relative to one another. CRDTs design data structures with mathematically commutative join operations, guaranteeing eventual convergence peer-to-peer.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-028-a",
+        "body": "CRDTs require an active centralized server to order all keystrokes",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-028-b",
+        "body": "OT operates without network communication while CRDTs require UDP",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-028-c",
+        "body": "OT uses blockchain smart contracts to validate text inserts",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-028-d",
+        "body": "CRDTs rely on state or operation algebras that are mathematically commutative and associative, enabling decentralized peer-to-peer convergence without requiring a central sequencer",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-028-d"
+  },
+  {
+    "id": "cat-q-s136-029",
+    "topicId": "topic-dbms",
+    "topicSlug": "dbms-basics",
+    "body": "In Log-Structured Merge-tree (LSM) storage engines, why does Leveled Compaction (LCS) achieve lower Space Amplification than Size-Tiered Compaction (STCS)?",
+    "explanation": "Size-Tiered compaction merges entire tiers of files simultaneously, requiring up to 50% free disk space as scratch space. Leveled Compaction merges one SSTable at a time into overlapping files in the next level, requiring only ~10% temporary headroom.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-029-a",
+        "body": "Because Leveled Compaction merges small individual files into non-overlapping files in the next level, requiring only ~10% disk overhead for temporary compaction files compared to STCS 50% overhead",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-029-b",
+        "body": "Because Leveled Compaction compresses all data using 1-bit run-length encoding",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-029-c",
+        "body": "Because Leveled Compaction deletes indexes after every write",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-029-d",
+        "body": "Because Leveled Compaction stores table data exclusively in RAM",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-029-a"
+  },
+  {
+    "id": "cat-q-s136-030",
+    "topicId": "topic-dbms",
+    "topicSlug": "dbms-basics",
+    "body": "What is the primary cause of a Write Stall in LSM-tree engines such as RocksDB or Pebble?",
+    "explanation": "If incoming writes arrive faster than background flush and compaction threads can process them, L0 file count grows. Because L0 files have overlapping key ranges, point read latency degrades. The engine throttles or halts writes (write stall) to let compaction catch up.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-030-a",
+        "body": "A CPU context switch occurring during transaction rollback",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-030-b",
+        "body": "The ingestion rate exceeds background compaction throughput, causing Level 0 SSTables or MemTable counts to breach configured safety thresholds",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-030-c",
+        "body": "The database index file reaches 4GB in size",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-030-d",
+        "body": "The operating system page cache flushes dirty pages out of order",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-030-b"
+  },
+  {
+    "id": "cat-q-s136-031",
+    "topicId": "topic-dbms",
+    "topicSlug": "dbms-basics",
+    "body": "In a database Bloom filter configured for n elements and m bits, what is the optimal number of independent hash functions k that minimizes the false positive probability?",
+    "explanation": "By taking the derivative of the false-positive probability function p = (1 - e^(-kn/m))^k with respect to k and setting it to zero, the minimum false-positive rate occurs precisely when k = (m/n) * ln(2).",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-031-a",
+        "body": "k = m / n",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-031-b",
+        "body": "k = (n / m) * 2",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-031-c",
+        "body": "k = (m / n) * ln(2) approx 0.693 * (m / n)",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-031-d",
+        "body": "k = sqrt(m * n)",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-031-c"
+  },
+  {
+    "id": "cat-q-s136-032",
+    "topicId": "topic-dbms",
+    "topicSlug": "dbms-basics",
+    "body": "Why are standard Bloom filters incapable of supporting element deletion without introducing false negatives?",
+    "explanation": "Bloom filters have zero false negatives because bits are only set from 0 to 1. If an element were deleted by zeroing its k bits, bits shared with other inserted elements would be cleared, causing subsequent queries for those elements to return false.",
+    "difficulty": "MEDIUM",
+    "options": [
+      {
+        "id": "opt-s136-032-a",
+        "body": "Because storage engines store Bloom filters in read-only EEPROM",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-032-b",
+        "body": "Because Bloom filter bits are cryptographically locked after insertion",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-032-c",
+        "body": "Because deleting an element requires reversing the SHA-256 hash algorithm",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-032-d",
+        "body": "Because clearing the k bits set by an element could clear bits shared by other distinct elements in the filter, causing existing elements to test negative",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-032-d"
+  },
+  {
+    "id": "cat-q-s136-033",
+    "topicId": "topic-dbms",
+    "topicSlug": "dbms-basics",
+    "body": "How do Cuckoo Filters support item deletion without storing the original full key?",
+    "explanation": "Partial-key cuckoo hashing allows the alternate bucket index to be derived directly from the current bucket index and the fingerprint: i_2 = i_1 XOR H(f). This allows elements to be displaced or deleted using their fingerprint alone, without the original key.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-033-a",
+        "body": "They store short b-bit fingerprints in bucket arrays and locate alternate candidate buckets using partial-key cuckoo hashing: i_2 = i_1 XOR H(fingerprint)",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-033-b",
+        "body": "They store a complete duplicate of the database table in memory",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-033-c",
+        "body": "They re-read the entire disk SSTable on every deletion request",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-033-d",
+        "body": "They rely on database transaction rollback logs",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-033-a"
+  },
+  {
+    "id": "cat-q-s136-034",
+    "topicId": "topic-dbms",
+    "topicSlug": "dbms-basics",
+    "body": "What is the core rule of the Write-Ahead Logging (WAL) Invariant in relational database engines?",
+    "explanation": "Under STEAL/NO-FORCE buffer pool policies, uncommitted dirty pages can reach disk. The WAL invariant guarantees that the log record detailing the change is flushed to disk before the dirty data page itself, ensuring recovery can always undo or redo the change.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-034-a",
+        "body": "Dirty data pages must be written to disk before writing the log record",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-034-b",
+        "body": "Any log record representing a modification to a data page must be flushed to durable storage (via fsync) before the modified dirty data page can be written to disk",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-034-c",
+        "body": "Transactions must be logged to a cloud object store before executing SQL queries",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-034-d",
+        "body": "Index modifications must be committed before table modifications",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-034-b"
+  },
+  {
+    "id": "cat-q-s136-035",
+    "topicId": "topic-dbms",
+    "topicSlug": "dbms-basics",
+    "body": "In the ARIES recovery algorithm, what is the specific role of Compensation Log Records (CLRs) during the Undo pass?",
+    "explanation": "When ARIES rolls back an uncommitted transaction during Undo, it writes a CLR for each reversed action. The CLR points to the next prior record of the transaction (undoNextLSN). If a crash recurs during recovery, the engine skips already-undone operations.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-035-a",
+        "body": "They store financial compensation audit trails for database administrators",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-035-b",
+        "body": "They compress the transaction log by 50% using dictionary encoding",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-035-c",
+        "body": "They record the reversal of an update operation and contain an undoNextLSN pointer, preventing already-undone actions from being repeated if the system crashes again during recovery",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-035-d",
+        "body": "They force the operating system to unmount corrupted disk partitions",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-035-c"
+  },
+  {
+    "id": "cat-q-s136-036",
+    "topicId": "topic-dbms",
+    "topicSlug": "dbms-basics",
+    "body": "How does the Group Commit optimization in database engines mitigate the latency bottleneck of physical disk fsync operations?",
+    "explanation": "Physical disk fsync calls take 0.1ms to 5ms, limiting single-threaded commits to ~200-10,000/sec. Group commit groups dozens of concurrent committing transactions together, allowing one thread to execute a single fsync() for the entire batch.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-036-a",
+        "body": "By disabling durable logging for non-admin database users",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-036-b",
+        "body": "By converting all database writes into asynchronous UDP packets",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-036-c",
+        "body": "By storing transaction commit logs exclusively in CPU L3 cache",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-036-d",
+        "body": "By batching the log flushes of multiple concurrent committing transactions into a single physical fsync() system call executed by a group leader thread",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-036-d"
+  },
+  {
+    "id": "cat-q-s136-037",
+    "topicId": "topic-dbms",
+    "topicSlug": "dbms-basics",
+    "body": "What is the purpose of the Doublewrite Buffer in storage engines like MySQL InnoDB?",
+    "explanation": "Database pages (16KB) are larger than OS disk sectors (4KB). A power loss mid-write causes a torn page (partial write) that corrupts the page header. The Doublewrite Buffer writes pages contiguously first, providing an intact copy to restore corrupted pages upon reboot.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-037-a",
+        "body": "To prevent torn page corruption caused by partial writes during unexpected power loss, by writing dirty pages to a contiguous doublewrite segment before updating the actual tablespace pages",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-037-b",
+        "body": "To maintain two real-time database replicas on separate cloud regions",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-037-c",
+        "body": "To double the read cache size of the buffer pool",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-037-d",
+        "body": "To encrypt table data with two distinct AES keys",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-037-a"
+  },
+  {
+    "id": "cat-q-s136-038",
+    "topicId": "topic-dbms",
+    "topicSlug": "dbms-basics",
+    "body": "What does a B+ Tree index store in its internal (non-leaf) nodes compared to its leaf nodes?",
+    "explanation": "In a B+ Tree, non-leaf nodes contain only delimiter keys and child page pointers to direct search navigation. All key-value data records reside exclusively in the leaf nodes, which are linked together in a doubly-linked list for efficient range scans.",
+    "difficulty": "MEDIUM",
+    "options": [
+      {
+        "id": "opt-s136-038-a",
+        "body": "Internal nodes store full table rows; leaf nodes store transaction logs",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-038-b",
+        "body": "Internal nodes store router search keys and child page pointers only; leaf nodes store keys and actual row data/row pointers in a doubly-linked list",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-038-c",
+        "body": "Internal nodes store Bloom filter bit arrays; leaf nodes store hash tables",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-038-d",
+        "body": "Internal nodes store binary images; leaf nodes store SQL query strings",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-038-b"
+  },
+  {
+    "id": "cat-q-s136-039",
+    "topicId": "topic-dbms",
+    "topicSlug": "dbms-basics",
+    "body": "Under Multi-Version Concurrency Control (MVCC), how does a database engine allow long-running read queries to execute concurrently with ongoing write transactions without locking?",
+    "explanation": "MVCC maintains multiple versions of row records (via undo logs or tuple headers with creation/deletion transaction IDs). When a reader starts, it receives a read view snapshot; queries read the newest version committed prior to that snapshot without locking writers.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-039-a",
+        "body": "By blocking write transactions until all read queries complete",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-039-b",
+        "body": "By duplicating the entire database filesystem into a temporary RAM disk",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-039-c",
+        "body": "By assigning each transaction a snapshot timestamp and serving reads from historical row versions or undo logs that match the transaction read view visibility",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-039-d",
+        "body": "By forcing readers to execute dirty reads on uncommitted memory",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-039-c"
+  },
+  {
+    "id": "cat-q-s136-040",
+    "topicId": "topic-dbms",
+    "topicSlug": "dbms-basics",
+    "body": "What is the Write Amplification Factor (WAF) of an LSM-tree storage engine, and why does it matter for NVMe SSD lifespan?",
+    "explanation": "WAF = (Bytes Written to Disk) / (Bytes Requested by User). In LSM trees, data is rewritten repeatedly across compaction levels (WAF = 10 to 40). Solid-state drives have finite NAND flash Program/Erase (P/E) cycles; higher WAF directly shortens SSD operational lifespan.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-040-a",
+        "body": "The percentage of index pages cached in DRAM",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-040-b",
+        "body": "The ratio of read queries to write queries; high WAF causes memory leaks in the buffer pool",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-040-c",
+        "body": "The number of CPU cycles spent encrypting database columns",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-040-d",
+        "body": "The ratio of total bytes written to non-volatile storage divided by bytes of user write requests; high WAF accelerates NAND flash wear-out due to limited Program-Erase (P/E) cycles",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-040-d"
+  },
+  {
+    "id": "cat-q-s136-041",
+    "topicId": "topic-dbms",
+    "topicSlug": "dbms-basics",
+    "body": "Why does an unindexed foreign key in a relational database cause table-level lock contention during parent record updates or deletions?",
+    "explanation": "When a parent row is updated or deleted, the database must verify that child tables have no referencing foreign keys. Without an index on the child foreign key column, the engine must perform a full scan on the child table, creating severe lock contention.",
+    "difficulty": "MEDIUM",
+    "options": [
+      {
+        "id": "opt-s136-041-a",
+        "body": "Because the database engine must execute a full table scan on the child table to verify referential integrity, acquiring restrictive table-level locks that block concurrent child updates",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-041-b",
+        "body": "Because foreign keys disable the transaction write-ahead log",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-041-c",
+        "body": "Because unindexed foreign keys force PostgreSQL to use MongoDB storage format",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-041-d",
+        "body": "Because foreign keys double the row size of the parent table",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-041-a"
+  },
+  {
+    "id": "cat-q-s136-042",
+    "topicId": "topic-dbms",
+    "topicSlug": "dbms-basics",
+    "body": "What is the primary architectural difference between PostgreSQL Heap table MVCC and MySQL InnoDB Undo Log MVCC?",
+    "explanation": "PostgreSQL appends new versions directly into table heap pages, requiring background VACUUM to reclaim space from dead tuples (table bloat). InnoDB updates records in-place and writes older row versions to undo log segments, which are reclaimed when no read view references them.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-042-a",
+        "body": "PostgreSQL does not support transactions while InnoDB supports ACID",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-042-b",
+        "body": "PostgreSQL writes new row versions directly into the main table heap pages requiring VACUUM to purge dead tuples; InnoDB modifies rows in-place and writes older versions to separate rollback undo segments",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-042-c",
+        "body": "InnoDB stores tables in JSON format while PostgreSQL uses CSV",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-042-d",
+        "body": "PostgreSQL requires manual disk defragmentation every 24 hours",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-042-b"
+  },
+  {
+    "id": "cat-q-s136-043",
+    "topicId": "topic-cloud-security",
+    "topicSlug": "cloud-security-defense",
+    "body": "Why do modern elliptic curve cryptographic standards (such as Curve25519 and Ed25519) prefer Twisted Edwards and Montgomery curves over short Weierstrass curves?",
+    "explanation": "Short Weierstrass curves have exceptional cases (e.g. point at infinity, doubling vs addition) requiring conditional branches that leak secret scalar bits via timing attacks. Twisted Edwards curves have complete addition laws that work universally, allowing constant-time code.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-043-a",
+        "body": "They eliminate the need for modular arithmetic over finite fields",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-043-b",
+        "body": "They allow private keys to be transmitted in plaintext across public networks",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-043-c",
+        "body": "They support complete addition formulas without exceptional points, enabling uniform branchless execution that eliminates side-channel timing attack vulnerabilities",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-043-d",
+        "body": "They reduce public key sizes down to 8 bits",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-043-c"
+  },
+  {
+    "id": "cat-q-s136-044",
+    "topicId": "topic-cloud-security",
+    "topicSlug": "cloud-security-defense",
+    "body": "In Elliptic Curve Diffie-Hellman (ECDH), what vulnerability arises if an endpoint computes shared secrets with peer public keys without validating curve membership?",
+    "explanation": "If curve validation is omitted, an attacker can provide coordinates belonging to an alternate curve that has small prime order subgroups. By computing the ECDH point on the invalid curve, the attacker solves small discrete logarithms and reconstructs the private key.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-044-a",
+        "body": "The CPU enters an infinite floating-point calculation loop",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-044-b",
+        "body": "The operating system network stack crashes with a kernel panic",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-044-c",
+        "body": "The TLS certificate is automatically invalidated by public certificate authorities",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-044-d",
+        "body": "The attacker can mount an invalid-curve attack, supplying a point on an insecure curve of small order to extract the private scalar via the Chinese Remainder Theorem",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-044-d"
+  },
+  {
+    "id": "cat-q-s136-045",
+    "topicId": "topic-cloud-security",
+    "topicSlug": "cloud-security-defense",
+    "body": "How does Ed25519 guarantee that an attacker cannot extract the private key due to a flawed or predictable Random Number Generator (RNG)?",
+    "explanation": "In ECDSA, reusing or leaking the ephemeral nonce r immediately reveals the private key (a flaw that has compromised high-profile systems). Ed25519 eliminates RNG vulnerability by deriving r deterministically via r = H(private_key_seed || message).",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-045-a",
+        "body": "By deriving the ephemeral nonce r deterministically by hashing the private key seed together with the message payload (RFC 8032)",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-045-b",
+        "body": "By using a hardcoded static nonce value for all signatures",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-045-c",
+        "body": "By querying a cloud-based quantum random beacon service",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-045-d",
+        "body": "By using RSA public keys as nonces",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-045-a"
+  },
+  {
+    "id": "cat-q-s136-046",
+    "topicId": "topic-cloud-security",
+    "topicSlug": "cloud-security-defense",
+    "body": "In Zero-Knowledge Proofs, what is a Rank-1 Constraint System (R1CS)?",
+    "explanation": "R1CS represents computational circuits algebraically. Given witness vector s = [1, public_inputs..., private_inputs...], the matrices A, B, and C encode the linear combinations of wires entering and leaving each multiplication gate, satisfying (A.s)*(B.s) - (C.s) = 0.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-046-a",
+        "body": "A hardware firewall configuration rule in Linux iptables",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-046-b",
+        "body": "A system of matrix equations of the form (A . s) * (B . s) - (C . s) = 0 representing the computational constraints of an arithmetic circuit over a witness vector s",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-046-c",
+        "body": "An authentication token format used by OAuth 2.0 servers",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-046-d",
+        "body": "A database index constraint enforcing primary key uniqueness",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-046-b"
+  },
+  {
+    "id": "cat-q-s136-047",
+    "topicId": "topic-cloud-security",
+    "topicSlug": "cloud-security-defense",
+    "body": "Why are zk-STARKs considered post-quantum secure while zk-SNARKs based on Groth16 or PLONK are vulnerable to future quantum computers?",
+    "explanation": "zk-SNARKs depend on elliptic curve pairings and discrete log hardness, which Shor algorithm breaks in polynomial time. zk-STARKs rely solely on hash functions and polynomial proximity testing (FRI), which are secure against quantum attacks.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-047-a",
+        "body": "STARKs run only on quantum processors",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-047-b",
+        "body": "STARKs use 4096-bit RSA keys that quantum computers cannot factor",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-047-c",
+        "body": "STARKs rely strictly on collision-resistant hash functions and FRI (Fast Reed-Solomon Interactive Oracle Proofs), avoiding elliptic curve pairings and discrete logarithm assumptions broken by Shor algorithm",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-047-d",
+        "body": "STARKs encrypt arithmetic circuits using AES-GCM",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-047-c"
+  },
+  {
+    "id": "cat-q-s136-048",
+    "topicId": "topic-cloud-security",
+    "topicSlug": "cloud-security-defense",
+    "body": "In lattice-based post-quantum cryptography, what is the core premise of the Learning With Errors (LWE) hard problem?",
+    "explanation": "Without the error vector e, A*s = b (mod q) is solvable in O(n^3) time via Gaussian elimination. Adding discrete Gaussian noise e makes recovering s as hard as solving the Shortest Vector Problem (SVP) in high-dimensional lattices, for which no polynomial quantum algorithm exists.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-048-a",
+        "body": "Decentering neural network weights during training",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-048-b",
+        "body": "Finding prime factors of 2048-bit integers",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-048-c",
+        "body": "Calculating discrete logarithms in non-abelian groups",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-048-d",
+        "body": "Finding the secret vector s in b = A*s + e (mod q) is computationally intractable when small error noise e is added, reducing to worst-case geometric lattice problems (SVP)",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-048-d"
+  },
+  {
+    "id": "cat-q-s136-049",
+    "topicId": "topic-cloud-security",
+    "topicSlug": "cloud-security-defense",
+    "body": "What are the NIST FIPS standardized algorithms for Post-Quantum Key Encapsulation (ML-KEM) and Post-Quantum Digital Signatures (ML-DSA)?",
+    "explanation": "In August 2024, NIST officially standardized CRYSTALS-Kyber as FIPS 203 (ML-KEM, Module-Lattice Key Encapsulation Mechanism) and CRYSTALS-Dilithium as FIPS 204 (ML-DSA, Module-Lattice Digital Signature Algorithm).",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-049-a",
+        "body": "CRYSTALS-Kyber (ML-KEM, FIPS 203) and CRYSTALS-Dilithium (ML-DSA, FIPS 204)",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-049-b",
+        "body": "RSA-4096 and ECDSA P-384",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-049-c",
+        "body": "AES-256-GCM and ChaCha20-Poly1305",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-049-d",
+        "body": "SHA-3-512 and BLAKE3",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-049-a"
+  },
+  {
+    "id": "cat-q-s136-050",
+    "topicId": "topic-cloud-security",
+    "topicSlug": "cloud-security-defense",
+    "body": "How does OAuth 2.0 with PKCE (Proof Key for Code Exchange) prevent authorization code interception attacks on public and single-page clients?",
+    "explanation": "Public clients (SPAs, mobile apps) cannot securely protect a static client_secret. PKCE generates a dynamic cryptographic code_verifier for each request and sends code_challenge = SHA256(code_verifier). Even if an interceptor captures the auth code, it cannot exchange it without the code_verifier.",
+    "difficulty": "MEDIUM",
+    "options": [
+      {
+        "id": "opt-s136-050-a",
+        "body": "By requiring clients to store their client_secret in browser cookies",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-050-b",
+        "body": "The client creates an ephemeral secret (code_verifier) and sends its hash (code_challenge) during the authorization request; during token exchange, the client sends code_verifier to prove possession without sharing a static secret",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-050-c",
+        "body": "By encrypting the entire HTTP payload with SSL 3.0",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-050-d",
+        "body": "By authenticating users using biometric fingerprint scans exclusively",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-050-b"
+  },
+  {
+    "id": "cat-q-s136-051",
+    "topicId": "topic-cloud-security",
+    "topicSlug": "cloud-security-defense",
+    "body": "What is a Blind SSRF (Server-Side Request Forgery) attack, and how is it mitigated in enterprise cloud architectures?",
+    "explanation": "Blind SSRF induces the server to send requests to internal endpoints (like cloud instance metadata services or intranet databases) without returning response data to the attacker. Defense requires egress proxy filtering, network microsegmentation, and IMDSv2 (requiring PUT headers).",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-051-a",
+        "body": "An injection vulnerability in GraphQL resolver arguments",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-051-b",
+        "body": "An attack that floods the DNS server with UDP amplification packets",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-051-c",
+        "body": "An attack where an adversary causes a backend server to initiate unauthorized HTTP requests to internal metadata services (e.g. 169.254.169.254) without returning the response payload, mitigated via strict egress firewalls and IMDSv2 session tokens",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-051-d",
+        "body": "A cross-site scripting attack using invisible iframe tags",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-051-c"
+  },
+  {
+    "id": "cat-q-s136-052",
+    "topicId": "topic-cloud-security",
+    "topicSlug": "cloud-security-defense",
+    "body": "Why is the JWT algorithm header value \"none\" considered a critical security vulnerability if accepted by a backend verification library?",
+    "explanation": "The JWT RFC allows \"alg\": \"none\" for unsigned tokens. If a verification library naively trusts the header without whitelisting allowed asymmetric algorithms (e.g. RS256/ES256), an attacker can tamper with the payload, specify \"alg\": \"none\", and gain unauthorized access.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-052-a",
+        "body": "Because it causes the CPU to execute invalid bytecode",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-052-b",
+        "body": "It causes TLS certificates to expire prematurely",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-052-c",
+        "body": "It increases memory consumption in the server session cache",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-052-d",
+        "body": "It allows an attacker to forge arbitrary claims (such as admin privileges) and strip the signature component entirely, bypassing authentication if the backend does not enforce explicit allowed algorithms",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-052-d"
+  },
+  {
+    "id": "cat-q-s136-053",
+    "topicId": "topic-cloud-security",
+    "topicSlug": "cloud-security-defense",
+    "body": "In modern web application defense, what is the purpose of the Content Security Policy (CSP) header directive \"object-src 'none'\"?",
+    "explanation": "The object-src directive controls the resources loaded via <object>, <embed>, and <applet> HTML tags. Setting object-src 'none' completely disallows plugin execution, closing dangerous attack vectors exploited in cross-site scripting and sandbox escapes.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-053-a",
+        "body": "To prevent the browser from loading dangerous legacy plugins like Flash, Java applets, or ActiveX that could execute arbitrary code outside the browser sandbox",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-053-b",
+        "body": "To disable JavaScript object instantiation (Object.create)",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-053-c",
+        "body": "To prevent JSON APIs from returning object responses",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-053-d",
+        "body": "To block image loading across CDN servers",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-053-a"
+  },
+  {
+    "id": "cat-q-s136-054",
+    "topicId": "topic-cloud-security",
+    "topicSlug": "cloud-security-defense",
+    "body": "What is the vulnerability known as Insecure Direct Object References (IDOR), and what is the proper architectural fix?",
+    "explanation": "IDOR (BOLA) occurs when an application uses client-supplied identifiers (IDs) to access resources without validating that the authenticated session owns that resource. The fix is enforcing object-level authorization checks on every data access.",
+    "difficulty": "MEDIUM",
+    "options": [
+      {
+        "id": "opt-s136-054-a",
+        "body": "Using uncompressed image files on landing pages",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-054-b",
+        "body": "Failing to validate that the authenticated user possesses authorization rights to access the specific database record identified by an input parameter (e.g. /api/documents/123), fixed by validating tenant/user ownership in the service layer",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-054-c",
+        "body": "Using direct memory pointers in C++ applications",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-054-d",
+        "body": "Accepting HTTP GET requests on web forms",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-054-b"
+  },
+  {
+    "id": "cat-q-s136-055",
+    "topicId": "topic-cloud-security",
+    "topicSlug": "cloud-security-defense",
+    "body": "How does the Subresource Integrity (SRI) attribute protect web applications when loading JavaScript libraries from external Content Delivery Networks (CDNs)?",
+    "explanation": "SRI enables browsers to verify that resources fetched from third-party CDNs arrive without unexpected modification. The browser hashes the file and verifies it matches the integrity base64 digest; if the CDN modifies or injects malicious code into the file, the browser refuses execution.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-055-a",
+        "body": "By automatically renewing CDN DNS records",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-055-b",
+        "body": "By compressing CDN files using Brotli compression",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-055-c",
+        "body": "By allowing the browser to hash the fetched script and compare it against a cryptographic hash (e.g. sha384-...) in the integrity attribute, blocking execution if the CDN was compromised or tampered with",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-055-d",
+        "body": "By enforcing two-factor authentication on CDN administrators",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-055-c"
+  },
+  {
+    "id": "cat-q-s136-056",
+    "topicId": "topic-cloud-security",
+    "topicSlug": "cloud-security-defense",
+    "body": "What defense mechanism prevents Cross-Site Request Forgery (CSRF) in modern single-page applications using cookie-based authentication?",
+    "explanation": "SameSite=Lax/Strict instructs browsers not to send session cookies with cross-site requests initiated from third-party origins. Combining SameSite cookies with custom headers (which cross-origin HTML forms cannot forge) provides robust CSRF mitigation.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-056-a",
+        "body": "Disabling browser caching on all pages",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-056-b",
+        "body": "Encrypting all URL query parameters using base64",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-056-c",
+        "body": "Using HTTP basic authentication on every API route",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-056-d",
+        "body": "Setting the SameSite=Strict or SameSite=Lax attribute on session cookies and validating custom request headers (e.g. X-Requested-With or anti-CSRF synchronizer tokens)",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-056-d"
+  },
+  {
+    "id": "cat-q-s136-057",
+    "topicId": "topic-networks",
+    "topicSlug": "computer-networks-protocols",
+    "body": "How does TCP BBR (Bottleneck Bandwidth and RTT) congestion control fundamentally differ from loss-based congestion control algorithms like TCP CUBIC or Reno?",
+    "explanation": "CUBIC and Reno fill network buffers until packets drop, causing bufferbloat latency spikes. BBR models Kleinrock optimal operating point, alternating through phases to measure maximum bandwidth and minimum round-trip time, operating with minimal buffer queueing.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-057-a",
+        "body": "BBR regulates sending rates to model the physical network pipe by estimating minimum RTT (RTprop) and bottleneck bandwidth (BtlBw), avoiding queue buildup and bufferbloat rather than relying on packet loss as a congestion signal",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-057-b",
+        "body": "BBR operates over UDP instead of IP",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-057-c",
+        "body": "BBR increases the packet size to 64KB for all packets",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-057-d",
+        "body": "BBR disables TCP acknowledgments (ACKs) to save bandwidth",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-057-a"
+  },
+  {
+    "id": "cat-q-s136-058",
+    "topicId": "topic-networks",
+    "topicSlug": "computer-networks-protocols",
+    "body": "What occurs during a Path MTU Discovery (PMTUD) \"Black Hole\" scenario in IP networking?",
+    "explanation": "When packets exceed a link MTU and have DF=1, routers drop them and return ICMP Type 3 Code 4. If firewalls blindly block all ICMP packets, the sender never receives the error, continues retransmitting oversized packets, and the TCP connection stalls indefinitely.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-058-a",
+        "body": "The BGP routing table exceeds 1 million routes and crashes the router",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-058-b",
+        "body": "A router with a smaller MTU drops a packet with the Don't Fragment (DF) bit set and sends an ICMP \"Packet Too Big\" (Type 3, Code 4) message, but an intermediate firewall blocks the ICMP message, causing the sender to hang indefinitely waiting for ACKs",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-058-c",
+        "body": "A DNS root server fails to respond to iterative queries",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-058-d",
+        "body": "A fiber-optic cable experiences physical light degradation",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-058-b"
+  },
+  {
+    "id": "cat-q-s136-059",
+    "topicId": "topic-networks",
+    "topicSlug": "computer-networks-protocols",
+    "body": "In Border Gateway Protocol (BGP) Anycast routing architectures, what causes TCP connection resets during regional network route flaps?",
+    "explanation": "Anycast announces the same IP from multiple geographic PoPs. If an upstream BGP route flap occurs mid-connection, subsequent packets from the client may route to a different PoP. Because the new PoP has no TCP session state for that connection, it issues a TCP RST.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-059-a",
+        "body": "Anycast IP addresses are incompatible with TCP checksum verification",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-059-b",
+        "body": "BGP routers modify the TCP sequence numbers in transit",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-059-c",
+        "body": "Packets belonging to an ongoing stateful TCP stream are re-routed to a different physical PoP (Point of Presence) that lacks the established socket connection state, causing the new PoP to send a TCP RST",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-059-d",
+        "body": "Anycast requires switching to IPv6 mid-stream",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-059-c"
+  },
+  {
+    "id": "cat-q-s136-060",
+    "topicId": "topic-networks",
+    "topicSlug": "computer-networks-protocols",
+    "body": "How does QUIC (HTTP/3) eliminate the Head-of-Line (HoL) blocking problem inherent in HTTP/2 over TCP?",
+    "explanation": "In HTTP/2 over TCP, because TCP provides an in-order byte stream abstraction, dropping a single TCP packet halts delivery of all multiplexed streams until retransmission succeeds. QUIC implements independent streams over UDP, localizing drops to the affected stream.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-060-a",
+        "body": "By executing all network streams over Bluetooth radio",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-060-b",
+        "body": "By storing all assets in the browser local storage",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-060-c",
+        "body": "By limiting each web page to a single HTTP asset",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-060-d",
+        "body": "By implementing multiple independent streams directly over UDP; packet loss on one stream halts only that specific stream, allowing other streams to continue receiving data without blocking",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-060-d"
+  },
+  {
+    "id": "cat-q-s136-061",
+    "topicId": "topic-networks",
+    "topicSlug": "computer-networks-protocols",
+    "body": "In TLS 1.3, how does the 0-RTT Early Data feature work, and what security risk does it introduce?",
+    "explanation": "TLS 1.3 allows returning clients to send 0-RTT early data using a pre-shared key (PSK) from a prior session. However, because 0-RTT data has no forward secrecy and can be intercepted and replayed by attackers, it must be restricted to idempotent (e.g. GET) requests.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-061-a",
+        "body": "Clients send application data in the very first flight using keys derived from a previous session, but this early data is vulnerable to replay attacks by network eavesdroppers unless application-level anti-replay protections are enforced",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-061-b",
+        "body": "Clients send their plaintext private keys to the server",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-061-c",
+        "body": "It disables server certificate validation to achieve 0 latency",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-061-d",
+        "body": "It forces the server to accept connections without an IP address",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-061-a"
+  },
+  {
+    "id": "cat-q-s136-062",
+    "topicId": "topic-networks",
+    "topicSlug": "computer-networks-protocols",
+    "body": "What is the function of the TCP TIME_WAIT state, and why is its duration typically set to 2 * MSL (Maximum Segment Lifetime)?",
+    "explanation": "The TIME_WAIT state (typically 60-120 seconds) ensures the final ACK reaches the peer. If the ACK was lost, the peer resends its FIN. It also prevents stray delayed packets from an old connection incarnation from colliding with a new connection on the same 4-tuple.",
+    "difficulty": "MEDIUM",
+    "options": [
+      {
+        "id": "opt-s136-062-a",
+        "body": "To allow the operating system to perform disk defragmentation",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-062-b",
+        "body": "To ensure the final ACK is received by the remote endpoint (retransmitting the ACK if FIN is resent) and to allow lingering delayed duplicate packets from the old connection to dissipate from the network before port reuse",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-062-c",
+        "body": "To keep the CPU core warm during idle network periods",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-062-d",
+        "body": "To measure network bandwidth using ICMP echo requests",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-062-b"
+  },
+  {
+    "id": "cat-q-s136-063",
+    "topicId": "topic-networks",
+    "topicSlug": "computer-networks-protocols",
+    "body": "How does HTTP/2 HPACK compression protect against CRIME/BREACH compression side-channel attacks while reducing header overhead?",
+    "explanation": "CRIME and BREACH exploit stream compression (like gzip) where an attacker reflects input into responses and measures compressed byte lengths to deduce secrets. HPACK uses separate indexing tables and allows sensitive headers to bypass indexing.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-063-a",
+        "body": "HPACK removes all headers from HTTP requests",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-063-b",
+        "body": "HPACK encrypts all headers using RSA-2048 keys",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-063-c",
+        "body": "HPACK uses static and dynamic indexing tables with Huffman encoding, and allows sensitive header values (like session cookies) to be marked \"never index\" to prevent chosen-plaintext compression side-channel inference",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-063-d",
+        "body": "HPACK converts HTTP headers into binary protobuf messages",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-063-c"
+  },
+  {
+    "id": "cat-q-s136-064",
+    "topicId": "topic-networks",
+    "topicSlug": "computer-networks-protocols",
+    "body": "In DNS resolution, what is the role of the EDNS0 (Extension Mechanisms for DNS) Client Subnet (ECS) option?",
+    "explanation": "When clients query public recursive resolvers (like 8.8.8.8), the authoritative nameserver sees the resolver IP rather than the client, risking suboptimal geo-routing. EDNS0 Client Subnet forwards client subnet prefixes (/24 for IPv4) so nameservers return optimal local endpoints.",
+    "difficulty": "MEDIUM",
+    "options": [
+      {
+        "id": "opt-s136-064-a",
+        "body": "It automatically resolves private .local domains",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-064-b",
+        "body": "It encrypts DNS queries using TLS over port 853",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-064-c",
+        "body": "It limits DNS response packets to 512 bytes",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-064-d",
+        "body": "It allows recursive DNS resolvers to forward a truncated portion of the client IP address to authoritative nameservers, enabling geo-DNS nameservers to return latency-optimized PoP IP addresses",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-064-d"
+  },
+  {
+    "id": "cat-q-s136-065",
+    "topicId": "topic-networks",
+    "topicSlug": "computer-networks-protocols",
+    "body": "Why does TCP SACK (Selective Acknowledgment) improve throughput compared to standard cumulative ACKs during multi-packet drop events?",
+    "explanation": "Standard TCP cumulative ACKs only report the highest contiguous byte received. If packets 2 and 4 drop in a 10-packet burst, the sender must either wait for timeouts or retransmit everything after packet 2. SACK blocks specify exactly which segments arrived, allowing surgical retransmissions.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-065-a",
+        "body": "It allows the receiver to explicitly inform the sender about non-contiguous packet blocks successfully received, enabling the sender to retransmit only the missing segments rather than retransmitting the entire window",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-065-b",
+        "body": "It compresses TCP payloads using LZ4",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-065-c",
+        "body": "It increases the maximum segment size (MSS) to 9000 bytes",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-065-d",
+        "body": "It removes TCP flow control windows entirely",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-065-a"
+  },
+  {
+    "id": "cat-q-s136-066",
+    "topicId": "topic-networks",
+    "topicSlug": "computer-networks-protocols",
+    "body": "In modern Linux network tuning, what is the impact of disabling TCP slow start after idle (sysctl net.ipv4.tcp_slow_start_after_idle = 0)?",
+    "explanation": "By default, RFC 5681 resets cwnd to the initial window if a connection is idle for longer than RTO, forcing the connection to ramp up speed again. Disabling this setting keeps cwnd intact, sustaining high throughput for long-lived keepalive connections.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-066-a",
+        "body": "It reduces RAM usage of the Linux kernel network stack by 50%",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-066-b",
+        "body": "It prevents an established connection from resetting its congestion window (cwnd) back to the initial window after an idle period, preserving high throughput for bursty HTTP/2 and gRPC persistent connections",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-066-c",
+        "body": "It allows connections to bypass the TCP 3-way handshake",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-066-d",
+        "body": "It forces all TCP connections to use UDP encapsulation",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-066-b"
+  },
+  {
+    "id": "cat-q-s136-067",
+    "topicId": "topic-networks",
+    "topicSlug": "computer-networks-protocols",
+    "body": "What is the role of the Server Name Indication (SNI) extension in the TLS Client Hello handshake?",
+    "explanation": "Because TLS handshakes occur before HTTP requests are sent, a web server hosting multiple domains on one IP address cannot know which certificate to present from the HTTP Host header. SNI supplies the target domain name during the Client Hello.",
+    "difficulty": "MEDIUM",
+    "options": [
+      {
+        "id": "opt-s136-067-a",
+        "body": "To negotiate the maximum HTTP upload file size",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-067-b",
+        "body": "To provide the client MAC address to the firewall",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-067-c",
+        "body": "To specify the hostname of the server the client is connecting to, allowing a single IP address and load balancer to host multiple distinct TLS domains with different certificates",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-067-d",
+        "body": "To authenticate the client user password over TLS",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-067-c"
+  },
+  {
+    "id": "cat-q-s136-068",
+    "topicId": "topic-networks",
+    "topicSlug": "computer-networks-protocols",
+    "body": "In low-latency financial systems, what is the purpose of A/B feed line arbitration in market data UDP multicast networks?",
+    "explanation": "To eliminate TCP retransmission delays, market data uses dual UDP multicast lines (Feed A and Feed B) routed through diverse physical network switches. The feed handler picks the first arriving packet by sequence number and drops the duplicate, tolerating packet loss with 0ms delay.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-068-a",
+        "body": "To convert binary multicast packets into JSON webhooks",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-068-b",
+        "body": "To encrypt financial market data using two distinct private keys",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-068-c",
+        "body": "To balance network traffic evenly across two Ethernet cables to save power",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-068-d",
+        "body": "Market data is published simultaneously over two physically separate network paths (Feed A and Feed B); the receiver consumes from whichever feed packet arrives first and discards duplicate sequence numbers, guaranteeing zero packet-loss latency",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-068-d"
+  },
+  {
+    "id": "cat-q-s136-069",
+    "topicId": "topic-networks",
+    "topicSlug": "computer-networks-protocols",
+    "body": "What problem does the TCP Nagle Algorithm (RFC 896) solve, and why do low-latency applications disable it using TCP_NODELAY?",
+    "explanation": "Nagle concatenates small packets until a full MSS is assembled or until the previous ACK returns. In interactive systems, combined with Delayed ACKs, this causes 40ms-200ms latency stalls. Disabling Nagle via TCP_NODELAY transmits frames immediately.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-069-a",
+        "body": "Nagle buffers small outgoing segments until prior data is ACKed to prevent flooding networks with tiny 1-byte payloads; low-latency applications disable it (TCP_NODELAY) to send packets immediately without waiting for ACKs",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-069-b",
+        "body": "Nagle compresses TCP payloads using gzip; applications disable it to save CPU cycles",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-069-c",
+        "body": "Nagle encrypts socket buffers; applications disable it for plaintext debugging",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-069-d",
+        "body": "Nagle limits network bandwidth to 10 Mbps; applications disable it to increase speed",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-069-a"
+  },
+  {
+    "id": "cat-q-s136-070",
+    "topicId": "topic-networks",
+    "topicSlug": "computer-networks-protocols",
+    "body": "What is the difference between an IPv6 Link-Local address (fe80::/10) and a Global Unicast address (2000::/3)?",
+    "explanation": "Every IPv6 interface automatically generates a fe80::/10 link-local address for local communication (e.g. Neighbor Discovery, DHCPv6) on the local link. Routers never forward link-local packets; global unicast addresses (2000::/3) are globally routable.",
+    "difficulty": "MEDIUM",
+    "options": [
+      {
+        "id": "opt-s136-070-a",
+        "body": "Link-local addresses use 32 bits while global unicast addresses use 128 bits",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-070-b",
+        "body": "Link-local addresses are valid only within a single physical or bridged network segment and are never forwarded by routers; global unicast addresses are globally routable across the public internet",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-070-c",
+        "body": "Link-local addresses are used exclusively by DNS root servers",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-070-d",
+        "body": "Link-local addresses require monthly IP lease payments",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-070-b"
+  },
+  {
+    "id": "cat-q-s136-071",
+    "topicId": "topic-adv-algo",
+    "topicSlug": "algorithms-dynamic-programming",
+    "body": "In high-throughput multi-threaded systems, how does the LMAX Disruptor pattern achieve mechanical sympathy and millions of operations per second?",
+    "explanation": "The Disruptor uses a pre-allocated circular array indexed by a 64-bit sequence counter. It eliminates locks by relying on memory barriers and CAS operations. Padding sequence variables with 64 bytes prevents distinct cores from invalidating each other cache lines (false sharing).",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-071-a",
+        "body": "By using Java synchronized blocks around every method invocation",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-071-b",
+        "body": "By running all calculations on cloud serverless functions",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-071-c",
+        "body": "By using a pre-allocated circular ring buffer with sequence barriers and 64-byte cache-line padding around sequence counters, eliminating lock contention and CPU cache false sharing",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-071-d",
+        "body": "By compiling code to WebAssembly at runtime",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-071-c"
+  },
+  {
+    "id": "cat-q-s136-072",
+    "topicId": "topic-adv-algo",
+    "topicSlug": "algorithms-dynamic-programming",
+    "body": "What is the phenomenon of Cache-Line False Sharing in multi-core processors, and how is it resolved in performance-critical code?",
+    "explanation": "CPUs manage cache in 64-byte lines. When thread 1 on core 1 updates variable A and thread 2 on core 2 updates adjacent variable B on the same cache line, the MESI protocol invalidates the entire cache line back and forth. Padding variables with 64 bytes isolates them onto separate lines.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-072-a",
+        "body": "A compiler optimization that merges distinct function calls",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-072-b",
+        "body": "A hardware error where the CPU reads corrupted data from DDR RAM",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-072-c",
+        "body": "A software bug where two threads share a database connection string",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-072-d",
+        "body": "Two independent threads on different cores modify unrelated variables that reside on the same 64-byte L1/L2 cache line, causing continuous cache coherency invalidation traffic; resolved by aligning or padding variables to 64-byte boundaries",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-072-d"
+  },
+  {
+    "id": "cat-q-s136-073",
+    "topicId": "topic-adv-algo",
+    "topicSlug": "algorithms-dynamic-programming",
+    "body": "What is the time complexity of the Aho-Corasick automaton algorithm for finding all occurrences of a set of k patterns with total length M in a text of length N?",
+    "explanation": "The Aho-Corasick automaton builds a trie with BFS failure links and dictionary output links in O(M) preprocessing time. Searching the text processes each character in O(1) amortized time, yielding O(N + M + Z) linear total time.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-073-a",
+        "body": "O(N + M + Z), where Z is the total number of pattern matches found",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-073-b",
+        "body": "O(N * M)",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-073-c",
+        "body": "O(N^2 * k)",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-073-d",
+        "body": "O(2^M + N)",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-073-a"
+  },
+  {
+    "id": "cat-q-s136-074",
+    "topicId": "topic-adv-algo",
+    "topicSlug": "algorithms-dynamic-programming",
+    "body": "How does Mo's Algorithm with Hilbert Curve ordering optimize offline range queries over an array of size N with Q queries?",
+    "explanation": "Standard Mo's algorithm sorts queries by (L / B, R) with block size B = N / sqrt(Q), requiring O(N sqrt(Q)) time. Ordering queries by their position along a 2D Hilbert curve reduces erratic back-and-forth pointer leaps, yielding 30-40% empirical speedup.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-074-a",
+        "body": "It transforms all queries into linear regression equations",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-074-b",
+        "body": "It sorts queries along a 2D space-filling Hilbert curve instead of standard block decomposition, minimizing the total Manhattan distance traveled by query pointers and accelerating cache locality by 30-40%",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-074-c",
+        "body": "It evaluates queries in parallel using quantum annealing",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-074-d",
+        "body": "It compresses the query array into an inverted skip list",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-074-b"
+  },
+  {
+    "id": "cat-q-s136-075",
+    "topicId": "topic-adv-algo",
+    "topicSlug": "algorithms-dynamic-programming",
+    "body": "In network flow theory, what is the asymptotic time complexity of Dinic's Algorithm on a general flow network with V vertices and E edges?",
+    "explanation": "Dinic's algorithm constructs a layered network using BFS and pushes blocking flows using DFS in each phase. Each phase takes O(V * E) and there are at most V - 1 phases, yielding O(V^2 * E). On unit capacity networks, it runs in O(E * sqrt(V)).",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-075-a",
+        "body": "O(V^3)",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-075-b",
+        "body": "O(V * E^2)",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-075-c",
+        "body": "O(V^2 * E), improving to O(E * sqrt(V)) on unit networks (networks with unit capacities)",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-075-d",
+        "body": "O(E * log V)",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-075-c"
+  },
+  {
+    "id": "cat-q-s136-076",
+    "topicId": "topic-adv-algo",
+    "topicSlug": "algorithms-dynamic-programming",
+    "body": "In Java memory model semantics, what guarantee does the volatile keyword provide on a variable?",
+    "explanation": "volatile provides visibility (writes are flushed to memory and cache lines updated across cores) and ordering (acquires and releases prevent compiler/CPU instruction reordering). However, volatile does NOT guarantee atomicity for compound operations like count++.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-076-a",
+        "body": "It guarantees atomicity of compound operations like count++",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-076-b",
+        "body": "It makes the variable immutable after instantiation",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-076-c",
+        "body": "It forces the object to be allocated in non-volatile SSD flash memory",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-076-d",
+        "body": "It guarantees memory visibility (reads always reflect the latest write across all cores) and prevents instruction reordering across the volatile read/write via memory barriers, without acquiring a mutex lock",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-076-d"
+  },
+  {
+    "id": "cat-q-s136-077",
+    "topicId": "topic-adv-algo",
+    "topicSlug": "algorithms-dynamic-programming",
+    "body": "What is the purpose of Escape Analysis in the HotSpot JVM C2 JIT compiler?",
+    "explanation": "If the C2 compiler determines an object reference never escapes the method (NoEscape), it can break the object into its primitive scalar fields (scalar replacement) and place them in registers or on the stack, bypassing heap allocation and garbage collection entirely.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-077-a",
+        "body": "To analyze whether an allocated object escape scope outside the executing method; if non-escaping, the JIT compiler eliminates heap allocation in favor of stack allocation or scalar replacement, and elides synchronization locks",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-077-b",
+        "body": "To verify that Java threads do not escape out of Linux container namespaces",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-077-c",
+        "body": "To prevent SQL injection escapes in JDBC database queries",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-077-d",
+        "body": "To terminate infinite loops in recursive algorithms",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-077-a"
+  },
+  {
+    "id": "cat-q-s136-078",
+    "topicId": "topic-adv-algo",
+    "topicSlug": "algorithms-dynamic-programming",
+    "body": "In Java 21 Project Loom, how do Virtual Threads achieve high concurrency with low memory overhead compared to traditional platform threads?",
+    "explanation": "Platform threads map 1:1 to OS threads, consuming ~1MB of stack memory each and requiring kernel context switches. Virtual threads are managed by the JVM in user space, unmounting from carrier threads during blocking I/O and consuming only ~1KB.",
+    "difficulty": "MEDIUM",
+    "options": [
+      {
+        "id": "opt-s136-078-a",
+        "body": "Virtual threads bypass the Java bytecode interpreter entirely",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-078-b",
+        "body": "Virtual threads are lightweight user-mode threads managed by the JVM rather than 1:1 OS threads; thousands of virtual threads are multiplexed onto a small pool of carrier OS threads, consuming only ~1KB of memory per thread",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-078-c",
+        "body": "Virtual threads run exclusively on GPU hardware cores",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-078-d",
+        "body": "Virtual threads do not support asynchronous network I/O",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-078-b"
+  },
+  {
+    "id": "cat-q-s136-079",
+    "topicId": "topic-adv-algo",
+    "topicSlug": "algorithms-dynamic-programming",
+    "body": "What is the \"Pinning\" anti-pattern in Java Virtual Threads, and how does it impact application scalability?",
+    "explanation": "When a virtual thread executes a blocking call while holding a synchronized monitor or inside a JNI native method, the JVM cannot unmount it from the underlying carrier thread (it is \"pinned\"). This exhausts carrier threads, serializing application throughput.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-079-a",
+        "body": "Pinning a thread to a CPU socket via taskset",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-079-b",
+        "body": "Assigning a virtual thread a fixed priority level",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-079-c",
+        "body": "Executing blocking operations inside a synchronized block or native JNI call, which prevents the virtual thread from unmounting from its carrier OS thread, causing carrier thread starvation under high concurrency",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-079-d",
+        "body": "Storing virtual thread references in a static HashSet",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-079-c"
+  },
+  {
+    "id": "cat-q-s136-080",
+    "topicId": "topic-adv-algo",
+    "topicSlug": "algorithms-dynamic-programming",
+    "body": "In low-latency garbage collectors like ZGC and Shenandoah, what is the role of Load Barriers during concurrent object relocation?",
+    "explanation": "ZGC uses colored pointers and load barriers. When an application thread dereferences an object pointer, the JIT-emitted load barrier checks the pointer color. If the object has moved, it updates the reference to the new address (self-healing) before returning, maintaining <1ms pause times.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-080-a",
+        "body": "They compile Java classes during application startup",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-080-b",
+        "body": "They prevent users from uploading large files over HTTP",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-080-c",
+        "body": "They balance incoming TCP connections across memory sockets",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-080-d",
+        "body": "They intercept reference reads in application threads; if a thread accesses a pointer to an object currently being relocated, the load barrier repairs the pointer to the new address on the fly (self-healing), allowing concurrent GC without stop-the-world pauses",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-080-d"
+  },
+  {
+    "id": "cat-q-s136-081",
+    "topicId": "topic-adv-algo",
+    "topicSlug": "algorithms-dynamic-programming",
+    "body": "In Python 3.13 free-threaded mode (PEP 703: No-GIL), what mechanism replaces the Global Interpreter Lock to ensure thread-safe memory management without massive single-thread performance degradation?",
+    "explanation": "PEP 703 removes the GIL by introducing biased reference counting (fast thread-local reference counts for objects owned by one thread, atomic counts for shared objects), immortal objects for runtime singletons, and mimalloc thread-safe memory allocators.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-081-a",
+        "body": "Biased reference counting, mimalloc thread-local arenas, and immortal objects, allowing multi-threaded CPython execution across all CPU cores without global lock contention",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-081-b",
+        "body": "Converting all Python integers into Java BigInteger objects",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-081-c",
+        "body": "Executing Python scripts inside isolated Docker containers",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-081-d",
+        "body": "Disabling all dynamic memory allocation in Python modules",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-081-a"
+  },
+  {
+    "id": "cat-q-s136-082",
+    "topicId": "topic-adv-algo",
+    "topicSlug": "algorithms-dynamic-programming",
+    "body": "In Python asyncio, what is the underlying mechanism that enables single-threaded cooperative multitasking for asynchronous coroutines?",
+    "explanation": "asyncio runs a single-threaded event loop utilizing OS selectors (epoll on Linux, kqueue on macOS). Coroutines are generators that yield futures; when the selector signals that an I/O descriptor is ready, the loop steps the coroutine task using .send(result).",
+    "difficulty": "MEDIUM",
+    "options": [
+      {
+        "id": "opt-s136-082-a",
+        "body": "A background thread pool that spawns one OS thread per coroutine",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-082-b",
+        "body": "An event loop that registers I/O file descriptors with the operating system kernel multiplexer (epoll/kqueue) and steps coroutines using generator send() callbacks when descriptors become ready",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-082-c",
+        "body": "A compiler that transforms Python code into C++ templates",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-082-d",
+        "body": "Hardware timers on the motherboard interrupt controller",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-082-b"
+  },
+  {
+    "id": "cat-q-s136-083",
+    "topicId": "topic-adv-algo",
+    "topicSlug": "algorithms-dynamic-programming",
+    "body": "What is the purpose of the Tarjan Bridge-Finding Algorithm in undirected graph theory, and what invariant classifies edge (u, v) as a bridge?",
+    "explanation": "Tarjan bridge algorithm assigns discovery times tin and lowest reachable times low via DFS. If low[v] > tin[u], there is no back-edge from v's subtree to u or above. Removing (u, v) therefore isolates v's component, confirming it as a bridge in O(V + E) time.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-083-a",
+        "body": "An edge is a bridge if its weight is negative",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-083-b",
+        "body": "An edge is a bridge if both vertices have odd degree",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-083-c",
+        "body": "An edge (u, v) is a bridge if its removal disconnects the graph; in DFS traversal, (u, v) is a bridge if and only if low[v] > tin[u], meaning the subtree rooted at v has no back-edge reaching u or any ancestor of u",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-083-d",
+        "body": "An edge is a bridge if it connects two leaf nodes",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-083-c"
+  },
+  {
+    "id": "cat-q-s136-084",
+    "topicId": "topic-adv-algo",
+    "topicSlug": "algorithms-dynamic-programming",
+    "body": "In lock-free concurrent programming, what is the ABA Problem in Compare-And-Swap (CAS) operations, and how is it resolved?",
+    "explanation": "CAS checks if memory equals expected value A before updating. If another thread changes A -> B -> A, CAS falsely assumes nothing changed, which can corrupt lock-free stacks (e.g. popping already-freed memory). Tagged pointers pair an incrementing stamp with the pointer to detect changes.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-s136-084-a",
+        "body": "An arithmetic overflow when adding 8-bit integers",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-s136-084-b",
+        "body": "A network socket dropping packets A, B, and A in succession",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-s136-084-c",
+        "body": "A deadlock between three threads named A, B, and A",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-s136-084-d",
+        "body": "A thread reads value A, is preempted while other threads change A to B and back to A; when the thread resumes, CAS succeeds even though intermediate state changed; resolved using tagged pointers (version counters) paired with CAS (e.g. AtomicStampedReference)",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-s136-084-d"
+  },
+{
+    "id": "cat-q-ai-agent-01",
+    "topicId": "topic-ai-agents",
+    "topicSlug": "ai-coding-agents-loops",
+    "body": "In autonomous AI coding assistants (such as Claude Code), how does the agentic loop utilize tool output (e.g., standard error from a failed compiler or test runner)?",
+    "explanation": "In an agentic loop (Observe-Think-Act), tool execution results (stdout/stderr) are passed back into the LLM context as new environmental observations, enabling the model to formulate self-correcting patches in the subsequent reasoning cycle.",
+    "difficulty": "MEDIUM",
+    "options": [
+      {
+        "id": "opt-q-ai-agent-01-a",
+        "body": "The error is treated as a new environmental observation that feeds into the next reasoning cycle, allowing the agent to formulate hypotheses and generate a corrective diff",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-q-ai-agent-01-b",
+        "body": "The agent terminates immediately and throws a fatal uncaught exception to the operating system",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-q-ai-agent-01-c",
+        "body": "The error is permanently written to the model weights via backpropagation",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-q-ai-agent-01-d",
+        "body": "The agent ignores stderr and assumes all tests passed successfully",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-q-ai-agent-01-a"
+  },
+  {
+    "id": "cat-q-ai-agent-02",
+    "topicId": "topic-ai-agents",
+    "topicSlug": "ai-coding-agents-loops",
+    "body": "Why is targeted chunked string/diff replacement strongly preferred over full-file regeneration when an AI agent edits existing source code?",
+    "explanation": "Regenerating full files incurs 10-50x higher output token costs, risks incomplete code truncation mid-file, destroys git blame history, and introduces accidental regression errors in untouched functions.",
+    "difficulty": "EASY",
+    "options": [
+      {
+        "id": "opt-q-ai-agent-02-a",
+        "body": "Targeted diffs minimize output token consumption, prevent mid-file generation truncation, preserve git history, and avoid introducing regressions into untouched functions",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-q-ai-agent-02-b",
+        "body": "Full-file regeneration is blocked by operating system filesystem locks on Windows and Linux",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-q-ai-agent-02-c",
+        "body": "Targeted diffs allow the LLM to run without a tokenizer",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-q-ai-agent-02-d",
+        "body": "LLMs are mathematically incapable of generating more than 50 lines of code at a time",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-q-ai-agent-02-a"
+  },
+  {
+    "id": "cat-q-ai-agent-03",
+    "topicId": "topic-ai-agents",
+    "topicSlug": "ai-coding-agents-loops",
+    "body": "What is the primary role of Automated Verification Gates (e.g. running 'npm run typecheck' and unit tests) in autonomous coding agent workflows?",
+    "explanation": "Automated verification gates provide deterministic feedback to validate that code changes preserve typing invariants and passing tests before marking a task complete.",
+    "difficulty": "EASY",
+    "options": [
+      {
+        "id": "opt-q-ai-agent-03-a",
+        "body": "To establish deterministic verification that patches satisfy compiler typing invariants and pass regression tests before concluding the task",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-q-ai-agent-03-b",
+        "body": "To convert TypeScript code into WebAssembly binary",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-q-ai-agent-03-c",
+        "body": "To encrypt the repository before committing to git",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-q-ai-agent-03-d",
+        "body": "To automatically delete any failing test files so all builds succeed",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-q-ai-agent-03-a"
+  },
+  {
+    "id": "cat-q-ai-agent-04",
+    "topicId": "topic-ai-agents",
+    "topicSlug": "ai-coding-agents-loops",
+    "body": "Which architectural constraint is critical when allowing an autonomous agent to execute bash/shell commands on a developer's machine?",
+    "explanation": "Restricting execution to the workspace root, applying execution timeouts (e.g., 30s), blocking destructive commands (e.g., rm -rf /), and enforcing sandbox boundaries are essential security measures.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-q-ai-agent-04-a",
+        "body": "Enforcing execution timeouts, restricting working directories to the project workspace, blocking destructive commands, and requiring user confirmation for irreversible side-effects",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-q-ai-agent-04-b",
+        "body": "Granting passwordless sudo/root privileges without interactive prompts",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-q-ai-agent-04-c",
+        "body": "Disabling stdout and stderr capture so commands execute silently",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-q-ai-agent-04-d",
+        "body": "Running all shell commands through eval() inside the browser console",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-q-ai-agent-04-a"
+  },
+  {
+    "id": "cat-q-ai-agent-05",
+    "topicId": "topic-ai-agents",
+    "topicSlug": "ai-coding-agents-loops",
+    "body": "In long-running agentic coding sessions, how does Context Compaction maintain reasoning coherence while preventing token limit exhaustion?",
+    "explanation": "Context compaction summarizes historical tool invocations, strips verbose or repetitive stdout logs, and maintains high-level goals and architectural invariants in the prompt.",
+    "difficulty": "MEDIUM",
+    "options": [
+      {
+        "id": "opt-q-ai-agent-05-a",
+        "body": "It periodically summarizes older tool interactions, prunes repetitive compiler outputs, and retains essential architectural state and task objectives",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-q-ai-agent-05-b",
+        "body": "It compresses all source code into zip archives before sending to the model",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-q-ai-agent-05-c",
+        "body": "It discards the user's initial prompt after 5 iterations",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-q-ai-agent-05-d",
+        "body": "It doubles the GPU clock speed to handle infinite context",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-q-ai-agent-05-a"
+  },
+  {
+    "id": "cat-q-ai-agent-06",
+    "topicId": "topic-ai-agents",
+    "topicSlug": "ai-coding-agents-loops",
+    "body": "In a Multi-Agent orchestration framework, what is the primary benefit of a Supervisor-Worker topology over an unconstrained Peer-to-Peer network?",
+    "explanation": "A supervisor enforces clear task routing, centralizes state governance, prevents runaway circular chatter between agents, and enforces token budget boundaries.",
+    "difficulty": "MEDIUM",
+    "options": [
+      {
+        "id": "opt-q-ai-agent-06-a",
+        "body": "It prevents infinite circular conversational loops, coordinates discrete task handoffs, and centralizes termination criteria and token budgeting",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-q-ai-agent-06-b",
+        "body": "It removes the requirement for tool calling in subagents",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-q-ai-agent-06-c",
+        "body": "It enables subagents to bypass all system prompt constraints",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-q-ai-agent-06-d",
+        "body": "It guarantees that all subagents use the exact same temperature setting",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-q-ai-agent-06-a"
+  },
+  {
+    "id": "cat-q-rag-01",
+    "topicId": "topic-rag-systems",
+    "topicSlug": "rag-architectures-vector-search",
+    "body": "In enterprise RAG architectures, why is Hybrid Search (Dense Vector + BM25 Sparse Lexical) superior to pure vector search alone?",
+    "explanation": "Dense vectors capture semantic concepts, while BM25 guarantees high precision for exact keywords, function names, error codes, and unique identifiers that vector models often miss.",
+    "difficulty": "MEDIUM",
+    "options": [
+      {
+        "id": "opt-q-rag-01-a",
+        "body": "Dense embeddings excel at conceptual semantic similarity, while BM25 guarantees precision on exact keywords, function names, error codes, and technical identifiers",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-q-rag-01-b",
+        "body": "BM25 eliminates the need for computing floating-point embeddings",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-q-rag-01-c",
+        "body": "Dense vector search is unable to process documents written in English",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-q-rag-01-d",
+        "body": "Hybrid search reduces vector dimensionality from 1536 down to 2",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-q-rag-01-a"
+  },
+  {
+    "id": "cat-q-rag-02",
+    "topicId": "topic-rag-systems",
+    "topicSlug": "rag-architectures-vector-search",
+    "body": "Why does Recursive Character Chunking with boundary overlap (e.g., 15-20%) outperform fixed-length character splitting in RAG document pipelines?",
+    "explanation": "Recursive splitting respects natural linguistic boundaries (paragraphs, sentences, words) and overlap prevents factual statements from being bisected across adjacent chunks.",
+    "difficulty": "EASY",
+    "options": [
+      {
+        "id": "opt-q-rag-02-a",
+        "body": "It respects natural paragraph and sentence boundaries, while overlap preserves semantic continuity so key facts spanning boundary splits are not lost during retrieval",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-q-rag-02-b",
+        "body": "It automatically compiles all Markdown documents into PDF format",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-q-rag-02-c",
+        "body": "It forces the LLM to output answers in reverse chronological order",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-q-rag-02-d",
+        "body": "It eliminates the need for storing document metadata",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-q-rag-02-a"
+  },
+  {
+    "id": "cat-q-rag-03",
+    "topicId": "topic-rag-systems",
+    "topicSlug": "rag-architectures-vector-search",
+    "body": "How does the HNSW (Hierarchical Navigable Small World) index achieve sub-linear O(log N) approximate nearest neighbor search over millions of vectors?",
+    "explanation": "HNSW constructs a multi-layer graph hierarchy where upper layers provide coarse long-range navigation and lower layers provide fine-grained local convergence.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-q-rag-03-a",
+        "body": "By organizing vectors into a multi-layered skip-graph hierarchy, using sparse long-range edges at upper layers for rapid spatial routing and dense short-range edges at lower layers for local convergence",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-q-rag-03-b",
+        "body": "By converting all high-dimensional vectors into 1D binary hashes using MD5",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-q-rag-03-c",
+        "body": "By scanning every single vector sequentially in a single CPU thread",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-q-rag-03-d",
+        "body": "By sorting all vectors by their length in ascending order",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-q-rag-03-a"
+  },
+  {
+    "id": "cat-q-rag-04",
+    "topicId": "topic-rag-systems",
+    "topicSlug": "rag-architectures-vector-search",
+    "body": "What is the primary architectural trade-off between Bi-Encoder vector retrieval and Cross-Encoder reranking in a two-stage RAG pipeline?",
+    "explanation": "Bi-encoders allow precomputing and indexing vectors for fast O(log N) candidate retrieval, but lack cross-attention. Cross-encoders evaluate full joint attention between query and text for superior relevance, but are computationally too slow for full-corpus scanning.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-q-rag-04-a",
+        "body": "Bi-encoders allow fast precomputed indexing for top-K candidate generation, while Cross-encoders perform joint cross-attention for superior ranking accuracy but at higher computational latency",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-q-rag-04-b",
+        "body": "Bi-encoders only work with numerical tabular data, while Cross-encoders only support text",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-q-rag-04-c",
+        "body": "Cross-encoders permanently store user queries in the model weights",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-q-rag-04-d",
+        "body": "Bi-encoders require GPU clusters while Cross-encoders run exclusively on smartwatches",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-q-rag-04-a"
+  },
+  {
+    "id": "cat-q-rag-05",
+    "topicId": "topic-rag-systems",
+    "topicSlug": "rag-architectures-vector-search",
+    "body": "In RAG evaluation frameworks, what is the specific definition of the 'Faithfulness' (or Groundedness) metric?",
+    "explanation": "Faithfulness measures the proportion of claims in the generated response that can be directly inferred from and supported by the retrieved context documents, explicitly detecting hallucinations.",
+    "difficulty": "MEDIUM",
+    "options": [
+      {
+        "id": "opt-q-rag-05-a",
+        "body": "The percentage of factual claims in the generated response that are directly supported by and grounded in the retrieved context documents",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-q-rag-05-b",
+        "body": "The time elapsed between submitting the query and receiving the first generated token",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-q-rag-05-c",
+        "body": "The exact token count match between the user prompt and the output",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-q-rag-05-d",
+        "body": "The probability that the user leaves a positive feedback rating",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-q-rag-05-a"
+  },
+  {
+    "id": "cat-q-rag-06",
+    "topicId": "topic-rag-systems",
+    "topicSlug": "rag-architectures-vector-search",
+    "body": "How can enterprise RAG pipelines defend against Indirect Prompt Injection attacks embedded within retrieved third-party documents?",
+    "explanation": "Defending against indirect prompt injection requires multi-layered defense: input classification guardrails, structural XML delimiting, dual-LLM privilege separation, and strict tool execution permission checks.",
+    "difficulty": "HARD",
+    "options": [
+      {
+        "id": "opt-q-rag-06-a",
+        "body": "Using structural XML delimiters, deploying input classification guardrails, applying Dual-LLM privilege separation for untrusted data extraction, and enforcing strict tool permission boundaries",
+        "orderIndex": 0
+      },
+      {
+        "id": "opt-q-rag-06-b",
+        "body": "Adding 'Please be secure' to the user prompt",
+        "orderIndex": 1
+      },
+      {
+        "id": "opt-q-rag-06-c",
+        "body": "Converting all retrieved documents into images so text cannot be read",
+        "orderIndex": 2
+      },
+      {
+        "id": "opt-q-rag-06-d",
+        "body": "Disabling TLS encryption on all internal microservice calls",
+        "orderIndex": 3
+      }
+    ],
+    "correctOptionId": "opt-q-rag-06-a"
+  },
+{
+  "id": "cat-q-agent-07",
+  "topicId": "topic-multi-agent",
+  "topicSlug": "multi-agent-orchestration-state-machines",
+  "body": "In a multi-agent state graph architecture (such as LangGraph), what is the architectural function of a 'Supervisor Node'?",
+  "explanation": "A Supervisor Node acts as an intelligent router and evaluator: it inspects the current state of shared task history, decides which specialized worker agent to route execution to next, or determines whether the overall objective has been achieved.",
+  "difficulty": "MEDIUM",
+  "options": [
+    {
+      "id": "opt-q-agent-07-a",
+      "body": "It acts as a centralized orchestrator that evaluates shared execution state and dynamically selects the next specialized subagent or signals workflow completion",
+      "orderIndex": 0
+    },
+    {
+      "id": "opt-q-agent-07-b",
+      "body": "It compiles all Python code into C++ machine binaries",
+      "orderIndex": 1
+    },
+    {
+      "id": "opt-q-agent-07-c",
+      "body": "It encrypts database tables with AES-256 keys",
+      "orderIndex": 2
+    },
+    {
+      "id": "opt-q-agent-07-d",
+      "body": "It terminates network connections whenever memory reaches 50%",
+      "orderIndex": 3
+    }
+  ],
+  "correctOptionId": "opt-q-agent-07-a"
+},
+{
+  "id": "cat-q-agent-08",
+  "topicId": "topic-multi-agent",
+  "topicSlug": "multi-agent-orchestration-state-machines",
+  "body": "Why are state reducers (e.g. `messages: add_messages`) critical in multi-agent cyclical workflows?",
+  "explanation": "Reducers define explicit mathematical rules for combining partial state updates returned by agent nodes with the global state, ensuring new messages are appended without overwriting historical context or causing race conditions.",
+  "difficulty": "HARD",
+  "options": [
+    {
+      "id": "opt-q-agent-08-a",
+      "body": "They compress image attachments into JPEG format",
+      "orderIndex": 0
+    },
+    {
+      "id": "opt-q-agent-08-b",
+      "body": "They provide deterministic reconciliation logic that appends or merges node outputs into the canonical state schema without destructive overwriting",
+      "orderIndex": 1
+    },
+    {
+      "id": "opt-q-agent-08-c",
+      "body": "They decrease the temperature of the model dynamically",
+      "orderIndex": 2
+    },
+    {
+      "id": "opt-q-agent-08-d",
+      "body": "They convert asynchronous functions into synchronous blocking threads",
+      "orderIndex": 3
+    }
+  ],
+  "correctOptionId": "opt-q-agent-08-b"
+},
+{
+  "id": "cat-q-agent-09",
+  "topicId": "topic-multi-agent",
+  "topicSlug": "multi-agent-orchestration-state-machines",
+  "body": "How does transactional checkpointing enable Human-in-the-Loop (HITL) approvals in production agent state graphs?",
+  "explanation": "Checkpointing persists the entire state snapshot to durable storage (e.g. PostgreSQL) before a high-stakes action. Execution halts safely, waits for an asynchronous human approval or modification signal, and resumes seamlessly from the exact checkpoint.",
+  "difficulty": "MEDIUM",
+  "options": [
+    {
+      "id": "opt-q-agent-09-a",
+      "body": "By automatically approving all tool calls after a 5-second delay",
+      "orderIndex": 0
+    },
+    {
+      "id": "opt-q-agent-09-b",
+      "body": "By restarting the entire agentic task from turn 1 whenever a human opens the dashboard",
+      "orderIndex": 1
+    },
+    {
+      "id": "opt-q-agent-09-c",
+      "body": "By writing the complete graph state to durable storage at designated supersteps, allowing workflow execution to pause and resume via asynchronous human intervention",
+      "orderIndex": 2
+    },
+    {
+      "id": "opt-q-agent-09-d",
+      "body": "By disabling model tool execution capabilities permanently",
+      "orderIndex": 3
+    }
+  ],
+  "correctOptionId": "opt-q-agent-09-c"
+},
+{
+  "id": "cat-q-agent-10",
+  "topicId": "topic-multi-agent",
+  "topicSlug": "multi-agent-orchestration-state-machines",
+  "body": "When developing an autonomous coding agent loop (Coder -> Linter -> Unit Test -> Coder), which mechanism best guarantees that persistent bugs do not cause an infinite loop?",
+  "explanation": "Production agent frameworks enforce maximum recursion limits (e.g., max 10 supersteps) and cycle circuit breakers, automatically routing to an escalation queue or user intervention gate if tests fail to converge.",
+  "difficulty": "MEDIUM",
+  "options": [
+    {
+      "id": "opt-q-agent-10-a",
+      "body": "Allowing the agent to run continuously without bounds until cloud billing limits are reached",
+      "orderIndex": 0
+    },
+    {
+      "id": "opt-q-agent-10-b",
+      "body": "Deleting all failing test cases automatically so the loop exits successfully",
+      "orderIndex": 1
+    },
+    {
+      "id": "opt-q-agent-10-c",
+      "body": "Enforcing hard superstep recursion limits and circuit breakers on cycle iterations to halt execution and trigger human escalation upon non-convergence",
+      "orderIndex": 2
+    },
+    {
+      "id": "opt-q-agent-10-d",
+      "body": "Increasing model sampling temperature to 2.0 to introduce random tokens",
+      "orderIndex": 3
+    }
+  ],
+  "correctOptionId": "opt-q-agent-10-c"
+},
+{
+  "id": "cat-q-agent-11",
+  "topicId": "topic-multi-agent",
+  "topicSlug": "multi-agent-orchestration-state-machines",
+  "body": "What is the primary benefit of using strict JSON Schema tool calling definitions (e.g. Model Context Protocol / OpenAI Functions) over plain-text regex parsing?",
+  "explanation": "Strict JSON Schemas allow inference engines to apply grammar-constrained logit masking, guaranteeing that arguments emitted by the model conform to typed parameters without runtime parsing failures.",
+  "difficulty": "HARD",
+  "options": [
+    {
+      "id": "opt-q-agent-11-a",
+      "body": "It allows inference engines to enforce grammar-constrained decoding at the logit level, guaranteeing valid typed parameters and preventing schema parsing crashes",
+      "orderIndex": 0
+    },
+    {
+      "id": "opt-q-agent-11-b",
+      "body": "It reduces the model weight footprint in GPU VRAM by 50%",
+      "orderIndex": 1
+    },
+    {
+      "id": "opt-q-agent-11-c",
+      "body": "It prevents the model from using GPU CUDA cores",
+      "orderIndex": 2
+    },
+    {
+      "id": "opt-q-agent-11-d",
+      "body": "It replaces all SQL databases with JSON flat files",
+      "orderIndex": 3
+    }
+  ],
+  "correctOptionId": "opt-q-agent-11-a"
+},
+{
+  "id": "cat-q-agent-12",
+  "topicId": "topic-multi-agent",
+  "topicSlug": "multi-agent-orchestration-state-machines",
+  "body": "How can an agent orchestrator detect 'error oscillation', where an agent alternates between two conflicting code repairs across multiple turns?",
+  "explanation": "By hashing code diffs and compiler error strings across turns. If the state hash matches a previously seen state hash in the same session, oscillation is detected, triggering a prompt strategy switch or human review.",
+  "difficulty": "HARD",
+  "options": [
+    {
+      "id": "opt-q-agent-12-a",
+      "body": "By tracking cryptographic hashes of source code diffs and compiler error messages to detect cyclic state repetitions",
+      "orderIndex": 0
+    },
+    {
+      "id": "opt-q-agent-12-b",
+      "body": "By measuring CPU fan speed during code compilation",
+      "orderIndex": 1
+    },
+    {
+      "id": "opt-q-agent-12-c",
+      "body": "By asking the model repeatedly 'Are you oscillating?'",
+      "orderIndex": 2
+    },
+    {
+      "id": "opt-q-agent-12-d",
+      "body": "By rebooting the server operating system after every 3 turns",
+      "orderIndex": 3
+    }
+  ],
+  "correctOptionId": "opt-q-agent-12-a"
+},
+{
+  "id": "cat-q-llmops-01",
+  "topicId": "topic-llmops",
+  "topicSlug": "llmops-quantization-model-serving",
+  "body": "In high-throughput LLM serving systems (e.g. vLLM), how does PagedAttention eliminate memory fragmentation in the KV-cache?",
+  "explanation": "PagedAttention treats GPU memory like virtual memory pages: it partitions the KV-cache into fixed-size physical blocks (e.g. 16 tokens), mapping virtual token positions to non-contiguous GPU pages via a block table, reducing memory waste from 60-80% down to under 4%.",
+  "difficulty": "HARD",
+  "options": [
+    {
+      "id": "opt-q-llmops-01-a",
+      "body": "It pre-allocates maximum contiguous memory for every request up to 32k tokens",
+      "orderIndex": 0
+    },
+    {
+      "id": "opt-q-llmops-01-b",
+      "body": "It partitions the KV-cache into fixed-size physical blocks in non-contiguous VRAM pages mapped via a block table, eliminating internal and external fragmentation",
+      "orderIndex": 1
+    },
+    {
+      "id": "opt-q-llmops-01-c",
+      "body": "It stores all KV-cache vectors on client browser local storage",
+      "orderIndex": 2
+    },
+    {
+      "id": "opt-q-llmops-01-d",
+      "body": "It converts all transformer attention matrices into dense convolutional filters",
+      "orderIndex": 3
+    }
+  ],
+  "correctOptionId": "opt-q-llmops-01-b"
+},
+{
+  "id": "cat-q-llmops-02",
+  "topicId": "topic-llmops",
+  "topicSlug": "llmops-quantization-model-serving",
+  "body": "Why does Continuous (Iteration-Level) Batching outperform traditional static batching by up to 10x in production LLM inference serving?",
+  "explanation": "Static batching is bottlenecked by the slowest request in the batch, causing GPU cores to sit idle on padded tokens. Continuous batching schedules at the iteration level, immediately admitting waiting requests as soon as any active sequence finishes.",
+  "difficulty": "HARD",
+  "options": [
+    {
+      "id": "opt-q-llmops-02-a",
+      "body": "Because static batching only works on CPU hardware while continuous batching uses GPUs",
+      "orderIndex": 0
+    },
+    {
+      "id": "opt-q-llmops-02-b",
+      "body": "Because continuous batching dynamically evicts completed sequences and admits waiting requests on every token iteration without waiting for the longest request in a batch to finish",
+      "orderIndex": 1
+    },
+    {
+      "id": "opt-q-llmops-02-c",
+      "body": "Because continuous batching skips computing transformer self-attention",
+      "orderIndex": 2
+    },
+    {
+      "id": "opt-q-llmops-02-d",
+      "body": "Because it disables floating-point operations in CUDA kernels",
+      "orderIndex": 3
+    }
+  ],
+  "correctOptionId": "opt-q-llmops-02-b"
+},
+{
+  "id": "cat-q-llmops-03",
+  "topicId": "topic-llmops",
+  "topicSlug": "llmops-quantization-model-serving",
+  "body": "What mathematical insight allows Activation-aware Weight Quantization (AWQ) to preserve reasoning capability at 4-bit precision better than naive uniform quantization?",
+  "explanation": "AWQ identifies salient weight channels that correspond to large activation magnitudes (outliers) on a calibration set, protecting them with per-channel scaling so critical reasoning pathways retain precision.",
+  "difficulty": "HARD",
+  "options": [
+    {
+      "id": "opt-q-llmops-03-a",
+      "body": "It converts all model weights into Huffman-encoded strings",
+      "orderIndex": 0
+    },
+    {
+      "id": "opt-q-llmops-03-b",
+      "body": "It selectively protects the top 1% salient weight channels corresponding to large activation outliers, applying per-channel scaling to minimize output feature distortion",
+      "orderIndex": 1
+    },
+    {
+      "id": "opt-q-llmops-03-c",
+      "body": "It rounds all weights to the nearest power of 2 unconditionally",
+      "orderIndex": 2
+    },
+    {
+      "id": "opt-q-llmops-03-d",
+      "body": "It prunes 90% of model layers during inference",
+      "orderIndex": 3
+    }
+  ],
+  "correctOptionId": "opt-q-llmops-03-b"
+},
+{
+  "id": "cat-q-llmops-04",
+  "topicId": "topic-llmops",
+  "topicSlug": "llmops-quantization-model-serving",
+  "body": "In Speculative Decoding, how does a small draft model accelerate generation latency without compromising the output quality of the target model?",
+  "explanation": "The small draft model rapidly generates K candidate tokens autoregressively; the large target model then verifies all K tokens in a single parallel forward pass, accepting tokens that match its probability distribution and guaranteeing identical output distribution to standalone target generation.",
+  "difficulty": "HARD",
+  "options": [
+    {
+      "id": "opt-q-llmops-04-a",
+      "body": "The draft model replaces the target model completely for all complex questions",
+      "orderIndex": 0
+    },
+    {
+      "id": "opt-q-llmops-04-b",
+      "body": "The target model runs in the background and corrects tokens only after they have been sent to the user",
+      "orderIndex": 1
+    },
+    {
+      "id": "opt-q-llmops-04-c",
+      "body": "The draft model rapidly proposes K speculative tokens, and the target model verifies all K tokens in a single parallel forward pass, preserving exact mathematical equivalence with target model sampling",
+      "orderIndex": 2
+    },
+    {
+      "id": "opt-q-llmops-04-d",
+      "body": "It disables temperature sampling on both models",
+      "orderIndex": 3
+    }
+  ],
+  "correctOptionId": "opt-q-llmops-04-c"
+},
+{
+  "id": "cat-q-llmops-05",
+  "topicId": "topic-llmops",
+  "topicSlug": "llmops-quantization-model-serving",
+  "body": "Why is the autoregressive token decoding phase of an LLM primarily bound by GPU memory bandwidth (Memory-Bound) rather than compute (Compute-Bound)?",
+  "explanation": "During decoding, only 1 new token is processed per forward pass. The GPU must load all billions of model weights and KV-cache tensors from High Bandwidth Memory (HBM) into SRAM just to multiply against a single token vector, yielding a low arithmetic intensity.",
+  "difficulty": "HARD",
+  "options": [
+    {
+      "id": "opt-q-llmops-05-a",
+      "body": "Because floating-point multipliers in GPU Tensor Cores are disabled during single-token generation",
+      "orderIndex": 0
+    },
+    {
+      "id": "opt-q-llmops-05-b",
+      "body": "Because the entire model weight matrix (billions of parameters) must be loaded from GPU memory to compute just one token output, resulting in very low arithmetic intensity",
+      "orderIndex": 1
+    },
+    {
+      "id": "opt-q-llmops-05-c",
+      "body": "Because attention matrices cannot be multiplied on CUDA cores",
+      "orderIndex": 2
+    },
+    {
+      "id": "opt-q-llmops-05-d",
+      "body": "Because Python GIL blocks GPU memory bus transfers",
+      "orderIndex": 3
+    }
+  ],
+  "correctOptionId": "opt-q-llmops-05-b"
+},
+{
+  "id": "cat-q-llmops-06",
+  "topicId": "topic-llmops",
+  "topicSlug": "llmops-quantization-model-serving",
+  "body": "What is the primary requirement for achieving a 90%+ cache hit rate with Prefix Prompt Caching across multi-turn agent sessions?",
+  "explanation": "Prompt caching algorithms (such as Anthropic or vLLM RadixAttention) match exact token sequences starting from index 0. Reordering tools, injecting random IDs, or changing timestamps at the prompt head invalidates the prefix tree for all following tokens.",
+  "difficulty": "MEDIUM",
+  "options": [
+    {
+      "id": "opt-q-llmops-06-a",
+      "body": "Maintaining an identical byte and token prefix sequence from index 0, appending dynamic variables and new turns strictly at the end of the context",
+      "orderIndex": 0
+    },
+    {
+      "id": "opt-q-llmops-06-b",
+      "body": "Inserting the current UTC timestamp as the first word of every request",
+      "orderIndex": 1
+    },
+    {
+      "id": "opt-q-llmops-06-c",
+      "body": "Randomizing the order of tool schema definitions in the system prompt",
+      "orderIndex": 2
+    },
+    {
+      "id": "opt-q-llmops-06-d",
+      "body": "Using different system prompt variations on every turn to test prompt robustness",
+      "orderIndex": 3
+    }
+  ],
+  "correctOptionId": "opt-q-llmops-06-a"
+},
+{
+  "id": "cat-q-ft-01",
+  "topicId": "topic-fine-tuning",
+  "topicSlug": "fine-tuning-lora-rlhf-alignment",
+  "body": "In Low-Rank Adaptation (LoRA), why is pre-trained weight matrix W_0 frozen while only low-rank matrices A and B are trained?",
+  "explanation": "Freezing W_0 eliminates the need to compute or store optimizer states (e.g. 16 bytes per parameter for AdamW) for the base model, reducing training VRAM by over 75% while preventing catastrophic forgetting of foundational pre-training knowledge.",
+  "difficulty": "MEDIUM",
+  "options": [
+    { "id": "opt-q-ft-01-a", "body": "To completely eliminate optimizer state memory overhead for the base model while training a small fraction of parameters", "orderIndex": 0 },
+    { "id": "opt-q-ft-01-b", "body": "Because frozen weights execute twice as fast on CUDA cores", "orderIndex": 1 },
+    { "id": "opt-q-ft-01-c", "body": "To bypass the need for activation forward passes", "orderIndex": 2 },
+    { "id": "opt-q-ft-01-d", "body": "Because floating point numbers cannot be updated in modern GPUs", "orderIndex": 3 }
+  ],
+  "correctOptionId": "opt-q-ft-01-a"
+},
+{
+  "id": "cat-q-ft-02",
+  "topicId": "topic-fine-tuning",
+  "topicSlug": "fine-tuning-lora-rlhf-alignment",
+  "body": "Why must matrix B be initialized to all zeros and matrix A initialized with random Gaussian values in the LoRA equation W + (alpha / r) * (B * A)?",
+  "explanation": "Initializing B to 0 guarantees that Delta W = B * A = 0 at training step 0, ensuring that the model starts training from the exact pre-trained baseline behavior without random output perturbation.",
+  "difficulty": "HARD",
+  "options": [
+    { "id": "opt-q-ft-02-a", "body": "To prevent NaN overflows in softmax denominators", "orderIndex": 0 },
+    { "id": "opt-q-ft-02-b", "body": "To guarantee Delta W is zero at the start of training, preserving the exact pre-trained model outputs prior to gradient updates", "orderIndex": 1 },
+    { "id": "opt-q-ft-02-c", "body": "Because matrix B is never multiplied by input vectors", "orderIndex": 2 },
+    { "id": "opt-q-ft-02-d", "body": "To enforce sparse matrix multiplication in hardware", "orderIndex": 3 }
+  ],
+  "correctOptionId": "opt-q-ft-02-b"
+},
+{
+  "id": "cat-q-ft-03",
+  "topicId": "topic-fine-tuning",
+  "topicSlug": "fine-tuning-lora-rlhf-alignment",
+  "body": "What distinguishes NormalFloat4 (NF4) in QLoRA from standard 4-bit integer quantization (INT4)?",
+  "explanation": "NF4 allocates equal probability intervals to normally distributed neural weights rather than uniform linear intervals, minimizing quantization error and information loss for pre-trained models.",
+  "difficulty": "HARD",
+  "options": [
+    { "id": "opt-q-ft-03-a", "body": "NF4 stores numbers in ASCII format", "orderIndex": 0 },
+    { "id": "opt-q-ft-03-b", "body": "NF4 works strictly on CPUs without tensor cores", "orderIndex": 1 },
+    { "id": "opt-q-ft-03-c", "body": "NF4 is an information-theoretically optimal quantile quantization data type constructed specifically for normally distributed neural network weights", "orderIndex": 2 },
+    { "id": "opt-q-ft-03-d", "body": "NF4 expands 4 bits into 8 bits at runtime", "orderIndex": 3 }
+  ],
+  "correctOptionId": "opt-q-ft-03-c"
+},
+{
+  "id": "cat-q-ft-04",
+  "topicId": "topic-fine-tuning",
+  "topicSlug": "fine-tuning-lora-rlhf-alignment",
+  "body": "During Supervised Fine-Tuning (SFT) of conversational instruction datasets, why is loss masking applied to prompt/instruction tokens?",
+  "explanation": "Loss masking sets the cross-entropy loss target to -100 for user prompt tokens, ensuring gradients are computed strictly over the generated assistant response tokens rather than penalizing the model for predicting user questions.",
+  "difficulty": "MEDIUM",
+  "options": [
+    { "id": "opt-q-ft-04-a", "body": "To prevent the model from memorizing user prompt syntax, concentrating gradient updates strictly on generating accurate assistant completions", "orderIndex": 0 },
+    { "id": "opt-q-ft-04-b", "body": "To reduce token counts sent to the tokenizer", "orderIndex": 1 },
+    { "id": "opt-q-ft-04-c", "body": "Because prompt tokens do not contain semantic information", "orderIndex": 2 },
+    { "id": "opt-q-ft-04-d", "body": "To prevent multi-head attention from attending to previous tokens", "orderIndex": 3 }
+  ],
+  "correctOptionId": "opt-q-ft-04-a"
+},
+{
+  "id": "cat-q-ft-05",
+  "topicId": "topic-fine-tuning",
+  "topicSlug": "fine-tuning-lora-rlhf-alignment",
+  "body": "How does Direct Preference Optimization (DPO) eliminate the need for training a separate reward model in RLHF?",
+  "explanation": "DPO algebraically reparameterizes the reward function using the log-ratio of the policy and reference models, deriving an analytical binary cross-entropy loss directly on paired preferences.",
+  "difficulty": "HARD",
+  "options": [
+    { "id": "opt-q-ft-05-a", "body": "By training the model exclusively on synthetic math benchmarks", "orderIndex": 0 },
+    { "id": "opt-q-ft-05-b", "body": "By deriving a closed-form analytical expression that maps the reward function directly to policy log-ratios, bypassing reward model and value network training", "orderIndex": 1 },
+    { "id": "opt-q-ft-05-c", "body": "By setting learning rate to zero for rejected completions", "orderIndex": 2 },
+    { "id": "opt-q-ft-05-d", "body": "By relying on heuristic regular expressions to score text quality", "orderIndex": 3 }
+  ],
+  "correctOptionId": "opt-q-ft-05-b"
+},
+{
+  "id": "cat-q-ft-06",
+  "topicId": "topic-fine-tuning",
+  "topicSlug": "fine-tuning-lora-rlhf-alignment",
+  "body": "What technique allows combining multiple LoRA adapters trained on different domains (e.g. coding + legal) into a single model without catastrophic interference?",
+  "explanation": "Weight merging via Spherical Linear Interpolation (SLERP) or linear adapter combination blends rank decomposition matrices smoothly without parameter degradation.",
+  "difficulty": "HARD",
+  "options": [
+    { "id": "opt-q-ft-06-a", "body": "Concatenating model vocabularies into an array", "orderIndex": 0 },
+    { "id": "opt-q-ft-06-b", "body": "Re-running SGD from step 0 with all datasets combined", "orderIndex": 1 },
+    { "id": "opt-q-ft-06-c", "body": "Geometric adapter merging (such as SLERP or TIES-Merging) that resolves directional vector interference between independently trained weight deltas", "orderIndex": 2 },
+    { "id": "opt-q-ft-06-d", "body": "Randomly dropping 50% of the weights from each adapter", "orderIndex": 3 }
+  ],
+  "correctOptionId": "opt-q-ft-06-c"
+},
+{
+  "id": "cat-q-mm-01",
+  "topicId": "topic-multimodal-ai",
+  "topicSlug": "multimodal-ai-vision-audio-diffusion",
+  "body": "In a Vision Transformer (ViT), how is a 2D image converted into a sequence of input tokens for self-attention?",
+  "explanation": "The image is partitioned into non-overlapping spatial patches (e.g. 14x14 pixels), flattened into vectors, and projected through a linear layer with 1D learnable position embeddings added.",
+  "difficulty": "EASY",
+  "options": [
+    { "id": "opt-q-mm-01-a", "body": "The image is sliced into a grid of non-overlapping patches (e.g. 14x14 pixels) which are flattened and projected into embedding vectors", "orderIndex": 0 },
+    { "id": "opt-q-mm-01-b", "body": "Every single RGB pixel is treated as an individual token", "orderIndex": 1 },
+    { "id": "opt-q-mm-01-c", "body": "The image is converted into base64 text strings and tokenized with BPE", "orderIndex": 2 },
+    { "id": "opt-q-mm-01-d", "body": "The image is rendered into SVG path commands", "orderIndex": 3 }
+  ],
+  "correctOptionId": "opt-q-mm-01-a"
+},
+{
+  "id": "cat-q-mm-02",
+  "topicId": "topic-multimodal-ai",
+  "topicSlug": "multimodal-ai-vision-audio-diffusion",
+  "body": "What loss function is used in contrastive language-image pretraining (CLIP) to align image and text representations in a shared metric space?",
+  "explanation": "Symmetric InfoNCE loss calculates normalized temperature-scaled cross-entropy over the cosine similarity matrix between image and text batch embeddings, pulling matching pairs together and pushing non-matching pairs apart.",
+  "difficulty": "HARD",
+  "options": [
+    { "id": "opt-q-mm-02-a", "body": "Mean Squared Error over raw pixel values", "orderIndex": 0 },
+    { "id": "opt-q-mm-02-b", "body": "Symmetric InfoNCE loss (temperature-scaled cross-entropy) over batch cosine similarity matrices", "orderIndex": 1 },
+    { "id": "opt-q-mm-02-c", "body": "Binary cross entropy over individual image pixels", "orderIndex": 2 },
+    { "id": "opt-q-mm-02-d", "body": "Hinge loss over bounding box coordinates", "orderIndex": 3 }
+  ],
+  "correctOptionId": "opt-q-mm-02-b"
+},
+{
+  "id": "cat-q-mm-03",
+  "topicId": "topic-multimodal-ai",
+  "topicSlug": "multimodal-ai-vision-audio-diffusion",
+  "body": "Why do modern multimodal architectures (like LLaVA) use a 2-layer MLP projection adapter between the visual encoder and language model?",
+  "explanation": "The 2-layer MLP with non-linear activation (GELU) projects the visual encoder feature dimension into the LLM token dimension, transforming spatial visual features into semantic representations compatible with the text decoder.",
+  "difficulty": "MEDIUM",
+  "options": [
+    { "id": "opt-q-mm-03-a", "body": "Because linear projections cannot execute on GPUs", "orderIndex": 0 },
+    { "id": "opt-q-mm-03-b", "body": "To compress image files into PNG format before generation", "orderIndex": 1 },
+    { "id": "opt-q-mm-03-c", "body": "To project visual feature dimensions into the LLM token embedding space while learning non-linear alignments between visual concepts and linguistic tokens", "orderIndex": 2 },
+    { "id": "opt-q-mm-03-d", "body": "To encrypt visual tokens for privacy compliance", "orderIndex": 3 }
+  ],
+  "correctOptionId": "opt-q-mm-03-c"
+},
+{
+  "id": "cat-q-mm-04",
+  "topicId": "topic-multimodal-ai",
+  "topicSlug": "multimodal-ai-vision-audio-diffusion",
+  "body": "In automatic speech recognition models like Whisper, what preprocessing transformation is applied to raw audio waveforms prior to transformer encoder processing?",
+  "explanation": "Raw 1D audio waveforms are transformed into 80-channel log-magnitude Mel-frequency spectrograms using the Short-Time Fourier Transform (STFT), mimicking human auditory frequency perception.",
+  "difficulty": "MEDIUM",
+  "options": [
+    { "id": "opt-q-mm-04-a", "body": "Converting audio into 80-channel log-magnitude Mel spectrograms via Short-Time Fourier Transform (STFT)", "orderIndex": 0 },
+    { "id": "opt-q-mm-04-b", "body": "Converting audio files directly into MIDI notes", "orderIndex": 1 },
+    { "id": "opt-q-mm-04-c", "body": "Applying MP3 psychoacoustic compression to eliminate frequencies", "orderIndex": 2 },
+    { "id": "opt-q-mm-04-d", "body": "Feeding raw audio samples directly into word piece tokenizers", "orderIndex": 3 }
+  ],
+  "correctOptionId": "opt-q-mm-04-a"
+},
+{
+  "id": "cat-q-mm-05",
+  "topicId": "topic-multimodal-ai",
+  "topicSlug": "multimodal-ai-vision-audio-diffusion",
+  "body": "In Latent Diffusion Models, how does Classifier-Free Guidance (CFG) extrapolate noise predictions to enforce prompt alignment?",
+  "explanation": "CFG computes guided noise as eps_uncond + s * (eps_cond - eps_uncond). When guidance scale s > 1.0, the update pushes generative trajectory along the direction of the prompt condition away from the unconditional baseline.",
+  "difficulty": "HARD",
+  "options": [
+    { "id": "opt-q-mm-05-a", "body": "By applying an external image classifier to score pixels during training", "orderIndex": 0 },
+    { "id": "opt-q-mm-05-b", "body": "By linearly extrapolating between conditional and unconditional noise predictions: eps = eps_uncond + s * (eps_cond - eps_uncond)", "orderIndex": 1 },
+    { "id": "opt-q-mm-05-c", "body": "By multiplying noise latents by the prompt character count", "orderIndex": 2 },
+    { "id": "opt-q-mm-05-d", "body": "By dropping 50% of the attention heads during inference", "orderIndex": 3 }
+  ],
+  "correctOptionId": "opt-q-mm-05-b"
+},
+{
+  "id": "cat-q-mm-06",
+  "topicId": "topic-multimodal-ai",
+  "topicSlug": "multimodal-ai-vision-audio-diffusion",
+  "body": "What is the primary advantage of using a Perceiver Resampler over direct patch concatenation in high-resolution multimodal models?",
+  "explanation": "Direct concatenation can produce thousands of visual tokens (e.g. 576 per image), saturating the LLM context window. A Perceiver Resampler uses learned latent queries and cross-attention to compress arbitrary visual patch grids into a compact, fixed number of tokens (e.g. 64).",
+  "difficulty": "HARD",
+  "options": [
+    { "id": "opt-q-mm-06-a", "body": "It completely eliminates the need for a text decoder", "orderIndex": 0 },
+    { "id": "opt-q-mm-06-b", "body": "It enables models to generate video without training", "orderIndex": 1 },
+    { "id": "opt-q-mm-06-c", "body": "It compresses hundreds or thousands of raw visual patch embeddings into a compact, fixed set of latent tokens via cross-attention, preserving context window capacity", "orderIndex": 2 },
+    { "id": "opt-q-mm-06-d", "body": "It allows images to be stored in CPU L1 cache", "orderIndex": 3 }
+  ],
+  "correctOptionId": "opt-q-mm-06-c"
+},
+{
+  "id": "cat-q-ds-01",
+  "topicId": "topic-distributed-serving",
+  "topicSlug": "distributed-llm-serving-pagedattention",
+  "body": "In autoregressive LLM serving, why does PagedAttention allocate Key-Value (KV) cache memory in non-contiguous fixed-size blocks rather than a single contiguous buffer?",
+  "explanation": "Contiguous allocation requires pre-allocating memory based on the worst-case maximum sequence length, resulting in 60-80% memory waste from internal and external fragmentation. Fixed-size physical blocks with a logical page table virtually eliminate fragmentation, enabling dynamic continuous batching.",
+  "difficulty": "MEDIUM",
+  "options": [
+    { "id": "opt-q-ds-01-a", "body": "To eliminate internal and external memory fragmentation by treating the KV cache as non-contiguous physical pages mapped via a logical page table", "orderIndex": 0 },
+    { "id": "opt-q-ds-01-b", "body": "To allow the GPU kernel to bypass VRAM and read directly from SSD storage", "orderIndex": 1 },
+    { "id": "opt-q-ds-01-c", "body": "To compress model weights using lossy floating-point quantizers", "orderIndex": 2 },
+    { "id": "opt-q-ds-01-d", "body": "To synchronize weights across multiple GPU nodes during backpropagation", "orderIndex": 3 }
+  ],
+  "correctOptionId": "opt-q-ds-01-a"
+},
+{
+  "id": "cat-q-ds-02",
+  "topicId": "topic-distributed-serving",
+  "topicSlug": "distributed-llm-serving-pagedattention",
+  "body": "How does Continuous (iteration-level) Batching differ from traditional Static Batching in high-throughput LLM inference?",
+  "explanation": "Static batching locks the entire batch until the slowest request finishes generating. Continuous batching operates at the iteration level, inserting new requests and evicting completed requests after every single token generation step, maximizing GPU utilization.",
+  "difficulty": "MEDIUM",
+  "options": [
+    { "id": "opt-q-ds-02-a", "body": "Continuous batching requires all sequences in a batch to have identical prompt and output lengths", "orderIndex": 0 },
+    { "id": "opt-q-ds-02-b", "body": "Continuous batching schedules inference at individual token generation iterations, dynamically adding new requests and evicting finished sequences without waiting for the whole batch", "orderIndex": 1 },
+    { "id": "opt-q-ds-02-c", "body": "Continuous batching runs forward passes only once per minute to conserve electricity", "orderIndex": 2 },
+    { "id": "opt-q-ds-02-d", "body": "Continuous batching executes exclusively on CPU threads using AVX-512 instructions", "orderIndex": 3 }
+  ],
+  "correctOptionId": "opt-q-ds-02-b"
+},
+{
+  "id": "cat-q-ds-03",
+  "topicId": "topic-distributed-serving",
+  "topicSlug": "distributed-llm-serving-pagedattention",
+  "body": "In Speculative Decoding, what mathematical rule determines whether a draft token candidate x_i proposed by a small draft model is accepted by the large target model?",
+  "explanation": "A modified rejection sampling rule accepts x_i unconditionally if draft probability q(x_i) <= target probability p(x_i), and accepts with probability p(x_i)/q(x_i) if q(x_i) > p(x_i), rigorously preserving the target model probability distribution.",
+  "difficulty": "HARD",
+  "options": [
+    { "id": "opt-q-ds-03-a", "body": "The token is accepted only if the draft model embedding perfectly matches the target model embedding", "orderIndex": 0 },
+    { "id": "opt-q-ds-03-b", "body": "The token is accepted if the draft model latency is lower than 1 millisecond", "orderIndex": 1 },
+    { "id": "opt-q-ds-03-c", "body": "The token is accepted unconditionally if q(x_i) <= p(x_i), or with probability p(x_i)/q(x_i) if q(x_i) > p(x_i), preserving the exact target model distribution", "orderIndex": 2 },
+    { "id": "opt-q-ds-03-d", "body": "The token is accepted only when temperature is set to infinity", "orderIndex": 3 }
+  ],
+  "correctOptionId": "opt-q-ds-03-c"
+},
+{
+  "id": "cat-q-ds-04",
+  "topicId": "topic-distributed-serving",
+  "topicSlug": "distributed-llm-serving-pagedattention",
+  "body": "What is the primary constraint that limits Tensor Parallelism (TP) to GPUs connected within the same physical node via high-bandwidth interconnects (NVLink)?",
+  "explanation": "Tensor Parallelism splits matrix multiplications across GPUs, requiring an AllReduce collective communication call after every single Transformer layer. The multi-terabyte/sec bandwidth of NVLink is required; high inter-node network latency across switches causes severe pipeline stalls.",
+  "difficulty": "HARD",
+  "options": [
+    { "id": "opt-q-ds-04-a", "body": "Operating system kernels prohibit cross-node networking for machine learning workloads", "orderIndex": 0 },
+    { "id": "opt-q-ds-04-b", "body": "Tensor parallelism requires shared hard drive storage between all compute nodes", "orderIndex": 1 },
+    { "id": "opt-q-ds-04-c", "body": "Matrix multiplications in TP require low-latency AllReduce operations at every transformer layer, making high-bandwidth NVLink mandatory to avoid communication stalls", "orderIndex": 2 },
+    { "id": "opt-q-ds-04-d", "body": "Model weights cannot be mathematically partitioned across more than 2 GPUs", "orderIndex": 3 }
+  ],
+  "correctOptionId": "opt-q-ds-04-c"
+},
+{
+  "id": "cat-q-ds-05",
+  "topicId": "topic-distributed-serving",
+  "topicSlug": "distributed-llm-serving-pagedattention",
+  "body": "Under the ZeRO-3 (Zero Redundancy Optimizer) memory partitioning scheme, how are model parameters managed across data-parallel workers during training?",
+  "explanation": "ZeRO-3 partitions optimizer states, gradients, and model parameters across all data-parallel ranks. During forward and backward passes, each rank dynamically fetches the required layer weights on-the-fly using an AllGather collective and discards them immediately after computation.",
+  "difficulty": "HARD",
+  "options": [
+    { "id": "opt-q-ds-05-a", "body": "Parameters are saved to disk before each batch and read back into CPU RAM", "orderIndex": 0 },
+    { "id": "opt-q-ds-05-b", "body": "Parameters are sharded across all ranks; each GPU dynamically fetches required layer weights via AllGather right before computation and immediately releases them", "orderIndex": 1 },
+    { "id": "opt-q-ds-05-c", "body": "Parameters are permanently duplicated across every single GPU in the cluster", "orderIndex": 2 },
+    { "id": "opt-q-ds-05-d", "body": "Parameters are converted into 1-bit integers and broadcast via UDP broadcast packets", "orderIndex": 3 }
+  ],
+  "correctOptionId": "opt-q-ds-05-b"
+},
+{
+  "id": "cat-q-ds-06",
+  "topicId": "topic-distributed-serving",
+  "topicSlug": "distributed-llm-serving-pagedattention",
+  "body": "Why does FlashAttention drastically accelerate attention computations while strictly preserving exact mathematical outputs?",
+  "explanation": "FlashAttention tiles the Key, Value, and Query matrices into fast on-chip SRAM blocks and computes Softmax incrementally using online normalizers, avoiding costly reading and writing of intermediate N x N attention matrices to high-bandwidth memory (HBM).",
+  "difficulty": "HARD",
+  "options": [
+    { "id": "opt-q-ds-06-a", "body": "It approximates attention by randomly pruning 90% of the query vectors", "orderIndex": 0 },
+    { "id": "opt-q-ds-06-b", "body": "It replaces matrix multiplication with Fourier transforms in the frequency domain", "orderIndex": 1 },
+    { "id": "opt-q-ds-06-c", "body": "It quantizes all activation vectors to 2-bit integers during inference", "orderIndex": 2 },
+    { "id": "opt-q-ds-06-d", "body": "It tiles attention computation to fit into fast on-chip GPU SRAM and uses online Softmax normalization to eliminate redundant HBM memory read/write roundtrips", "orderIndex": 3 }
+  ],
+  "correctOptionId": "opt-q-ds-06-d"
+},
+{
+  "id": "cat-q-cai-01",
+  "topicId": "topic-compound-ai",
+  "topicSlug": "compound-ai-systems-multi-agent",
+  "body": "Why do Compound AI Systems (orchestrated workflows of specialized models, retrieval engines, and tools) generally outperform single monolithic LLMs on complex enterprise tasks?",
+  "explanation": "Compound systems decompose multi-step tasks into specialized sub-problems with isolated context windows, deterministic validation gates, and dynamic routing, preventing error compounding and context degradation that plague monolithic models.",
+  "difficulty": "MEDIUM",
+  "options": [
+    { "id": "opt-q-cai-01-a", "body": "They decompose complex problems into modular steps with dedicated prompt scopes, domain-specialized models, and deterministic verification checkpoints", "orderIndex": 0 },
+    { "id": "opt-q-cai-01-b", "body": "They execute all queries in parallel without any coordination or shared state", "orderIndex": 1 },
+    { "id": "opt-q-cai-01-c", "body": "They eliminate the need for GPU accelerators by running on database triggers", "orderIndex": 2 },
+    { "id": "opt-q-cai-01-d", "body": "They always consume fewer total tokens regardless of workflow complexity", "orderIndex": 3 }
+  ],
+  "correctOptionId": "opt-q-cai-01-a"
+},
+{
+  "id": "cat-q-cai-02",
+  "topicId": "topic-compound-ai",
+  "topicSlug": "compound-ai-systems-multi-agent",
+  "body": "In an autonomous multi-agent hierarchy (Supervisor-Worker pattern), what is the primary role of the supervisory orchestrator?",
+  "explanation": "The supervisor parses user intent into a Directed Acyclic Graph (DAG) of subtasks, selects and delegates tasks to specialized worker agents, validates intermediate outputs against schemas, and aggregates the final response.",
+  "difficulty": "MEDIUM",
+  "options": [
+    { "id": "opt-q-cai-02-a", "body": "To execute database SQL queries directly in the user browser", "orderIndex": 0 },
+    { "id": "opt-q-cai-02-b", "body": "To decompose intent into an actionable execution graph, delegate subtasks to specialized agents, validate deliverables, and manage global state transitions", "orderIndex": 1 },
+    { "id": "opt-q-cai-02-c", "body": "To train base neural network checkpoints from scratch", "orderIndex": 2 },
+    { "id": "opt-q-cai-02-d", "body": "To replace all deterministic software logic with unconstrained prompt loops", "orderIndex": 3 }
+  ],
+  "correctOptionId": "opt-q-cai-02-b"
+},
+{
+  "id": "cat-q-cai-03",
+  "topicId": "topic-compound-ai",
+  "topicSlug": "compound-ai-systems-multi-agent",
+  "body": "How does a Semantic Router optimize cost and latency in a production compound AI architecture?",
+  "explanation": "A semantic router compares the vector embedding of an incoming query against cluster centroids or classification classifiers, routing simple queries to cached results or small fast models and complex queries to multi-agent reasoning pipelines.",
+  "difficulty": "MEDIUM",
+  "options": [
+    { "id": "opt-q-cai-03-a", "body": "By compressing network packets using gzip before HTTP transport", "orderIndex": 0 },
+    { "id": "opt-q-cai-03-b", "body": "By enforcing DNS routing to geographically nearest data centers", "orderIndex": 1 },
+    { "id": "opt-q-cai-03-c", "body": "By classifying query intent via vector similarity against routing centroids, sending simple queries to cheap low-latency models and difficult queries to reasoning pipelines", "orderIndex": 2 },
+    { "id": "opt-q-cai-03-d", "body": "By rewriting user prompts into SQL database stored procedures", "orderIndex": 3 }
+  ],
+  "correctOptionId": "opt-q-cai-03-c"
+},
+{
+  "id": "cat-q-cai-04",
+  "topicId": "topic-compound-ai",
+  "topicSlug": "compound-ai-systems-multi-agent",
+  "body": "In multi-agent collaborative workflows, what mechanism is critical to prevent runaway infinite conversational loops between communicating agents?",
+  "explanation": "Deterministic termination invariants, maximum recursion step bounds (e.g. max 10 steps), strict token budget counters, and cycle-detection hash graphs prevent agents from infinitely chatting or repeating failed tool calls.",
+  "difficulty": "MEDIUM",
+  "options": [
+    { "id": "opt-q-cai-04-a", "body": "Allowing agents to communicate indefinitely until the cloud provider shuts down the VM", "orderIndex": 0 },
+    { "id": "opt-q-cai-04-b", "body": "Restarting the entire application server after every 3 agent messages", "orderIndex": 1 },
+    { "id": "opt-q-cai-04-c", "body": "Removing system prompts from all communicating subagents", "orderIndex": 2 },
+    { "id": "opt-q-cai-04-d", "body": "Enforcing deterministic step bounds, token budget ceilings, state hashing for cycle detection, and explicit termination predicates", "orderIndex": 3 }
+  ],
+  "correctOptionId": "opt-q-cai-04-d"
+},
+{
+  "id": "cat-q-cai-05",
+  "topicId": "topic-compound-ai",
+  "topicSlug": "compound-ai-systems-multi-agent",
+  "body": "What is the purpose of canary tokens in securing autonomous enterprise LLM agent workflows?",
+  "explanation": "Canary tokens are unique cryptographic random strings injected into private system prompts or protected context. If a canary token appears in outbound agent outputs or tool arguments, the system instantly detects prompt extraction or data leakage and terminates execution.",
+  "difficulty": "HARD",
+  "options": [
+    { "id": "opt-q-cai-05-a", "body": "Canary tokens measure GPU clock speeds during tensor operations", "orderIndex": 0 },
+    { "id": "opt-q-cai-05-b", "body": "Canary tokens are unique cryptographic secrets placed in protected system contexts that trigger instant security termination if leaked into model outputs", "orderIndex": 1 },
+    { "id": "opt-q-cai-05-c", "body": "Canary tokens convert floating-point tensors into integer values", "orderIndex": 2 },
+    { "id": "opt-q-cai-05-d", "body": "Canary tokens authenticate API users with multi-factor biometric scanning", "orderIndex": 3 }
+  ],
+  "correctOptionId": "opt-q-cai-05-b"
+},
+{
+  "id": "cat-q-cai-06",
+  "topicId": "topic-compound-ai",
+  "topicSlug": "compound-ai-systems-multi-agent",
+  "body": "In multi-agent systems, how does consensus voting (e.g. majority agreement or debate protocol) mitigate individual agent hallucination?",
+  "explanation": "By having independent agent instances with diverse prompts or stochastic temperatures generate solutions and voting on normalized outputs, uncorrelated individual hallucinations are mathematically filtered out, substantially increasing task reliability.",
+  "difficulty": "HARD",
+  "options": [
+    { "id": "opt-q-cai-06-a", "body": "It forces all agents to use the exact same random seed so outputs are identical", "orderIndex": 0 },
+    { "id": "opt-q-cai-06-b", "body": "It converts natural language outputs into binary machine code", "orderIndex": 1 },
+    { "id": "opt-q-cai-06-c", "body": "It samples candidate solutions from independent agents and aggregates consensus via majority voting or debate filtering, canceling out uncorrelated hallucinations", "orderIndex": 2 },
+    { "id": "opt-q-cai-06-d", "body": "It deletes conflicting responses from the database without validation", "orderIndex": 3 }
+  ],
+  "correctOptionId": "opt-q-cai-06-c"
+},
+{
+  "id": "cat-q-rag-adv-01",
+  "topicId": "topic-agentic-rag",
+  "topicSlug": "agentic-rag-vector-graph-databases",
+  "body": "In Self-Reflective Retrieval-Augmented Generation (Self-RAG), how does the generator model dynamically decide whether external document retrieval is necessary for answering a prompt?",
+  "explanation": "Self-RAG trains the generator with special reflection tokens (e.g. [Retrieve] vs [NoRetrieve]). During generation, when the model emits [Retrieve], the system triggers vector retrieval; otherwise, it answers directly from parametric weights, optimizing latency and reducing hallucination.",
+  "difficulty": "MEDIUM",
+  "options": [
+    { "id": "opt-rag-adv-01-a", "body": "By running a separate sentiment analysis classifier on the prompt before generating tokens", "orderIndex": 0 },
+    { "id": "opt-rag-adv-01-b", "body": "By emitting special reflection tokens (such as [Retrieve] vs [NoRetrieve]) sampled directly during generation, triggering retrieval only when parametric confidence requires external grounding", "orderIndex": 1 },
+    { "id": "opt-rag-adv-01-c", "body": "By querying all available vector databases unconditionally on every token step", "orderIndex": 2 },
+    { "id": "opt-rag-adv-01-d", "body": "By inspecting the user IP address against an allowlist of database endpoints", "orderIndex": 3 }
+  ],
+  "correctOptionId": "opt-rag-adv-01-b"
+},
+{
+  "id": "cat-q-rag-adv-02",
+  "topicId": "topic-agentic-rag",
+  "topicSlug": "agentic-rag-vector-graph-databases",
+  "body": "In GraphRAG, why is hierarchical community detection (such as the Leiden algorithm) executed on the knowledge graph before query time?",
+  "explanation": "Leiden community detection clusters densely connected entity nodes into hierarchical semantic communities. Pre-generating multi-level community summaries enables global summary queries (e.g., 'What are the primary recurring architectural bottlenecks across all incident reports?') that standard dense vector similarity search misses due to point-to-point retrieval blindness.",
+  "difficulty": "HARD",
+  "options": [
+    { "id": "opt-rag-adv-02-a", "body": "To compress node weights so they fit into the L1 CPU cache", "orderIndex": 0 },
+    { "id": "opt-rag-adv-02-b", "body": "To convert all graph relations into tabular CSV files for relational joins", "orderIndex": 1 },
+    { "id": "opt-rag-adv-02-c", "body": "To partition the graph into hierarchical semantic communities whose pre-summarized reports answer global corpus-wide queries that vector similarity alone cannot resolve", "orderIndex": 2 },
+    { "id": "opt-rag-adv-02-d", "body": "To eliminate the need for embedding models and vector index structures", "orderIndex": 3 }
+  ],
+  "correctOptionId": "opt-rag-adv-02-c"
+},
+{
+  "id": "cat-q-rag-adv-03",
+  "topicId": "topic-agentic-rag",
+  "topicSlug": "agentic-rag-vector-graph-databases",
+  "body": "How does Corrective RAG (CRAG) handle ambiguous or low-confidence retrieval results when the retrieval evaluator scores document relevance below a designated threshold?",
+  "explanation": "CRAG uses a lightweight retrieval evaluator. If the retrieved documents are determined to be irrelevant or fall into the ambiguous confidence interval, the system triggers corrective actions such as query rewriting and fallback searches to collect complementary context before synthesis.",
+  "difficulty": "HARD",
+  "options": [
+    { "id": "opt-rag-adv-03-a", "body": "It triggers query reformulations and fallback searches (such as real-time web search) to collect complementary context before synthesis", "orderIndex": 0 },
+    { "id": "opt-rag-adv-03-b", "body": "It drops the temperature of the model to zero and returns an empty response", "orderIndex": 1 },
+    { "id": "opt-rag-adv-03-c", "body": "It immediately discards the prompt and terminates the client connection", "orderIndex": 2 },
+    { "id": "opt-rag-adv-03-d", "body": "It re-embeds the entire vector index using a different random seed", "orderIndex": 3 }
+  ],
+  "correctOptionId": "opt-rag-adv-03-a"
+},
+{
+  "id": "cat-q-rag-adv-04",
+  "topicId": "topic-agentic-rag",
+  "topicSlug": "agentic-rag-vector-graph-databases",
+  "body": "In vector databases, what is the primary algorithmic benefit of Hierarchical Navigable Small World (HNSW) graphs over flat inverted file indexing (IVFFlat)?",
+  "explanation": "HNSW constructs a multi-layer graph where upper layers have long-range skip edges and lower layers have short-range dense edges, achieving O(log N) approximate nearest neighbor search time with high recall without requiring centroid retraining.",
+  "difficulty": "MEDIUM",
+  "options": [
+    { "id": "opt-rag-adv-04-a", "body": "HNSW requires zero RAM and writes all vector coordinates directly to disk blocks", "orderIndex": 0 },
+    { "id": "opt-rag-adv-04-b", "body": "HNSW converts high-dimensional float32 vectors into 1-bit boolean masks automatically", "orderIndex": 1 },
+    { "id": "opt-rag-adv-04-c", "body": "HNSW guarantees 100% exact mathematical Euclidean distance without approximation", "orderIndex": 2 },
+    { "id": "opt-rag-adv-04-d", "body": "HNSW achieves O(log N) search latency with high recall through multi-layer skip graphs without requiring centroid retraining", "orderIndex": 3 }
+  ],
+  "correctOptionId": "opt-rag-adv-04-d"
+},
+{
+  "id": "cat-q-rag-adv-05",
+  "topicId": "topic-agentic-rag",
+  "topicSlug": "agentic-rag-vector-graph-databases",
+  "body": "Why is a two-stage retrieval pipeline (Bi-Encoder retrieval followed by Cross-Encoder reranking) standard practice in enterprise RAG systems?",
+  "explanation": "Bi-encoders compute independent document vectors offline for fast sub-millisecond approximate nearest neighbor (ANN) retrieval of candidate documents (e.g. top 100). The Cross-Encoder then performs full token-to-token all-pairs cross-attention across the query and candidate passages for the top-k (e.g. top 5), providing superior semantic scoring at manageable computational cost.",
+  "difficulty": "HARD",
+  "options": [
+    { "id": "opt-rag-adv-05-a", "body": "Bi-encoders are too accurate and need Cross-encoders to add stochastic noise", "orderIndex": 0 },
+    { "id": "opt-rag-adv-05-b", "body": "Bi-encoders allow fast approximate retrieval across millions of pre-indexed vectors, while Cross-encoders perform joint cross-attention scoring on the top candidate subset for maximum precision", "orderIndex": 1 },
+    { "id": "opt-rag-adv-05-c", "body": "Cross-encoders compress embeddings to eliminate storage costs on disk", "orderIndex": 2 },
+    { "id": "opt-rag-adv-05-d", "body": "Bi-encoders only support English while Cross-encoders support multilingual queries", "orderIndex": 3 }
+  ],
+  "correctOptionId": "opt-rag-adv-05-b"
+},
+{
+  "id": "cat-q-rag-adv-06",
+  "topicId": "topic-agentic-rag",
+  "topicSlug": "agentic-rag-vector-graph-databases",
+  "body": "How does contextual compression or sentence-window retrieval alleviate the 'Lost-in-the-Middle' phenomenon in long-context RAG generation?",
+  "explanation": "Long-context LLMs exhibit degraded recall when critical factual nuggets are placed in the middle of large context windows. Contextual compression and sentence-window retrieval extract only the specific high-relevance sentences surrounding matched tokens, filtering extraneous noise and maximizing generator attention focus.",
+  "difficulty": "MEDIUM",
+  "options": [
+    { "id": "opt-rag-adv-06-a", "body": "By duplicating the middle tokens twenty times to amplify their attention logits", "orderIndex": 0 },
+    { "id": "opt-rag-adv-06-b", "body": "By reversing the chronological order of tokens in the prompt before feeding the transformer", "orderIndex": 1 },
+    { "id": "opt-rag-adv-06-c", "body": "By extracting concise, high-salience sentence windows around matched entities and filtering distracting text, preventing critical evidence from being obscured in large context windows", "orderIndex": 2 },
+    { "id": "opt-rag-adv-06-d", "body": "By forcing the model to run without key-value caching", "orderIndex": 3 }
+  ],
+  "correctOptionId": "opt-rag-adv-06-c"
+},
+{
+  "id": "cat-q-eval-01",
+  "topicId": "topic-ai-evals",
+  "topicSlug": "synthetic-data-distillation-evals",
+  "body": "In synthetic instruction dataset generation, what is the core mechanism of the Evol-Instruct algorithm?",
+  "explanation": "Evol-Instruct prompts a teacher model to iteratively mutate seed instructions across specific evolutionary axes—such as deepening constraints, adding multi-step reasoning, concretizing abstract concepts, or complicating inputs—to create high-complexity instruction-tuning datasets automatically.",
+  "difficulty": "MEDIUM",
+  "options": [
+    { "id": "opt-eval-01-a", "body": "Training an adversarial discriminator to delete duplicate tokens from text", "orderIndex": 0 },
+    { "id": "opt-eval-01-b", "body": "Running random character swaps and typos to stress-test tokenizers", "orderIndex": 1 },
+    { "id": "opt-eval-01-c", "body": "Generating synthetic data exclusively using rule-based regular expressions", "orderIndex": 2 },
+    { "id": "opt-eval-01-d", "body": "Mutating seed instructions along directed complexity dimensions (deepening constraints, concretizing, multi-step chaining) to systematically increase dataset difficulty and diversity", "orderIndex": 3 }
+  ],
+  "correctOptionId": "opt-eval-01-d"
+},
+{
+  "id": "cat-q-eval-02",
+  "topicId": "topic-ai-evals",
+  "topicSlug": "synthetic-data-distillation-evals",
+  "body": "Why is execution-grounded sandbox verification essential when constructing synthetic training datasets for autonomous coding models?",
+  "explanation": "Large language models frequently generate plausible-looking code that contains subtle runtime errors, edge-case failures, or infinite loops. Execution-grounded validation runs candidate code in an isolated sandbox against automated unit tests and linter suites, filtering out hallucinated solutions and ensuring only verified correct trajectories enter training sets.",
+  "difficulty": "HARD",
+  "options": [
+    { "id": "opt-eval-02-a", "body": "It compiles and executes generated code in a secure sandbox against test suites, ensuring only empirically correct solutions and verified execution traces are retained", "orderIndex": 0 },
+    { "id": "opt-eval-02-b", "body": "It checks whether the code uses tab indentations rather than spaces", "orderIndex": 1 },
+    { "id": "opt-eval-02-c", "body": "It converts all Python scripts into C++ to verify compilation speed", "orderIndex": 2 },
+    { "id": "opt-eval-02-d", "body": "It ensures that no code is longer than 50 lines", "orderIndex": 3 }
+  ],
+  "correctOptionId": "opt-eval-02-a"
+},
+{
+  "id": "cat-q-eval-03",
+  "topicId": "topic-ai-evals",
+  "topicSlug": "synthetic-data-distillation-evals",
+  "body": "When employing an LLM-as-a-Judge to evaluate pairwise model responses, what technique effectively mitigates position bias (preference for the first response)?",
+  "explanation": "Position bias causes evaluator models to favor whichever candidate response appears first. Swap-order evaluation evaluates both permutations ([A, B] and [B, A]), declaring a winner only if consistent across both orderings, or averaging the swapped scores to neutralize positional asymmetry.",
+  "difficulty": "HARD",
+  "options": [
+    { "id": "opt-eval-03-a", "body": "Always placing the larger model response in position A", "orderIndex": 0 },
+    { "id": "opt-eval-03-b", "body": "Evaluating pairs bidirectionally (swapping presentation order between Candidate A and Candidate B) and verifying consistency or averaging scores", "orderIndex": 1 },
+    { "id": "opt-eval-03-c", "body": "Truncating both responses to exactly 10 words before evaluation", "orderIndex": 2 },
+    { "id": "opt-eval-03-d", "body": "Using a single high-temperature evaluation pass without system prompts", "orderIndex": 3 }
+  ],
+  "correctOptionId": "opt-eval-03-b"
+},
+{
+  "id": "cat-q-eval-04",
+  "topicId": "topic-ai-evals",
+  "topicSlug": "synthetic-data-distillation-evals",
+  "body": "In knowledge distillation from a frontier teacher model to a compact student model, what role does temperature scaling (T) play in soft target probability calculation?",
+  "explanation": "Raising temperature T > 1 in the softmax formula softens the probability distribution over the vocabulary. This reveals 'dark knowledge'—the teacher's relative confidence across non-target tokens—allowing the student to learn nuanced semantic relationships beyond one-hot hard labels.",
+  "difficulty": "MEDIUM",
+  "options": [
+    { "id": "opt-eval-04-a", "body": "Temperature scaling softens the logit distribution, exposing the teacher's nuanced relative confidence over non-target tokens ('dark knowledge') for the student to match via KL-divergence", "orderIndex": 0 },
+    { "id": "opt-eval-04-b", "body": "Temperature scaling forces all student logits to zero for faster backpropagation", "orderIndex": 1 },
+    { "id": "opt-eval-04-c", "body": "Temperature scaling eliminates the need for forward passes through the student network", "orderIndex": 2 },
+    { "id": "opt-eval-04-d", "body": "Temperature scaling converts floating-point weights into integer indices", "orderIndex": 3 }
+  ],
+  "correctOptionId": "opt-eval-04-a"
+},
+{
+  "id": "cat-q-eval-05",
+  "topicId": "topic-ai-evals",
+  "topicSlug": "synthetic-data-distillation-evals",
+  "body": "What is egocentric (self-enhancement) bias in automated LLM-as-a-Judge evaluation setups, and how is it mitigated?",
+  "explanation": "Models acting as judges systematically assign higher scores to responses generated by themselves or models within their own family, due to familiarity with their own token probability distributions and stylometric patterns. Using diverse multi-judge ensembles from distinct model families mitigates egocentric bias.",
+  "difficulty": "HARD",
+  "options": [
+    { "id": "opt-eval-05-a", "body": "Judges preferring responses written in all capital letters", "orderIndex": 0 },
+    { "id": "opt-eval-05-b", "body": "Judges crashing when evaluating markdown tables", "orderIndex": 1 },
+    { "id": "opt-eval-05-c", "body": "A judge model assigning systematically inflated ratings to outputs generated by itself or same-family models, mitigated by employing multi-model panel ensembles with distinct architectures", "orderIndex": 2 },
+    { "id": "opt-eval-05-d", "body": "Evaluator models refusing to score responses that contain mathematical formulas", "orderIndex": 3 }
+  ],
+  "correctOptionId": "opt-eval-05-c"
+},
+{
+  "id": "cat-q-eval-06",
+  "topicId": "topic-ai-evals",
+  "topicSlug": "synthetic-data-distillation-evals",
+  "body": "In continuous integration for enterprise LLM systems, what is a golden evaluation test harness and why is it preferred over static keyword matching?",
+  "explanation": "A golden eval harness pairs representative, real-world user queries with curated reference outputs, evaluation rubrics, and automated multi-metric judges (faithfulness, answer relevance, semantic similarity, safety). It catches subtle model regression, prompt degradation, or retrieval drift that brittle string matching misses.",
+  "difficulty": "HARD",
+  "options": [
+    { "id": "opt-eval-06-a", "body": "A script that checks whether git commits have signed PGP keys", "orderIndex": 0 },
+    { "id": "opt-eval-06-b", "body": "A tool that validates whether JSON files contain valid closing braces", "orderIndex": 1 },
+    { "id": "opt-eval-06-c", "body": "An automated bot that responds to customer emails with canned templates", "orderIndex": 2 },
+    { "id": "opt-eval-06-d", "body": "A curated benchmark of real-world scenarios, rubrics, and programmatic evaluators measuring semantic accuracy and faithfulness to detect performance regressions across model or prompt updates", "orderIndex": 3 }
+  ],
+  "correctOptionId": "opt-eval-06-d"
+}
 ];

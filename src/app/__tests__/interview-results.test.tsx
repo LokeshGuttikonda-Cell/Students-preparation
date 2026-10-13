@@ -91,7 +91,7 @@ describe('InterviewResultsPage', () => {
         screen.getByText(/Cloud & DevOps Engineer Performance Evaluation/i),
       ).toBeDefined();
       expect(
-        screen.getByText('✓ Technical Screening Cleared'),
+        screen.getByText(/Technical Screening Cleared/i),
       ).toBeDefined();
     });
 
@@ -272,7 +272,7 @@ describe('InterviewResultsPage', () => {
     expect(within(hud!).getByText('Turn #2')).toBeDefined();
     expect(within(hud!).getByText('Turn #4')).toBeDefined();
     expect(within(hud!).getByText(/2 fillers/i)).toBeDefined();
-    expect(within(hud!).getByText(/✓ 0 fillers/i)).toBeDefined();
+    expect(within(hud!).getByText(/0 fillers/i)).toBeDefined();
     expect(within(hud!).getByText(/exemplary technical eloquence/i)).toBeDefined();
   });
 });

@@ -9,8 +9,16 @@ import {
   startMockTestSession,
   type MockTestItem,
 } from '../../../lib/mock-test-client';
-import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
+import {
+  Sparkles,
+  ArrowRight,
+  Clock,
+  AlertCircle,
+  Search,
+  X,
+  Sliders,
+} from 'lucide-react';
 
 export default function MockTestsCatalogPage() {
   const router = useRouter();
@@ -92,70 +100,78 @@ export default function MockTestsCatalogPage() {
     <div className="min-h-dvh flex flex-col bg-canvas text-text">
       {/* Main Content */}
       <main className="flex-1 max-w-content mx-auto px-6 py-10 w-full space-y-8">
-        <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-wider text-accent-700">
-            Real Exam Simulation
-          </p>
-          <h1 className="text-3xl font-bold tracking-tight text-primary-900">
+        <div className="space-y-2 border-b border-white/10 pb-6">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-lime-400 bg-lime-400/10 px-2.5 py-0.5 rounded-full border border-lime-400/20 inline-block">
+              17 TIMED MOCK ASSESSMENTS
+            </span>
+            <span className="text-xs font-mono text-slate-400">NEGATIVE MARKING • REALISTIC BENCHMARKS</span>
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-display font-extrabold tracking-tight text-white">
             Timed Mock Assessments
           </h1>
-          <p className="text-base text-text-muted max-w-2xl">
+          <p className="text-xs sm:text-sm text-slate-300 max-w-2xl font-mono">
             Simulate real role-based technical screening assessments under strict server countdown timers.
             Answer questions across multiple competency sections with negative marking evaluation.
           </p>
         </div>
 
         {/* Custom Simulation Generator Banner */}
-        <Card className="bg-primary-900 text-white p-6 border-0 shadow-md relative overflow-hidden">
+        <div className="bento-tile bg-gradient-to-r from-[#071324] via-[#0b1b33] to-[#040b17] border-lime-500/30 p-6 sm:p-7 relative overflow-hidden featured-glow">
+          <div className="absolute -right-12 -top-12 w-48 h-48 bg-lime-400/10 rounded-full blur-2xl pointer-events-none" />
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="space-y-1.5 max-w-xl">
-              <span className="text-xs font-bold uppercase tracking-wider text-accent-300">
-                ⚡ Build Your Own Mock
+            <div className="space-y-2 max-w-xl">
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-wider text-lime-300 bg-lime-400/20 px-3 py-1 rounded-full border border-lime-400/30">
+                <Sparkles className="w-3.5 h-3.5 text-lime-400" />
+                Build Your Own Mock
               </span>
-              <h2 className="text-xl font-bold text-white">Custom Simulation Generator</h2>
-              <p className="text-sm text-primary-100">
+              <h2 className="text-2xl font-display font-extrabold text-white tracking-tight">Custom Simulation Generator</h2>
+              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-sans">
                 Configure an on-demand timed assessment for your target tech stack. Pick topics, duration, difficulty, and question counts to target specific interview requirements.
               </p>
             </div>
             <Link href="/mock-tests/custom" className="shrink-0">
-              <Button variant="primary" className="bg-white text-primary-900 hover:bg-neutral-100 font-bold border-0">
-                Launch Customizer &rarr;
+              <Button variant="primary" size="lg" className="font-bold flex items-center gap-2 shadow-lg shadow-lime-400/25">
+                <Sliders className="w-4 h-4 text-slate-950" />
+                <span>Launch Customizer</span>
+                <ArrowRight className="w-4 h-4 text-slate-950" />
               </Button>
             </Link>
           </div>
-        </Card>
+        </div>
 
         {/* Search & Filter Controls */}
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
             <div className="relative flex-1 max-w-md">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 placeholder="Search assessments by role, title, or topic..."
                 value={searchQuery}
                 aria-label="Search assessments"
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-4 py-2.5 text-sm bg-surface border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent transition-all placeholder:text-text-muted"
+                className="w-full pl-10 pr-9 py-2.5 text-xs sm:text-sm bg-black/50 border border-white/10 rounded-xl focus:outline-none focus:border-lime-400 transition-all placeholder:text-slate-500 text-white font-mono"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
                   aria-label="Clear search"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-text-muted hover:text-text px-1.5 py-0.5 rounded"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 hover:text-white p-1 rounded-md hover:bg-white/5 transition-colors"
                 >
-                  ✕
+                  <X className="w-3.5 h-3.5" />
                 </button>
               )}
             </div>
 
-            <div className="text-xs text-text-muted self-center sm:self-auto font-medium">
+            <div className="text-xs text-slate-400 self-center sm:self-auto font-mono">
               Showing {filteredMockTests.length} of {mockTests.length} assessments
             </div>
           </div>
 
           {/* Category Filter Chips */}
-          <div className="flex flex-wrap gap-2 pt-1" role="tablist" aria-label="Assessment Categories">
+          <div className="flex flex-wrap gap-2 pt-1 font-mono" role="tablist" aria-label="Assessment Categories">
             {categories.map((cat) => {
               const count = mockTests.filter((t) => matchesCategory(t, cat.id)).length;
               const isActive = selectedCategory === cat.id;
@@ -166,10 +182,10 @@ export default function MockTestsCatalogPage() {
                   role="tab"
                   aria-selected={isActive}
                   onClick={() => setSelectedCategory(cat.id)}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-full transition-all border ${
+                  className={`px-3 py-1.5 text-xs font-medium rounded-xl transition-all border ${
                     isActive
-                      ? 'bg-primary-900 text-white border-primary-900 shadow-xs'
-                      : 'bg-surface text-text-muted border-border hover:border-primary-600/40 hover:text-text'
+                      ? 'bg-lime-400 text-slate-950 font-bold border-lime-400 shadow-md shadow-lime-400/20'
+                      : 'bg-black/40 text-slate-300 border-white/10 hover:border-lime-400/40 hover:text-white'
                   }`}
                 >
                   {cat.label} ({count})
@@ -180,26 +196,27 @@ export default function MockTestsCatalogPage() {
         </div>
 
         {error && (
-          <div className="p-4 bg-error-50 border border-error-500/30 text-error-700 rounded-lg text-sm">
+          <div className="p-4 bg-rose-950/30 border border-rose-500/40 text-rose-300 rounded-2xl text-sm font-mono">
             {error}
           </div>
         )}
 
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
-            <div className="w-8 h-8 border-3 border-primary-700 border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-3 border-lime-400 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : filteredMockTests.length === 0 ? (
-          <Card className="p-12 text-center text-text-muted space-y-4">
-            <p className="text-base font-medium text-text">
+          <div className="bento-tile p-12 text-center text-slate-400 space-y-4">
+            <p className="text-base font-medium text-white">
               No mock assessments match your current filters.
             </p>
-            <p className="text-xs text-text-muted max-w-sm mx-auto">
+            <p className="text-xs text-slate-400 max-w-sm mx-auto">
               Try modifying your search keywords or resetting your category filter to explore all available role assessments.
             </p>
             <Button
               variant="secondary"
               size="sm"
+              className="font-mono text-xs"
               onClick={() => {
                 setSearchQuery('');
                 setSelectedCategory('ALL');
@@ -207,50 +224,52 @@ export default function MockTestsCatalogPage() {
             >
               Reset Filters
             </Button>
-          </Card>
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {filteredMockTests.map((test) => (
-              <Card
+              <div
                 key={test.id}
-                className="hover:border-primary-700/50 hover:shadow-md transition-all flex flex-col justify-between p-6"
+                className="bento-tile hover:border-lime-400/40 hover:shadow-lg hover:shadow-lime-400/10 transition-all flex flex-col justify-between p-6 space-y-4"
               >
                 <div className="space-y-4">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-bold uppercase tracking-wider text-primary-700 bg-primary-50 px-2.5 py-1 rounded">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-mono font-bold uppercase tracking-wider text-lime-300 bg-lime-400/20 px-2.5 py-1 rounded-full border border-lime-400/30">
+                      <Clock className="w-3.5 h-3.5 text-lime-400" />
                       {test.durationMinutes} Minutes
                     </span>
                     {test.negativeMarking ? (
-                      <span className="text-xs font-semibold text-error-600 bg-error-50 px-2 py-0.5 rounded">
+                      <span className="inline-flex items-center gap-1 text-xs font-mono font-semibold text-rose-300 bg-rose-400/20 px-2.5 py-0.5 rounded-full border border-rose-400/30">
+                        <AlertCircle className="w-3.5 h-3.5 text-rose-400" />
                         -{test.negativeMarking} Neg Marking
                       </span>
                     ) : (
-                      <span className="text-xs font-semibold text-text-muted bg-canvas px-2 py-0.5 rounded">
+                      <span className="text-xs font-mono text-slate-400 bg-white/5 px-2.5 py-0.5 rounded-full border border-white/10">
                         No Negative Marking
                       </span>
                     )}
                   </div>
 
                   <div className="space-y-1.5">
-                    <h2 className="text-xl font-bold text-text">
+                    <h2 className="text-xl font-display font-extrabold text-white">
                       {test.title}
                     </h2>
                     {test.description && (
-                      <p className="text-sm text-text-muted leading-relaxed">
+                      <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-sans">
                         {test.description}
                       </p>
                     )}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 text-xs text-text-muted border-t border-border pt-3">
+                  <div className="grid grid-cols-2 gap-3 text-xs text-slate-400 border-t border-white/10 pt-3 font-mono">
                     <div>
-                      <span className="font-semibold text-text">
+                      <span className="font-bold text-white">
                         {test.questionCount}
                       </span>{' '}
                       Questions
                     </div>
                     <div>
-                      <span className="font-semibold text-text">
+                      <span className="font-bold text-white">
                         {test.marksPerQuestion}
                       </span>{' '}
                       Marks / Question
@@ -258,17 +277,18 @@ export default function MockTestsCatalogPage() {
                   </div>
                 </div>
 
-                <div className="pt-6">
+                <div className="pt-2">
                   <Button
                     variant="primary"
-                    className="w-full"
+                    className="w-full font-bold shadow-md shadow-lime-400/20 flex items-center justify-center gap-2"
                     isLoading={startingId === test.id}
                     onClick={() => handleStartTest(test.id)}
                   >
-                    Start Timed Test →
+                    <span>Start Timed Test</span>
+                    <ArrowRight className="w-4 h-4" />
                   </Button>
                 </div>
-              </Card>
+              </div>
             ))}
           </div>
         )}

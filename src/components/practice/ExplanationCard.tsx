@@ -13,22 +13,22 @@ export const ExplanationCard: React.FC<ExplanationCardProps> = ({
 }) => {
   return (
     <Card
-      className={`border transition-all animate-in fade-in slide-in-from-bottom-2 duration-200 ${
+      className={`border transition-all animate-in fade-in slide-in-from-bottom-2 duration-200 bento-tile ${
         isCorrect
-          ? 'border-success-500/40 bg-success-50/20'
-          : 'border-error-500/40 bg-error-50/20'
+          ? 'border-emerald-500/40 bg-emerald-950/20'
+          : 'border-rose-500/40 bg-rose-950/20'
       }`}
     >
-      <CardHeader className="py-3 px-5 border-b border-border/60 flex flex-row items-center justify-between">
-        <CardTitle className="text-sm flex items-center gap-2">
+      <CardHeader className="py-3.5 px-6 border-b border-white/10 flex flex-row items-center justify-between">
+        <CardTitle className="text-sm flex items-center gap-2 font-display">
           <Badge variant={isCorrect ? 'success' : 'error'}>
             {isCorrect ? 'Correct Verdict' : 'Incorrect Selection'}
           </Badge>
-          <span className="font-semibold text-text">Solution & Explanation</span>
+          <span className="font-bold text-white">Solution &amp; Socratic Analysis</span>
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-5">
-        <div className="text-sm text-text leading-relaxed whitespace-pre-line max-w-prose">
+      <CardContent className="p-6">
+        <div className="text-sm text-slate-200 leading-relaxed whitespace-pre-line max-w-prose font-sans">
           {explanation}
         </div>
       </CardContent>

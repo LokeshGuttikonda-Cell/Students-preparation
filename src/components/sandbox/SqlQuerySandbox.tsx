@@ -13,6 +13,7 @@ import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 
 export interface SqlQuerySandboxProps {
+  challengeId?: string;
   initialQuery?: string;
   schemaDdl?: string;
   seedDataSql?: string;
@@ -23,6 +24,7 @@ export interface SqlQuerySandboxProps {
 }
 
 export function SqlQuerySandbox({
+  challengeId,
   initialQuery = 'SELECT d.name AS department, COUNT(e.id) AS total_employees, AVG(e.salary) AS avg_salary\nFROM departments d\nJOIN employees e ON d.id = e.department_id\nGROUP BY d.name\nORDER BY avg_salary DESC;',
   schemaDdl = DEFAULT_SQL_SCHEMA,
   seedDataSql = DEFAULT_SQL_SEED,
@@ -31,7 +33,41 @@ export function SqlQuerySandbox({
   taskDescription,
   onSuccess,
 }: SqlQuerySandboxProps) {
-  const [query, setQuery] = useState(initialQuery);
+  const storageKey = challengeId
+    ? `studentsprep_sql_code_${challengeId}`
+    : `studentsprep_sql_code_${title.replace(/\s+/g, '_')}`;
+
+  const [query, setQuery] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(storageKey);
+        if (saved !== null) return saved;
+      } catch {}
+    }
+    return initialQuery;
+  });
+
+  const handleQueryChange = (val: string) => {
+    setQuery(val);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(storageKey, val);
+      } catch {}
+    }
+  };
+
+  const handleReset = () => {
+    setQuery(initialQuery);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem(storageKey);
+      } catch {}
+    }
+    setResult(null);
+    setValidationResult(null);
+    setErrorMessage(null);
+  };
+
   const [isRunning, setIsRunning] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const [result, setResult] = useState<SqlExecutionResult | null>(null);
@@ -135,7 +171,7 @@ export function SqlQuerySandbox({
           <textarea
             id="sql-editor"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => handleQueryChange(e.target.value)}
             onKeyDown={handleKeyDown}
             rows={7}
             className="w-full p-4 font-mono text-sm bg-canvas text-text resize-y focus:outline-hidden leading-relaxed"
@@ -171,6 +207,17 @@ export function SqlQuerySandbox({
               {isValidating ? 'Validating...' : 'Validate Solution →'}
             </Button>
           )}
+
+          <Button
+            type="button"
+            onClick={handleReset}
+            disabled={isRunning || isValidating || query === initialQuery}
+            variant="ghost"
+            size="md"
+            className="min-h-[44px] text-xs text-text-muted hover:text-text cursor-pointer"
+          >
+            ↺ Reset Query
+          </Button>
         </div>
 
         {result && result.success && (

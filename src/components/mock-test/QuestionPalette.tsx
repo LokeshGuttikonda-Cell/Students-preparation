@@ -32,27 +32,27 @@ export const QuestionPalette: React.FC<QuestionPaletteProps> = ({
     const isMarked = Boolean(ans && ans.isMarkedForReview);
     const isCurrent = idx === currentIndex;
 
-    let stateClasses = 'bg-surface border-border text-text hover:border-primary-700';
+    let stateClasses = 'bg-slate-900/80 border-white/10 text-slate-400 hover:border-lime-400/40 hover:text-white';
 
     if (isAnswered && isMarked) {
       stateClasses =
-        'bg-primary-700 text-white font-semibold ring-2 ring-review border-primary-700';
+        'bg-lime-400 text-slate-950 font-black ring-2 ring-review border-lime-400 shadow-sm shadow-lime-400/30';
     } else if (isAnswered) {
       stateClasses =
-        'bg-primary-700 text-white font-semibold border-primary-700';
+        'bg-lime-400 text-slate-950 font-black border-lime-400 shadow-sm shadow-lime-400/30';
     } else if (isMarked) {
       stateClasses =
-        'bg-surface text-text ring-2 ring-review border-border font-medium';
+        'bg-purple-950/60 text-purple-300 ring-2 ring-review border-purple-500/50 font-bold';
     }
 
-    const currentRing = isCurrent ? 'ring-2 ring-focus ring-offset-2' : '';
+    const currentRing = isCurrent ? 'ring-2 ring-cyan-400 ring-offset-2 ring-offset-[#040711]' : '';
 
     return (
       <button
         key={q.id}
         type="button"
         onClick={() => onSelectQuestion(idx)}
-        className={`min-h-[44px] sm:min-h-[38px] w-full rounded border flex items-center justify-center text-xs font-semibold tabular touch-manipulation transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 ${stateClasses} ${currentRing}`}
+        className={`min-h-[44px] sm:min-h-[38px] w-full rounded-xl border flex items-center justify-center text-xs font-mono font-bold tabular touch-manipulation transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 ${stateClasses} ${currentRing}`}
         aria-label={`Question ${idx + 1}: ${
           isAnswered && isMarked
             ? 'Answered and Marked for Review'
@@ -70,17 +70,18 @@ export const QuestionPalette: React.FC<QuestionPaletteProps> = ({
 
   return (
     <div className={`space-y-4 ${className}`}>
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold text-text uppercase tracking-wider">
+      <div className="flex items-center justify-between border-b border-white/10 pb-2">
+        <h3 className="text-xs font-mono font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-lime-400 animate-pulse"></span>
           Question Palette
         </h3>
-        <span className="text-xs text-text-muted">
+        <span className="text-[11px] font-mono text-slate-400">
           {totalQuestions} Total
         </span>
       </div>
 
       {hasMultipleSections ? (
-        <div className="space-y-4 max-h-72 overflow-y-auto p-1">
+        <div className="space-y-4 max-h-72 overflow-y-auto p-1 font-mono">
           {sections.map((sec) => {
             const secQuestions = questions
               .map((q, idx) => ({ q, idx }))
@@ -90,7 +91,7 @@ export const QuestionPalette: React.FC<QuestionPaletteProps> = ({
 
             return (
               <div key={sec.id} className="space-y-1.5">
-                <div className="text-[11px] font-semibold text-text-muted uppercase tracking-wider border-b border-border/60 pb-1">
+                <div className="text-[10px] font-bold text-cyan-400 uppercase tracking-wider border-b border-white/10 pb-1">
                   {sec.title}
                 </div>
                 <div className="grid grid-cols-5 gap-2">
@@ -102,28 +103,28 @@ export const QuestionPalette: React.FC<QuestionPaletteProps> = ({
         </div>
       ) : (
         /* Flat 5-State Question Grid */
-        <div className="grid grid-cols-5 gap-2 max-h-64 overflow-y-auto p-1">
+        <div className="grid grid-cols-5 gap-2 max-h-64 overflow-y-auto p-1 font-mono">
           {questions.map((q, idx) => renderQuestionButton(q, idx))}
         </div>
       )}
 
       {/* Palette Legend */}
-      <div className="border-t border-border pt-3 space-y-2 text-xs text-text-muted">
+      <div className="border-t border-white/10 pt-3 space-y-2 text-xs font-mono text-slate-400">
         <div className="flex items-center gap-2">
-          <div className="w-3.5 h-3.5 rounded bg-primary-700" />
-          <span>Answered</span>
+          <div className="w-3.5 h-3.5 rounded bg-lime-400 border border-lime-400" />
+          <span className="text-slate-300">Answered</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-3.5 h-3.5 rounded bg-surface border border-border" />
+          <div className="w-3.5 h-3.5 rounded bg-slate-900 border border-white/10" />
           <span>Unanswered</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-3.5 h-3.5 rounded bg-surface border border-border ring-2 ring-review" />
-          <span>Marked for review</span>
+          <div className="w-3.5 h-3.5 rounded bg-purple-950/60 border border-purple-500/50 ring-2 ring-review" />
+          <span className="text-purple-300">Marked for review</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-3.5 h-3.5 rounded bg-primary-700 ring-2 ring-review" />
-          <span>Answered & marked</span>
+          <div className="w-3.5 h-3.5 rounded bg-lime-400 ring-2 ring-review" />
+          <span className="text-lime-300">Answered &amp; marked</span>
         </div>
       </div>
     </div>

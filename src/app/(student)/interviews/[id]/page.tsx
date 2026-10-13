@@ -20,6 +20,21 @@ import {
 } from '../../../../lib/speech';
 import { VoiceWaveform, type WaveformState } from '../../../../components/interview/VoiceWaveform';
 import { StageStepper } from '../../../../components/interview/StageStepper';
+import {
+  Volume2,
+  VolumeX,
+  RotateCcw,
+  PenTool,
+  Lightbulb,
+  Search,
+  Sparkles,
+  Mic,
+  AlertTriangle,
+  CheckCircle2,
+  Timer,
+  ArrowRight,
+  ArrowLeft,
+} from 'lucide-react';
 import { Button } from '../../../../components/ui/Button';
 import { Badge } from '../../../../components/ui/Badge';
 import { ArchitectureWhiteboard } from '../../../../components/interview/ArchitectureWhiteboard';
@@ -373,10 +388,10 @@ export default function LiveInterviewRoomPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-dvh flex items-center justify-center bg-canvas text-text">
+      <div className="min-h-dvh flex items-center justify-center bg-[#040711] text-slate-100">
         <div className="text-center space-y-3">
-          <div className="w-10 h-10 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-sm font-semibold text-text-muted">
+          <div className="w-10 h-10 border-4 border-lime-400 border-t-transparent rounded-full animate-spin mx-auto shadow-[0_0_15px_rgba(163,230,53,0.3)]" />
+          <p className="text-sm font-semibold text-slate-400 font-mono tracking-wider">
             Connecting to Live Socratic Interview Room...
           </p>
         </div>
@@ -386,36 +401,41 @@ export default function LiveInterviewRoomPage() {
 
   if (!session) {
     return (
-      <div className="min-h-dvh flex flex-col items-center justify-center bg-canvas p-6 text-center">
-        <h2 className="text-xl font-bold text-text mb-2">Interview Session Not Found</h2>
-        <p className="text-sm text-text-muted mb-6">
-          {error || 'This session could not be retrieved.'}
-        </p>
-        <Link href="/interviews">
-          <Button variant="primary">Return to Interviews Hub</Button>
-        </Link>
+      <div className="min-h-dvh flex flex-col items-center justify-center bg-[#040711] p-6 text-center">
+        <div className="bg-[#0a0f1d]/80 border border-white/10 rounded-2xl p-8 max-w-md w-full backdrop-blur-xl shadow-2xl space-y-4">
+          <h2 className="text-xl font-bold text-slate-100">Interview Session Not Found</h2>
+          <p className="text-sm text-slate-400">
+            {error || 'This session could not be retrieved.'}
+          </p>
+          <Link href="/interviews">
+            <Button variant="primary" className="bg-lime-400 hover:bg-lime-300 text-black font-bold shadow-[0_0_15px_rgba(163,230,53,0.3)] border-0">
+              Return to Interviews Hub
+            </Button>
+          </Link>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-dvh flex flex-col bg-canvas text-text">
+    <div className="min-h-dvh flex flex-col bg-[#040711] text-slate-100">
       {/* Top Session Header */}
-      <header className="border-b border-border bg-surface sticky top-0 z-30 shadow-xs">
+      <header className="border-b border-white/10 bg-[#060b18]/80 backdrop-blur-xl sticky top-0 z-30 shadow-lg">
         <div className="max-w-content mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Link
               href="/interviews"
-              className="text-xs font-bold text-text-muted hover:text-text px-2 py-1 rounded-md border border-border bg-canvas"
+              className="text-xs font-bold text-slate-400 hover:text-white px-2.5 py-1 rounded-lg border border-white/10 bg-white/5 hover:border-lime-400/40 flex items-center gap-1.5 transition-all"
             >
-              ← Exit Room
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Exit Room</span>
             </Link>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-bold text-sm sm:text-base text-text">
+                <span className="font-bold text-sm sm:text-base text-slate-100">
                   {session.roleTrack.name}
                 </span>
-                <span className="text-[11px] font-semibold text-primary-800 bg-primary-50 px-2 py-0.5 rounded border border-primary-200">
+                <span className="text-[11px] font-mono font-bold text-lime-300 bg-lime-400/10 px-2 py-0.5 rounded border border-lime-400/30">
                   {session.status}
                 </span>
               </div>
@@ -432,11 +452,11 @@ export default function LiveInterviewRoomPage() {
             <div
               className={`px-3 py-1 rounded-lg border font-mono text-xs font-bold tabular-nums flex items-center gap-1.5 ${
                 isTimeLow
-                  ? 'bg-error-50 text-error-700 border-error-300 animate-pulse'
-                  : 'bg-canvas text-text border-border'
+                  ? 'bg-rose-500/15 text-rose-300 border-rose-500/40 animate-pulse'
+                  : 'bg-white/5 text-slate-200 border-white/10'
               }`}
             >
-              <span>⏱</span>
+              <Timer className="w-3.5 h-3.5 text-lime-400" />
               <span>
                 {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
               </span>
@@ -448,6 +468,7 @@ export default function LiveInterviewRoomPage() {
                 size="sm"
                 disabled={isCompleting}
                 onClick={handleCompleteInterview}
+                className="bg-lime-400 hover:bg-lime-300 text-black font-bold shadow-[0_0_15px_rgba(163,230,53,0.3)] border-0"
               >
                 {isCompleting ? 'Finishing...' : 'Complete Interview'}
               </Button>
@@ -456,7 +477,7 @@ export default function LiveInterviewRoomPage() {
         </div>
 
         {/* Mobile Stage Stepper */}
-        <div className="lg:hidden border-t border-border px-4 py-2 bg-surface overflow-x-auto">
+        <div className="lg:hidden border-t border-white/10 px-4 py-2 bg-[#060b18] overflow-x-auto">
           <StageStepper currentStage={session.currentStage} />
         </div>
       </header>
@@ -465,14 +486,14 @@ export default function LiveInterviewRoomPage() {
       <main className="flex-1 max-w-content mx-auto px-4 sm:px-6 py-6 w-full grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
         {/* Left Sidebar: Interviewer Persona & Voice Control */}
         <div className="lg:col-span-1 space-y-4">
-          <div className="bg-surface border border-border rounded-2xl p-5 shadow-xs space-y-4">
+          <div className="bg-[#0a0f1d]/80 border border-white/10 rounded-2xl p-5 shadow-xl space-y-4 backdrop-blur-xl">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-full bg-primary-700 text-white flex items-center justify-center font-bold text-base shadow-sm shrink-0">
+              <div className="w-11 h-11 rounded-full bg-gradient-to-br from-cyan-400 to-lime-400 text-black flex items-center justify-center font-extrabold text-base shadow-[0_0_15px_rgba(6,182,212,0.4)] shrink-0">
                 AI
               </div>
               <div>
-                <h2 className="font-bold text-sm text-text">Socratic Interviewer</h2>
-                <p className="text-[11px] text-text-muted">
+                <h2 className="font-bold text-sm text-slate-100">Socratic Interviewer</h2>
+                <p className="text-[11px] text-slate-400">
                   {session.roleTrack.name} Evaluator
                 </p>
               </div>
@@ -484,7 +505,7 @@ export default function LiveInterviewRoomPage() {
                 state={waveformState}
                 frequencyData={isListening ? micFrequencyData : undefined}
               />
-              <div className="text-center text-[10px] font-semibold text-text-muted">
+              <div className="text-center text-[10px] font-semibold text-slate-400">
                 {isAiSpeaking
                   ? 'AI Interviewer is speaking...'
                   : isListening
@@ -494,20 +515,24 @@ export default function LiveInterviewRoomPage() {
             </div>
 
             {/* Voice Controls */}
-            <div className="pt-2 border-t border-border space-y-2">
+            <div className="pt-2 border-t border-white/10 space-y-2">
               <button
                 type="button"
                 onClick={() => {
                   if (!isVoiceMuted) stopSpeaking();
                   setIsVoiceMuted(!isVoiceMuted);
                 }}
-                className={`w-full py-2 px-3 rounded-lg text-xs font-semibold border flex items-center justify-center gap-2 transition-all ${
+                className={`w-full py-2 px-3 rounded-lg text-xs font-semibold border flex items-center justify-center gap-2 transition-all cursor-pointer ${
                   isVoiceMuted
-                    ? 'bg-canvas text-text-muted border-border'
-                    : 'bg-primary-50 text-primary-800 border-primary-200'
+                    ? 'bg-white/5 text-slate-400 border-white/10 hover:text-slate-200'
+                    : 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30'
                 }`}
               >
-                <span>{isVoiceMuted ? '🔇' : '🔊'}</span>
+                {isVoiceMuted ? (
+                  <VolumeX className="w-4 h-4 text-slate-400" />
+                ) : (
+                  <Volume2 className="w-4 h-4 text-cyan-400" />
+                )}
                 <span>{isVoiceMuted ? 'Voice Audio: Muted' : 'Voice Audio: Active'}</span>
               </button>
 
@@ -515,29 +540,30 @@ export default function LiveInterviewRoomPage() {
                 type="button"
                 onClick={handleReplayLastAiMessage}
                 disabled={isAiSpeaking}
-                className="w-full py-1.5 px-3 rounded-lg text-xs font-medium text-text-muted hover:text-text border border-border bg-canvas hover:bg-canvas/80 text-center"
+                className="w-full py-1.5 px-3 rounded-lg text-xs font-medium text-slate-400 hover:text-white border border-white/10 bg-white/5 hover:bg-white/10 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
               >
-                ↺ Replay Last Question
+                <RotateCcw className="w-3.5 h-3.5 text-slate-400" />
+                <span>Replay Last Question</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setIsWhiteboardOpen(true)}
-                className="w-full py-2 px-3 rounded-lg text-xs font-semibold text-primary-900 bg-primary-50 hover:bg-primary-100 border border-primary-200 text-center flex items-center justify-center gap-1.5 transition-all shadow-2xs cursor-pointer"
+                className="w-full py-2 px-3 rounded-lg text-xs font-semibold text-lime-300 bg-lime-400/10 hover:bg-lime-400/20 border border-lime-400/30 text-center flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer"
               >
-                <span>📐</span>
+                <PenTool className="w-3.5 h-3.5 text-lime-400" />
                 <span>Architecture Whiteboard</span>
               </button>
             </div>
           </div>
 
           {/* Stage Tips Card */}
-          <div className="bg-surface border border-border rounded-2xl p-5 shadow-xs space-y-2 text-xs">
-            <h3 className="font-bold text-text flex items-center gap-1.5">
-              <span>💡</span>
+          <div className="bg-[#0a0f1d]/80 border border-white/10 rounded-2xl p-5 shadow-xl space-y-2 text-xs backdrop-blur-xl">
+            <h3 className="font-bold text-slate-200 flex items-center gap-1.5">
+              <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
               <span>Stage Advisory</span>
             </h3>
-            <p className="text-text-muted leading-relaxed">
+            <p className="text-slate-400 leading-relaxed">
               {session.currentStage === 'INTRODUCTION' &&
                 'Articulate your overall background, technical toolchain, and typical operational lifecycle.'}
               {session.currentStage === 'TECHNICAL_DRILL' &&
@@ -551,9 +577,9 @@ export default function LiveInterviewRoomPage() {
         </div>
 
         {/* Right Column: Dialogue Stream & Input Area */}
-        <div className="lg:col-span-3 flex flex-col bg-surface border border-border rounded-2xl shadow-xs overflow-hidden h-[75vh]">
+        <div className="lg:col-span-3 flex flex-col bg-[#0a0f1d]/80 border border-white/10 rounded-2xl shadow-xl overflow-hidden h-[75vh] backdrop-blur-xl">
           {/* Messages Feed */}
-          <div className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-4 bg-canvas/30">
+          <div className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-4 bg-[#060b18]/50">
             {session.messages.map((msg) => {
               const isAi = msg.sender === 'AI_INTERVIEWER';
 
@@ -565,10 +591,10 @@ export default function LiveInterviewRoomPage() {
                   }`}
                 >
                   <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 shadow-xs ${
+                    className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 shadow-md ${
                       isAi
-                        ? 'bg-primary-800 text-white'
-                        : 'bg-accent-700 text-white'
+                        ? 'bg-gradient-to-br from-cyan-500 to-blue-600 text-white'
+                        : 'bg-lime-400 text-black'
                     }`}
                   >
                     {isAi ? 'AI' : 'You'}
@@ -576,10 +602,10 @@ export default function LiveInterviewRoomPage() {
 
                   <div className="space-y-1.5">
                     <div
-                      className={`p-4 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap shadow-xs ${
+                      className={`p-4 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap shadow-md ${
                         isAi
-                          ? 'bg-surface border border-border text-text'
-                          : 'bg-primary-700 text-white'
+                          ? 'bg-[#0d1527]/90 border border-white/10 text-slate-200'
+                          : 'bg-gradient-to-r from-lime-400 to-emerald-400 text-black font-medium shadow-[0_0_20px_rgba(163,230,53,0.15)]'
                       }`}
                     >
                       {msg.content}
@@ -587,18 +613,18 @@ export default function LiveInterviewRoomPage() {
 
                     {/* Turn Feedback (for candidate messages) */}
                     {!isAi && msg.technicalFeedback && (
-                      <div className="p-2.5 rounded-xl bg-primary-50/70 border border-primary-200 text-xs text-primary-900 space-y-1">
+                      <div className="p-3 rounded-xl bg-[#060b18]/90 border border-lime-400/30 text-xs text-lime-300 space-y-1">
                         <div className="flex items-center gap-1.5 font-bold">
-                          <span>🔍</span>
+                          <Search className="w-3.5 h-3.5 text-lime-400" />
                           <span>Evaluator Insight</span>
                         </div>
-                        <p className="text-primary-800">{msg.technicalFeedback}</p>
+                        <p className="text-slate-300">{msg.technicalFeedback}</p>
                         {msg.suggestedBetterAnswer && (
-                          <details className="mt-1 text-[11px] text-text-muted cursor-pointer">
-                            <summary className="font-semibold text-primary-700 hover:underline">
+                          <details className="mt-1 text-[11px] text-slate-400 cursor-pointer">
+                            <summary className="font-semibold text-lime-300 hover:underline">
                               View Socratic Benchmark Pointer
                             </summary>
-                            <p className="mt-1 p-2 rounded bg-surface border border-border text-text">
+                            <p className="mt-1 p-2 rounded bg-[#0a0f1d] border border-white/10 text-slate-200">
                               {msg.suggestedBetterAnswer}
                             </p>
                           </details>
@@ -613,27 +639,29 @@ export default function LiveInterviewRoomPage() {
           </div>
 
           {/* Bottom Input Console */}
-          <div className="p-4 border-t border-border bg-surface space-y-3">
+          <div className="p-4 border-t border-white/10 bg-[#060b18]/90 space-y-3">
             {error && (
-              <div className="text-xs text-error-700 font-medium px-2">{error}</div>
+              <div className="text-xs text-rose-400 font-medium px-2">{error}</div>
             )}
 
             {session.status === 'COMPLETED' ? (
-              <div className="p-4 rounded-xl bg-success-50 border border-success-200 text-center space-y-2">
-                <p className="text-sm font-bold text-success-900">
-                  🎉 Interview simulation has been completed!
+              <div className="p-4 rounded-xl bg-lime-400/10 border border-lime-400/30 text-center space-y-2">
+                <p className="text-sm font-bold text-lime-300 flex items-center justify-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-lime-400" />
+                  <span>Interview simulation has been completed!</span>
                 </p>
-                <p className="text-xs text-success-800">
-                  Overall Score: <strong>{session.overallScore}%</strong> · Technical: {session.technicalScore}% · Clarity: {session.clarityScore}%
+                <p className="text-xs text-slate-300">
+                  Overall Score: <strong className="text-lime-300 font-bold">{session.overallScore}%</strong> · Technical: {session.technicalScore}% · Clarity: {session.clarityScore}%
                 </p>
                 <div className="flex flex-wrap justify-center gap-3 pt-1">
                   <Link href={`/interviews/${session.id}/results`}>
-                    <Button variant="primary" size="sm">
-                      View Evaluation Scorecard &amp; Review →
+                    <Button variant="primary" size="sm" className="bg-lime-400 hover:bg-lime-300 text-black font-bold shadow-[0_0_15px_rgba(163,230,53,0.3)] border-0">
+                      <span>View Evaluation Scorecard &amp; Review</span>
+                      <ArrowRight className="w-3.5 h-3.5 ml-1 inline" />
                     </Button>
                   </Link>
                   <Link href="/interviews">
-                    <Button variant="secondary" size="sm">
+                    <Button variant="secondary" size="sm" className="bg-white/5 border-white/10 text-slate-300 hover:text-white hover:bg-white/10">
                       Start Another Simulation
                     </Button>
                   </Link>
@@ -646,12 +674,12 @@ export default function LiveInterviewRoomPage() {
                   <button
                     type="button"
                     onClick={() => setIsWhiteboardOpen(true)}
-                    className="px-2.5 py-1 rounded-full bg-primary-50 border border-primary-200 text-primary-900 hover:bg-primary-100 text-[11px] font-semibold whitespace-nowrap flex items-center gap-1 transition-colors shrink-0 cursor-pointer"
+                    className="px-2.5 py-1 rounded-full bg-lime-400/10 border border-lime-400/30 text-lime-300 hover:bg-lime-400/20 text-[11px] font-semibold whitespace-nowrap flex items-center gap-1.5 transition-colors shrink-0 cursor-pointer"
                   >
-                    <span>📐</span>
+                    <PenTool className="w-3 h-3 text-lime-400" />
                     <span>Architecture Whiteboard</span>
                   </button>
-                  <span className="text-[11px] font-semibold text-text-muted shrink-0">
+                  <span className="text-[11px] font-semibold text-slate-400 shrink-0">
                     Quick Prompts:
                   </span>
                   {[
@@ -663,7 +691,7 @@ export default function LiveInterviewRoomPage() {
                       key={phrase}
                       type="button"
                       onClick={() => setInputText((prev) => `${prev} ${phrase}`.trim())}
-                      className="px-2.5 py-1 rounded-full bg-canvas border border-border text-text-muted hover:text-text hover:border-primary-300 text-[11px] whitespace-nowrap transition-colors"
+                      className="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-slate-400 hover:text-slate-200 hover:border-lime-400/40 text-[11px] whitespace-nowrap transition-colors cursor-pointer"
                     >
                       {phrase}
                     </button>
@@ -674,15 +702,15 @@ export default function LiveInterviewRoomPage() {
                 {liveFluency && (
                   <div
                     data-testid="live-articulation-telemetry-hud"
-                    className="p-2.5 rounded-xl bg-canvas border border-border flex flex-wrap items-center justify-between gap-2 text-xs transition-all"
+                    className="p-2.5 rounded-xl bg-[#0a0f1d] border border-white/10 flex flex-wrap items-center justify-between gap-2 text-xs transition-all shadow-md"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-1.5 font-semibold text-text">
-                        <span className="text-primary-600">🎙️</span>
+                      <div className="flex items-center gap-1.5 font-semibold text-slate-200">
+                        <Mic className="w-3.5 h-3.5 text-lime-400" />
                         <span>{liveFluency.totalWords} words</span>
-                        <span className="text-text-muted">·</span>
-                        <span className="tabular-nums">{liveFluency.articulationPaceWpm} WPM</span>
-                        <span className="text-[11px] font-normal text-text-muted hidden md:inline">
+                        <span className="text-slate-500">·</span>
+                        <span className="tabular-nums font-mono text-cyan-300">{liveFluency.articulationPaceWpm} WPM</span>
+                        <span className="text-[11px] font-normal text-slate-400 hidden md:inline">
                           ({liveFluency.cadenceDescription})
                         </span>
                       </div>
@@ -703,8 +731,8 @@ export default function LiveInterviewRoomPage() {
 
                     <div className="flex items-center gap-2">
                       {liveFluency.fillerCount > 0 ? (
-                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-accent-50 border border-accent-300 text-accent-900 font-medium text-[11px]">
-                          <span>⚠️</span>
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-500/15 border border-amber-500/30 text-amber-300 font-medium text-[11px]">
+                          <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                           <span>
                             {liveFluency.fillerCount} filler{liveFluency.fillerCount > 1 ? 's' : ''}:{' '}
                             {Object.entries(liveFluency.fillerBreakdown)
@@ -713,8 +741,8 @@ export default function LiveInterviewRoomPage() {
                           </span>
                         </div>
                       ) : (
-                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-success-50 border border-success-500/30 text-success-700 font-medium text-[11px]">
-                          <span>✓</span>
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-lime-400/15 border border-lime-400/30 text-lime-300 font-medium text-[11px]">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-lime-400 shrink-0" />
                           <span>0 Fillers Detected</span>
                         </div>
                       )}
@@ -724,12 +752,13 @@ export default function LiveInterviewRoomPage() {
                     {liveCoachingTip && (
                       <div
                         data-testid="live-articulation-coaching-tip"
-                        className="w-full mt-1 pt-2 border-t border-border flex items-start gap-2 text-[11px] text-text-muted"
+                        className="w-full mt-1 pt-2 border-t border-white/10 flex items-start gap-2 text-[11px] text-slate-400"
                       >
-                        <span className="text-primary-600 font-bold shrink-0">
-                          💡 Articulation Tip:
+                        <span className="text-lime-400 font-bold shrink-0 flex items-center gap-1">
+                          <Lightbulb className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                          <span>Articulation Tip:</span>
                         </span>
-                        <span className="text-text font-medium leading-relaxed">
+                        <span className="text-slate-200 font-medium leading-relaxed">
                           {liveCoachingTip.message}
                         </span>
                       </div>
@@ -760,7 +789,7 @@ export default function LiveInterviewRoomPage() {
                       }}
                       placeholder="Type your technical response, or click the microphone to speak... (Press Ctrl+Enter to send)"
                       rows={2}
-                      className="w-full p-3 pr-10 text-sm bg-canvas border border-border rounded-xl focus-visible:ring-2 focus-visible:ring-focus focus-visible:outline-hidden resize-none"
+                      className="w-full p-3 pr-10 text-sm bg-[#040711] border border-white/10 text-slate-100 placeholder:text-slate-500 rounded-xl focus:outline-none focus:border-lime-400/60 focus:ring-1 focus:ring-lime-400/50 resize-none transition-all"
                     />
                   </div>
 
@@ -773,11 +802,11 @@ export default function LiveInterviewRoomPage() {
                       aria-label={isListening ? 'Stop Recording' : 'Speak Verbal Response'}
                       className={`h-11 px-3.5 rounded-xl border flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                         isListening
-                          ? 'bg-error-500 text-white border-error-600 animate-pulse ring-2 ring-error-300'
-                          : 'bg-canvas text-text border-border hover:border-primary-400'
+                          ? 'bg-rose-500 text-white border-rose-600 animate-pulse ring-2 ring-rose-400/50'
+                          : 'bg-white/5 text-slate-300 border-white/10 hover:border-lime-400/40 hover:text-lime-300'
                       }`}
                     >
-                      <span>🎤</span>
+                      <Mic className="w-4 h-4" />
                       <span className="hidden sm:inline text-xs font-semibold">
                         {isListening ? 'Listening...' : 'Voice'}
                       </span>
@@ -790,7 +819,7 @@ export default function LiveInterviewRoomPage() {
                     size="md"
                     disabled={!inputText.trim() || isSending}
                     onClick={handleSendMessage}
-                    className="h-11 px-5"
+                    className="h-11 px-5 bg-lime-400 hover:bg-lime-300 text-black font-bold shadow-[0_0_15px_rgba(163,230,53,0.3)] border-0"
                   >
                     {isSending ? 'Sending...' : 'Send →'}
                   </Button>
@@ -807,7 +836,7 @@ export default function LiveInterviewRoomPage() {
           role="dialog"
           aria-modal="true"
           aria-label="Architecture Whiteboard Studio Modal"
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/60 backdrop-blur-xs animate-fadeIn"
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md animate-fadeIn"
         >
           <div className="w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl">
             <ArchitectureWhiteboard

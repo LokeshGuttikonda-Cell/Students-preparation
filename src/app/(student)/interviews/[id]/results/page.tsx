@@ -9,11 +9,25 @@ import {
 } from '../../../../../lib/interview-client';
 import { Button } from '../../../../../components/ui/Button';
 import {
+  CheckCircle2,
+  AlertTriangle,
+  ArrowRight,
+  ArrowLeft,
+  Volume2,
+  Search,
+} from 'lucide-react';
+import {
   speakText,
   isSpeechSynthesisSupported,
   analyzeSpeechFluency,
 } from '../../../../../lib/speech';
 import { VoiceWaveform } from '../../../../../components/interview/VoiceWaveform';
+import {
+  trackEvent,
+  TelemetryEventType,
+  triggerFeedbackPrompt,
+  FeedbackContextTrigger,
+} from '../../../../../lib/telemetry-client';
 
 const SYSTEMS_ENGINEERING_KEYWORDS = [
   'idempotency', 'idempotent', 'sharding', 'shard', 'partitioning', 'partition',
@@ -76,6 +90,16 @@ export default function InterviewResultsPage() {
         setIsLoading(true);
         const data = await getInterviewSession(interviewId);
         setSession(data);
+        void trackEvent(TelemetryEventType.INTERVIEW_COMPLETED, {
+          interviewId,
+          roleSlug: data.roleTrack?.slug || 'software-engineer',
+          score: data.overallScore ?? 0,
+        });
+        triggerFeedbackPrompt(FeedbackContextTrigger.MOCK_INTERVIEW, {
+          interviewId,
+          roleSlug: data.roleTrack?.slug || 'software-engineer',
+          score: data.overallScore ?? 0,
+        });
       } catch (err: unknown) {
         setError(
           err instanceof Error
@@ -92,10 +116,10 @@ export default function InterviewResultsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-dvh flex items-center justify-center bg-canvas text-text">
+      <div className="min-h-dvh flex items-center justify-center bg-[#040711] text-slate-100">
         <div className="text-center space-y-3">
-          <div className="w-10 h-10 border-4 border-primary-700 border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-sm font-semibold text-text-muted">
+          <div className="w-10 h-10 border-4 border-lime-400 border-t-transparent rounded-full animate-spin mx-auto shadow-[0_0_15px_rgba(163,230,53,0.3)]" />
+          <p className="text-sm font-semibold text-slate-400 font-mono tracking-wider">
             Generating Technical Interview Evaluation Scorecard...
           </p>
         </div>
@@ -105,17 +129,19 @@ export default function InterviewResultsPage() {
 
   if (error || !session) {
     return (
-      <div className="min-h-dvh flex items-center justify-center bg-canvas p-6">
-        <div className="bg-surface border border-border rounded-2xl p-8 max-w-md w-full text-center space-y-4 shadow-sm">
-          <div className="w-12 h-12 rounded-full bg-error-50 text-error-600 flex items-center justify-center mx-auto text-xl font-bold">
+      <div className="min-h-dvh flex items-center justify-center bg-[#040711] p-6">
+        <div className="bg-[#0a0f1d]/80 border border-white/10 rounded-2xl p-8 max-w-md w-full text-center space-y-4 backdrop-blur-xl shadow-2xl">
+          <div className="w-12 h-12 rounded-full bg-rose-500/15 text-rose-400 border border-rose-500/30 flex items-center justify-center mx-auto text-xl font-bold">
             !
           </div>
-          <h2 className="text-xl font-bold text-text">Scorecard Not Found</h2>
-          <p className="text-sm text-text-muted">
+          <h2 className="text-xl font-bold text-slate-100">Scorecard Not Found</h2>
+          <p className="text-sm text-slate-400">
             {error || 'Unable to retrieve this interview session.'}
           </p>
           <Link href="/interviews">
-            <Button variant="primary">Return to Interviews Hub</Button>
+            <Button variant="primary" className="bg-lime-400 hover:bg-lime-300 text-black font-bold shadow-[0_0_15px_rgba(163,230,53,0.3)] border-0">
+              Return to Interviews Hub
+            </Button>
           </Link>
         </div>
       </div>
@@ -160,13 +186,13 @@ export default function InterviewResultsPage() {
   const speakingPaceWpm = Math.max(1, Math.round(candidateWordCount / elapsedMinutes));
 
   let cadenceRating = 'Optimal Technical Cadence';
-  let cadenceColor = 'text-primary-800 bg-primary-50 border-primary-200';
+  let cadenceColor = 'text-lime-300 bg-lime-400/10 border-lime-400/30';
   if (speakingPaceWpm < 100) {
     cadenceRating = 'Deliberate / Paused';
-    cadenceColor = 'text-amber-800 bg-amber-50 border-amber-200';
+    cadenceColor = 'text-amber-300 bg-amber-500/15 border-amber-500/30';
   } else if (speakingPaceWpm > 165) {
     cadenceRating = 'Rapid Delivery';
-    cadenceColor = 'text-accent-800 bg-accent-50 border-accent-200';
+    cadenceColor = 'text-cyan-300 bg-cyan-500/15 border-cyan-500/30';
   }
 
   const avgWordsPerTurn = candidateTurns.length > 0
@@ -181,13 +207,13 @@ export default function InterviewResultsPage() {
 
   const fluencyAnalysis = analyzeSpeechFluency(candidateFullText, elapsedMinutes);
 
-  let fluencyBadgeColor = 'text-emerald-800 bg-emerald-50 border-emerald-200';
+  let fluencyBadgeColor = 'text-lime-300 bg-lime-400/15 border-lime-400/30';
   if (fluencyAnalysis.fluencyGrade === 'PROFICIENT') {
-    fluencyBadgeColor = 'text-primary-800 bg-primary-50 border-primary-200';
+    fluencyBadgeColor = 'text-cyan-300 bg-cyan-500/15 border-cyan-500/30';
   } else if (fluencyAnalysis.fluencyGrade === 'CONVERSATIONAL') {
-    fluencyBadgeColor = 'text-amber-800 bg-amber-50 border-amber-200';
+    fluencyBadgeColor = 'text-amber-300 bg-amber-500/15 border-amber-500/30';
   } else if (fluencyAnalysis.fluencyGrade === 'NEEDS_REVISION') {
-    fluencyBadgeColor = 'text-error-800 bg-error-50 border-error-200';
+    fluencyBadgeColor = 'text-rose-300 bg-rose-500/15 border-rose-500/30';
   }
 
   interface TurnArticulationTelemetry {
@@ -259,23 +285,24 @@ export default function InterviewResultsPage() {
   });
 
   return (
-    <div className="min-h-dvh flex flex-col bg-canvas text-text">
+    <div className="min-h-dvh flex flex-col bg-[#040711] text-slate-100">
       {/* Top Header */}
-      <header className="border-b border-border bg-surface sticky top-0 z-30 shadow-xs">
+      <header className="border-b border-white/10 bg-[#060b18]/80 backdrop-blur-xl sticky top-0 z-30 shadow-lg">
         <div className="max-w-content mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link
               href="/interviews"
-              className="text-sm font-semibold text-text-muted hover:text-text"
+              className="text-sm font-semibold text-slate-400 hover:text-white flex items-center gap-1.5 transition-colors"
             >
-              ← Back to Hub
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Back to Hub</span>
             </Link>
-            <span className="text-border">|</span>
+            <span className="text-white/20">|</span>
             <div className="flex items-center gap-2">
-              <h1 className="text-sm sm:text-base font-bold text-text truncate">
+              <h1 className="text-sm sm:text-base font-bold text-slate-100 truncate">
                 {session.roleTrack.name} — Technical Interview Scorecard
               </h1>
-              <span className="text-xs font-bold text-primary-700 bg-primary-50 px-2 py-0.5 rounded border border-primary-200">
+              <span className="text-xs font-mono font-bold text-lime-300 bg-lime-400/10 px-2 py-0.5 rounded border border-lime-400/30">
                 Socratic Evaluation
               </span>
             </div>
@@ -283,7 +310,7 @@ export default function InterviewResultsPage() {
 
           <div className="flex items-center gap-3">
             <Link href="/interviews">
-              <Button variant="primary" size="sm">
+              <Button variant="primary" size="sm" className="bg-lime-400 hover:bg-lime-300 text-black font-bold shadow-[0_0_15px_rgba(163,230,53,0.3)] border-0">
                 Start New Interview
               </Button>
             </Link>
@@ -294,72 +321,82 @@ export default function InterviewResultsPage() {
       {/* Main Content Area */}
       <main className="flex-1 max-w-content mx-auto px-6 py-8 w-full space-y-8">
         {/* Navigation Breadcrumbs */}
-        <div className="flex items-center gap-2 text-xs text-text-muted">
-          <Link href="/" className="hover:text-primary-700 transition-colors">
-            Home
+        <div className="flex items-center gap-2 text-xs text-slate-400">
+          <Link href="/dashboard" className="hover:text-lime-400 transition-colors">
+            Dashboard
           </Link>
           <span>/</span>
-          <Link href="/interviews" className="hover:text-primary-700 transition-colors">
-            AI Interviews
+          <Link href="/interviews" className="hover:text-lime-400 transition-colors">
+            Technical Interviews
           </Link>
           <span>/</span>
-          <span className="text-text font-medium">Evaluation Scorecard</span>
+          <span className="text-slate-200 font-medium">Evaluation Scorecard</span>
         </div>
 
         {/* Hero Performance Card */}
-        <section className="bg-surface border border-border rounded-3xl p-6 sm:p-8 shadow-xs">
+        <section className="bg-[#0a0f1d]/80 border border-white/10 rounded-3xl p-6 sm:p-8 shadow-xl backdrop-blur-xl">
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
             <div className="space-y-3 max-w-2xl">
               <div className="flex items-center gap-2">
                 <span
-                  className={`text-xs font-bold px-2.5 py-1 rounded-full border ${
+                  className={`text-xs font-bold px-2.5 py-1 rounded-full border inline-flex items-center gap-1.5 ${
                     isPassed
-                      ? 'bg-success-50 text-success-800 border-success-200'
-                      : 'bg-amber-50 text-amber-800 border-amber-200'
+                      ? 'bg-lime-400/15 text-lime-300 border-lime-400/30'
+                      : 'bg-amber-500/15 text-amber-300 border-amber-500/30'
                   }`}
                 >
-                  {isPassed ? '✓ Technical Screening Cleared' : '⚠ Revision Recommended'}
+                  {isPassed ? (
+                    <>
+                      <CheckCircle2 className="w-3.5 h-3.5 text-lime-400" />
+                      <span>Technical Screening Cleared</span>
+                    </>
+                  ) : (
+                    <>
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Revision Recommended</span>
+                    </>
+                  )}
                 </span>
-                <span className="text-xs text-text-muted">
+                <span className="text-xs text-slate-400 font-mono">
                   Conducted on {new Date(session.startedAt).toLocaleDateString()}
                 </span>
               </div>
 
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-text">
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-100">
                 {session.roleTrack.name} Performance Evaluation
               </h2>
 
-              <p className="text-sm text-text-muted leading-relaxed">
+              <p className="text-sm text-slate-300 leading-relaxed">
                 {session.feedbackSummary ||
                   `Socratic assessment evaluating core engineering capabilities, architectural triage, and verbal problem-solving for the ${session.roleTrack.name} career track.`}
               </p>
 
-              <div className="flex flex-wrap items-center gap-3 pt-1 text-xs text-text-muted">
-                <span className="px-2.5 py-1 rounded-md bg-canvas border border-border">
-                  Target Duration: <strong className="text-text">{session.targetDurationMinutes} mins</strong>
+              <div className="flex flex-wrap items-center gap-3 pt-1 text-xs text-slate-400">
+                <span className="px-2.5 py-1 rounded-md bg-white/5 border border-white/10">
+                  Target Duration: <strong className="text-slate-200 font-mono">{session.targetDurationMinutes} mins</strong>
                 </span>
-                <span className="px-2.5 py-1 rounded-md bg-canvas border border-border">
-                  Candidate Turns: <strong className="text-text">{candidateTurns.length} turns</strong>
+                <span className="px-2.5 py-1 rounded-md bg-white/5 border border-white/10">
+                  Candidate Turns: <strong className="text-slate-200 font-mono">{candidateTurns.length} turns</strong>
                 </span>
-                <span className="px-2.5 py-1 rounded-md bg-canvas border border-border">
-                  Stage Reached: <strong className="text-text">{session.currentStage}</strong>
+                <span className="px-2.5 py-1 rounded-md bg-white/5 border border-white/10">
+                  Stage Reached: <strong className="text-slate-200 font-mono">{session.currentStage}</strong>
                 </span>
               </div>
             </div>
 
             {/* Score Radial / Badge */}
-            <div className="flex flex-col items-center justify-center p-6 rounded-2xl bg-canvas border border-border min-w-[200px] text-center shrink-0">
-              <span className="text-xs uppercase tracking-wider text-text-muted font-bold mb-1">
+            <div className="flex flex-col items-center justify-center p-6 rounded-2xl bg-[#060b18] border border-white/10 min-w-[200px] text-center shrink-0 shadow-lg">
+              <span className="text-xs uppercase tracking-wider text-slate-400 font-bold mb-1 font-mono">
                 Overall Rating
               </span>
               <div
                 className={`text-5xl font-black tracking-tight tabular-nums ${
-                  isPassed ? 'text-primary-700' : 'text-amber-700'
+                  isPassed ? 'text-lime-400 shadow-[0_0_20px_rgba(163,230,53,0.2)]' : 'text-amber-400'
                 }`}
               >
                 {overallScore}%
               </div>
-              <span className="text-xs font-semibold text-text-muted mt-2">
+              <span className="text-xs font-semibold text-slate-400 mt-2">
                 {isPassed ? 'Role-Ready Benchmark' : 'Needs Practice'}
               </span>
             </div>
@@ -368,91 +405,91 @@ export default function InterviewResultsPage() {
 
         {/* Multi-Axis Rubrics Matrix */}
         <section className="space-y-4">
-          <h3 className="text-lg font-bold text-text">
+          <h3 className="text-lg font-bold text-slate-100">
             Multi-Axis Technical Competency Breakdown
           </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Axis 1: Technical Domain Accuracy */}
-            <div className="bg-surface border border-border rounded-2xl p-5 shadow-xs space-y-3">
+            <div className="bg-[#0a0f1d]/80 border border-white/10 rounded-2xl p-5 shadow-xl backdrop-blur-xl space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-text-muted uppercase tracking-wider">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider font-mono">
                   Domain Accuracy
                 </span>
-                <span className="text-base font-bold text-primary-700 tabular-nums">
+                <span className="text-base font-bold text-cyan-400 tabular-nums font-mono">
                   {technicalScore}%
                 </span>
               </div>
-              <div className="w-full h-2 bg-canvas rounded-full overflow-hidden border border-border">
+              <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden border border-white/10">
                 <div
-                  className="h-full bg-primary-600 rounded-full transition-all duration-500"
+                  className="h-full bg-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.5)] rounded-full transition-all duration-500"
                   style={{ width: `${technicalScore}%` }}
                 />
               </div>
-              <p className="text-xs text-text-muted leading-relaxed">
+              <p className="text-xs text-slate-400 leading-relaxed">
                 Evaluates correct identification of runtime internals, memory constraints, and failure modes.
               </p>
             </div>
 
             {/* Axis 2: Communication & Clarity */}
-            <div className="bg-surface border border-border rounded-2xl p-5 shadow-xs space-y-3">
+            <div className="bg-[#0a0f1d]/80 border border-white/10 rounded-2xl p-5 shadow-xl backdrop-blur-xl space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-text-muted uppercase tracking-wider">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider font-mono">
                   Articulation Clarity
                 </span>
-                <span className="text-base font-bold text-accent-700 tabular-nums">
+                <span className="text-base font-bold text-lime-400 tabular-nums font-mono">
                   {clarityScore}%
                 </span>
               </div>
-              <div className="w-full h-2 bg-canvas rounded-full overflow-hidden border border-border">
+              <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden border border-white/10">
                 <div
-                  className="h-full bg-accent-600 rounded-full transition-all duration-500"
+                  className="h-full bg-lime-400 shadow-[0_0_10px_rgba(163,230,53,0.5)] rounded-full transition-all duration-500"
                   style={{ width: `${clarityScore}%` }}
                 />
               </div>
-              <p className="text-xs text-text-muted leading-relaxed">
+              <p className="text-xs text-slate-400 leading-relaxed">
                 Measures precision, structured trade-off reasoning, and verbal clarity under evaluator probing.
               </p>
             </div>
 
             {/* Axis 3: Stage Progression & Socratic Depth */}
-            <div className="bg-surface border border-border rounded-2xl p-5 shadow-xs space-y-3">
+            <div className="bg-[#0a0f1d]/80 border border-white/10 rounded-2xl p-5 shadow-xl backdrop-blur-xl space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-text-muted uppercase tracking-wider">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider font-mono">
                   Socratic Depth
                 </span>
-                <span className="text-base font-bold text-emerald-600 tabular-nums">
+                <span className="text-base font-bold text-emerald-400 tabular-nums font-mono">
                   {stageCompletionScore}%
                 </span>
               </div>
-              <div className="w-full h-2 bg-canvas rounded-full overflow-hidden border border-border">
+              <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden border border-white/10">
                 <div
-                  className="h-full bg-emerald-600 rounded-full transition-all duration-500"
+                  className="h-full bg-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.5)] rounded-full transition-all duration-500"
                   style={{ width: `${stageCompletionScore}%` }}
                 />
               </div>
-              <p className="text-xs text-text-muted leading-relaxed">
+              <p className="text-xs text-slate-400 leading-relaxed">
                 Indicates completion through high-scale architectural design and wrap-up triage rounds.
               </p>
             </div>
 
             {/* Axis 4: Speech Delivery & Cadence */}
-            <div className="bg-surface border border-border rounded-2xl p-5 shadow-xs space-y-3">
+            <div className="bg-[#0a0f1d]/80 border border-white/10 rounded-2xl p-5 shadow-xl backdrop-blur-xl space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-text-muted uppercase tracking-wider">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider font-mono">
                   Speech Cadence
                 </span>
-                <span className="text-base font-bold text-indigo-600 tabular-nums">
+                <span className="text-base font-bold text-purple-400 tabular-nums font-mono">
                   {speakingPaceWpm} WPM
                 </span>
               </div>
-              <div className="w-full h-2 bg-canvas rounded-full overflow-hidden border border-border">
+              <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden border border-white/10">
                 <div
-                  className="h-full bg-indigo-600 rounded-full transition-all duration-500"
+                  className="h-full bg-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.5)] rounded-full transition-all duration-500"
                   style={{ width: `${Math.min(100, Math.round((speakingPaceWpm / 180) * 100))}%` }}
                 />
               </div>
-              <p className="text-xs text-text-muted leading-relaxed">
+              <p className="text-xs text-slate-400 leading-relaxed">
                 {cadenceRating} ({avgWordsPerTurn} words/turn average across {candidateTurns.length} turns).
               </p>
             </div>
@@ -460,11 +497,11 @@ export default function InterviewResultsPage() {
         </section>
 
         {/* Verbal Articulation & Systems Vocabulary Telemetry */}
-        <section className="bg-surface border border-border rounded-2xl p-6 shadow-xs space-y-5">
+        <section className="bg-[#0a0f1d]/80 border border-white/10 rounded-2xl p-6 shadow-xl space-y-5 backdrop-blur-xl">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-primary-600" />
-              <h3 className="font-bold text-base text-text">
+              <span className="w-2.5 h-2.5 rounded-full bg-lime-400 shadow-[0_0_8px_rgba(163,230,53,0.5)]" />
+              <h3 className="font-bold text-base text-slate-100">
                 Verbal Articulation & Systems Vocabulary Telemetry
               </h3>
             </div>
@@ -472,29 +509,29 @@ export default function InterviewResultsPage() {
               <span className={`px-2.5 py-1 rounded-full font-bold border ${cadenceColor}`}>
                 {cadenceRating} ({speakingPaceWpm} WPM)
               </span>
-              <span className="px-2.5 py-1 rounded-full font-bold bg-canvas border border-border text-text-muted">
+              <span className="px-2.5 py-1 rounded-full font-bold bg-white/5 border border-white/10 text-slate-400 font-mono">
                 {candidateWordCount} Total Words
               </span>
             </div>
           </div>
 
           {/* Articulation Fluency & Filler-Word Diagnostic Subcard */}
-          <div className="p-4 rounded-xl bg-canvas border border-border space-y-3">
+          <div className="p-4 rounded-xl bg-[#060b18] border border-white/10 space-y-3 shadow-inner">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-text-muted">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-400 font-mono">
                   Articulation Fluency Score:
                 </span>
-                <span className="text-sm font-bold text-text tabular-nums">
+                <span className="text-sm font-bold text-slate-200 tabular-nums font-mono">
                   {fluencyAnalysis.fluencyScore}%
                 </span>
                 <span className={`text-[11px] font-bold px-2 py-0.5 rounded border ${fluencyBadgeColor}`}>
                   {fluencyAnalysis.fluencyGrade}
                 </span>
               </div>
-              <div className="text-xs text-text-muted">
+              <div className="text-xs text-slate-400">
                 Filler Density:{' '}
-                <strong className="text-text">
+                <strong className="text-slate-200 font-mono">
                   {fluencyAnalysis.fillerDensityPer100} per 100 words
                 </strong>{' '}
                 ({fluencyAnalysis.fillerCount} total)
@@ -503,31 +540,31 @@ export default function InterviewResultsPage() {
 
             {Object.keys(fluencyAnalysis.fillerBreakdown).length > 0 ? (
               <div className="space-y-1.5 pt-1">
-                <span className="text-[11px] font-semibold text-text-muted">
+                <span className="text-[11px] font-semibold text-slate-400">
                   Detected Conversational Filler Phrases:
                 </span>
                 <div className="flex flex-wrap gap-1.5">
                   {Object.entries(fluencyAnalysis.fillerBreakdown).map(([phrase, count]) => (
                     <span
                       key={phrase}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-amber-50 text-amber-900 border border-amber-200"
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-amber-500/15 text-amber-300 border border-amber-500/30"
                     >
                       <span>&ldquo;{phrase}&rdquo;</span>
-                      <span className="font-bold tabular-nums">×{count}</span>
+                      <span className="font-bold tabular-nums font-mono">×{count}</span>
                     </span>
                   ))}
                 </div>
               </div>
             ) : (
-              <div className="text-xs text-success-800 font-medium flex items-center gap-1.5 pt-1">
-                <span>✓</span>
+              <div className="text-xs text-lime-300 font-medium flex items-center gap-1.5 pt-1">
+                <CheckCircle2 className="w-3.5 h-3.5 text-lime-400 shrink-0" />
                 <span>Zero conversational fillers detected. Excellent technical eloquence!</span>
               </div>
             )}
           </div>
 
           <div className="space-y-2">
-            <span className="text-xs font-semibold text-text-muted">
+            <span className="text-xs font-semibold text-slate-400">
               Identified Core Systems Engineering Terms & Concepts ({detectedKeyphrases.length}):
             </span>
             {detectedKeyphrases.length > 0 ? (
@@ -535,15 +572,15 @@ export default function InterviewResultsPage() {
                 {detectedKeyphrases.map((term) => (
                   <span
                     key={term}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-canvas border border-border text-text"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-white/5 border border-white/10 text-slate-200 hover:border-cyan-400/40 transition-colors"
                   >
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary-500" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
                     {term}
                   </span>
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-text-muted italic">
+              <p className="text-xs text-slate-400 italic">
                 Reinforce verbal usage of academic systems terminology during scenario explanations.
               </p>
             )}
@@ -553,45 +590,45 @@ export default function InterviewResultsPage() {
           {turnTelemetryList.length > 0 && (
             <div
               data-testid="turn-articulation-progression-hud"
-              className="p-4 rounded-xl bg-canvas border border-border space-y-4"
+              className="p-4 rounded-xl bg-[#060b18] border border-white/10 space-y-4 shadow-inner"
             >
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border pb-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-3">
                 <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-indigo-600" />
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-text">
+                  <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_6px_rgba(6,182,212,0.6)]" />
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-200 font-mono">
                     Turn-by-Turn Articulation &amp; Cadence Progression
                   </h4>
                 </div>
                 <div className="flex items-center gap-2 text-xs">
-                  <span className="font-semibold text-text-muted">Turns Evaluated:</span>
-                  <span className="font-bold text-text tabular-nums">{turnTelemetryList.length}</span>
-                  <span className="text-border">|</span>
-                  <span className="text-text-muted">Filler Trajectory:</span>
-                  <span className="font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded text-[11px]">
+                  <span className="font-semibold text-slate-400">Turns Evaluated:</span>
+                  <span className="font-bold text-slate-200 tabular-nums font-mono">{turnTelemetryList.length}</span>
+                  <span className="text-white/20">|</span>
+                  <span className="text-slate-400">Filler Trajectory:</span>
+                  <span className="font-bold text-lime-300 bg-lime-400/10 border border-lime-400/30 px-2 py-0.5 rounded text-[11px] font-mono">
                     Turn 1 ({turnTelemetryList[0].fillerCount}) → Turn {turnTelemetryList.length} ({turnTelemetryList[turnTelemetryList.length - 1].fillerCount})
                   </span>
                 </div>
               </div>
 
               {/* Visual SVG Turn Cadence & Filler Progression Spark-Chart */}
-              <div className="w-full bg-surface border border-border rounded-lg p-3 overflow-x-auto">
-                <div className="text-[11px] font-semibold text-text-muted mb-2 flex items-center justify-between">
+              <div className="w-full bg-[#040711] border border-white/10 rounded-lg p-3 overflow-x-auto shadow-inner">
+                <div className="text-[11px] font-semibold text-slate-400 mb-2 flex items-center justify-between">
                   <span>Candidate Verbal Output (Bars = Words, Points = Filler Count)</span>
                   <div className="flex items-center gap-3">
                     <span className="flex items-center gap-1">
-                      <span className="w-2.5 h-2.5 rounded bg-primary-600" /> Words / Turn
+                      <span className="w-2.5 h-2.5 rounded bg-cyan-400" /> Words / Turn
                     </span>
                     <span className="flex items-center gap-1">
-                      <span className="w-2.5 h-2.5 rounded-full bg-amber-500" /> Fillers
+                      <span className="w-2.5 h-2.5 rounded-full bg-amber-400" /> Fillers
                     </span>
                   </div>
                 </div>
 
                 <svg viewBox="0 0 500 120" className="w-full min-w-[360px] h-28 select-none font-sans">
                   {/* Horizontal Grid lines */}
-                  <line x1="30" y1="20" x2="480" y2="20" stroke="#f1f5f9" strokeWidth="1" />
-                  <line x1="30" y1="55" x2="480" y2="55" stroke="#f1f5f9" strokeWidth="1" />
-                  <line x1="30" y1="90" x2="480" y2="90" stroke="#cbd5e1" strokeWidth="1" />
+                  <line x1="30" y1="20" x2="480" y2="20" stroke="#1e293b" strokeWidth="1" />
+                  <line x1="30" y1="55" x2="480" y2="55" stroke="#1e293b" strokeWidth="1" />
+                  <line x1="30" y1="90" x2="480" y2="90" stroke="#334155" strokeWidth="1" />
 
                   {/* Draw each turn */}
                   {(() => {
@@ -637,14 +674,14 @@ export default function InterviewResultsPage() {
                                 width={barWidth}
                                 height={barHeight}
                                 rx="3"
-                                fill="#3b82f6"
+                                fill="#06b6d4"
                                 opacity="0.85"
                               />
                               <text
                                 x={barX + barWidth / 2}
                                 y={barY - 4}
                                 textAnchor="middle"
-                                className="text-[9px] font-mono font-bold fill-slate-700 select-none"
+                                className="text-[9px] font-mono font-bold fill-cyan-300 select-none"
                               >
                                 {t.wordCount}w
                               </text>
@@ -654,8 +691,8 @@ export default function InterviewResultsPage() {
                                 cx={fillerCx}
                                 cy={fillerCy}
                                 r={t.fillerCount > 0 ? '5' : '3'}
-                                fill={t.fillerCount > 0 ? '#f59e0b' : '#10b981'}
-                                stroke="#ffffff"
+                                fill={t.fillerCount > 0 ? '#f59e0b' : '#a3e635'}
+                                stroke="#040711"
                                 strokeWidth="1.5"
                               />
                               {t.fillerCount > 0 && (
@@ -663,7 +700,7 @@ export default function InterviewResultsPage() {
                                   x={fillerCx}
                                   y={fillerCy - 7}
                                   textAnchor="middle"
-                                  className="text-[8px] font-bold fill-amber-700 select-none"
+                                  className="text-[8px] font-bold fill-amber-400 select-none"
                                 >
                                   {t.fillerCount}f
                                 </text>
@@ -674,7 +711,7 @@ export default function InterviewResultsPage() {
                                 x={barX + barWidth / 2}
                                 y="105"
                                 textAnchor="middle"
-                                className="text-[9px] font-mono font-semibold fill-slate-500 select-none"
+                                className="text-[9px] font-mono font-semibold fill-slate-400 select-none"
                               >
                                 T{t.turnNumber}
                               </text>
@@ -689,49 +726,56 @@ export default function InterviewResultsPage() {
 
               {/* Turn-by-Turn Detailed Telemetry Breakdown Cards */}
               <div className="space-y-2">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 font-mono">
                   Dialogue Turn Telemetry Breakdown:
                 </span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   {turnTelemetryList.map((t) => (
                     <div
                       key={t.turnId}
-                      className="p-2.5 rounded-lg bg-surface border border-border space-y-1.5 text-xs shadow-2xs"
+                      className="p-2.5 rounded-lg bg-[#0a0f1d] border border-white/10 space-y-1.5 text-xs shadow-md"
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5">
-                          <span className="font-mono font-bold text-primary-700 bg-primary-50 px-1.5 py-0.5 rounded text-[11px]">
+                          <span className="font-mono font-bold text-lime-300 bg-lime-400/10 border border-lime-400/30 px-1.5 py-0.5 rounded text-[11px]">
                             Turn #{t.turnNumber}
                           </span>
-                          <span className="text-[10px] font-semibold text-text-muted">
+                          <span className="text-[10px] font-semibold text-slate-400">
                             {t.stage.replace('_', ' ')}
                           </span>
                         </div>
-                        <span className="text-[11px] font-bold text-text tabular-nums">
+                        <span className="text-[11px] font-bold text-slate-200 tabular-nums font-mono">
                           {t.wordCount} words
                         </span>
                       </div>
 
                       <div className="flex items-center gap-2 flex-wrap text-[11px]">
                         <span
-                          className={`px-1.5 py-0.5 rounded font-medium border ${
+                          className={`px-1.5 py-0.5 rounded font-medium border inline-flex items-center gap-1 ${
                             t.fillerCount === 0
-                              ? 'bg-emerald-50 text-emerald-800 border-emerald-200 font-bold'
-                              : 'bg-amber-50 text-amber-800 border-amber-200'
+                              ? 'bg-lime-400/15 text-lime-300 border-lime-400/30 font-bold'
+                              : 'bg-amber-500/15 text-amber-300 border-amber-500/30'
                           }`}
                         >
-                          {t.fillerCount === 0 ? '✓ 0 fillers' : `${t.fillerCount} filler${t.fillerCount > 1 ? 's' : ''}`}
+                          {t.fillerCount === 0 ? (
+                            <>
+                              <CheckCircle2 className="w-3 h-3 text-lime-400" />
+                              <span>0 fillers</span>
+                            </>
+                          ) : (
+                            <span>{t.fillerCount} filler{t.fillerCount > 1 ? 's' : ''}</span>
+                          )}
                         </span>
 
                         {t.keywords.length > 0 && (
-                          <span className="bg-indigo-50 text-indigo-800 border border-indigo-200 px-1.5 py-0.5 rounded font-medium">
+                          <span className="bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 px-1.5 py-0.5 rounded font-medium">
                             {t.keywords.length} systems term{t.keywords.length > 1 ? 's' : ''}
                           </span>
                         )}
                       </div>
 
                       {t.fillerWords.length > 0 && (
-                        <div className="text-[10px] text-amber-800 flex items-center gap-1 flex-wrap">
+                        <div className="text-[10px] text-amber-400 flex items-center gap-1 flex-wrap">
                           <span>Fillers:</span>
                           {t.fillerWords.map((fw, fwIdx) => (
                             <span key={fwIdx} className="font-semibold italic">&ldquo;{fw}&rdquo;</span>
@@ -739,7 +783,7 @@ export default function InterviewResultsPage() {
                         </div>
                       )}
 
-                      <p className="text-[10px] text-text-muted italic leading-relaxed pt-0.5">
+                      <p className="text-[10px] text-slate-400 italic leading-relaxed pt-0.5">
                         {t.turnSummaryTip}
                       </p>
                     </div>
@@ -753,62 +797,64 @@ export default function InterviewResultsPage() {
         {/* Strengths & Targeted Growth Areas */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
           {/* Strengths */}
-          <div className="bg-surface border border-border rounded-2xl p-6 shadow-xs space-y-4">
+          <div className="bg-[#0a0f1d]/80 border border-white/10 rounded-2xl p-6 shadow-xl space-y-4 backdrop-blur-xl">
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-success-600" />
-              <h3 className="font-bold text-base text-text">
+              <span className="w-2.5 h-2.5 rounded-full bg-lime-400 shadow-[0_0_8px_rgba(163,230,53,0.5)]" />
+              <h3 className="font-bold text-base text-slate-100">
                 Demonstrated Engineering Strengths
               </h3>
             </div>
             {session.strengths && session.strengths.length > 0 ? (
-              <ul className="space-y-2.5 text-xs text-text">
+              <ul className="space-y-2.5 text-xs text-slate-200">
                 {session.strengths.map((str, idx) => (
-                  <li key={idx} className="flex items-start gap-2.5 p-2.5 rounded-xl bg-canvas border border-border">
-                    <span className="text-success-700 font-bold">✓</span>
+                  <li key={idx} className="flex items-start gap-2.5 p-2.5 rounded-xl bg-white/5 border border-white/10">
+                    <CheckCircle2 className="w-4 h-4 text-lime-400 shrink-0 mt-0.5" />
                     <span className="leading-relaxed">{str}</span>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="text-xs text-text-muted">
+              <p className="text-xs text-slate-400">
                 Continue practicing technical drills to establish consistent strengths.
               </p>
             )}
           </div>
 
           {/* Growth Areas */}
-          <div className="bg-surface border border-border rounded-2xl p-6 shadow-xs space-y-4">
+          <div className="bg-[#0a0f1d]/80 border border-white/10 rounded-2xl p-6 shadow-xl space-y-4 backdrop-blur-xl">
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-              <h3 className="font-bold text-base text-text">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
+              <h3 className="font-bold text-base text-slate-100">
                 Targeted Areas for Technical Revision
               </h3>
             </div>
             {session.growthAreas && session.growthAreas.length > 0 ? (
               <div className="space-y-3">
-                <ul className="space-y-2.5 text-xs text-text">
+                <ul className="space-y-2.5 text-xs text-slate-200">
                   {session.growthAreas.map((ga, idx) => (
-                    <li key={idx} className="flex items-start gap-2.5 p-2.5 rounded-xl bg-amber-50/50 border border-amber-200">
-                      <span className="text-amber-700 font-bold">⚠</span>
-                      <span className="leading-relaxed text-amber-950">{ga}</span>
+                    <li key={idx} className="flex items-start gap-2.5 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30">
+                      <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                      <span className="leading-relaxed text-amber-200">{ga}</span>
                     </li>
                   ))}
                 </ul>
                 <div className="pt-2 flex items-center gap-3">
                   <Link href="/practice">
-                    <Button variant="secondary" size="sm">
-                      Revise in Practice Mode →
+                    <Button variant="secondary" size="sm" className="bg-white/5 border-white/10 text-slate-300 hover:text-white hover:bg-white/10">
+                      <span>Revise in Practice Mode</span>
+                      <ArrowRight className="w-3.5 h-3.5 inline ml-1" />
                     </Button>
                   </Link>
                   <Link href={`/roles/${session.roleTrack.slug}`}>
-                    <Button variant="secondary" size="sm">
-                      View Role Syllabus →
+                    <Button variant="secondary" size="sm" className="bg-white/5 border-white/10 text-slate-300 hover:text-white hover:bg-white/10">
+                      <span>View Role Syllabus</span>
+                      <ArrowRight className="w-3.5 h-3.5 inline ml-1" />
                     </Button>
                   </Link>
                 </div>
               </div>
             ) : (
-              <p className="text-xs text-text-muted">
+              <p className="text-xs text-slate-400">
                 No immediate critical gaps identified. Keep reinforcing advanced concepts!
               </p>
             )}
@@ -816,19 +862,19 @@ export default function InterviewResultsPage() {
         </section>
 
         {/* Turn-by-Turn Socratic Dialogue Review */}
-        <section className="space-y-4 pt-4 border-t border-border">
+        <section className="space-y-4 pt-4 border-t border-white/10">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <h3 className="text-lg font-bold text-text">
+              <h3 className="text-lg font-bold text-slate-100">
                 Turn-by-Turn Socratic Dialogue Review
               </h3>
-              <p className="text-xs text-text-muted">
+              <p className="text-xs text-slate-400">
                 Inspect every conversational turn, evaluator critique, and senior-level benchmark model answers.
               </p>
             </div>
 
             {/* Filter Tabs */}
-            <div className="flex items-center gap-1.5 p-1 bg-canvas border border-border rounded-xl text-xs overflow-x-auto">
+            <div className="flex items-center gap-1.5 p-1 bg-[#060b18] border border-white/10 rounded-xl text-xs overflow-x-auto">
               {[
                 { id: 'ALL', label: 'All Turns' },
                 { id: 'FEEDBACK_ONLY', label: 'Evaluator Insights Only' },
@@ -842,8 +888,8 @@ export default function InterviewResultsPage() {
                   onClick={() => setFilterStage(f.id)}
                   className={`px-3 py-1.5 rounded-lg font-medium transition-colors cursor-pointer ${
                     filterStage === f.id
-                      ? 'bg-surface text-primary-700 font-bold shadow-xs'
-                      : 'text-text-muted hover:text-text'
+                      ? 'bg-lime-400 text-black font-bold shadow-md'
+                      : 'text-slate-400 hover:text-white'
                   }`}
                 >
                   {f.label}
@@ -855,7 +901,7 @@ export default function InterviewResultsPage() {
           {/* Dialogue Stream */}
           <div className="space-y-4">
             {filteredMessages.length === 0 ? (
-              <div className="p-8 text-center text-sm text-text-muted bg-surface border border-border rounded-2xl">
+              <div className="p-8 text-center text-sm text-slate-400 bg-[#0a0f1d] border border-white/10 rounded-2xl">
                 No turns matching the selected filter.
               </div>
             ) : (
@@ -867,23 +913,23 @@ export default function InterviewResultsPage() {
                     key={msg.id}
                     className={`p-5 rounded-2xl border transition-all ${
                       isAi
-                        ? 'bg-surface border-border'
-                        : 'bg-canvas/50 border-primary-200'
+                        ? 'bg-[#0d1527]/90 border-white/10 shadow-lg'
+                        : 'bg-[#060b18]/90 border-lime-400/30 shadow-lg'
                     }`}
                   >
                     <div className="flex items-center justify-between gap-3 mb-2">
                       <div className="flex items-center gap-2">
                         <span
-                          className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold text-white shadow-xs ${
-                            isAi ? 'bg-primary-800' : 'bg-accent-700'
+                          className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shadow-md ${
+                            isAi ? 'bg-gradient-to-br from-cyan-500 to-blue-600 text-white' : 'bg-lime-400 text-black'
                           }`}
                         >
                           {isAi ? 'AI' : 'You'}
                         </span>
-                        <span className="font-bold text-xs text-text">
+                        <span className="font-bold text-xs text-slate-200">
                           {isAi ? 'Socratic Evaluator' : 'Candidate Response'}
                         </span>
-                        <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider bg-canvas px-2 py-0.5 rounded border border-border">
+                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider bg-white/5 px-2 py-0.5 rounded border border-white/10 font-mono">
                           {msg.stage}
                         </span>
                       </div>
@@ -891,23 +937,23 @@ export default function InterviewResultsPage() {
                         <button
                           type="button"
                           onClick={() => handleToggleAudio(msg.id, msg.content)}
-                          className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium bg-canvas border border-border hover:border-primary-300 hover:text-primary-700 transition-colors cursor-pointer"
+                          className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium bg-white/5 border border-white/10 hover:border-lime-400/40 hover:text-lime-300 transition-colors cursor-pointer text-slate-300"
                           title={playingMessageId === msg.id ? 'Stop Turn Audio' : 'Listen to Turn Audio'}
                           aria-label={playingMessageId === msg.id ? 'Stop Turn Audio' : 'Listen to Turn Audio'}
                         >
                           {playingMessageId === msg.id ? (
                             <>
-                              <span className="w-2 h-2 rounded-xs bg-error-600 animate-pulse" />
-                              <span className="text-error-700 font-semibold">Stop</span>
+                              <span className="w-2 h-2 rounded-xs bg-rose-500 animate-pulse" />
+                              <span className="text-rose-400 font-semibold">Stop</span>
                             </>
                           ) : (
                             <>
-                              <span>🔊</span>
+                              <Volume2 className="w-3.5 h-3.5 text-lime-400" />
                               <span>Listen</span>
                             </>
                           )}
                         </button>
-                        <span className="text-[11px] text-text-muted tabular-nums">
+                        <span className="text-[11px] text-slate-400 tabular-nums font-mono">
                           Turn #{msg.turnNumber}
                         </span>
                       </div>
@@ -919,32 +965,32 @@ export default function InterviewResultsPage() {
                       </div>
                     )}
 
-                    <div className="text-sm text-text leading-relaxed whitespace-pre-wrap pl-8">
+                    <div className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap pl-8">
                       {msg.content}
                     </div>
 
                     {/* Socratic Feedback and Benchmark for Candidate Turns */}
                     {!isAi && (msg.technicalFeedback || msg.suggestedBetterAnswer) && (
-                      <div className="mt-4 ml-8 p-4 rounded-xl bg-primary-50/70 border border-primary-200 space-y-2 text-xs">
+                      <div className="mt-4 ml-8 p-4 rounded-xl bg-[#040711] border border-lime-400/30 space-y-2 text-xs">
                         {msg.technicalFeedback && (
                           <div className="space-y-1">
-                            <span className="font-bold text-primary-900 flex items-center gap-1.5">
-                              <span>🔍</span>
+                            <span className="font-bold text-lime-300 flex items-center gap-1.5">
+                              <Search className="w-3.5 h-3.5 text-lime-400" />
                               <span>Evaluator Feedback</span>
                             </span>
-                            <p className="text-primary-800 leading-relaxed">
+                            <p className="text-slate-300 leading-relaxed">
                               {msg.technicalFeedback}
                             </p>
                           </div>
                         )}
 
                         {msg.suggestedBetterAnswer && (
-                          <div className="pt-2 border-t border-primary-200/60">
+                          <div className="pt-2 border-t border-white/10">
                             <details className="cursor-pointer">
-                              <summary className="font-bold text-primary-700 hover:underline">
+                              <summary className="font-bold text-lime-300 hover:underline">
                                 View Socratic Benchmark Ideal Response Pointer
                               </summary>
-                              <div className="mt-2 p-3 rounded-lg bg-surface border border-border text-text leading-relaxed">
+                              <div className="mt-2 p-3 rounded-lg bg-[#0a0f1d] border border-white/10 text-slate-200 leading-relaxed">
                                 {msg.suggestedBetterAnswer}
                               </div>
                             </details>
@@ -960,19 +1006,21 @@ export default function InterviewResultsPage() {
         </section>
 
         {/* Bottom Actions CTA */}
-        <section className="pt-6 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="text-xs text-text-muted">
+        <section className="pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="text-xs text-slate-400 font-mono">
             Evaluation stored permanently in candidate profile.
           </div>
           <div className="flex items-center gap-3">
             <Link href="/interviews">
-              <Button variant="secondary" size="md">
-                ← Interviews Hub
+              <Button variant="secondary" size="md" className="bg-white/5 border-white/10 text-slate-300 hover:text-white hover:bg-white/10">
+                <ArrowLeft className="w-3.5 h-3.5 inline mr-1" />
+                <span>Interviews Hub</span>
               </Button>
             </Link>
             <Link href="/practice">
-              <Button variant="primary" size="md">
-                Practice Target Topics →
+              <Button variant="primary" size="md" className="bg-lime-400 hover:bg-lime-300 text-black font-bold shadow-[0_0_15px_rgba(163,230,53,0.3)] border-0">
+                <span>Practice Target Topics</span>
+                <ArrowRight className="w-3.5 h-3.5 inline ml-1" />
               </Button>
             </Link>
           </div>

@@ -9,20 +9,38 @@ import {
 describe('Interview Catalog Data & Utility Tests', () => {
   it('contains at least 200 master technical interview questions', () => {
     expect(INTERVIEW_QUESTIONS.length).toBeGreaterThanOrEqual(200);
-    expect(INTERVIEW_QUESTIONS.length).toBe(325);
+    expect(INTERVIEW_QUESTIONS.length).toBe(376);
   });
 
-  it('provides complete coverage across all 8 technical disciplines', () => {
+  it('guarantees unique IDs across all 376 interview questions', () => {
+    const idSet = new Set(INTERVIEW_QUESTIONS.map((q) => q.id));
+    expect(idSet.size).toBe(INTERVIEW_QUESTIONS.length);
+  });
+
+  it('ensures every question maps to a valid canonical categorySlug in INTERVIEW_CATEGORIES', () => {
+    const canonicalSlugs = new Set<string>(
+      INTERVIEW_CATEGORIES.filter((c) => c.slug !== 'all').map((c) => c.slug),
+    );
+    for (const q of INTERVIEW_QUESTIONS) {
+      expect(canonicalSlugs.has(q.categorySlug)).toBe(true);
+    }
+  });
+
+  it('provides complete coverage across all 8 technical disciplines with deep curriculum density', () => {
     const disciplineSlugs = INTERVIEW_CATEGORIES.filter((c) => c.slug !== 'all').map(
       (c) => c.slug,
     );
-    expect(disciplineSlugs.length).toBe(8);
+    expect(disciplineSlugs.length).toBe(9);
 
     for (const slug of disciplineSlugs) {
       const matchingQuestions = INTERVIEW_QUESTIONS.filter(
         (q) => q.categorySlug === slug,
       );
-      expect(matchingQuestions.length).toBeGreaterThanOrEqual(5);
+      if (slug === 'ai-agents') {
+        expect(matchingQuestions.length).toBeGreaterThanOrEqual(26);
+      } else {
+        expect(matchingQuestions.length).toBeGreaterThanOrEqual(40);
+      }
     }
   });
 

@@ -20,23 +20,23 @@ export const PracticeHeader: React.FC<PracticeHeaderProps> = ({
     totalQuestions > 0 ? ((currentIndex + 1) / totalQuestions) * 100 : 0;
 
   return (
-    <div className="w-full bg-surface border-b border-border sticky top-0 z-30 shadow-xs">
+    <div className="w-full bg-[#040711]/90 backdrop-blur-xl border-b border-white/10 sticky top-0 z-30 shadow-md">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
         <div>
-          <span className="text-xs text-text-muted font-medium uppercase tracking-wider">
-            {subjectName} · Practice Mode
+          <span className="text-[10px] text-lime-400 font-mono font-bold uppercase tracking-wider block">
+            {subjectName} · Socratic Practice Mode
           </span>
-          <h2 className="text-lg font-bold text-primary-900 leading-tight">
+          <h2 className="text-base sm:text-lg font-bold text-white font-display leading-tight">
             {topicName}
           </h2>
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="text-right">
-            <span className="text-xs text-text-muted block">Question</span>
-            <span className="text-sm font-semibold tabular text-primary-900">
+          <div className="text-right font-mono">
+            <span className="text-[10px] text-slate-400 block uppercase">Question</span>
+            <span className="text-sm font-bold tabular text-white">
               {currentIndex + 1}{' '}
-              <span className="text-text-muted font-normal">/ {totalQuestions}</span>
+              <span className="text-slate-500 font-normal">/ {totalQuestions}</span>
             </span>
           </div>
 
@@ -44,7 +44,7 @@ export const PracticeHeader: React.FC<PracticeHeaderProps> = ({
             variant="ghost"
             size="sm"
             onClick={onExit}
-            className="text-text-muted hover:text-error-700 hover:bg-error-50 text-xs"
+            className="text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 text-xs font-mono"
           >
             Exit
           </Button>
@@ -52,9 +52,9 @@ export const PracticeHeader: React.FC<PracticeHeaderProps> = ({
       </div>
 
       {/* Progress Bar */}
-      <div className="w-full h-1 bg-neutral-100">
+      <div className="w-full h-1 bg-slate-900">
         <div
-          className="h-full bg-primary-700 transition-all duration-300 ease-out"
+          className="h-full bg-gradient-to-r from-lime-400 to-emerald-400 transition-all duration-300 ease-out shadow-[0_0_8px_rgba(163,230,53,0.5)]"
           style={{ width: `${progressPercent}%` }}
         />
       </div>

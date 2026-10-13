@@ -2732,29 +2732,32 @@ export function DistributedSystemsSandbox() {
   return (
     <div className="bg-surface border border-border rounded-xl shadow-xs overflow-hidden space-y-6">
       {/* Sub-Header Tabs */}
-      <div className="bg-surface-hover/50 border-b border-border p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2">
+      <div className="bg-surface-hover/50 border-b border-border p-4 sm:p-5 space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-bold uppercase tracking-wider text-accent-700">
               Distributed Systems Studio
             </span>
-            <span className="text-[11px] font-semibold bg-primary-50 text-primary-800 px-2 py-0.5 rounded-full border border-primary-200">
+            <span className="text-[11px] font-semibold bg-primary-50 text-primary-800 px-2.5 py-0.5 rounded-full border border-primary-200">
               High-Level System Design
             </span>
           </div>
-          <h2 className="text-lg font-bold text-text mt-0.5">
-            Consistent Hashing, Rate Limiting &amp; Circuit Breakers
-          </h2>
+          <span className="text-xs font-medium text-text-muted">
+            Distributed Consensus &amp; Fault Tolerance Labs
+          </span>
         </div>
+        <h2 className="text-lg sm:text-xl font-bold text-text">
+          Consistent Hashing, Rate Limiting &amp; Circuit Breakers
+        </h2>
 
-        <div className="flex flex-wrap items-center gap-1.5 bg-canvas p-1 rounded-lg border border-border">
+        <div className="flex items-center gap-1.5 overflow-x-auto p-1.5 bg-canvas rounded-xl border border-border [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           <button
             type="button"
             onClick={() => setActiveTab('CONSISTENT_HASHING')}
-            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === 'CONSISTENT_HASHING'
                 ? 'bg-primary-700 text-white shadow-xs'
-                : 'text-text-muted hover:text-text'
+                : 'text-text-muted hover:text-text hover:bg-surface-hover/50'
             }`}
           >
             Consistent Hash Ring
@@ -2762,10 +2765,10 @@ export function DistributedSystemsSandbox() {
           <button
             type="button"
             onClick={() => setActiveTab('RATE_LIMITER')}
-            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === 'RATE_LIMITER'
                 ? 'bg-primary-700 text-white shadow-xs'
-                : 'text-text-muted hover:text-text'
+                : 'text-text-muted hover:text-text hover:bg-surface-hover/50'
             }`}
           >
             Traffic Rate Limiters
@@ -2773,10 +2776,10 @@ export function DistributedSystemsSandbox() {
           <button
             type="button"
             onClick={() => setActiveTab('CIRCUIT_BREAKER')}
-            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === 'CIRCUIT_BREAKER'
                 ? 'bg-primary-700 text-white shadow-xs'
-                : 'text-text-muted hover:text-text'
+                : 'text-text-muted hover:text-text hover:bg-surface-hover/50'
             }`}
           >
             Circuit Breaker State Machine
@@ -2784,10 +2787,10 @@ export function DistributedSystemsSandbox() {
           <button
             type="button"
             onClick={() => setActiveTab('RAFT_CONSENSUS')}
-            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === 'RAFT_CONSENSUS'
                 ? 'bg-primary-700 text-white shadow-xs'
-                : 'text-text-muted hover:text-text'
+                : 'text-text-muted hover:text-text hover:bg-surface-hover/50'
             }`}
           >
             Raft Consensus &amp; Quorum
@@ -2795,10 +2798,10 @@ export function DistributedSystemsSandbox() {
           <button
             type="button"
             onClick={() => setActiveTab('VECTOR_CLOCKS')}
-            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === 'VECTOR_CLOCKS'
                 ? 'bg-primary-700 text-white shadow-xs'
-                : 'text-text-muted hover:text-text'
+                : 'text-text-muted hover:text-text hover:bg-surface-hover/50'
             }`}
           >
             Vector Clocks &amp; Causality
@@ -2806,10 +2809,10 @@ export function DistributedSystemsSandbox() {
           <button
             type="button"
             onClick={() => setActiveTab('TWO_PHASE_COMMIT_SAGA')}
-            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === 'TWO_PHASE_COMMIT_SAGA'
                 ? 'bg-primary-700 text-white shadow-xs'
-                : 'text-text-muted hover:text-text'
+                : 'text-text-muted hover:text-text hover:bg-surface-hover/50'
             }`}
           >
             2PC vs Saga Coordinator
@@ -2817,10 +2820,10 @@ export function DistributedSystemsSandbox() {
           <button
             type="button"
             onClick={() => setActiveTab('FENCING_TOKENS_JEPSEN')}
-            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === 'FENCING_TOKENS_JEPSEN'
                 ? 'bg-primary-700 text-white shadow-xs'
-                : 'text-text-muted hover:text-text'
+                : 'text-text-muted hover:text-text hover:bg-surface-hover/50'
             }`}
           >
             Lock Fencing &amp; Split-Brain
@@ -2828,10 +2831,10 @@ export function DistributedSystemsSandbox() {
           <button
             type="button"
             onClick={() => setActiveTab('PAXOS_CONSENSUS')}
-            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === 'PAXOS_CONSENSUS'
                 ? 'bg-primary-700 text-white shadow-xs'
-                : 'text-text-muted hover:text-text'
+                : 'text-text-muted hover:text-text hover:bg-surface-hover/50'
             }`}
           >
             Paxos &amp; Multi-Paxos

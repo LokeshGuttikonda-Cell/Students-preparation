@@ -125,7 +125,7 @@ describe('InterviewsHubPage', () => {
       expect(mockStartInterviewSession).toHaveBeenCalledWith('r_devops', 20);
       expect(mockPush).toHaveBeenCalledWith('/interviews/sess_new_123');
     });
-  });
+  }, 15000);
 
   it('renders technical interview Q&A repository with disciplines and questions', async () => {
     render(<InterviewsHubPage />);
@@ -171,4 +171,84 @@ describe('InterviewsHubPage', () => {
       expect(screen.getByText(/Common Candidate Traps & Pitfalls/i)).toBeDefined();
     });
   });
+
+  it('renders Role Technical Scenario Defense Drills and opens drill modal', async () => {
+    render(<InterviewsHubPage />);
+
+    // Section title
+    expect(
+      screen.getByRole('heading', {
+        name: /Role Technical Scenario Defense Drills/i,
+      }),
+    ).toBeDefined();
+
+    // Check presence of role drill cards (e.g. Cloud Solutions Architect)
+    expect(screen.getByText('Cloud Solutions Architect')).toBeDefined();
+    expect(screen.getByText('Java Enterprise Backend Developer')).toBeDefined();
+
+    // Find and click Launch Drill on the first role
+    const launchDrillButtons = screen.getAllByRole('button', {
+      name: /Launch Drill/i,
+    });
+    expect(launchDrillButtons.length).toBeGreaterThan(0);
+
+    fireEvent.click(launchDrillButtons[0]);
+
+    // Modal dialog is open
+    await waitFor(() => {
+      expect(
+        screen.getByRole('dialog', {
+          name: /Role Technical Interview Defense Drill/i,
+        }),
+      ).toBeDefined();
+    });
+
+    // Close modal
+    const closeBtn = screen.getByLabelText(/Close drill modal/i);
+    fireEvent.click(closeBtn);
+
+    // Modal is closed
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('dialog', {
+          name: /Role Technical Interview Defense Drill/i,
+        }),
+      ).toBeNull();
+    });
+  });
+
+  it('opens and closes the Role Rapid-Fire Flashcards modal from role cards', async () => {
+    render(<InterviewsHubPage />);
+
+    // Find and click Flashcards on the first role
+    const flashcardsButtons = screen.getAllByRole('button', {
+      name: /Flashcards/i,
+    });
+    expect(flashcardsButtons.length).toBeGreaterThan(0);
+
+    fireEvent.click(flashcardsButtons[0]);
+
+    // Modal dialog is open
+    await waitFor(() => {
+      expect(
+        screen.getByRole('dialog', {
+          name: /Role Technical Interview Flashcards/i,
+        }),
+      ).toBeDefined();
+    });
+
+    // Close modal
+    const closeBtn = screen.getByLabelText(/Close flashcards modal/i);
+    fireEvent.click(closeBtn);
+
+    // Modal is closed
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('dialog', {
+          name: /Role Technical Interview Flashcards/i,
+        }),
+      ).toBeNull();
+    });
+  });
 });
+

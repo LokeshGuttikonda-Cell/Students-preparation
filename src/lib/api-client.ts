@@ -56,7 +56,7 @@ export async function apiFetch<T>(
           errorMessage;
       } else {
         const text = await response.text();
-        if (text && text.length < 150 && !text.includes('<!DOCTYPE')) {
+        if (text && text.length < 150 && !text.toLowerCase().includes('<!doctype') && !text.toLowerCase().includes('<html')) {
           errorMessage = text;
         }
       }

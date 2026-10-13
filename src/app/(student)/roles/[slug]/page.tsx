@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import type { Route } from 'next';
@@ -8,8 +8,11 @@ import { getRole, RoleTrackDetail } from '../../../../lib/roles-client';
 import { RoleCompetencyList } from '../../../../components/roles/RoleCompetencyList';
 import { RoleInterviewTrapsSection } from '../../../../components/roles/RoleInterviewTrapsSection';
 import { getArticlesForRole, type CurriculumArticleSummary } from '../../../../lib/curriculum-client';
-import { Card, CardContent } from '../../../../components/ui/Card';
 import { Button } from '../../../../components/ui/Button';
+import { BookOpen, FileDown, Library, Mic, Target, Zap, Terminal, ArrowRight } from 'lucide-react';
+import { ROLE_HANDBOOKS } from '../../../../lib/role-handbooks-data';
+import { generateRoleHandbookPdf, downloadPdfFile } from '../../../../lib/role-handbook-pdf';
+import { RoleInterviewFlashcardsModal } from '../../../../components/roles/RoleInterviewFlashcardsModal';
 
 export default function RoleDetailPage() {
   const params = useParams<{ slug: string }>();
@@ -19,6 +22,33 @@ export default function RoleDetailPage() {
   const [roleArticles, setRoleArticles] = useState<CurriculumArticleSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isFlashcardsModalOpen, setIsFlashcardsModalOpen] = useState(false);
+
+  const matchingHandbook = useMemo(() => {
+    if (!role && !slug) return undefined;
+    const direct = ROLE_HANDBOOKS.find(
+      (h) =>
+        h.slug === slug ||
+        h.id === role?.id ||
+        h.slug === role?.slug ||
+        (slug && (h.slug.includes(slug) || slug.includes(h.slug))),
+    );
+    if (direct) return direct;
+
+    const rName = (role?.name || slug || '').toLowerCase();
+    return ROLE_HANDBOOKS.find((h) => {
+      const hName = h.name.toLowerCase();
+      const hSlug = h.slug.toLowerCase();
+      return (
+        hName.includes(rName) ||
+        rName.includes(hName) ||
+        (rName.includes('backend') && hSlug.includes('backend')) ||
+        (rName.includes('cloud') && hSlug.includes('cloud')) ||
+        (rName.includes('devops') && hSlug.includes('devops')) ||
+        (rName.includes('data') && hSlug.includes('data'))
+      );
+    });
+  }, [role, slug]);
 
   useEffect(() => {
     if (!slug) return;
@@ -60,12 +90,12 @@ export default function RoleDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-dvh bg-canvas py-8 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-dvh bg-[#040711] text-white py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-content mx-auto space-y-8 animate-pulse">
-          <div className="h-4 bg-canvas-subtle rounded w-32" />
-          <div className="h-10 bg-canvas-subtle rounded w-2/3" />
-          <div className="h-24 bg-surface rounded-lg border border-border" />
-          <div className="h-64 bg-surface rounded-lg border border-border" />
+          <div className="h-4 bg-white/10 rounded w-32" />
+          <div className="h-10 bg-white/10 rounded w-2/3" />
+          <div className="h-24 bento-tile border-white/10" />
+          <div className="h-64 bento-tile border-white/10" />
         </div>
       </div>
     );
@@ -73,10 +103,10 @@ export default function RoleDetailPage() {
 
   if (error || !role) {
     return (
-      <div className="min-h-dvh bg-canvas py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md mx-auto p-6 rounded-lg bg-error-50 border border-error-200 text-error-800 space-y-4">
-          <h2 className="text-lg font-bold">Unable to Load Career Track</h2>
-          <p className="text-sm">{error ?? 'Role profile not found.'}</p>
+      <div className="min-h-dvh bg-[#040711] text-white py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md mx-auto p-6 rounded-2xl bento-tile border-rose-500/30 text-rose-200 space-y-4">
+          <h2 className="text-lg font-display font-bold text-white">Unable to Load Career Track</h2>
+          <p className="text-xs font-mono text-slate-400">{error ?? 'Role profile not found.'}</p>
           <div className="flex gap-3 pt-2">
             <Link href="/roles">
               <Button variant="secondary" size="sm">
@@ -97,48 +127,81 @@ export default function RoleDetailPage() {
   }
 
   return (
-    <div className="min-h-dvh bg-canvas py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-dvh bg-[#040711] text-white selection:bg-lime-400 selection:text-black py-8 px-4 sm:px-6 lg:px-8 relative overflow-x-hidden font-sans">
       <div className="max-w-content mx-auto space-y-10">
         {/* Navigation Breadcrumb */}
-        <div className="flex items-center gap-2 text-xs text-text-muted">
-          <Link href="/" className="hover:text-primary-700 transition-colors">
-            Home
+        <div className="flex items-center gap-2 text-xs font-mono text-slate-400">
+          <Link href="/dashboard" className="hover:text-lime-400 transition-colors">
+            Dashboard
           </Link>
-          <span>/</span>
-          <Link href="/roles" className="hover:text-primary-700 transition-colors">
+          <span className="text-white/20">/</span>
+          <Link href="/roles" className="hover:text-lime-400 transition-colors">
             Career Roles
           </Link>
-          <span>/</span>
-          <span className="text-text font-medium">{role.name}</span>
+          <span className="text-white/20">/</span>
+          <span className="text-white font-medium">{role.name}</span>
         </div>
 
         {/* Role Hero Card */}
-        <Card className="border border-border bg-surface shadow-xs">
-          <CardContent className="p-6 sm:p-8 space-y-4">
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="text-xs font-semibold uppercase tracking-wider bg-primary-50 text-primary-800 px-3 py-1 rounded border border-primary-200">
-                {formatLevel(role.targetLevel)}
-              </span>
-              <span className="text-xs text-text-muted bg-surface-muted px-2.5 py-1 rounded border border-border">
-                {role.competencies.length} Evaluated Topics
-              </span>
-              <span className="text-xs text-text-muted bg-surface-muted px-2.5 py-1 rounded border border-border">
-                {role.mockTests.length}{' '}
-                {role.mockTests.length === 1 ? 'Benchmark Mock' : 'Benchmark Mocks'}
-              </span>
-            </div>
+        <div className="bento-tile p-6 sm:p-8 space-y-4 border-white/10 relative overflow-hidden">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider bg-lime-400/10 text-lime-400 px-3 py-1 rounded border border-lime-400/20">
+              {formatLevel(role.targetLevel)}
+            </span>
+            <span className="text-xs font-mono text-slate-400 bg-white/5 px-2.5 py-1 rounded border border-white/10">
+              {role.competencies.length} Evaluated Topics
+            </span>
+            <span className="text-xs font-mono text-slate-400 bg-white/5 px-2.5 py-1 rounded border border-white/10">
+              {role.mockTests.length}{' '}
+              {role.mockTests.length === 1 ? 'Benchmark Mock' : 'Benchmark Mocks'}
+            </span>
+          </div>
 
-            <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-primary-900">
-              {role.name}
-            </h1>
+          <h1 className="text-3xl sm:text-4xl font-display font-extrabold tracking-tight text-white">
+            {role.name}
+          </h1>
 
-            {role.description && (
-              <p className="text-base text-text-muted max-w-3xl leading-relaxed">
-                {role.description}
-              </p>
+          {role.description && (
+            <p className="text-xs sm:text-sm text-slate-300 max-w-3xl leading-relaxed font-sans">
+              {role.description}
+            </p>
+          )}
+
+          <div className="flex items-center gap-3 pt-3 flex-wrap">
+            {matchingHandbook && (
+              <>
+                <Link href={`/roles/handbooks/${matchingHandbook.slug}` as Route}>
+                  <Button variant="primary" size="sm" className="font-bold font-mono text-xs shadow-md shadow-lime-400/20 group">
+                    <BookOpen className="w-3.5 h-3.5 mr-1.5" />
+                    <span>Read Online Handbook &amp; Syllabus</span>
+                    <ArrowRight className="w-3.5 h-3.5 ml-1 transition-transform group-hover:translate-x-0.5" />
+                  </Button>
+                </Link>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    const pdfBytes = generateRoleHandbookPdf(matchingHandbook);
+                    downloadPdfFile(
+                      pdfBytes,
+                      `${matchingHandbook.slug}-engineering-handbook.pdf`,
+                    );
+                  }}
+                  className="font-mono text-xs"
+                >
+                  <FileDown className="w-3.5 h-3.5 mr-1.5 text-lime-400" />
+                  Download PDF
+                </Button>
+              </>
             )}
-          </CardContent>
-        </Card>
+            <Link href={"/roles/handbooks" as Route}>
+              <Button variant="ghost" size="sm" className="text-xs font-mono text-slate-400 hover:text-white">
+                <Library className="w-3.5 h-3.5 mr-1.5" />
+                All 12 Role Handbooks
+              </Button>
+            </Link>
+          </div>
+        </div>
 
         {/* Section 1: Evaluated Syllabus Competencies */}
         <section aria-labelledby="competencies-heading" className="space-y-4">
@@ -149,68 +212,89 @@ export default function RoleDetailPage() {
         <RoleInterviewTrapsSection roleSlug={role.slug} />
 
         {/* Section 3: Live Socratic AI Technical Interview */}
-        <Card className="bg-primary-900 text-white p-6 sm:p-8 border-0 shadow-md">
+        <div className="bento-tile border-lime-500/30 bg-gradient-to-r from-[#071324] via-[#0b1c35] to-[#040a17] text-white p-6 sm:p-8 featured-glow relative overflow-hidden">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="space-y-2 max-w-xl">
-              <span className="text-xs font-bold uppercase tracking-wider text-accent-300">
-                🎙️ Live Socratic Evaluation
+              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-lime-400 flex items-center gap-1.5">
+                <Mic className="w-3.5 h-3.5 text-lime-400" />
+                <span>Live Socratic Evaluation</span>
               </span>
-              <h2 className="text-xl sm:text-2xl font-bold text-white">
+              <h2 className="text-xl sm:text-2xl font-display font-extrabold text-white">
                 AI Technical Scenario Interview
               </h2>
-              <p className="text-sm text-primary-100 leading-relaxed">
+              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-sans">
                 Simulate a real technical screening interview for the {role.name} role.
                 Answer scenario questions with live speech recognition, counter-probes, and automated rubric scoring.
               </p>
             </div>
-            <Link href="/interviews" className="shrink-0">
-              <Button variant="primary" className="bg-white text-primary-900 hover:bg-neutral-100 font-bold border-0 min-h-[44px]">
-                Launch Interview Room &rarr;
-              </Button>
-            </Link>
+            <div className="shrink-0 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              <Link href={"/interviews" as Route}>
+                <Button variant="primary" className="font-bold font-mono min-h-[44px] shadow-md shadow-lime-400/20 group">
+                  <span>Launch Interview Room</span>
+                  <ArrowRight className="w-3.5 h-3.5 ml-1.5 transition-transform group-hover:translate-x-0.5" />
+                </Button>
+              </Link>
+              <Link href={`/roles/handbooks/${role.slug}#questions` as Route}>
+                <Button variant="secondary" className="font-bold font-mono min-h-[44px] group">
+                  <Target className="w-3.5 h-3.5 mr-1.5" />
+                  <span>Defense Drills</span>
+                  <ArrowRight className="w-3.5 h-3.5 ml-1 transition-transform group-hover:translate-x-0.5" />
+                </Button>
+              </Link>
+              {matchingHandbook && (
+                <Button
+                  variant="secondary"
+                  onClick={() => setIsFlashcardsModalOpen(true)}
+                  className="font-bold font-mono min-h-[44px]"
+                >
+                  <Zap className="w-3.5 h-3.5 mr-1.5 text-amber-400" />
+                  Rapid Flashcards
+                </Button>
+              )}
+            </div>
           </div>
-        </Card>
+        </div>
 
         {/* Section 4: Curated Knowledge Hub Guides */}
         {roleArticles.length > 0 && (
           <section aria-labelledby="articles-heading" className="space-y-4">
-            <div className="flex items-center justify-between border-b border-border pb-3">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div>
-                <h2 id="articles-heading" className="text-xl font-bold text-primary-900">
+                <h2 id="articles-heading" className="text-xl font-display font-bold text-white">
                   Curated Technical Documentation
                 </h2>
-                <p className="text-xs text-text-muted mt-1">
+                <p className="text-xs font-mono text-slate-400 mt-1">
                   In-depth architectural articles, invariants, and implementation patterns mapped to this role.
                 </p>
               </div>
-              <Link href="/curriculum" className="text-xs font-semibold text-primary-700 hover:underline">
+              <Link href="/curriculum" className="text-xs font-mono font-semibold text-lime-400 hover:underline">
                 View All Knowledge Hub &rarr;
               </Link>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {roleArticles.map((art) => (
-                <Card key={art.id} className="p-5 hover:border-primary-600/50 hover:shadow-xs transition-all flex flex-col justify-between">
+                <div key={art.id} className="bento-tile p-5 hover:border-lime-400/40 hover:shadow-lg transition-all flex flex-col justify-between border-white/10 group">
                   <div className="space-y-2.5">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs font-medium text-text-muted">{art.domainName}</span>
-                      <span className="text-[11px] font-semibold text-primary-700 bg-primary-50 px-2 py-0.5 rounded">
+                      <span className="text-[10px] font-mono font-medium text-slate-400">{art.domainName}</span>
+                      <span className="text-[10px] font-mono font-semibold text-lime-400 bg-lime-400/10 px-2 py-0.5 rounded border border-lime-400/20">
                         {art.level} · {art.readTimeMinutes} min
                       </span>
                     </div>
-                    <h3 className="text-base font-bold text-text hover:text-primary-800 transition-colors">
+                    <h3 className="text-base font-display font-bold text-white group-hover:text-lime-300 transition-colors">
                       {art.title}
                     </h3>
-                    <p className="text-xs text-text-muted line-clamp-2 leading-relaxed">
+                    <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed font-sans">
                       {art.summary}
                     </p>
                   </div>
                   <div className="pt-4">
-                    <Link href={`/curriculum/${art.slug}` as Route} className="text-xs font-semibold text-primary-700 hover:underline inline-flex items-center gap-1">
+                    <Link href={`/curriculum/${art.slug}` as Route} className="text-xs font-mono font-semibold text-lime-400 hover:underline inline-flex items-center gap-1">
                       Read Technical Guide &rarr;
                     </Link>
                   </div>
-                </Card>
+                </div>
               ))}
             </div>
           </section>
@@ -218,12 +302,12 @@ export default function RoleDetailPage() {
 
         {/* Section 5: Role Benchmark Mock Tests */}
         <section aria-labelledby="mock-tests-heading" className="space-y-4">
-          <div className="flex items-center justify-between border-b border-border pb-3">
+          <div className="flex items-center justify-between border-b border-white/10 pb-3">
             <div>
-              <h2 id="mock-tests-heading" className="text-xl font-bold text-primary-900">
+              <h2 id="mock-tests-heading" className="text-xl font-display font-bold text-white">
                 Role Benchmark Mock Tests
               </h2>
-              <p className="text-xs text-text-muted mt-1">
+              <p className="text-xs font-mono text-slate-400 mt-1">
                 Full-length timed assessments evaluating all core competencies required for this role.
               </p>
             </div>
@@ -232,50 +316,50 @@ export default function RoleDetailPage() {
           {role.mockTests.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {role.mockTests.map((test) => (
-                <Card
+                <div
                   key={test.id}
-                  className="hover:border-accent-500/50 hover:shadow-md transition-all flex flex-col justify-between"
+                  className="bento-tile hover:border-lime-400/40 hover:shadow-lg transition-all flex flex-col justify-between border-white/10 p-6 space-y-4"
                 >
-                  <CardContent className="p-6 space-y-4">
+                  <div className="space-y-4">
                     <div className="flex items-start justify-between gap-3">
-                      <h3 className="text-lg font-bold text-primary-900 leading-snug">
+                      <h3 className="text-lg font-display font-bold text-white leading-snug">
                         {test.title}
                       </h3>
-                      <span className="text-xs font-semibold text-accent-800 bg-accent-50 px-2 py-0.5 rounded border border-accent-200 shrink-0">
+                      <span className="text-xs font-mono font-semibold text-lime-400 bg-lime-400/10 px-2.5 py-0.5 rounded border border-lime-400/20 shrink-0">
                         {test.durationMinutes} Mins
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-4 text-xs text-text-muted pt-2 border-t border-border/50">
+                    <div className="flex items-center gap-4 text-xs font-mono text-slate-400 pt-2 border-t border-white/10">
                       <span>
-                        Marks per question: <strong className="text-text">{test.marksPerQuestion}</strong>
+                        Marks per question: <strong className="text-white">{test.marksPerQuestion}</strong>
                       </span>
                       {test.negativeMarking ? (
                         <span>
-                          Negative: <strong className="text-text">-{test.negativeMarking}</strong>
+                          Negative: <strong className="text-rose-400">-{test.negativeMarking}</strong>
                         </span>
                       ) : (
-                        <span className="text-success-700 font-medium">No negative marking</span>
+                        <span className="text-emerald-400 font-medium">No negative marking</span>
                       )}
                     </div>
-                  </CardContent>
+                  </div>
 
-                  <div className="p-6 pt-0">
+                  <div className="pt-2">
                     <Link href={`/mock-tests/${test.id}`} className="block w-full">
-                      <Button variant="accent" className="w-full min-h-[44px] touch-manipulation">
+                      <Button variant="primary" className="w-full min-h-[44px] font-bold font-mono touch-manipulation shadow-md shadow-lime-400/20">
                         Start Role Mock Test &rarr;
                       </Button>
                     </Link>
                   </div>
-                </Card>
+                </div>
               ))}
             </div>
           ) : (
-            <div className="text-center py-10 px-4 rounded-lg border border-dashed border-border bg-surface-muted space-y-3">
-              <p className="text-sm font-semibold text-text">
+            <div className="text-center py-10 px-4 bento-tile border-dashed border-white/10 space-y-3">
+              <p className="text-sm font-display font-semibold text-white">
                 No full-length mock tests assigned to this role yet
               </p>
-              <p className="text-xs text-text-muted max-w-md mx-auto">
+              <p className="text-xs text-slate-400 max-w-md mx-auto font-sans">
                 You can still build 100% role readiness by practicing the individual syllabus competencies listed above!
               </p>
               <div className="pt-2">
@@ -305,10 +389,15 @@ export default function RoleDetailPage() {
               case 'cybersecurity-specialist':
               case 'embedded-systems-engineer':
                 return { tab: 'kernel', name: 'OS Kernel & Network Protocols Studio' };
-              case 'java-backend-developer':
+              case 'python-developer':
+              case 'fullstack-javascript-developer':
+              case 'nodejs-developer':
+                return { tab: 'concurrency', name: 'Runtime Concurrency & Event Loop Studio' };
               case 'database-administrator':
-              case 'data-engineer':
               case 'backend-systems-engineer':
+                return { tab: 'tradeoff', name: 'Architecture & Storage Trade-Off Studio' };
+              case 'java-backend-developer':
+              case 'data-engineer':
                 return { tab: 'sql', name: 'Relational SQL Query Lab' };
               case 'frontend-developer':
               case 'fullstack-engineer':
@@ -323,29 +412,39 @@ export default function RoleDetailPage() {
           const roleStudio = getRoleStudioTab(slug || '');
 
           return (
-            <Card className="p-6 border border-border bg-surface shadow-xs">
+            <div className="bento-tile p-6 border-white/10">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="space-y-1">
-                  <span className="text-xs font-bold text-primary-700 uppercase tracking-wider">
-                    ⚡ Applied Engineering
+                  <span className="text-[10px] font-mono font-bold text-lime-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <Terminal className="w-3.5 h-3.5 text-lime-400" />
+                    <span>Applied Engineering</span>
                   </span>
-                  <h3 className="text-lg font-bold text-primary-900">
+                  <h3 className="text-lg font-display font-bold text-white">
                     Interactive Code &amp; SQL Sandbox
                   </h3>
-                  <p className="text-xs text-text-muted max-w-xl">
+                  <p className="text-xs text-slate-300 max-w-xl font-sans">
                     Practice algorithm implementations, multi-tenant SQL queries, and distributed architecture models in the {roleStudio.name}.
                   </p>
                 </div>
                 <Link href={`/sandbox?tab=${roleStudio.tab}`} className="shrink-0">
-                  <Button variant="secondary" size="sm">
-                    Open Sandbox &rarr;
+                  <Button variant="secondary" size="sm" className="group font-mono">
+                    <span>Open Sandbox</span>
+                    <ArrowRight className="w-3.5 h-3.5 ml-1 transition-transform group-hover:translate-x-0.5" />
                   </Button>
                 </Link>
               </div>
-            </Card>
+            </div>
           );
         })()}
       </div>
+
+      {matchingHandbook && isFlashcardsModalOpen && (
+        <RoleInterviewFlashcardsModal
+          role={matchingHandbook}
+          isOpen={isFlashcardsModalOpen}
+          onClose={() => setIsFlashcardsModalOpen(false)}
+        />
+      )}
     </div>
   );
 }

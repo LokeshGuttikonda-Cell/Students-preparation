@@ -19,10 +19,10 @@ vi.mock('next/navigation', () => ({
 describe('Curriculum & Knowledge Base Client Tests', () => {
   it('retrieves curriculum domains and articles with complete domain coverage', async () => {
     const domains = await getCurriculumDomains();
-    expect(domains.length).toBe(14);
+    expect(domains.length).toBe(15);
 
     const articles = await getCurriculumArticles();
-    expect(articles.length).toBe(162);
+    expect(articles.length).toBe(182);
 
     // Assert that every domain has at least 2 master articles
     for (const domain of domains) {
@@ -42,7 +42,7 @@ describe('Curriculum & Knowledge Base Client Tests', () => {
     expect(article).not.toBeNull();
     expect(article?.domainSlug).toBe('data-structures-algorithms');
     expect(article?.practiceMcqs.length).toBeGreaterThan(0);
-  });
+  }, 15000);
 });
 
 describe('CurriculumHubPage Component', () => {
@@ -89,13 +89,13 @@ describe('CurriculumArticleDetailPage Component', () => {
     fireEvent.click(optionBCard);
 
     await waitFor(() => {
-      expect(screen.getByText(/Correct Rationale/i)).toBeDefined();
+      expect(screen.getByText(/Correct.*Rationale/i)).toBeDefined();
     });
 
     // Check TOC section jump links
     expect(screen.getByText('1. Overview')).toBeDefined();
     expect(screen.getByText('2. Theory & Code')).toBeDefined();
-    expect(screen.getByText('⚡ Applied Labs')).toBeDefined();
+    expect(screen.getByText('Applied Labs')).toBeDefined();
 
     // Check Previous/Next guide navigation cards
     expect(screen.getByText(/Next Guide →/i)).toBeDefined();

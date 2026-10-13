@@ -239,7 +239,7 @@ describe('LiveInterviewRoomPage', () => {
     await waitFor(() => {
       expect(screen.getByText(/3 fillers/i)).toBeDefined();
       expect(screen.getByTestId('live-articulation-coaching-tip')).toBeDefined();
-      expect(screen.getByText(/💡 Articulation Tip:/i)).toBeDefined();
+      expect(screen.getByText(/Articulation Tip:/i)).toBeDefined();
       expect(screen.getByText(/Consider replacing “sort of” with “Approximately”/i)).toBeDefined();
     });
   });

@@ -22,6 +22,11 @@ export const TimerCountdown: React.FC<TimerCountdownProps> = ({
   );
   const targetExpiry = useRef(new Date(expiresAt).getTime());
   const hasExpiredRef = useRef(false);
+  const onExpireRef = useRef(onExpire);
+
+  useEffect(() => {
+    onExpireRef.current = onExpire;
+  }, [onExpire]);
 
   const calculateRemaining = () => {
     const estimatedServerNow = Date.now() + serverTimeOffset.current;
@@ -32,6 +37,13 @@ export const TimerCountdown: React.FC<TimerCountdownProps> = ({
   const [remainingSeconds, setRemainingSeconds] = useState(calculateRemaining);
 
   useEffect(() => {
+    serverTimeOffset.current = new Date(serverNow).getTime() - Date.now();
+    targetExpiry.current = new Date(expiresAt).getTime();
+    hasExpiredRef.current = false;
+    setRemainingSeconds(calculateRemaining());
+  }, [serverNow, expiresAt]);
+
+  useEffect(() => {
     const interval = setInterval(() => {
       const remaining = calculateRemaining();
       setRemainingSeconds(remaining);
@@ -39,14 +51,12 @@ export const TimerCountdown: React.FC<TimerCountdownProps> = ({
       if (remaining <= 0 && !hasExpiredRef.current) {
         hasExpiredRef.current = true;
         clearInterval(interval);
-        if (onExpire) {
-          onExpire();
-        }
+        onExpireRef.current?.();
       }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [onExpire]);
+  }, []);
 
   const hours = Math.floor(remainingSeconds / 3600);
   const minutes = Math.floor((remainingSeconds % 3600) / 60);
@@ -63,14 +73,14 @@ export const TimerCountdown: React.FC<TimerCountdownProps> = ({
     <div className={`flex items-center gap-2 ${className}`}>
       <span
         aria-live="polite"
-        className={`tabular font-semibold transition-colors ${
-          isUrgent ? 'text-error-600 text-2xl sm:text-3xl' : 'text-primary-900 text-xl sm:text-2xl'
+        className={`tabular font-mono font-bold tracking-wider transition-colors ${
+          isUrgent ? 'text-rose-400 text-2xl sm:text-3xl' : 'text-lime-400 text-xl sm:text-2xl'
         }`}
       >
         {formattedTime}
       </span>
       {isUrgent && remainingSeconds > 0 && (
-        <span className="bg-error-50 text-error-700 border border-error-500/30 text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded uppercase tracking-wider">
+        <span className="bg-rose-950/50 text-rose-300 border border-rose-500/40 text-[10px] sm:text-xs font-mono font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
           Time Running Out
         </span>
       )}

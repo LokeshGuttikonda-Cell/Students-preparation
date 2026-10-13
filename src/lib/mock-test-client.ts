@@ -279,11 +279,33 @@ export async function getMockTestScorecard(
   return createFallbackScorecard(attemptId);
 }
 
+interface CustomMockMetadata {
+  id: string;
+  slug: string;
+  title: string;
+  durationMinutes: number;
+  questionCount: number;
+  topicIds: string[];
+}
+
+export const customMockRegistry = new Map<string, CustomMockMetadata>();
+
+export function getRegisteredCustomMock(id: string): CustomMockMetadata | undefined {
+  return customMockRegistry.get(id);
+}
+
 function createFallbackSession(mockTestId: string): MockTestAttemptData {
-  const found =
-    DEFAULT_MOCK_TESTS_CATALOG.find(
-      (m) => m.id === mockTestId || m.slug === mockTestId,
-    ) || DEFAULT_MOCK_TESTS_CATALOG[0];
+  const customFound = customMockRegistry.get(mockTestId);
+  const found = customFound
+    ? {
+        id: customFound.id,
+        slug: customFound.slug,
+        title: customFound.title,
+        durationMinutes: customFound.durationMinutes,
+      }
+    : DEFAULT_MOCK_TESTS_CATALOG.find(
+        (m) => m.id === mockTestId || m.slug === mockTestId,
+      ) || DEFAULT_MOCK_TESTS_CATALOG[0];
   const now = Date.now();
   const duration = found.durationMinutes || 40;
 
@@ -355,10 +377,18 @@ function createFallbackSession(mockTestId: string): MockTestAttemptData {
 
 function createFallbackScorecard(attemptId: string): MockTestScorecardData {
   const mockTestId = attemptId.replace(/^attempt-/, '') || 'mock-1';
+  const customFound = customMockRegistry.get(mockTestId);
   const found =
-    DEFAULT_MOCK_TESTS_CATALOG.find(
-      (m) => m.id === mockTestId || m.slug === mockTestId,
-    ) || DEFAULT_MOCK_TESTS_CATALOG[0];
+    customFound
+      ? {
+          id: customFound.id,
+          slug: customFound.slug,
+          title: customFound.title,
+          durationMinutes: customFound.durationMinutes,
+        }
+      : DEFAULT_MOCK_TESTS_CATALOG.find(
+          (m) => m.id === mockTestId || m.slug === mockTestId,
+        ) || DEFAULT_MOCK_TESTS_CATALOG[0];
 
   const domainQuestions = getMockTestQuestionsForDomain(mockTestId);
   const total = domainQuestions.length || 10;
@@ -528,19 +558,31 @@ export async function createCustomMockTest(
     });
 
     if (res.ok) {
-      return await res.json();
+      const item = await res.json();
+      customMockRegistry.set(item.id, {
+        id: item.id,
+        slug: item.slug || item.id,
+        title: item.title,
+        durationMinutes: item.durationMinutes,
+        questionCount: item.questionCount,
+        topicIds: data.topicIds || [],
+      });
+      return item;
     }
   } catch {
     // Graceful fallback
   }
 
   const customId = `custom-mock-${Date.now()}`;
-  return {
+  const customItem = {
     id: customId,
     slug: customId,
     title: data.title || 'Custom Engineering Screening Simulation',
     durationMinutes: data.durationMinutes || 30,
     questionCount: data.questionCount || 20,
+    topicIds: data.topicIds || [],
   };
+  customMockRegistry.set(customId, customItem);
+  return customItem;
 }
 

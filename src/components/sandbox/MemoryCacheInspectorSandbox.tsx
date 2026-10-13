@@ -2588,29 +2588,33 @@ export function MemoryCacheInspectorSandbox() {
   return (
     <div className="bg-surface border border-border rounded-xl shadow-xs overflow-hidden space-y-6">
       {/* Sub-Header Tabs */}
-      <div className="bg-surface-hover/50 border-b border-border p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2">
+      <div className="bg-surface-hover/50 border-b border-border p-4 sm:p-5 space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-bold uppercase tracking-wider text-accent-700">
               Low-Level Systems Studio
             </span>
-            <span className="text-[11px] font-semibold bg-primary-50 text-primary-800 px-2 py-0.5 rounded-full border border-primary-200">
+            <span className="text-[11px] font-semibold bg-primary-50 text-primary-800 px-2.5 py-0.5 rounded-full border border-primary-200">
               Memory &amp; Hardware Layout
             </span>
           </div>
-          <h2 className="text-lg font-bold text-text mt-0.5">
-            Process Virtual Memory &amp; CPU Cache Coherence Simulator
-          </h2>
+          <span className="text-xs font-medium text-text-muted">
+            9 Specialized Hardware Simulators
+          </span>
         </div>
+        <h2 className="text-lg sm:text-xl font-bold text-text">
+          Process Virtual Memory &amp; CPU Cache Coherence Simulator
+        </h2>
 
-        <div className="flex items-center gap-1.5 bg-canvas p-1 rounded-lg border border-border">
+        {/* Sub-Tab Navigation Pills */}
+        <div className="flex items-center gap-1.5 overflow-x-auto p-1.5 bg-canvas rounded-xl border border-border [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           <button
             type="button"
             onClick={() => setActiveSubTab('STACK_HEAP')}
-            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               activeSubTab === 'STACK_HEAP'
                 ? 'bg-primary-700 text-white shadow-xs'
-                : 'text-text-muted hover:text-text'
+                : 'text-text-muted hover:text-text hover:bg-surface-hover/50'
             }`}
           >
             Stack vs Heap
@@ -2618,10 +2622,10 @@ export function MemoryCacheInspectorSandbox() {
           <button
             type="button"
             onClick={() => setActiveSubTab('CACHE_LINE')}
-            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               activeSubTab === 'CACHE_LINE'
                 ? 'bg-primary-700 text-white shadow-xs'
-                : 'text-text-muted hover:text-text'
+                : 'text-text-muted hover:text-text hover:bg-surface-hover/50'
             }`}
           >
             L1/L2 Cache Lines &amp; False Sharing
@@ -2629,10 +2633,10 @@ export function MemoryCacheInspectorSandbox() {
           <button
             type="button"
             onClick={() => setActiveSubTab('HASH_TABLE')}
-            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               activeSubTab === 'HASH_TABLE'
                 ? 'bg-primary-700 text-white shadow-xs'
-                : 'text-text-muted hover:text-text'
+                : 'text-text-muted hover:text-text hover:bg-surface-hover/50'
             }`}
           >
             Hash Table Collision Probing
@@ -2640,10 +2644,10 @@ export function MemoryCacheInspectorSandbox() {
           <button
             type="button"
             onClick={() => setActiveSubTab('LSM_TREE_SSTABLE')}
-            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               activeSubTab === 'LSM_TREE_SSTABLE'
                 ? 'bg-primary-700 text-white shadow-xs'
-                : 'text-text-muted hover:text-text'
+                : 'text-text-muted hover:text-text hover:bg-surface-hover/50'
             }`}
           >
             LSM-Tree &amp; SSTables
@@ -2651,10 +2655,10 @@ export function MemoryCacheInspectorSandbox() {
           <button
             type="button"
             onClick={() => setActiveSubTab('ARIES_RECOVERY')}
-            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               activeSubTab === 'ARIES_RECOVERY'
                 ? 'bg-primary-700 text-white shadow-xs'
-                : 'text-text-muted hover:text-text'
+                : 'text-text-muted hover:text-text hover:bg-surface-hover/50'
             }`}
           >
             ARIES Database Recovery
@@ -2662,10 +2666,10 @@ export function MemoryCacheInspectorSandbox() {
           <button
             type="button"
             onClick={() => setActiveSubTab('CACHE_STAMPEDE_XFETCH')}
-            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               activeSubTab === 'CACHE_STAMPEDE_XFETCH'
                 ? 'bg-primary-700 text-white shadow-xs'
-                : 'text-text-muted hover:text-text'
+                : 'text-text-muted hover:text-text hover:bg-surface-hover/50'
             }`}
           >
             Cache Stampede &amp; XFetch
@@ -2673,10 +2677,10 @@ export function MemoryCacheInspectorSandbox() {
           <button
             type="button"
             onClick={() => setActiveSubTab('BTREE_LOCK_CRABBING')}
-            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               activeSubTab === 'BTREE_LOCK_CRABBING'
                 ? 'bg-primary-700 text-white shadow-xs'
-                : 'text-text-muted hover:text-text'
+                : 'text-text-muted hover:text-text hover:bg-surface-hover/50'
             }`}
           >
             B-Tree Concurrency &amp; OLC
@@ -2684,10 +2688,10 @@ export function MemoryCacheInspectorSandbox() {
           <button
             type="button"
             onClick={() => setActiveSubTab('GARBAGE_COLLECTION_TRICOLOR')}
-            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               activeSubTab === 'GARBAGE_COLLECTION_TRICOLOR'
                 ? 'bg-primary-700 text-white shadow-xs'
-                : 'text-text-muted hover:text-text'
+                : 'text-text-muted hover:text-text hover:bg-surface-hover/50'
             }`}
           >
             Tri-Color GC &amp; Barriers
@@ -2695,10 +2699,10 @@ export function MemoryCacheInspectorSandbox() {
           <button
             type="button"
             onClick={() => setActiveSubTab('MVCC_SNAPSHOT_ISOLATION')}
-            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               activeSubTab === 'MVCC_SNAPSHOT_ISOLATION'
                 ? 'bg-primary-700 text-white shadow-xs'
-                : 'text-text-muted hover:text-text'
+                : 'text-text-muted hover:text-text hover:bg-surface-hover/50'
             }`}
           >
             MVCC &amp; Snapshot Isolation

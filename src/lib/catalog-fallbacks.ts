@@ -105,6 +105,21 @@ export function getDomainTopicsForMockTest(mockTestIdOrSlug: string): string[] {
   if (id.includes('qa') || id.includes('sdet') || id === 'mock-12') {
     return ['topic-qa-testing', 'topic-fullstack-js', 'topic-python', 'topic-devops'];
   }
+  if (id.includes('ai-agent') || id.includes('ai-engineering') || id.includes('coding-agent') || id.includes('rag') || id === 'mock-13') {
+    return ['topic-ai-agents', 'topic-rag-systems', 'topic-ml-systems', 'topic-python'];
+  }
+  if (id.includes('llmops') || id.includes('multi-agent') || id === 'mock-14') {
+    return ['topic-multi-agent', 'topic-llmops', 'topic-ai-agents', 'topic-rag-systems'];
+  }
+  if (id.includes('fine-tuning') || id.includes('multimodal') || id === 'mock-15') {
+    return ['topic-fine-tuning', 'topic-multimodal-ai', 'topic-llmops', 'topic-ai-safety'];
+  }
+  if (id.includes('distributed-serving') || id.includes('compound-ai') || id === 'mock-16') {
+    return ['topic-distributed-serving', 'topic-compound-ai', 'topic-llmops', 'topic-multi-agent'];
+  }
+  if (id.includes('agentic-rag') || id.includes('graphrag') || id.includes('ai-evals') || id.includes('distillation') || id === 'mock-17') {
+    return ['topic-agentic-rag', 'topic-ai-evals', 'topic-rag-systems', 'topic-fine-tuning'];
+  }
   // Default general aptitude mock test (mock-1)
   return [
     'topic-numbers',
@@ -823,6 +838,27 @@ function getRoleInterviewDialogue(roleSlugOrId: string): RoleInterviewDialogue {
       growthAreas: [
         'Discuss test suite parallelization across distributed CI worker shards',
         'Detail mutation testing (e.g. Stryker) to evaluate test suite robustness',
+      ],
+    };
+  }
+
+  if (s.includes('ai-agent') || s.includes('generative') || s.includes('coding-agent')) {
+    return {
+      introQuestion: 'Welcome to the AI Agent & Generative Systems Engineer technical interview. Please introduce yourself and discuss your architectural philosophy when building autonomous systems (like Claude Code): how do you balance autonomous model exploration with deterministic software invariants, sandboxing, and token economics?',
+      technicalDrillPrompt: 'An autonomous coding agent executing a ReAct loop encounters a TypeScript compiler error during a refactor. Instead of converging, the agent enters an oscillation loop—alternating between two conflicting file edits across 10 turns, consuming 200,000 tokens. Walk me through how you detect, break, and prevent this cyclic error state at the orchestrator level.',
+      scenarioDesignPrompt: 'Design an enterprise-scale autonomous AI code-review and repair system that indexes a 5-million-line monorepo, leverages hybrid vector search with AST symbol graphs, runs test suites inside ephemeral Docker containers, and proposes pull requests with human-in-the-loop sign-off.',
+      wrapupPrompt: 'Outstanding mastery of agentic loops, sandboxed execution, and context budget management. Do you have any questions for our AI systems engineering team?',
+      technicalFeedback: 'Exceptional understanding of the ReAct feedback loop, AST context pruning, and deterministic grammar decoding. Consider citing prompt caching prefix tree reuse and KV-cache latency metrics.',
+      suggestedAnswer: 'Implement AST diff hashing to detect repeated state hashes, enforce a hard cycle loop budget of 3 turns for identical error messages, inject compiler diagnostics directly into the observation frame, and fall back to human review if unresolved.',
+      feedbackSummary: 'Candidate demonstrated comprehensive expertise in production AI agent orchestration, sandboxed tool execution protocols, and enterprise context window governance.',
+      strengths: [
+        'Precise algorithmic solution for detecting and breaking agent oscillation loops',
+        'Thorough architecture for AST symbol indexing and hybrid vector search',
+        'Deep understanding of sandboxed container isolation and human-in-the-loop checkpoints',
+      ],
+      growthAreas: [
+        'Incorporate tokenomic cost modeling comparing prefix prompt caching vs uncached inference',
+        'Discuss continuous batching and PagedAttention scaling in self-hosted model backends',
       ],
     };
   }

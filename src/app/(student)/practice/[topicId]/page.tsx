@@ -16,6 +16,12 @@ import { SocraticRemediationCard } from '../../../../components/practice/Socrati
 import { DifficultyBadge } from '../../../../components/ui/Badge';
 import { Button } from '../../../../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../../components/ui/Card';
+import {
+  trackEvent,
+  TelemetryEventType,
+  triggerFeedbackPrompt,
+  FeedbackContextTrigger,
+} from '../../../../lib/telemetry-client';
 
 export default function PracticeRunnerPage() {
   const params = useParams<{ topicId: string }>();
@@ -82,6 +88,13 @@ export default function PracticeRunnerPage() {
       };
 
       setQuestions(updatedQuestions);
+
+      void trackEvent(TelemetryEventType.MCQ_ANSWERED, {
+        topicId: params.topicId,
+        questionId: currentQ.id,
+        isCorrect: feedback.isCorrect,
+        isPractice: true,
+      });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to save answer');
     } finally {
@@ -94,6 +107,10 @@ export default function PracticeRunnerPage() {
       setCurrentIndex((prev) => prev + 1);
     } else {
       setIsCompleted(true);
+      triggerFeedbackPrompt(FeedbackContextTrigger.MCQ_PRACTICE, {
+        topicId: params.topicId,
+        totalQuestions: questions.length,
+      });
     }
   };
 
@@ -181,66 +198,64 @@ export default function PracticeRunnerPage() {
         : 0;
 
     return (
-      <div className="min-h-dvh bg-canvas py-12 px-4">
-        <div className="max-w-lg mx-auto space-y-6 animate-in fade-in zoom-in-95 duration-200">
-          <Card elevated>
-            <CardHeader className="text-center pb-2">
-              <span className="text-xs font-semibold text-success-700 uppercase tracking-wider">
-                Practice Session Complete
+      <div className="min-h-dvh bg-canvas py-12 px-4 flex items-center justify-center">
+        <div className="max-w-xl w-full mx-auto space-y-6 animate-in fade-in zoom-in-95 duration-200">
+          <div className="bento-tile p-8 space-y-6 border-lime-500/30 text-center">
+            <div className="space-y-1">
+              <span className="px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-lime-400/20 text-lime-300 border border-lime-400/30">
+                PRACTICE SESSION COMPLETE
               </span>
-              <CardTitle className="text-2xl mt-1 text-primary-900">
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-white font-display mt-2">
                 {data.attempt.topicName}
-              </CardTitle>
-              <p className="text-xs text-text-muted mt-1">
+              </h1>
+              <p className="text-xs font-mono text-slate-400">
                 {data.attempt.subjectName}
               </p>
-            </CardHeader>
+            </div>
 
-            <CardContent className="space-y-6 pt-4">
-              {/* Score Highlight */}
-              <div className="bg-neutral-50 rounded-lg p-6 text-center border border-border">
-                <span className="text-xs font-medium text-text-muted uppercase">
-                  Accuracy Score
-                </span>
-                <div className="text-5xl font-bold text-primary-900 tabular mt-1">
-                  {accuracy}%
-                </div>
-                <p className="text-xs text-text-muted mt-2 tabular font-medium">
-                  {correctCount} of {questions.length} questions answered correctly
-                </p>
+            {/* Score Highlight Box */}
+            <div className="p-6 rounded-2xl bg-black/60 border border-white/10 space-y-2">
+              <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block">
+                Session Accuracy Score
+              </span>
+              <div className="text-5xl sm:text-6xl font-black text-lime-400 font-display tabular">
+                {accuracy}%
               </div>
+              <p className="text-xs font-mono text-slate-300 tabular">
+                {correctCount} of {questions.length} questions answered correctly
+              </p>
+            </div>
 
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Button
-                  variant="secondary"
-                  className="w-full cursor-pointer"
-                  onClick={() => {
-                    setIsCompleted(false);
-                    setCurrentIndex(0);
-                  }}
-                >
-                  Review Answers
+            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+              <Button
+                variant="secondary"
+                className="w-full text-xs font-mono"
+                onClick={() => {
+                  setIsCompleted(false);
+                  setCurrentIndex(0);
+                }}
+              >
+                Review Answers
+              </Button>
+              <Link href="/practice" className="w-full">
+                <Button variant="secondary" className="w-full text-xs font-mono">
+                  Other Topics
                 </Button>
-                <Link href="/practice" className="w-full">
-                  <Button variant="secondary" className="w-full cursor-pointer">
-                    Practice Another Topic
-                  </Button>
-                </Link>
-                <Link href="/curriculum" className="w-full">
-                  <Button variant="primary" className="w-full cursor-pointer">
-                    Knowledge Hub &rarr;
-                  </Button>
-                </Link>
-              </div>
+              </Link>
+              <Link href="/curriculum" className="w-full">
+                <Button variant="primary" className="w-full text-xs font-bold shadow-md shadow-lime-400/20">
+                  Knowledge Hub →
+                </Button>
+              </Link>
+            </div>
 
-              <div className="pt-3 border-t border-border flex items-center justify-between text-xs text-text-muted">
-                <span>Want hands-on execution?</span>
-                <Link href="/sandbox" className="text-primary-800 font-semibold hover:underline">
-                  Launch Applied Sandbox &rarr;
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
+            <div className="pt-4 border-t border-white/10 flex items-center justify-between text-xs font-mono text-slate-400">
+              <span>Interactive Kernel Lab</span>
+              <Link href="/sandbox" className="text-cyan-400 font-bold hover:underline">
+                Launch Applied Sandbox →
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -260,27 +275,26 @@ export default function PracticeRunnerPage() {
       />
 
       <main className="flex-1 max-w-4xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
-        {/* Question Statement Card */}
-        <Card>
-          <CardHeader className="py-4 px-6 border-b border-border flex flex-row items-center justify-between">
-            <span className="text-xs font-semibold text-text-muted font-mono tabular">
-              Q{currentIndex + 1} of {questions.length}
+        {/* Question Statement Bento Tile */}
+        <div className="bento-tile p-6 sm:p-8 space-y-4">
+          <div className="flex items-center justify-between border-b border-white/10 pb-4">
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-lime-400/20 text-lime-300 border border-lime-400/30">
+              QUESTION {currentIndex + 1} OF {questions.length}
             </span>
             <DifficultyBadge difficulty={currentQ.difficulty} />
-          </CardHeader>
+          </div>
 
-          <CardContent className="p-6">
-            <h1 className="text-lg sm:text-xl font-medium text-text leading-relaxed whitespace-pre-line">
-              {currentQ.body}
-            </h1>
-          </CardContent>
-        </Card>
+          <h1 className="text-base sm:text-xl font-medium text-white leading-relaxed whitespace-pre-line font-sans">
+            {currentQ.body}
+          </h1>
+        </div>
 
         {/* Options List */}
         <div className="space-y-3">
-          <span className="text-xs font-semibold text-text-muted uppercase tracking-wider block">
-            Options
-          </span>
+          <div className="flex items-center justify-between text-xs font-mono text-slate-400 px-1">
+            <span className="uppercase tracking-wider font-bold text-slate-400">Select Choice</span>
+            <span className="text-[11px] text-cyan-400">Instant Verification</span>
+          </div>
           {currentQ.options.map((opt, idx) => {
             let state: OptionState = 'default';
 
@@ -327,14 +341,15 @@ export default function PracticeRunnerPage() {
         )}
 
         {/* Bottom Navigation Toolbar */}
-        <div className="flex items-center justify-between pt-4 border-t border-border mt-8">
+        <div className="flex items-center justify-between pt-4 border-t border-white/10 mt-8 font-mono">
           <Button
             variant="secondary"
             size="sm"
             onClick={handlePrevious}
             disabled={currentIndex === 0}
+            className="text-xs"
           >
-            &larr; Previous
+            ← Previous
           </Button>
 
           <div className="flex items-center gap-3">
@@ -342,10 +357,11 @@ export default function PracticeRunnerPage() {
               variant={isAnswered ? 'primary' : 'secondary'}
               size="sm"
               onClick={handleNext}
+              className="text-xs font-bold"
             >
               {currentIndex === questions.length - 1
                 ? 'Finish Practice'
-                : 'Next Question \u2192'}
+                : 'Next Question →'}
             </Button>
           </div>
         </div>

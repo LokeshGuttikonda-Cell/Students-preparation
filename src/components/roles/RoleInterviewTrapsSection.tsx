@@ -13,19 +13,59 @@ export function RoleInterviewTrapsSection({ roleSlug }: RoleInterviewTrapsSectio
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+    setIsLoading(true);
+
     getRoleInterviewTraps(roleSlug)
       .then((data) => {
-        setTraps(data);
+        if (isMounted) {
+          setTraps(data);
+        }
       })
       .catch(() => {
-        setTraps([]);
+        if (isMounted) {
+          setTraps([]);
+        }
       })
       .finally(() => {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       });
+
+    return () => {
+      isMounted = false;
+    };
   }, [roleSlug]);
 
-  if (isLoading || traps.length === 0) {
+  if (isLoading) {
+    return (
+      <section aria-label="Role Interview Traps Loading" className="space-y-4 pt-4 animate-pulse">
+        <div className="border-b border-border pb-3 space-y-2">
+          <div className="h-4 w-32 bg-border/60 rounded" />
+          <div className="h-6 w-64 bg-border/60 rounded" />
+          <div className="h-3 w-96 max-w-full bg-border/40 rounded" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[1, 2].map((i) => (
+            <Card key={i} className="border-border">
+              <CardContent className="p-5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="h-4 w-40 bg-border/60 rounded" />
+                  <div className="h-4 w-20 bg-border/40 rounded" />
+                </div>
+                <div className="h-3 w-full bg-border/40 rounded" />
+                <div className="h-3 w-3/4 bg-border/40 rounded" />
+                <div className="h-16 w-full bg-border/30 rounded" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  if (traps.length === 0) {
     return null;
   }
 

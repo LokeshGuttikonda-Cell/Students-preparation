@@ -54,7 +54,7 @@ describe('SystemDesignSandbox', () => {
     const rangeBtn = screen.getByRole('button', { name: /Range-Based \(Timestamp\)/i });
     fireEvent.click(rangeBtn);
     expect(screen.getByText(/Range-Based Partitioning Hotspot/i)).toBeInTheDocument();
-    expect(screen.getByText(/🔥 HOTSPOT/i)).toBeInTheDocument();
+    expect(screen.getByText('HOTSPOT')).toBeInTheDocument();
 
     // Switch to Celebrity key trap
     const celebBtn = screen.getByRole('button', { name: /Celebrity Key Trap/i });

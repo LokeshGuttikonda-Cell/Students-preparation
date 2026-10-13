@@ -90,8 +90,8 @@ describe('CourseDetailPage', () => {
       expect(screen.getByText('Full-Spectrum Learning Continuum')).toBeInTheDocument();
       expect(screen.getByText('1. Knowledge Hub')).toBeInTheDocument();
       expect(screen.getByText('3. Applied Engineering Labs')).toBeInTheDocument();
-      expect(screen.getByText(/📖 Theory/i)).toBeInTheDocument();
-      expect(screen.getByText(/🔬 Applied Lab/i)).toBeInTheDocument();
+      expect(screen.getByText(/Theory/i)).toBeInTheDocument();
+      expect(screen.getByText(/Applied Lab/i)).toBeInTheDocument();
     });
   });
 });

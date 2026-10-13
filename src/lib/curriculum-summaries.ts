@@ -42,14 +42,14 @@ export const CURRICULUM_DOMAINS: CurriculumDomain[] = [
     "name": "System Design & Software Architecture",
     "description": "Low-level object-oriented design patterns, SOLID principles, concurrency models, and scalable distributed systems.",
     "icon": "🏛️",
-    "articlesCount": 12
+    "articlesCount": 15
   },
   {
     "slug": "operating-systems-internals",
     "name": "Operating Systems & Systems Programming",
     "description": "Kernel architectures, process scheduling, virtual memory, paging algorithms, deadlocks, and Linux cgroups.",
     "icon": "💻",
-    "articlesCount": 6
+    "articlesCount": 7
   },
   {
     "slug": "computer-networks-protocols",
@@ -63,7 +63,7 @@ export const CURRICULUM_DOMAINS: CurriculumDomain[] = [
     "name": "Database Management Systems & Storage",
     "description": "Relational algebra, B+ Trees vs LSM Trees, ACID transactions, MVCC concurrency, and query plan optimization.",
     "icon": "🗄️",
-    "articlesCount": 4
+    "articlesCount": 7
   },
   {
     "slug": "cloud-infrastructure-architecture",
@@ -105,7 +105,7 @@ export const CURRICULUM_DOMAINS: CurriculumDomain[] = [
     "name": "Cybersecurity, AppSec & Cryptography",
     "description": "OWASP Top 10 vulnerabilities, asymmetric cryptography, PKI, OAuth 2.0 with PKCE, and Zero-Trust network models.",
     "icon": "🛡️",
-    "articlesCount": 3
+    "articlesCount": 6
   },
   {
     "slug": "qa-test-automation-engineering",
@@ -127,6 +127,13 @@ export const CURRICULUM_DOMAINS: CurriculumDomain[] = [
     "description": "Categorical syllogisms, blood relation graphs, circular seating arrangements, and pattern decoding.",
     "icon": "🧩",
     "articlesCount": 2
+  },
+  {
+    "slug": "generative-ai-coding-agents",
+    "name": "Artificial Intelligence Engineering & Autonomous Agents",
+    "description": "LLM architectures, prompt engineering, agentic loops (ReAct/Tool use), RAG vector retrieval, context window management, and AI coding assistants like Claude Code.",
+    "icon": "🧠",
+    "articlesCount": 10
   }
 ];
 
@@ -3858,6 +3865,496 @@ export const CURRICULUM_SUMMARIES: CurriculumArticleSummary[] = [
     "relatedRoleSlugs": [
       "backend-systems-engineer",
       "devops-cloud-engineer"
+    ],
+    "practiceMcqsCount": 5,
+    "sandboxChallengeId": "code-two-sum"
+  },
+  {
+    "id": "art-ecc-ed25519-ecdh",
+    "slug": "elliptic-curve-cryptography-ed25519-ecdh",
+    "domainSlug": "cybersecurity-cryptography",
+    "domainName": "Cybersecurity, AppSec & Cryptography",
+    "title": "Elliptic-Curve Cryptography: Weierstrass vs Montgomery vs Edwards Curves, ECDH & Ed25519",
+    "level": "ADVANCED",
+    "readTimeMinutes": 22,
+    "summary": "A mathematical and systems exploration of modern elliptic-curve cryptography: curve equations, point addition group laws, projective coordinates, Curve25519 ECDH key exchange, and Ed25519 digital signatures.",
+    "keyConcepts": [
+      "Weierstrass Form vs Twisted Edwards Form",
+      "Elliptic Curve Diffie-Hellman (ECDH)",
+      "Ed25519 Signatures",
+      "Point Addition & Doubling Formulas",
+      "Side-Channel Timing Resistance",
+      "Constant-Time Scalar Multiplication (Montgomery Ladder)"
+    ],
+    "relatedRoleSlugs": [
+      "cybersecurity-specialist",
+      "backend-systems-engineer"
+    ],
+    "practiceMcqsCount": 5,
+    "sandboxChallengeId": "code-two-sum"
+  },
+  {
+    "id": "art-zkp-snark-stark-circuits",
+    "slug": "zero-knowledge-proofs-snarks-starks-arithmetic-circuits",
+    "domainSlug": "cybersecurity-cryptography",
+    "domainName": "Cybersecurity, AppSec & Cryptography",
+    "title": "Zero-Knowledge Proofs: zk-SNARKs vs zk-STARKs, R1CS & Arithmetic Circuit Verification",
+    "level": "ADVANCED",
+    "readTimeMinutes": 24,
+    "summary": "A deep architectural guide to Zero-Knowledge Proofs: converting computational statements into arithmetic circuits, Rank-1 Constraint Systems (R1CS), Quadratic Arithmetic Programs (QAP), and comparing SNARKs against quantum-resistant STARKs.",
+    "keyConcepts": [
+      "Quadratic Arithmetic Programs (QAP)",
+      "Rank-1 Constraint Systems (R1CS)",
+      "zk-SNARKs vs zk-STARKs",
+      "Trusted Setup vs Transparent Setups",
+      "KZG Polynomial Commitments",
+      "Recursive Proof Verification"
+    ],
+    "relatedRoleSlugs": [
+      "cybersecurity-specialist",
+      "backend-systems-engineer"
+    ],
+    "practiceMcqsCount": 5,
+    "sandboxChallengeId": "code-two-sum"
+  },
+  {
+    "id": "art-post-quantum-crypto-lattice",
+    "slug": "post-quantum-cryptography-lattice-ml-kem-ml-dsa",
+    "domainSlug": "cybersecurity-cryptography",
+    "domainName": "Cybersecurity, AppSec & Cryptography",
+    "title": "Post-Quantum Cryptography: Lattice-Based Cryptography, ML-KEM (Kyber) & ML-DSA (Dilithium)",
+    "level": "ADVANCED",
+    "readTimeMinutes": 23,
+    "summary": "An engineering dissection of lattice-based post-quantum cryptography: why Shor algorithm breaks RSA and ECC, the geometry of high-dimensional lattices, and the NIST standards ML-KEM and ML-DSA.",
+    "keyConcepts": [
+      "Learning With Errors (LWE)",
+      "Module-LWE (M-LWE)",
+      "NIST FIPS 203 (ML-KEM / Kyber)",
+      "NIST FIPS 204 (ML-DSA / Dilithium)",
+      "Shortest Vector Problem (SVP)",
+      "Number Theoretic Transform (NTT)"
+    ],
+    "relatedRoleSlugs": [
+      "cybersecurity-specialist",
+      "backend-systems-engineer"
+    ],
+    "practiceMcqsCount": 5,
+    "sandboxChallengeId": "code-two-sum"
+  },
+  {
+    "id": "art-raft-joint-consensus-membership",
+    "slug": "raft-joint-consensus-dynamic-membership-changes",
+    "domainSlug": "system-design-architecture",
+    "domainName": "System Design & Software Architecture",
+    "title": "Raft Consensus Internals: Joint Consensus, Single-Server Membership Changes & Log Compaction",
+    "level": "ADVANCED",
+    "readTimeMinutes": 22,
+    "summary": "Mastering dynamic cluster reconfigurations in Raft: avoiding split-brain scenarios during node membership transitions using Joint Consensus and single-server stepping, log compaction, and linearizable reads.",
+    "keyConcepts": [
+      "Joint Consensus (C_old,new)",
+      "Single-Server Reconfiguration",
+      "Split-Brain Elimination Invariant",
+      "Log Compaction & InstallSnapshot RPC",
+      "Pre-Vote Protocol",
+      "ReadIndex Linearizable Reads"
+    ],
+    "relatedRoleSlugs": [
+      "backend-systems-engineer",
+      "devops-cloud-engineer"
+    ],
+    "practiceMcqsCount": 5,
+    "sandboxChallengeId": "code-two-sum"
+  },
+  {
+    "id": "art-pbft-byzantine-fault-tolerance",
+    "slug": "byzantine-fault-tolerance-pbft-state-machine-replication",
+    "domainSlug": "system-design-architecture",
+    "domainName": "System Design & Software Architecture",
+    "title": "Byzantine Fault Tolerance: The PBFT Protocol, 3f+1 Quorum Bounds & View-Change Invariants",
+    "level": "ADVANCED",
+    "readTimeMinutes": 25,
+    "summary": "The mathematical proofs and state machine replication mechanics of Practical Byzantine Fault Tolerance (PBFT): 3f+1 node quorum bounds, three-phase consensus, view-change protocol, and adversarial fault containment.",
+    "keyConcepts": [
+      "Byzantine Generals Problem",
+      "3f + 1 Quorum Lower Bound Proof",
+      "Pre-Prepare, Prepare & Commit Phases",
+      "View-Change Protocol & New-View",
+      "Checkpointing & Watermarks",
+      "Equivocation Defense"
+    ],
+    "relatedRoleSlugs": [
+      "backend-systems-engineer",
+      "cybersecurity-specialist"
+    ],
+    "practiceMcqsCount": 5,
+    "sandboxChallengeId": "code-two-sum"
+  },
+  {
+    "id": "art-multi-paxos-vs-epaxos",
+    "slug": "multi-paxos-vs-epaxos-leaderless-consensus",
+    "domainSlug": "system-design-architecture",
+    "domainName": "System Design & Software Architecture",
+    "title": "Distributed Consensus at Scale: Classic Multi-Paxos vs Leaderless Egalitarian Paxos (EPaxos)",
+    "level": "ADVANCED",
+    "readTimeMinutes": 23,
+    "summary": "A systems comparison between centralized leader consensus (Multi-Paxos, Raft) and decentralized leaderless consensus (EPaxos): 1-RTT commit latency, explicit dependency graphs, and conflict resolution.",
+    "keyConcepts": [
+      "Multi-Paxos Stable Leader Fast Path",
+      "Egalitarian Paxos (EPaxos)",
+      "1-RTT Fast Quorum",
+      "Explicit Dependency Graphs",
+      "Conflict Detection & Graph Topological Ordering",
+      "Elimination of Single-Leader Bottlenecks"
+    ],
+    "relatedRoleSlugs": [
+      "backend-systems-engineer",
+      "system-architect"
+    ],
+    "practiceMcqsCount": 5,
+    "sandboxChallengeId": "code-two-sum"
+  },
+  {
+    "id": "art-lsm-compaction-algorithms",
+    "slug": "lsm-tree-compaction-leveled-size-tiered-fifo",
+    "domainSlug": "database-storage-engines",
+    "domainName": "Database Management Systems & Storage",
+    "title": "LSM-Tree Storage Internals: Size-Tiered vs Leveled vs FIFO Compaction & Write Stalls",
+    "level": "ADVANCED",
+    "readTimeMinutes": 24,
+    "summary": "The storage engine mechanics of Log-Structured Merge-trees (LSM): comparing Size-Tiered (STCS), Leveled (LCS), and FIFO compaction strategies, calculating Write Amplification Factor (WAF), and resolving write stalls.",
+    "keyConcepts": [
+      "Size-Tiered Compaction Strategy (STCS)",
+      "Leveled Compaction Strategy (LCS)",
+      "Write Amplification Factor (WAF)",
+      "Read Amplification Factor (RAF)",
+      "Space Amplification Factor (SAF)",
+      "Write Stalls & MemTable Freezing"
+    ],
+    "relatedRoleSlugs": [
+      "backend-systems-engineer",
+      "data-engineer"
+    ],
+    "practiceMcqsCount": 5,
+    "sandboxChallengeId": "code-two-sum"
+  },
+  {
+    "id": "art-bloom-cuckoo-filters-storage",
+    "slug": "bloom-filters-cuckoo-filters-probabilistic-storage",
+    "domainSlug": "database-storage-engines",
+    "domainName": "Database Management Systems & Storage",
+    "title": "Probabilistic Data Structures in Storage: Bloom Filters, Cuckoo Filters & False Positive Calculus",
+    "level": "ADVANCED",
+    "readTimeMinutes": 21,
+    "summary": "Deriving the mathematics and storage engine implementations of probabilistic filters: Bloom filter false-positive calculus, CPU cache-line blocking, and Cuckoo filters supporting dynamic deletion.",
+    "keyConcepts": [
+      "Standard Bloom Filter Calculus",
+      "Optimal Hash Count k = (m/n) ln 2",
+      "False Positive Probability Formula",
+      "Cache-Line Blocked Bloom Filters",
+      "Cuckoo Filter Fingerprints",
+      "Partial-Key Cuckoo Hashing"
+    ],
+    "relatedRoleSlugs": [
+      "backend-systems-engineer",
+      "data-engineer"
+    ],
+    "practiceMcqsCount": 5,
+    "sandboxChallengeId": "code-two-sum"
+  },
+  {
+    "id": "art-wal-group-commit-aries",
+    "slug": "write-ahead-logging-group-commit-aries-recovery",
+    "domainSlug": "database-storage-engines",
+    "domainName": "Database Management Systems & Storage",
+    "title": "Database Durability Internals: Write-Ahead Logging (WAL), ARIES Recovery & Group Commit",
+    "level": "ADVANCED",
+    "readTimeMinutes": 25,
+    "summary": "The systems architecture of database durability: the Write-Ahead Logging (WAL) invariant, Mohan ARIES recovery protocol (Analysis, Redo, Undo), Compensation Log Records (CLRs), and Group Commit.",
+    "keyConcepts": [
+      "Write-Ahead Logging (WAL) Invariant",
+      "Log Sequence Numbers (LSN)",
+      "ARIES 3-Pass Recovery Algorithm (Analysis, Redo, Undo)",
+      "Compensation Log Records (CLR)",
+      "Group Commit Optimization",
+      "Doublewrite Buffer Mechanics"
+    ],
+    "relatedRoleSlugs": [
+      "backend-systems-engineer",
+      "database-administrator"
+    ],
+    "practiceMcqsCount": 5,
+    "sandboxChallengeId": "code-two-sum"
+  },
+  {
+    "id": "art-ebpf-xdp-packet-processing",
+    "slug": "ebpf-xdp-high-performance-packet-processing",
+    "domainSlug": "operating-systems-internals",
+    "domainName": "Operating Systems & Systems Programming",
+    "title": "Kernel Observability & Networking: eBPF In-Situ Virtual Machine, XDP & BPF Maps",
+    "level": "ADVANCED",
+    "readTimeMinutes": 26,
+    "summary": "Mastering modern Linux kernel programming with eBPF and XDP: the 11-register in-kernel virtual machine, verifier safety proofs, sub-microsecond packet processing, BPF maps, and high-speed observability.",
+    "keyConcepts": [
+      "Extended BPF (eBPF) 64-bit Register VM",
+      "Kernel Verifier & Static Safety Proofs",
+      "eXpress Data Path (XDP) Driver Hook",
+      "XDP Actions (XDP_DROP, XDP_TX, XDP_PASS)",
+      "BPF Maps (Hash, Array, Ring Buffer)",
+      "JIT Compilation to Native Machine Code"
+    ],
+    "relatedRoleSlugs": [
+      "backend-systems-engineer",
+      "devops-cloud-engineer"
+    ],
+    "practiceMcqsCount": 5,
+    "sandboxChallengeId": "code-two-sum"
+  },
+  {
+    "id": "art-claude-code-agents",
+    "slug": "claude-code-and-ai-coding-agents",
+    "domainSlug": "generative-ai-coding-agents",
+    "domainName": "Artificial Intelligence Engineering & Autonomous Agents",
+    "title": "Claude Code & Autonomous AI Coding Agents: Architecture, Tool Execution & Agentic Loops",
+    "level": "ADVANCED",
+    "readTimeMinutes": 22,
+    "summary": "Architectural anatomy of autonomous AI coding assistants: the Observe-Think-Act agentic loop, tool-calling execution sandboxes, context window compaction, diff generation vs rewrite, and automated test-driven verification.",
+    "keyConcepts": [
+      "Agentic Loop (Observe-Think-Act)",
+      "Tool Calling & Bash/Read/Write Tool Protocol",
+      "Context Compaction & Token Economy",
+      "Diff Generation vs Full-File Rewrite",
+      "Test-Driven Automated Verification Gates",
+      "Deterministic Guardrails & Sandbox Isolation"
+    ],
+    "relatedRoleSlugs": [
+      "ai-agent-engineer",
+      "fullstack-javascript-developer",
+      "backend-systems-engineer"
+    ],
+    "practiceMcqsCount": 5,
+    "sandboxChallengeId": "code-two-sum"
+  },
+  {
+    "id": "art-prompt-engineering-cot",
+    "slug": "advanced-prompt-engineering-and-in-context-learning",
+    "domainSlug": "generative-ai-coding-agents",
+    "domainName": "Artificial Intelligence Engineering & Autonomous Agents",
+    "title": "Advanced Prompt Engineering, In-Context Learning & Few-Shot Reasoning",
+    "level": "INTERMEDIATE",
+    "readTimeMinutes": 18,
+    "summary": "Mastering enterprise prompt architectures: system prompt authority hierarchies, Few-Shot exemplars, Chain-of-Thought (CoT), negative constraints, and structured JSON schema enforcement with Pydantic/Zod.",
+    "keyConcepts": [
+      "System Prompt Hierarchy & Authority",
+      "Few-Shot In-Context Learning",
+      "Chain-of-Thought (CoT) & Step-by-Step Elicitation",
+      "Negative Constraints & Edge-Case Boundaries",
+      "Structured JSON Extraction & Schema Validation",
+      "Prompt Drift & Version Control"
+    ],
+    "relatedRoleSlugs": [
+      "ai-agent-engineer",
+      "python-developer",
+      "fullstack-javascript-developer"
+    ],
+    "practiceMcqsCount": 5,
+    "sandboxChallengeId": "code-two-sum"
+  },
+  {
+    "id": "art-rag-vector-search",
+    "slug": "retrieval-augmented-generation-and-vector-search",
+    "domainSlug": "generative-ai-coding-agents",
+    "domainName": "Artificial Intelligence Engineering & Autonomous Agents",
+    "title": "Production RAG: Chunking Strategies, Vector Embeddings & Hybrid Search",
+    "level": "ADVANCED",
+    "readTimeMinutes": 24,
+    "summary": "End-to-end Retrieval-Augmented Generation architectures: document chunking hierarchies, dense vector embeddings, HNSW approximate nearest neighbors, hybrid BM25 + dense search, and cross-encoder re-ranking.",
+    "keyConcepts": [
+      "Dense Embeddings vs Sparse Lexical BM25",
+      "Hierarchical & Recursive Chunking",
+      "Approximate Nearest Neighbor (HNSW Graphs)",
+      "Cosine Similarity, Dot Product & Euclidean Space",
+      "Two-Stage Retrieval & Cross-Encoder Reranking",
+      "Contextual Chunk Compression"
+    ],
+    "relatedRoleSlugs": [
+      "ai-agent-engineer",
+      "data-engineer",
+      "ml-ai-engineer"
+    ],
+    "practiceMcqsCount": 5,
+    "sandboxChallengeId": "code-two-sum"
+  },
+  {
+    "id": "art-multi-agent-orchestration",
+    "slug": "autonomous-multi-agent-orchestration-and-react",
+    "domainSlug": "generative-ai-coding-agents",
+    "domainName": "Artificial Intelligence Engineering & Autonomous Agents",
+    "title": "Autonomous Multi-Agent Orchestration, State Machines & ReAct Framework",
+    "level": "ADVANCED",
+    "readTimeMinutes": 25,
+    "summary": "Building resilient multi-agent systems: the ReAct (Reasoning + Acting) cycle, supervisor-worker topologies, cyclical state machine graphs, deterministic state persistence, and human-in-the-loop interruption gates.",
+    "keyConcepts": [
+      "ReAct Pattern (Thought -> Action -> Observation)",
+      "Supervisor-Worker Agent Topologies",
+      "Cyclic State Machine Graphs & Checkpointing",
+      "Tool Calling Protocols & Stdio Bridges",
+      "Human-in-the-Loop Approval Interventions",
+      "Agent Deadlock & Infinite Loop Prevention"
+    ],
+    "relatedRoleSlugs": [
+      "ai-agent-engineer",
+      "devops-engineer",
+      "backend-systems-engineer"
+    ],
+    "practiceMcqsCount": 5,
+    "sandboxChallengeId": "code-two-sum"
+  },
+  {
+    "id": "art-tokenomics-kv-cache",
+    "slug": "context-window-optimization-and-tokenomics",
+    "domainSlug": "generative-ai-coding-agents",
+    "domainName": "Artificial Intelligence Engineering & Autonomous Agents",
+    "title": "Context Window Optimization, KV-Cache Reuse & Tokenomics in Enterprise AI",
+    "level": "INTERMEDIATE",
+    "readTimeMinutes": 20,
+    "summary": "Managing massive context windows and LLM operating costs: KV-cache prefix caching mechanics, 'lost-in-the-middle' retrieval degradation, sliding window attention, and token budgeting for agentic workflows.",
+    "keyConcepts": [
+      "KV-Cache (Key-Value) Mechanics & Prefix Caching",
+      "Lost-in-the-Middle Attention Degradation",
+      "Sliding Window & Chunked Attention",
+      "Token Budgeting (Input vs Output vs Cached Costs)",
+      "Context Pruning & Ast-Based Code Compaction",
+      "Semantic Compression & Rolling Summaries"
+    ],
+    "relatedRoleSlugs": [
+      "ai-agent-engineer",
+      "cloud-solutions-architect",
+      "devops-engineer"
+    ],
+    "practiceMcqsCount": 5,
+    "sandboxChallengeId": "code-two-sum"
+  },
+  {
+    "id": "art-llm-eval-guardrails",
+    "slug": "llm-evaluation-benchmarks-and-guardrails",
+    "domainSlug": "generative-ai-coding-agents",
+    "domainName": "Artificial Intelligence Engineering & Autonomous Agents",
+    "title": "LLM Evaluation, Hallucination Mitigation & Enterprise Guardrails",
+    "level": "ADVANCED",
+    "readTimeMinutes": 22,
+    "summary": "Measuring and securing production LLM applications: automated LLM-as-a-judge frameworks, faithfulness and context recall metrics, hallucination mitigation heuristics, prompt injection defense, and output guardrails.",
+    "keyConcepts": [
+      "LLM-as-a-Judge Evaluation Frameworks",
+      "Faithfulness, Answer Relevance & Context Recall",
+      "Hallucination Detection & Groundedness Checks",
+      "Prompt Injection & Jailbreak Defense (NeMo/LlamaGuard)",
+      "PII Masking & Regex/Schema Output Interceptors",
+      "A/B Prompt Regression Testing Suites"
+    ],
+    "relatedRoleSlugs": [
+      "ai-agent-engineer",
+      "qa-automation-engineer",
+      "cybersecurity-specialist"
+    ],
+    "practiceMcqsCount": 5,
+    "sandboxChallengeId": "code-two-sum"
+  },
+  {
+    "id": "art-peft-lora-alignment",
+    "slug": "parameter-efficient-fine-tuning-and-lora",
+    "domainSlug": "generative-ai-coding-agents",
+    "domainName": "Artificial Intelligence Engineering & Autonomous Agents",
+    "title": "Parameter-Efficient Fine-Tuning (LoRA, QLoRA) & Alignment (DPO vs RLHF)",
+    "level": "ADVANCED",
+    "readTimeMinutes": 24,
+    "summary": "Mastering domain adaptation and mathematical alignment: Low-Rank Adaptation (LoRA) matrix decomposition, QLoRA NormalFloat4 (NF4) double quantization, supervised instruction tuning loss masking, and Direct Preference Optimization (DPO).",
+    "keyConcepts": [
+      "Low-Rank Adaptation (LoRA) Decomposition (W + B*A)",
+      "Rank r and Alpha Scaling Factor Dynamics",
+      "QLoRA NF4 (NormalFloat4) & Double Quantization",
+      "SFT Instruction Formatting & Prompt Loss Masking",
+      "Direct Preference Optimization (DPO) Closed-Form Loss",
+      "Catastrophic Forgetting & Geometric Weight Merging (SLERP)"
+    ],
+    "relatedRoleSlugs": [
+      "ai-agent-engineer",
+      "data-engineer",
+      "ml-ai-engineer"
+    ],
+    "practiceMcqsCount": 5,
+    "sandboxChallengeId": "code-two-sum"
+  },
+  {
+    "id": "art-multimodal-vision-diffusion",
+    "slug": "multimodal-vision-language-and-diffusion-models",
+    "domainSlug": "generative-ai-coding-agents",
+    "domainName": "Artificial Intelligence Engineering & Autonomous Agents",
+    "title": "Multimodal AI Architectures: Vision Transformers, Cross-Attention Adapters & Diffusion",
+    "level": "ADVANCED",
+    "readTimeMinutes": 25,
+    "summary": "Engineering multimodal intelligence across vision, audio, and generative diffusion: 2D patch tokenization (ViT), contrastive pre-training (CLIP), 2-layer MLP projection adapters, audio Mel spectrograms (Whisper), and Latent Diffusion score matching with Classifier-Free Guidance.",
+    "keyConcepts": [
+      "Vision Transformer (ViT) 2D Patch Partitioning",
+      "Contrastive Language-Image Pretraining (CLIP & InfoNCE)",
+      "Cross-Modal Projection Adapters (MLP vs Perceiver)",
+      "Audio Spectrogram Encoders & STFT Preprocessing",
+      "Latent Diffusion & Score Matching Denoising U-Net",
+      "Classifier-Free Guidance (CFG) Extrapolation Dynamics"
+    ],
+    "relatedRoleSlugs": [
+      "ai-agent-engineer",
+      "fullstack-javascript-developer",
+      "ml-ai-engineer"
+    ],
+    "practiceMcqsCount": 5,
+    "sandboxChallengeId": "code-two-sum"
+  },
+  {
+    "id": "art-paged-attention-continuous-batching",
+    "slug": "paged-attention-and-continuous-batching",
+    "domainSlug": "generative-ai-coding-agents",
+    "domainName": "Artificial Intelligence Engineering & Autonomous Agents",
+    "title": "PagedAttention Memory Virtualization, KV-Cache Paging & Continuous Batching",
+    "level": "ADVANCED",
+    "readTimeMinutes": 24,
+    "summary": "Eliminating the KV-cache memory wall in high-throughput LLM serving: logical-to-physical block tables, zero external fragmentation, Copy-on-Write prompt sharing, and iteration-level continuous batching.",
+    "keyConcepts": [
+      "KV-Cache Memory Footprint Formula",
+      "Internal vs External Memory Fragmentation",
+      "Logical to Physical Page Allocation Table",
+      "Continuous Iteration Scheduling vs Static Batching",
+      "Copy-on-Write (CoW) Prefix KV Cache Reuse",
+      "GPU Memory Preemption & Swap Eviction"
+    ],
+    "relatedRoleSlugs": [
+      "ai-agent-engineer",
+      "ml-ai-engineer",
+      "data-engineer"
+    ],
+    "practiceMcqsCount": 5,
+    "sandboxChallengeId": "code-two-sum"
+  },
+  {
+    "id": "art-speculative-decoding-compound-systems",
+    "slug": "speculative-decoding-and-compound-ai-systems",
+    "domainSlug": "generative-ai-coding-agents",
+    "domainName": "Artificial Intelligence Engineering & Autonomous Agents",
+    "title": "Speculative Decoding, Rejection Sampling Math & Compound Multi-Agent Systems",
+    "level": "ADVANCED",
+    "readTimeMinutes": 25,
+    "summary": "Accelerating memory-bandwidth bound generation: draft-target model verification, lossless rejection sampling proofs, expected token yield E[N], supervisor-worker agent DAGs, and semantic routing.",
+    "keyConcepts": [
+      "Memory Bandwidth Bound Decoding Latency",
+      "Draft-Target Model Speculative Pipeline",
+      "Mathematical Rejection Sampling & Residual Distribution",
+      "Expected Speedup Factor & Acceptance Rate beta",
+      "Compound AI Systems vs Monolithic Models",
+      "Supervisor-Worker DAGs & Semantic Gating"
+    ],
+    "relatedRoleSlugs": [
+      "ai-agent-engineer",
+      "fullstack-javascript-developer",
+      "ml-ai-engineer"
     ],
     "practiceMcqsCount": 5,
     "sandboxChallengeId": "code-two-sum"

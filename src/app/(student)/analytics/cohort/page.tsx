@@ -9,6 +9,7 @@ import {
   type ReadinessBand,
 } from '../../../../lib/cohort-client';
 import { Button } from '../../../../components/ui/Button';
+import { BarChart3, X, Cpu, TrendingUp, Target, ArrowRight } from 'lucide-react';
 
 export default function CohortAnalyticsPage() {
   const [roles, setRoles] = useState<RoleTrackItem[]>([]);
@@ -73,25 +74,25 @@ export default function CohortAnalyticsPage() {
     switch (band) {
       case 'ELITE':
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold bg-amber-400/10 text-amber-300 border border-amber-400/30">
             ★ ELITE (TOP 10%)
           </span>
         );
       case 'JOB_READY':
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-indigo-100 text-indigo-900 border border-indigo-300">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold bg-lime-400/20 text-lime-300 border border-lime-400/40">
             ◆ JOB READY (TOP 20%)
           </span>
         );
       case 'COMPETITIVE':
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-900 border border-emerald-300">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold bg-cyan-400/10 text-cyan-300 border border-cyan-400/30">
             ✓ COMPETITIVE
           </span>
         );
       case 'NEEDS_REMEDIATION':
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-900 border border-rose-300">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold bg-rose-400/10 text-rose-300 border border-rose-400/30">
             ⚠ DEVELOPMENT NEEDED
           </span>
         );
@@ -120,7 +121,7 @@ export default function CohortAnalyticsPage() {
 
   let trajectoryStatus = {
     label: 'STEADY PROGRESSION',
-    badgeStyle: 'bg-indigo-100 text-indigo-900 border-indigo-300',
+    badgeStyle: 'bg-cyan-400/10 text-cyan-300 border-cyan-400/30 font-mono',
     icon: '📈',
     desc: 'Consistent positive percentile growth across consecutive evaluation cycles.',
   };
@@ -128,28 +129,28 @@ export default function CohortAnalyticsPage() {
   if (numVelocity >= 8) {
     trajectoryStatus = {
       label: 'RAPID ASCENT',
-      badgeStyle: 'bg-emerald-100 text-emerald-900 border-emerald-300',
+      badgeStyle: 'bg-emerald-400/10 text-emerald-300 border-emerald-400/30 font-mono',
       icon: '🚀',
       desc: 'Exceptional longitudinal velocity across verified evaluation sittings.',
     };
   } else if (numVelocity >= 3) {
     trajectoryStatus = {
       label: 'STEADY PROGRESSION',
-      badgeStyle: 'bg-indigo-100 text-indigo-900 border-indigo-300',
+      badgeStyle: 'bg-cyan-400/10 text-cyan-300 border-cyan-400/30 font-mono',
       icon: '📈',
       desc: 'Consistent positive percentile growth across consecutive evaluation cycles.',
     };
   } else if (numVelocity >= -2) {
     trajectoryStatus = {
       label: 'STABLE PLATEAU',
-      badgeStyle: 'bg-amber-100 text-amber-900 border-amber-300',
+      badgeStyle: 'bg-amber-400/10 text-amber-300 border-amber-400/30 font-mono',
       icon: '⏸',
       desc: 'Performance stabilized; targeted competency remediation will accelerate ascent.',
     };
   } else {
     trajectoryStatus = {
       label: 'REMEDIATION ADVISORY',
-      badgeStyle: 'bg-rose-100 text-rose-900 border-rose-300',
+      badgeStyle: 'bg-rose-400/10 text-rose-300 border-rose-400/30 font-mono',
       icon: '📉',
       desc: 'Negative percentile drift detected; foundational review advised.',
     };
@@ -207,32 +208,33 @@ export default function CohortAnalyticsPage() {
   const isTierElevated = readiness?.readinessBand && projectedBand !== readiness.readinessBand && simulatedPercentile > (readiness.percentileRank ?? 0);
 
   return (
-    <div className="min-h-screen bg-slate-50 py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-canvas text-text py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto space-y-8">
         {/* Navigation Breadcrumb */}
-        <nav className="flex items-center gap-2 text-sm text-slate-500">
-          <Link href="/" className="hover:text-slate-800 transition-colors">
+        <nav className="flex items-center gap-2 text-xs font-mono text-slate-400">
+          <Link href="/" className="hover:text-white transition-colors">
             Home
           </Link>
           <span>/</span>
-          <Link href="/dashboard" className="hover:text-slate-800 transition-colors">
+          <Link href="/dashboard" className="hover:text-white transition-colors">
             Dashboard
           </Link>
           <span>/</span>
-          <span className="text-slate-800 font-medium">Cohort Benchmarking</span>
+          <span className="text-lime-300 font-semibold">Cohort Benchmarking</span>
         </nav>
 
         {/* Hero Header */}
-        <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-sm relative overflow-hidden">
-          <div className="absolute -right-10 -bottom-10 w-60 h-60 bg-indigo-50 rounded-full opacity-60 pointer-events-none" />
+        <div className="bento-tile p-6 sm:p-8 bg-[#0a0f1d]/85 border border-white/10 rounded-2xl relative overflow-hidden">
+          <div className="absolute -right-10 -bottom-10 w-60 h-60 bg-lime-500/5 rounded-full blur-3xl pointer-events-none" />
           <div className="relative z-10">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-800 text-xs font-semibold mb-3">
-              📊 Peer Relative Readiness Engine
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-lime-400/10 border border-lime-400/30 text-lime-300 text-xs font-mono font-semibold mb-3">
+              <BarChart3 className="w-3.5 h-3.5 text-lime-400" />
+              <span>Peer Relative Readiness Engine</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-white tracking-tight">
               Peer Percentile Cohort Benchmarking
             </h1>
-            <p className="mt-2 text-slate-600 max-w-2xl text-sm sm:text-base leading-relaxed">
+            <p className="mt-2 text-slate-400 max-w-2xl text-sm leading-relaxed">
               Compare your performance against the global candidate cohort across role tracks. View Gaussian-calibrated percentile distributions, competency-level peer medians, and targeted recommendations to close capability gaps.
             </p>
           </div>
@@ -240,13 +242,14 @@ export default function CohortAnalyticsPage() {
 
         {/* Error Alert */}
         {error && (
-          <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-start justify-between gap-3">
+          <div className="p-4 rounded-xl bg-rose-950/40 border border-rose-500/40 text-rose-300 text-sm flex items-start justify-between gap-3 font-mono">
             <span>{error}</span>
             <button
               onClick={() => setError(null)}
-              className="text-rose-500 hover:text-rose-700 font-bold"
+              className="text-rose-400 hover:text-rose-200 p-0.5 rounded cursor-pointer"
+              aria-label="Dismiss error"
             >
-              ✕
+              <X className="w-4 h-4" />
             </button>
           </div>
         )}
@@ -254,9 +257,9 @@ export default function CohortAnalyticsPage() {
         {/* Role Track Selector Tabs */}
         {isLoadingRoles ? (
           <div className="flex gap-2 animate-pulse">
-            <div className="h-10 w-32 bg-slate-200 rounded-xl" />
-            <div className="h-10 w-32 bg-slate-200 rounded-xl" />
-            <div className="h-10 w-32 bg-slate-200 rounded-xl" />
+            <div className="h-10 w-32 bg-slate-800/60 rounded-xl border border-white/5" />
+            <div className="h-10 w-32 bg-slate-800/60 rounded-xl border border-white/5" />
+            <div className="h-10 w-32 bg-slate-800/60 rounded-xl border border-white/5" />
           </div>
         ) : (
           <div className="flex flex-wrap gap-2">
@@ -264,10 +267,10 @@ export default function CohortAnalyticsPage() {
               <button
                 key={track.id}
                 onClick={() => setSelectedRoleId(track.id)}
-                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-mono font-semibold transition-all cursor-pointer ${
                   selectedRoleId === track.id
-                    ? 'bg-slate-900 text-white shadow-sm'
-                    : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                    ? 'bg-lime-400/20 text-lime-300 border border-lime-400/40 shadow-xs shadow-lime-400/20'
+                    : 'bg-[#0e172a]/60 text-slate-300 border border-white/10 hover:border-lime-400/40 hover:text-white'
                 }`}
               >
                 {track.name}
@@ -278,71 +281,71 @@ export default function CohortAnalyticsPage() {
 
         {/* Content Body */}
         {isLoadingReadiness ? (
-          <div className="bg-white rounded-2xl p-12 border border-slate-200 text-center shadow-sm">
-            <div className="inline-block w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mb-4" />
-            <p className="text-slate-600 font-medium">
+          <div className="bento-tile bg-[#0a0f1d]/85 rounded-2xl p-12 border border-white/10 text-center">
+            <div className="inline-block w-8 h-8 border-3 border-lime-400 border-t-transparent rounded-full animate-spin mb-4" />
+            <p className="text-slate-400 font-mono text-sm">
               Calculating cohort percentiles and competency benchmarks...
             </p>
           </div>
         ) : !readiness ? null : (
           <div className="space-y-8">
             {/* Section 1: Percentile Hero Card */}
-            <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-sm">
+            <div className="bento-tile bg-[#0a0f1d]/85 rounded-2xl p-6 sm:p-8 border border-white/10">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                  <div className="flex items-center gap-3 mb-2">
-                    <h2 className="text-xl sm:text-2xl font-bold text-slate-900">
+                  <div className="flex items-center gap-3 mb-2 flex-wrap">
+                    <h2 className="text-xl sm:text-2xl font-display font-bold text-white">
                       {readiness.roleName}
                     </h2>
                     {getBandBadge(readiness.readinessBand)}
                   </div>
-                  <p className="text-sm text-slate-500">
+                  <p className="text-xs sm:text-sm text-slate-400 font-mono">
                     Evaluated against a cohort pool of {readiness.cohortSampleSize} verified candidate assessments.
                   </p>
                 </div>
 
                 {readiness.percentileRank !== null ? (
-                  <div className="text-left md:text-right bg-slate-50 p-4 rounded-xl border border-slate-100 min-w-[200px]">
-                    <div className="text-3xl sm:text-4xl font-black text-primary-900">
+                  <div className="text-left md:text-right bg-[#060b18]/90 p-4 rounded-xl border border-white/10 min-w-[200px]">
+                    <div className="text-3xl sm:text-4xl font-display font-black text-lime-400">
                       {readiness.percentileRank}
-                      <span className="text-xl font-bold text-slate-400">th</span>
+                      <span className="text-xl font-mono font-bold text-slate-400">th</span>
                     </div>
-                    <div className="text-xs font-semibold text-primary-800 uppercase tracking-wider mt-1">
+                    <div className="text-xs font-mono font-semibold text-slate-400 uppercase tracking-wider mt-1">
                       Top {100 - readiness.percentileRank}% of Cohort
                     </div>
                   </div>
                 ) : (
-                  <div className="bg-amber-50 text-amber-900 p-4 rounded-xl border border-amber-200 text-xs max-w-sm">
+                  <div className="bg-amber-950/30 text-amber-300 p-4 rounded-xl border border-amber-500/30 text-xs font-mono max-w-sm">
                     <strong>No score recorded yet:</strong> Complete a timed mock test or AI interview to calculate your relative percentile standing.
                   </div>
                 )}
               </div>
 
               {/* Benchmarking Comparison Metrics */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 pt-6 border-t border-slate-100">
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                  <span className="text-xs text-slate-500 block">Your Score</span>
-                  <span className="text-xl font-bold text-slate-900">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 pt-6 border-t border-white/10">
+                <div className="p-3 bg-[#060b18]/80 rounded-xl border border-white/10">
+                  <span className="text-xs font-mono text-slate-400 block">Your Score</span>
+                  <span className="text-xl font-display font-bold text-white">
                     {readiness.candidateScore !== null
                       ? `${readiness.candidateScore}%`
                       : '—'}
                   </span>
                 </div>
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                  <span className="text-xs text-slate-500 block">Cohort Median</span>
-                  <span className="text-xl font-bold text-slate-700">
+                <div className="p-3 bg-[#060b18]/80 rounded-xl border border-white/10">
+                  <span className="text-xs font-mono text-slate-400 block">Cohort Median</span>
+                  <span className="text-xl font-display font-bold text-cyan-400">
                     {readiness.cohortMedianScore}%
                   </span>
                 </div>
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                  <span className="text-xs text-slate-500 block">Top 10% Cutoff</span>
-                  <span className="text-xl font-bold text-amber-700">
+                <div className="p-3 bg-[#060b18]/80 rounded-xl border border-white/10">
+                  <span className="text-xs font-mono text-slate-400 block">Top 10% Cutoff</span>
+                  <span className="text-xl font-display font-bold text-lime-400">
                     {readiness.cohortTopDecileScore}%
                   </span>
                 </div>
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                  <span className="text-xs text-slate-500 block">Cohort Sample</span>
-                  <span className="text-xl font-bold text-slate-700">
+                <div className="p-3 bg-[#060b18]/80 rounded-xl border border-white/10">
+                  <span className="text-xs font-mono text-slate-400 block">Cohort Sample</span>
+                  <span className="text-xl font-display font-bold text-slate-200">
                     {readiness.cohortSampleSize}
                   </span>
                 </div>
@@ -353,30 +356,30 @@ export default function CohortAnalyticsPage() {
             {hasHistory && (
               <div
                 data-testid="percentile-velocity-hud"
-                className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6"
+                className="bento-tile bg-[#0a0f1d]/85 rounded-2xl p-6 sm:p-8 border border-white/10 space-y-6"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
-                    <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold mb-2">
+                    <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-slate-300 text-xs font-mono font-semibold mb-2">
                       <span>{trajectoryStatus.icon}</span>
                       <span>Percentile Velocity Trajectory</span>
                     </div>
-                    <h3 className="text-lg font-bold text-slate-900">
+                    <h3 className="text-lg font-display font-bold text-white">
                       Historical Milestone Ascent & Velocity
                     </h3>
-                    <p className="text-xs text-slate-500 mt-0.5">
+                    <p className="text-xs text-slate-400 mt-0.5">
                       {trajectoryStatus.desc}
                     </p>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-3">
-                    <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-right">
-                      <span className="text-[11px] text-slate-500 block uppercase tracking-wider font-semibold">
+                    <div className="bg-[#060b18]/90 border border-white/10 rounded-xl px-4 py-2 text-right">
+                      <span className="text-[11px] text-slate-400 block uppercase tracking-wider font-mono font-semibold">
                         Velocity Rate
                       </span>
-                      <span className="text-base font-extrabold text-slate-900">
+                      <span className="text-base font-extrabold text-lime-400 font-mono">
                         {totalDelta >= 0 ? `+${totalDelta}` : totalDelta} pts{' '}
-                        <span className="text-xs font-normal text-slate-500">
+                        <span className="text-xs font-normal text-slate-400">
                           ({numVelocity >= 0 ? `+${avgVelocity}` : avgVelocity} / sitting)
                         </span>
                       </span>
@@ -390,7 +393,7 @@ export default function CohortAnalyticsPage() {
                 </div>
 
                 {/* SVG Velocity Chart */}
-                <div className="bg-slate-900 rounded-xl p-4 overflow-x-auto shadow-inner">
+                <div className="bg-[#060b18]/90 border border-white/10 rounded-xl p-4 overflow-x-auto shadow-2xs">
                   <div className="min-w-[540px]">
                     <svg
                       viewBox={`0 0 ${svgWidth} ${svgHeight}`}
@@ -398,8 +401,8 @@ export default function CohortAnalyticsPage() {
                     >
                       <defs>
                         <linearGradient id="velocityGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#818cf8" stopOpacity="0.4" />
-                          <stop offset="100%" stopColor="#818cf8" stopOpacity="0.0" />
+                          <stop offset="0%" stopColor="#a3e635" stopOpacity="0.25" />
+                          <stop offset="100%" stopColor="#a3e635" stopOpacity="0.0" />
                         </linearGradient>
                       </defs>
 
@@ -418,7 +421,7 @@ export default function CohortAnalyticsPage() {
                               y1={y}
                               x2={svgWidth - padX}
                               y2={y}
-                              stroke="#334155"
+                              stroke="rgba(255, 255, 255, 0.08)"
                               strokeDasharray="4 4"
                               strokeWidth="1"
                             />
@@ -443,7 +446,7 @@ export default function CohortAnalyticsPage() {
                       <path
                         d={pathD}
                         fill="none"
-                        stroke="#6366f1"
+                        stroke="#a3e635"
                         strokeWidth="3.5"
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -460,7 +463,7 @@ export default function CohortAnalyticsPage() {
                                 cx={pt.x}
                                 cy={pt.y}
                                 r="10"
-                                fill="#818cf8"
+                                fill="#a3e635"
                                 opacity="0.3"
                                 className="animate-ping"
                               />
@@ -469,26 +472,30 @@ export default function CohortAnalyticsPage() {
                               cx={pt.x}
                               cy={pt.y}
                               r={isLatest ? '6' : '4.5'}
-                              fill={isLatest ? '#38bdf8' : '#818cf8'}
-                              stroke="#0f172a"
+                              fill={isLatest ? '#a3e635' : '#06b6d4'}
+                              stroke="#040711"
                               strokeWidth="2"
+                              className="shadow-xs"
                             />
                             <text
                               x={pt.x}
                               y={pt.y - 10}
-                              fill={isLatest ? '#38bdf8' : '#f1f5f9'}
+                              fill={isLatest ? '#a3e635' : '#f8fafc'}
                               fontSize="11"
                               fontWeight="700"
                               textAnchor="middle"
+                              fontFamily="monospace"
                             >
                               {pt.milestone.percentile}th
                             </text>
                             <text
                               x={pt.x}
                               y={svgHeight - 10}
-                              fill="#94a3b8"
+                              fill="#64748b"
                               fontSize="9"
+                              fontWeight="600"
                               textAnchor="middle"
+                              fontFamily="monospace"
                             >
                               M{i + 1}
                             </text>
@@ -508,23 +515,23 @@ export default function CohortAnalyticsPage() {
                         key={m.attemptId}
                         className={`p-3.5 rounded-xl border transition-all ${
                           isLatest
-                            ? 'bg-indigo-50/70 border-indigo-200 ring-1 ring-indigo-300'
-                            : 'bg-slate-50 border-slate-100'
+                            ? 'bg-lime-400/10 border-lime-400/40 ring-1 ring-lime-400/30'
+                            : 'bg-[#060b18]/70 border-white/10'
                         }`}
                       >
-                        <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium mb-1">
+                        <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono mb-1">
                           <span>Milestone {idx + 1}</span>
                           <span>{formatMilestoneDate(m.date)}</span>
                         </div>
-                        <h4 className="text-xs font-bold text-slate-800 truncate mb-2" title={m.assessmentTitle}>
+                        <h4 className="text-xs font-bold text-white truncate mb-2" title={m.assessmentTitle}>
                           {m.assessmentTitle}
                         </h4>
-                        <div className="flex items-baseline justify-between pt-1 border-t border-slate-200/60">
-                          <span className="text-sm font-black text-indigo-700">
+                        <div className="flex items-baseline justify-between pt-1 border-t border-white/10">
+                          <span className="text-sm font-black text-lime-400 font-mono">
                             {m.percentile}
                             <span className="text-[10px] font-medium text-slate-400">th %ile</span>
                           </span>
-                          <span className="text-xs font-semibold text-slate-600">
+                          <span className="text-xs font-semibold text-slate-300 font-mono">
                             Score: {m.score}%
                           </span>
                         </div>
@@ -536,19 +543,19 @@ export default function CohortAnalyticsPage() {
             )}
 
             {/* Section 3: Cohort Score Distribution Histogram */}
-            <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-4">
-              <div className="flex items-center justify-between">
+            <div className="bento-tile bg-[#0a0f1d]/85 rounded-2xl p-6 sm:p-8 border border-white/10 space-y-4">
+              <div className="flex items-center justify-between flex-wrap gap-2">
                 <div>
-                  <h3 className="font-bold text-slate-900 text-lg">
+                  <h3 className="font-display font-bold text-white text-lg">
                     Cohort Score Distribution
                   </h3>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-slate-400 font-mono">
                     Histogram of candidate assessment scores across 10 deciles.
                   </p>
                 </div>
                 {readiness.candidateScore !== null && (
-                  <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary-700">
-                    <span className="w-2.5 h-2.5 rounded-full bg-primary-600 inline-block" />
+                  <span className="inline-flex items-center gap-1.5 text-xs font-mono font-semibold text-lime-400 bg-lime-400/10 px-2.5 py-1 rounded-full border border-lime-400/30">
+                    <span className="w-2 h-2 rounded-full bg-lime-400 inline-block animate-pulse" />
                     You are in the{' '}
                     {
                       (readiness.distribution || []).find((b) => b.isStudentBucket)?.range
@@ -560,7 +567,7 @@ export default function CohortAnalyticsPage() {
 
               {/* Histogram visualization */}
               <div className="pt-6 pb-2">
-                <div className="h-44 flex items-end justify-between gap-1 sm:gap-2 border-b border-slate-200 pb-2">
+                <div className="h-44 flex items-end justify-between gap-1 sm:gap-2 border-b border-white/10 pb-2">
                   {(readiness.distribution || []).map((bucket) => {
                     const isCandidate = bucket.isStudentBucket;
                     const heightPercent = Math.max(8, bucket.percentage * 3.5);
@@ -571,7 +578,7 @@ export default function CohortAnalyticsPage() {
                         className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end group relative"
                       >
                         {/* Tooltip on hover */}
-                        <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute -top-8 bg-slate-800 text-white text-[10px] px-2 py-0.5 rounded shadow whitespace-nowrap pointer-events-none z-10">
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute -top-8 bg-[#060b18] border border-white/10 text-white text-[10px] font-mono px-2 py-0.5 rounded shadow-lg whitespace-nowrap pointer-events-none z-10">
                           {bucket.range}: {bucket.count} candidates ({bucket.percentage}%)
                         </div>
 
@@ -580,8 +587,8 @@ export default function CohortAnalyticsPage() {
                           style={{ height: `${heightPercent}%` }}
                           className={`w-full rounded-t-md transition-all ${
                             isCandidate
-                              ? 'bg-primary-600 ring-2 ring-primary-400 ring-offset-2'
-                              : 'bg-slate-200 group-hover:bg-slate-300'
+                              ? 'bg-lime-400 ring-2 ring-lime-400/50 shadow-[0_0_15px_rgba(163,230,53,0.3)]'
+                              : 'bg-slate-800/80 group-hover:bg-slate-700/80'
                           }`}
                         />
                         {/* Bucket label */}
@@ -596,12 +603,12 @@ export default function CohortAnalyticsPage() {
             </div>
 
             {/* Section 4: Competency-Level Peer Benchmarks */}
-            <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
+            <div className="bento-tile bg-[#0a0f1d]/85 rounded-2xl p-6 sm:p-8 border border-white/10 space-y-6">
               <div>
-                <h3 className="font-bold text-slate-900 text-lg">
+                <h3 className="font-display font-bold text-white text-lg">
                   Competency-Level Cohort Benchmarking
                 </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-xs text-slate-400 font-mono mt-0.5">
                   Sub-skill accuracy comparison against the cohort median and top 10% benchmark.
                 </p>
               </div>
@@ -613,25 +620,25 @@ export default function CohortAnalyticsPage() {
                   return (
                     <div
                       key={comp.topicId}
-                      className="p-4 rounded-xl bg-slate-50 border border-slate-100 space-y-2"
+                      className="p-4 rounded-xl bg-[#060b18]/80 border border-white/10 space-y-2"
                     >
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <span className="font-semibold text-slate-800 text-sm">
+                        <span className="font-semibold text-white text-sm">
                           {comp.topicName}
                         </span>
                         <div className="flex items-center gap-3">
                           <span
-                            className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                            className={`text-xs font-mono font-bold px-2 py-0.5 rounded-full ${
                               isPositive
-                                ? 'bg-emerald-100 text-emerald-800'
-                                : 'bg-rose-100 text-rose-800'
+                                ? 'bg-emerald-400/10 text-emerald-300 border border-emerald-400/30'
+                                : 'bg-rose-400/10 text-rose-300 border border-rose-400/30'
                             }`}
                           >
                             {isPositive
                               ? `+${comp.gapFromMedian}% above median`
                               : `${comp.gapFromMedian}% below median`}
                           </span>
-                          <span className="text-xs font-semibold text-slate-600">
+                          <span className="text-xs font-mono text-slate-300">
                             Accuracy: {comp.studentAccuracy}%
                           </span>
                         </div>
@@ -639,21 +646,21 @@ export default function CohortAnalyticsPage() {
 
                       {/* Visual comparative bar */}
                       <div className="space-y-1">
-                        <div className="h-2.5 w-full bg-slate-200 rounded-full overflow-hidden relative">
+                        <div className="h-2.5 w-full bg-slate-800/80 rounded-full overflow-hidden relative">
                           {/* Student Accuracy bar */}
                           <div
                             style={{ width: `${Math.min(100, comp.studentAccuracy)}%` }}
                             className={`h-full rounded-full ${
-                              isPositive ? 'bg-emerald-600' : 'bg-rose-500'
+                              isPositive ? 'bg-emerald-400' : 'bg-rose-400'
                             }`}
                           />
                         </div>
-                        <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium">
+                        <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono">
                           <span>0%</span>
-                          <span className="text-slate-600">
+                          <span className="text-slate-300">
                             Cohort Median: {comp.cohortMedian}%
                           </span>
-                          <span className="text-amber-700">
+                          <span className="text-lime-400 font-semibold">
                             Top 10%: {comp.topDecileBenchmark}%
                           </span>
                         </div>
@@ -668,34 +675,36 @@ export default function CohortAnalyticsPage() {
             {readiness.competencyBenchmarks && readiness.competencyBenchmarks.length > 0 && (
               <div
                 data-testid="cohort-what-if-simulator"
-                className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6"
+                className="bento-tile bg-[#0a0f1d]/85 rounded-2xl p-6 sm:p-8 border border-white/10 space-y-6"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
-                    <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-800 text-xs font-semibold mb-2">
-                      🔬 Interactive Simulation Engine
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-lime-400/10 border border-lime-400/30 text-lime-300 text-xs font-mono font-semibold mb-2">
+                      <Cpu className="w-3.5 h-3.5 text-lime-400" />
+                      <span>Interactive Simulation Engine</span>
                     </div>
-                    <h3 className="text-lg font-bold text-slate-900">
+                    <h3 className="text-lg font-display font-bold text-white">
                       What-If Competency ROI Simulator
                     </h3>
-                    <p className="text-xs text-slate-500 mt-0.5">
+                    <p className="text-xs text-slate-400 mt-0.5">
                       Model the statistical impact of targeting capability deficits. Adjust topic mastery to simulate real-time percentile shifts and peer rank advancement.
                     </p>
                   </div>
                   {isTierElevated && (
-                    <span className="px-3 py-1.5 rounded-xl bg-emerald-100 text-emerald-900 border border-emerald-300 text-xs font-bold self-start sm:self-auto animate-pulse">
-                      🎉 Tier Elevation: {readiness.readinessBand} ➔ {projectedBand}
+                    <span className="px-3 py-1.5 rounded-xl bg-emerald-400/10 text-emerald-300 border border-emerald-400/30 text-xs font-mono font-bold self-start sm:self-auto animate-pulse flex items-center gap-1.5">
+                      <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Tier Elevation: {readiness.readinessBand} &rarr; {projectedBand}</span>
                     </span>
                   )}
                 </div>
 
                 {/* Simulation Control Strip */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 rounded-xl bg-slate-50 border border-slate-200">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 rounded-xl bg-[#060b18]/80 border border-white/10">
                   {/* Topic Select */}
                   <div className="space-y-1.5">
                     <label
                       htmlFor="topic-selector"
-                      className="text-xs font-semibold text-slate-700 block"
+                      className="text-xs font-mono font-semibold text-slate-300 block"
                     >
                       Target Competency Domain:
                     </label>
@@ -704,10 +713,10 @@ export default function CohortAnalyticsPage() {
                       aria-label="Target Competency Domain"
                       value={simulatedTopicId}
                       onChange={(e) => setSimulatedTopicId(e.target.value)}
-                      className="w-full text-sm font-medium bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full text-sm font-medium bg-[#0a0f1d] border border-white/10 rounded-xl px-3 py-2 text-white focus:outline-none focus:ring-1 focus:ring-lime-400"
                     >
                       {readiness.competencyBenchmarks.map((c) => (
-                        <option key={c.topicId} value={c.topicId}>
+                        <option key={c.topicId} value={c.topicId} className="bg-slate-900 text-white">
                           {c.topicName} (Current: {c.studentAccuracy}%)
                         </option>
                       ))}
@@ -719,11 +728,11 @@ export default function CohortAnalyticsPage() {
                     <div className="flex items-center justify-between">
                       <label
                         htmlFor="boost-slider"
-                        className="text-xs font-semibold text-slate-700"
+                        className="text-xs font-mono font-semibold text-slate-300"
                       >
                         Target Accuracy Boost:
                       </label>
-                      <span className="text-xs font-bold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded">
+                      <span className="text-xs font-mono font-bold text-lime-400 bg-lime-400/10 border border-lime-400/30 px-2 py-0.5 rounded">
                         +{boostPercent}% Improvement
                       </span>
                     </div>
@@ -735,7 +744,7 @@ export default function CohortAnalyticsPage() {
                       step={5}
                       value={boostPercent}
                       onChange={(e) => setBoostPercent(Number(e.target.value))}
-                      className="w-full accent-indigo-600 cursor-pointer"
+                      className="w-full accent-lime-400 cursor-pointer"
                     />
                     <div className="flex justify-between text-[10px] text-slate-400 font-mono">
                       <span>+5%</span>
@@ -749,84 +758,84 @@ export default function CohortAnalyticsPage() {
 
                 {/* Projected Impact Metrics Grid */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-                    <span className="text-xs text-slate-500 block font-medium">
+                  <div className="p-4 rounded-xl bg-[#060b18]/90 border border-white/10">
+                    <span className="text-xs text-slate-400 block font-mono font-medium">
                       Simulated Topic Accuracy
                     </span>
                     <div className="mt-1 flex items-baseline gap-1.5">
-                      <span className="text-2xl font-bold text-slate-900">
+                      <span className="text-2xl font-display font-bold text-white">
                         {simulatedAccuracy}%
                       </span>
-                      <span className="text-xs font-bold text-emerald-600">
+                      <span className="text-xs font-mono font-bold text-emerald-400">
                         (+{boostPercent}%)
                       </span>
                     </div>
-                    <span className="text-[11px] text-slate-400 block mt-0.5">
+                    <span className="text-[11px] text-slate-400 font-mono block mt-0.5">
                       From base {curAccuracy}%
                     </span>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-                    <span className="text-xs text-slate-500 block font-medium">
+                  <div className="p-4 rounded-xl bg-[#060b18]/90 border border-white/10">
+                    <span className="text-xs text-slate-400 block font-mono font-medium">
                       Projected Overall Score
                     </span>
                     <div className="mt-1 flex items-baseline gap-1.5">
-                      <span className="text-2xl font-bold text-slate-900">
+                      <span className="text-2xl font-display font-bold text-white">
                         {simulatedCandidateScore}%
                       </span>
-                      <span className="text-xs font-bold text-indigo-600">
+                      <span className="text-xs font-mono font-bold text-cyan-400">
                         (+{compositeDelta}%)
                       </span>
                     </div>
-                    <span className="text-[11px] text-slate-400 block mt-0.5">
+                    <span className="text-[11px] text-slate-400 font-mono block mt-0.5">
                       From base {baseCandidateScore}%
                     </span>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-                    <span className="text-xs text-slate-500 block font-medium">
+                  <div className="p-4 rounded-xl bg-[#060b18]/90 border border-white/10">
+                    <span className="text-xs text-slate-400 block font-mono font-medium">
                       Projected Percentile
                     </span>
                     <div className="mt-1 flex items-baseline gap-1.5">
-                      <span className="text-2xl font-extrabold text-emerald-700">
+                      <span className="text-2xl font-display font-extrabold text-lime-400">
                         {simulatedPercentile}th
                       </span>
-                      <span className="text-xs font-bold text-emerald-600">
+                      <span className="text-xs font-mono font-bold text-emerald-400">
                         (+{percentileGain} pts)
                       </span>
                     </div>
-                    <span className="text-[11px] text-slate-400 block mt-0.5">
+                    <span className="text-[11px] text-slate-400 font-mono block mt-0.5">
                       From {basePercentile}th percentile
                     </span>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-                    <span className="text-xs text-slate-500 block font-medium">
+                  <div className="p-4 rounded-xl bg-[#060b18]/90 border border-white/10">
+                    <span className="text-xs text-slate-400 block font-mono font-medium">
                       Peers Overtaken
                     </span>
                     <div className="mt-1 flex items-baseline gap-1.5">
-                      <span className="text-2xl font-bold text-indigo-900">
+                      <span className="text-2xl font-display font-bold text-cyan-300">
                         +{peersOvertaken}
                       </span>
-                      <span className="text-xs font-medium text-slate-500">
+                      <span className="text-xs font-mono text-slate-400">
                         candidates
                       </span>
                     </div>
-                    <span className="text-[11px] text-slate-400 block mt-0.5">
+                    <span className="text-[11px] text-slate-400 font-mono block mt-0.5">
                       Cohort pool: {readiness.cohortSampleSize}
                     </span>
                   </div>
                 </div>
 
                 {/* Simulation Action CTA */}
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-xl bg-indigo-50/60 border border-indigo-100">
-                  <p className="text-xs text-slate-700 leading-relaxed max-w-xl">
-                    Targeting <strong>{selectedComp?.topicName}</strong> yields highest ROI, advancing you from the{' '}
-                    <strong>{basePercentile}th</strong> to the <strong>{simulatedPercentile}th</strong> percentile.
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-xl bg-gradient-to-r from-lime-950/40 to-cyan-950/40 border border-lime-400/30">
+                  <p className="text-xs text-slate-300 leading-relaxed max-w-xl">
+                    Targeting <strong className="text-white">{selectedComp?.topicName}</strong> yields highest ROI, advancing you from the{' '}
+                    <strong className="text-white">{basePercentile}th</strong> to the <strong className="text-lime-300">{simulatedPercentile}th</strong> percentile.
                   </p>
                   <Link href="/practice" className="shrink-0">
-                    <Button variant="primary" className="text-xs py-2 px-4 shadow-md">
-                      Practice {selectedComp?.topicName || 'Topic'} to Unlock +{percentileGain}% Boost →
+                    <Button variant="primary" size="sm" className="text-xs font-bold shadow-md shadow-lime-400/25">
+                      Unlock +{percentileGain}% Boost with Topic Practice →
                     </Button>
                   </Link>
                 </div>
@@ -835,17 +844,18 @@ export default function CohortAnalyticsPage() {
 
             {/* Section 6: Precision Gap Remediation Card */}
             {readiness.keyDeficit && (
-              <div className="bg-gradient-to-r from-slate-900 to-indigo-950 rounded-2xl p-6 sm:p-8 text-white shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+              <div className="bento-tile bg-[#0a0f1d]/90 rounded-2xl p-6 sm:p-8 border border-white/10 text-white shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
                 <div className="space-y-2 max-w-xl">
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-indigo-500/30 border border-indigo-400/30 text-indigo-200 text-xs font-semibold">
-                    🎯 Highest Priority Capability Deficit
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-400/10 border border-rose-400/30 text-rose-300 text-xs font-mono font-semibold">
+                    <Target className="w-3.5 h-3.5 text-rose-400" />
+                    <span>Highest Priority Capability Deficit</span>
                   </div>
-                  <h3 className="text-xl font-bold text-white">
+                  <h3 className="text-xl font-display font-bold text-white">
                     {readiness.keyDeficit.topicName}
                   </h3>
                   <p className="text-sm text-slate-300 leading-relaxed">
                     Your accuracy ({readiness.keyDeficit.studentAccuracy}%) is{' '}
-                    <strong className="text-rose-300">
+                    <strong className="text-rose-400">
                       {Math.abs(readiness.keyDeficit.gapFromMedian)}% below
                     </strong>{' '}
                     the peer median ({readiness.keyDeficit.cohortMedian}%). Bridging this topic deficit represents your highest statistical leverage for achieving Job-Ready standing.
@@ -854,8 +864,9 @@ export default function CohortAnalyticsPage() {
 
                 <div className="shrink-0">
                   <Link href="/practice">
-                    <Button variant="primary" className="text-xs py-2 px-4 shadow-lg">
-                      Practice Topic Now →
+                    <Button variant="primary" size="sm" className="text-xs font-bold shadow-lg shadow-lime-400/25 group">
+                      <span>Practice Topic</span>
+                      <ArrowRight className="w-3.5 h-3.5 ml-1.5 transition-transform group-hover:translate-x-0.5" />
                     </Button>
                   </Link>
                 </div>

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Button } from '../ui/Button';
 
-export type KernelNetworkMode = 'CPU_SCHEDULING' | 'PAGE_REPLACEMENT' | 'TCP_CONGESTION' | 'EPOLL_MULTIPLEXING' | 'ZERO_COPY_IO_URING' | 'VIRTUAL_MEMORY_PAGE_TABLES_TLB' | 'TCP_BBR_BUFFERBLOAT';
+export type KernelNetworkMode = 'CPU_SCHEDULING' | 'PAGE_REPLACEMENT' | 'TCP_CONGESTION' | 'EPOLL_MULTIPLEXING' | 'ZERO_COPY_IO_URING' | 'VIRTUAL_MEMORY_PAGE_TABLES_TLB' | 'TCP_BBR_BUFFERBLOAT' | 'EBPF_XDP_PACKET_FILTER';
 
 
 
@@ -11,6 +11,61 @@ export type KernelNetworkMode = 'CPU_SCHEDULING' | 'PAGE_REPLACEMENT' | 'TCP_CON
 // --- Module 7: Linux Kernel TCP BBR Congestion Control & Bufferbloat Types ---
 export type TcpCongestionAlgorithm = 'BBR_CARDWELL' | 'RENO_LOSS_BASED' | 'CUBIC_LOSS_BASED';
 export type BbrState = 'STARTUP' | 'DRAIN' | 'PROBE_BW' | 'PROBE_RTT';
+
+// --- Module 8: Linux Kernel eBPF Virtual Machine & XDP (eXpress Data Path) Packet Filter Types ---
+export type XdpVerdict = 'XDP_DROP' | 'XDP_PASS' | 'XDP_TX' | 'XDP_REDIRECT' | 'XDP_ABORTED';
+export type XdpHookMode = 'TRADITIONAL_IPTABLES' | 'XDP_GENERIC' | 'XDP_NATIVE_DRIVER';
+export type TrafficScenario =
+  | 'CLEAN_TCP_TRAFFIC'
+  | 'SYN_FLOOD_DDOS'
+  | 'UDP_DNS_AMPLIFICATION'
+  | 'VERIFIER_BOUNDS_FAULT';
+
+export interface EbpfRegisterState {
+  r0: { val: number; desc: string; role: string };
+  r1: { val: string; desc: string; role: string };
+  r2: { val: string; desc: string; role: string };
+  r3: { val: string; desc: string; role: string };
+  r4: { val: string; desc: string; role: string };
+  r5: { val: string; desc: string; role: string };
+  r6: { val: string; desc: string; role: string };
+  r7: { val: string; desc: string; role: string };
+  r8: { val: string; desc: string; role: string };
+  r9: { val: string; desc: string; role: string };
+  r10: { val: string; desc: string; role: string };
+}
+
+export interface BpfMapHashEntry {
+  ip: string;
+  cidr: string;
+  threatLevel: 'CRITICAL_DDOS' | 'SUSPECT' | 'CLEAN';
+  droppedCount: number;
+  lastSeenSecsAgo: number;
+}
+
+export interface EbpfStepSnapshot {
+  stepIndex: number;
+  title: string;
+  asmOpcode: string;
+  bytecodeHex: string;
+  explanation: string;
+  registers: EbpfRegisterState;
+  activeVerdict: XdpVerdict;
+  verdictLabel: string;
+  boundsCheckPassed: boolean;
+  mapHit: boolean;
+  allocSkbRequired: boolean;
+  pipelineStage:
+    | 'NIC_RX_DMA'
+    | 'VERIFIER_BOUNDS'
+    | 'ETH_DECODE'
+    | 'IP_TCP_DECODE'
+    | 'MAP_LOOKUP'
+    | 'VERDICT_DECISION'
+    | 'METRICS_UPDATE'
+    | 'ACTION_EXECUTE';
+}
+
 
 export interface BbrStepSnapshot {
   stepIndex: number;
@@ -255,6 +310,19 @@ export function KernelNetworkSandbox() {
   const [bbrQueueCapacity, setBbrQueueCapacity] = useState<number>(100);
   const [bbrBottleneckBw, setBbrBottleneckBw] = useState<number>(50); // Mbps
   const [bbrInjectedBurst, setBbrInjectedBurst] = useState<boolean>(false);
+
+  // --- Module 8: Linux Kernel eBPF Virtual Machine & XDP Packet Filter State ---
+  const [xdpHookMode, setXdpHookMode] = useState<XdpHookMode>('XDP_NATIVE_DRIVER');
+  const [xdpTrafficScenario, setXdpTrafficScenario] = useState<TrafficScenario>('SYN_FLOOD_DDOS');
+  const [xdpStepIndex, setXdpStepIndex] = useState<number>(0);
+  const [xdpBoundsSafetyCheck, setXdpBoundsSafetyCheck] = useState<boolean>(true);
+  const [xdpBlacklistMap] = useState<BpfMapHashEntry[]>([
+    { ip: '198.51.100.23', cidr: '198.51.100.0/24', threatLevel: 'CRITICAL_DDOS', droppedCount: 1420500, lastSeenSecsAgo: 1 },
+    { ip: '203.0.113.88', cidr: '203.0.113.0/24', threatLevel: 'CRITICAL_DDOS', droppedCount: 985200, lastSeenSecsAgo: 2 },
+    { ip: '192.0.2.14', cidr: '192.0.2.0/24', threatLevel: 'SUSPECT', droppedCount: 42100, lastSeenSecsAgo: 5 },
+    { ip: '10.0.4.102', cidr: '10.0.0.0/8', threatLevel: 'CLEAN', droppedCount: 0, lastSeenSecsAgo: 12 },
+  ]);
+
 
     // --- Module 6: Virtual Memory & TLB State ---
   const [vmAddressInput, setVmAddressInput] = useState('0x7fff_cafe_4000');
@@ -923,29 +991,32 @@ export function KernelNetworkSandbox() {
   return (
     <div className="bg-surface border border-border rounded-xl shadow-xs overflow-hidden space-y-6">
       {/* Sub-Header Tabs */}
-      <div className="bg-surface-hover/50 border-b border-border p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2">
+      <div className="bg-surface-hover/50 border-b border-border p-4 sm:p-5 space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-bold uppercase tracking-wider text-accent-700">
               Systems Engineering Studio
             </span>
-            <span className="text-[11px] font-semibold bg-primary-50 text-primary-800 px-2 py-0.5 rounded-full border border-primary-200">
+            <span className="text-[11px] font-semibold bg-primary-50 text-primary-800 px-2.5 py-0.5 rounded-full border border-primary-200">
               OS Kernel &amp; Networking Protocols
             </span>
           </div>
-          <h2 className="text-lg font-bold text-text mt-0.5">
-            CPU Scheduling Gantt, Virtual Memory Paging &amp; TCP Congestion Dynamics
-          </h2>
+          <span className="text-xs font-medium text-text-muted">
+            Kernel Scheduling, Virtual Memory &amp; Network Labs
+          </span>
         </div>
+        <h2 className="text-lg sm:text-xl font-bold text-text">
+          CPU Scheduling Gantt, Virtual Memory Paging &amp; TCP Congestion Dynamics
+        </h2>
 
-        <div className="flex items-center gap-1.5 bg-canvas p-1 rounded-lg border border-border">
+        <div className="flex items-center gap-1.5 overflow-x-auto p-1.5 bg-canvas rounded-xl border border-border [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           <button
             type="button"
             onClick={() => setActiveTab('CPU_SCHEDULING')}
-            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === 'CPU_SCHEDULING'
                 ? 'bg-primary-700 text-white shadow-xs'
-                : 'text-text-muted hover:text-text'
+                : 'text-text-muted hover:text-text hover:bg-surface-hover/50'
             }`}
           >
             CPU Gantt Scheduling
@@ -953,10 +1024,10 @@ export function KernelNetworkSandbox() {
           <button
             type="button"
             onClick={() => setActiveTab('PAGE_REPLACEMENT')}
-            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === 'PAGE_REPLACEMENT'
                 ? 'bg-primary-700 text-white shadow-xs'
-                : 'text-text-muted hover:text-text'
+                : 'text-text-muted hover:text-text hover:bg-surface-hover/50'
             }`}
           >
             Virtual Memory Paging
@@ -964,10 +1035,10 @@ export function KernelNetworkSandbox() {
           <button
             type="button"
             onClick={() => setActiveTab('TCP_CONGESTION')}
-            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === 'TCP_CONGESTION'
                 ? 'bg-primary-700 text-white shadow-xs'
-                : 'text-text-muted hover:text-text'
+                : 'text-text-muted hover:text-text hover:bg-surface-hover/50'
             }`}
           >
             TCP Congestion (cwnd)
@@ -975,10 +1046,10 @@ export function KernelNetworkSandbox() {
           <button
             type="button"
             onClick={() => setActiveTab('EPOLL_MULTIPLEXING')}
-            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === 'EPOLL_MULTIPLEXING'
                 ? 'bg-primary-700 text-white shadow-xs'
-                : 'text-text-muted hover:text-text'
+                : 'text-text-muted hover:text-text hover:bg-surface-hover/50'
             }`}
           >
             epoll &amp; C10K I/O
@@ -986,10 +1057,10 @@ export function KernelNetworkSandbox() {
           <button
             type="button"
             onClick={() => setActiveTab('VIRTUAL_MEMORY_PAGE_TABLES_TLB')}
-            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === 'VIRTUAL_MEMORY_PAGE_TABLES_TLB'
                 ? 'bg-primary-700 text-white shadow-xs'
-                : 'text-text-muted hover:text-text'
+                : 'text-text-muted hover:text-text hover:bg-surface-hover/50'
             }`}
           >
             Virtual Memory &amp; TLB
@@ -997,10 +1068,10 @@ export function KernelNetworkSandbox() {
           <button
             type="button"
             onClick={() => setActiveTab('ZERO_COPY_IO_URING')}
-            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === 'ZERO_COPY_IO_URING'
                 ? 'bg-primary-700 text-white shadow-xs'
-                : 'text-text-muted hover:text-text'
+                : 'text-text-muted hover:text-text hover:bg-surface-hover/50'
             }`}
           >
             Zero-Copy &amp; io_uring
@@ -1008,13 +1079,24 @@ export function KernelNetworkSandbox() {
           <button
             type="button"
             onClick={() => setActiveTab('TCP_BBR_BUFFERBLOAT')}
-            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === 'TCP_BBR_BUFFERBLOAT'
                 ? 'bg-primary-700 text-white shadow-xs'
-                : 'text-text-muted hover:text-text'
+                : 'text-text-muted hover:text-text hover:bg-surface-hover/50'
             }`}
           >
             BBR &amp; Bufferbloat
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('EBPF_XDP_PACKET_FILTER')}
+            className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
+              activeTab === 'EBPF_XDP_PACKET_FILTER'
+                ? 'bg-primary-700 text-white shadow-xs'
+                : 'text-text-muted hover:text-text hover:bg-surface-hover/50'
+            }`}
+          >
+            eBPF &amp; XDP Packet Filter
           </button>
         </div>
       </div>
@@ -3577,6 +3659,830 @@ export function KernelNetworkSandbox() {
           </div>
         );
       })()}
+      {/* MODULE 8: LINUX KERNEL eBPF VIRTUAL MACHINE & XDP (eXpress Data Path) PACKET FILTER */}
+      {activeTab === 'EBPF_XDP_PACKET_FILTER' && (() => {
+        // Compute 8 step snapshots based on current state
+        const isFaultScenario = xdpTrafficScenario === 'VERIFIER_BOUNDS_FAULT' || !xdpBoundsSafetyCheck;
+        const isSynFlood = xdpTrafficScenario === 'SYN_FLOOD_DDOS';
+        const isDnsAmp = xdpTrafficScenario === 'UDP_DNS_AMPLIFICATION';
+        const isClean = xdpTrafficScenario === 'CLEAN_TCP_TRAFFIC';
+
+        const finalVerdict: XdpVerdict = isFaultScenario
+          ? 'XDP_ABORTED'
+          : isClean
+          ? 'XDP_PASS'
+          : 'XDP_DROP';
+
+        const finalVerdictLabel = isFaultScenario
+          ? 'XDP_ABORTED (Kernel Verifier Rejection)'
+          : isClean
+          ? 'XDP_PASS (Forward to Linux TCP/IP Stack)'
+          : 'XDP_DROP (Zero-Copy Driver Wire Drop)';
+
+        const targetSrcIp = isSynFlood
+          ? '198.51.100.23'
+          : isDnsAmp
+          ? '203.0.113.88'
+          : '10.0.4.102';
+
+        const targetProto = isDnsAmp ? 17 : 6;
+        const targetProtoString = isDnsAmp ? 'UDP (17)' : 'TCP (6)';
+
+        const snapshots: EbpfStepSnapshot[] = [
+          {
+            stepIndex: 0,
+            title: '1. NIC RX Ring Buffer Ingress (struct xdp_md *ctx)',
+            asmOpcode: 'r1 = *(u64 *)(r1 + 0) /* load ctx->data */',
+            bytecodeHex: '79 13 00 00 00 00 00 00',
+            explanation:
+              'The Network Interface Controller (NIC) completes Direct Memory Access (DMA) transfer of packet bytes directly into the host RX ring buffer. The driver executes this eBPF program before any Linux sk_buff is allocated. R1 holds the context pointer ctx (struct xdp_md).',
+            registers: {
+              r0: { val: 0, desc: '0x00 (Uninitialized)', role: 'Verdict / Return' },
+              r1: { val: '0xffff_8881_10a0_0000', desc: 'ctx (struct xdp_md *)', role: 'Context Ptr' },
+              r2: { val: '0xffff_8881_10a0_0054', desc: 'ctx->data_end', role: 'Packet End' },
+              r3: { val: '0xffff_8881_10a0_0000', desc: 'ctx->data (Packet Start)', role: 'Packet Data Ptr' },
+              r4: { val: '0x0000_0000_0000_0000', desc: 'Unassigned', role: 'Arg 4' },
+              r5: { val: '0x0000_0000_0000_0000', desc: 'Unassigned', role: 'Arg 5' },
+              r6: { val: '0x0000_0000_0000_0000', desc: 'Unassigned', role: 'Callee-saved' },
+              r7: { val: '0x0000_0000_0000_0000', desc: 'Unassigned', role: 'Callee-saved' },
+              r8: { val: '0x0000_0000_0000_0000', desc: 'Unassigned', role: 'Callee-saved' },
+              r9: { val: '0x0000_0000_0000_0000', desc: 'Unassigned', role: 'Callee-saved' },
+              r10: { val: '0xffff_c900_001b_ef80', desc: '512B Stack Frame Ptr', role: 'Read-only FP' },
+            },
+            activeVerdict: 'XDP_PASS',
+            verdictLabel: 'EVALUATING',
+            boundsCheckPassed: true,
+            mapHit: false,
+            allocSkbRequired: false,
+            pipelineStage: 'NIC_RX_DMA',
+          },
+          {
+            stepIndex: 1,
+            title: '2. In-Kernel Static Verifier Safety & Bounds Check',
+            asmOpcode: isFaultScenario
+              ? '/* MISSING BOUNDS CHECK: r4 = *(u16 *)(r3 + 12) WITHOUT CHECK! */'
+              : 'r4 = r3 + 14; if r4 > r2 goto reject /* verify data + 14 <= data_end */',
+            bytecodeHex: isFaultScenario
+              ? '69 46 0c 00 00 00 00 00'
+              : 'bf 34 00 00 00 00 00 00; 2d 24 0a 00 00 00 00 00',
+            explanation: isFaultScenario
+              ? 'SAFETY VIOLATION! The eBPF static verifier detects that packet memory at offset +14 is dereferenced without proving data + 14 <= data_end. The verifier aborts program loading with: "invalid access to packet, R1 offset 14 exceeds data_end"!'
+              : 'VERIFIER SAFETY PASSED: The program proves that the 14-byte Ethernet header (struct ethhdr) resides completely within the linear buffer (r3 + 14 <= r2). Memory safety is mathematically guaranteed.',
+            registers: {
+              r0: { val: 0, desc: isFaultScenario ? '0x00 (ABORT TRAP)' : '0x00 (In-Progress)', role: 'Verdict / Return' },
+              r1: { val: '0xffff_8881_10a0_0000', desc: 'ctx', role: 'Context Ptr' },
+              r2: { val: '0xffff_8881_10a0_0054', desc: 'data_end (Offset +84)', role: 'Packet End' },
+              r3: { val: '0xffff_8881_10a0_0000', desc: 'data (Offset 0)', role: 'Packet Data Ptr' },
+              r4: { val: isFaultScenario ? '0xDEAD_BEEF_FAIL' : '0xffff_8881_10a0_000e', desc: isFaultScenario ? 'UNBOUNDED_PTR' : 'data + 14 (ethhdr end)', role: 'Bounds Checked Ptr' },
+              r5: { val: '0x0000_0000_0000_0000', desc: 'Unassigned', role: 'Arg 5' },
+              r6: { val: '0x0000_0000_0000_0000', desc: 'Unassigned', role: 'Callee-saved' },
+              r7: { val: '0x0000_0000_0000_0000', desc: 'Unassigned', role: 'Callee-saved' },
+              r8: { val: '0x0000_0000_0000_0000', desc: 'Unassigned', role: 'Callee-saved' },
+              r9: { val: '0x0000_0000_0000_0000', desc: 'Unassigned', role: 'Callee-saved' },
+              r10: { val: '0xffff_c900_001b_ef80', desc: 'Stack Frame', role: 'Read-only FP' },
+            },
+            activeVerdict: isFaultScenario ? 'XDP_ABORTED' : 'XDP_PASS',
+            verdictLabel: isFaultScenario ? 'XDP_ABORTED (Kernel Crash Averted)' : 'BOUNDS_OK',
+            boundsCheckPassed: !isFaultScenario,
+            mapHit: false,
+            allocSkbRequired: false,
+            pipelineStage: 'VERIFIER_BOUNDS',
+          },
+          {
+            stepIndex: 2,
+            title: '3. L2 Ethernet Header Parsing & EtherType Extraction',
+            asmOpcode: 'r6 = *(u16 *)(r3 + 12) /* eth->h_proto (EtherType) */',
+            bytecodeHex: '69 36 0c 00 00 00 00 00',
+            explanation:
+              'Reads the 16-bit EtherType field in network byte order (be16). Value 0x0800 confirms an IPv4 payload (ETH_P_IP). Non-IPv4 frames (e.g. ARP 0x0806) are immediately passed with XDP_PASS to prevent disrupting local network discovery.',
+            registers: {
+              r0: { val: 0, desc: '0x00', role: 'Verdict / Return' },
+              r1: { val: '0xffff_8881_10a0_0000', desc: 'ctx', role: 'Context Ptr' },
+              r2: { val: '0xffff_8881_10a0_0054', desc: 'data_end', role: 'Packet End' },
+              r3: { val: '0xffff_8881_10a0_0000', desc: 'data', role: 'Packet Data Ptr' },
+              r4: { val: '0xffff_8881_10a0_000e', desc: 'data + 14', role: 'Checked' },
+              r5: { val: '0x0000_0000_0000_0000', desc: 'Unassigned', role: 'Arg 5' },
+              r6: { val: '0x0000_0000_0000_0800', desc: 'ETH_P_IP (IPv4 0x0800)', role: 'EtherType' },
+              r7: { val: '0x0000_0000_0000_0000', desc: 'Unassigned', role: 'Callee-saved' },
+              r8: { val: '0x0000_0000_0000_0000', desc: 'Unassigned', role: 'Callee-saved' },
+              r9: { val: '0x0000_0000_0000_0000', desc: 'Unassigned', role: 'Callee-saved' },
+              r10: { val: '0xffff_c900_001b_ef80', desc: 'Stack Frame', role: 'Read-only FP' },
+            },
+            activeVerdict: 'XDP_PASS',
+            verdictLabel: 'EVALUATING',
+            boundsCheckPassed: true,
+            mapHit: false,
+            allocSkbRequired: false,
+            pipelineStage: 'ETH_DECODE',
+          },
+          {
+            stepIndex: 3,
+            title: '4. L3/L4 Protocol Decoding (Source IP & Transport Flags)',
+            asmOpcode: `r7 = *(u8 *)(r3 + 23); r8 = *(u32 *)(r3 + 26) /* proto & saddr */`,
+            bytecodeHex: '71 37 17 00 00 00 00 00; 61 38 1a 00 00 00 00 00',
+            explanation: `Decodes the 20-byte IPv4 header: IP Protocol ${targetProtoString} and Source IP Address ${targetSrcIp}. ${
+              isSynFlood
+                ? 'Inspection of TCP flags (offset +47) reveals SYN=1, ACK=0 without payload, matching volumetric botnet SYN-flood signature.'
+                : isDnsAmp
+                ? 'Inspection of UDP header (offset +34) reveals source port 53 (DNS) with 4096-byte amplified payload.'
+                : 'Standard legitimate HTTP/2 TCP traffic with valid sequence and acknowledgement numbers.'
+            }`,
+            registers: {
+              r0: { val: 0, desc: '0x00', role: 'Verdict / Return' },
+              r1: { val: '0xffff_8881_10a0_0000', desc: 'ctx', role: 'Context Ptr' },
+              r2: { val: '0xffff_8881_10a0_0054', desc: 'data_end', role: 'Packet End' },
+              r3: { val: '0xffff_8881_10a0_0000', desc: 'data', role: 'Packet Data Ptr' },
+              r4: { val: '0xffff_8881_10a0_0022', desc: 'data + 34 (L4 header)', role: 'Checked' },
+              r5: { val: '0x0000_0000_0000_0000', desc: 'Unassigned', role: 'Arg 5' },
+              r6: { val: '0x0000_0000_0000_0800', desc: 'ETH_P_IP', role: 'EtherType' },
+              r7: { val: '0x0000_0000_0000_000' + targetProto.toString(16), desc: targetProtoString, role: 'IP Protocol' },
+              r8: { val: targetSrcIp, desc: 'Source IP: ' + targetSrcIp, role: 'Src IP' },
+              r9: { val: isSynFlood ? '0x02 (SYN)' : '0x10 (ACK)', desc: isSynFlood ? 'TH_SYN Flag Active' : 'TH_ACK Flag Active', role: 'TCP Flags' },
+              r10: { val: '0xffff_c900_001b_ef80', desc: 'Stack Frame', role: 'Read-only FP' },
+            },
+            activeVerdict: 'XDP_PASS',
+            verdictLabel: 'EVALUATING',
+            boundsCheckPassed: true,
+            mapHit: false,
+            allocSkbRequired: false,
+            pipelineStage: 'IP_TCP_DECODE',
+          },
+          {
+            stepIndex: 4,
+            title: '5. In-Kernel BPF Map Lookup (BPF_MAP_TYPE_HASH)',
+            asmOpcode: 'r1 = &ip_blacklist_map; r2 = &r8; call bpf_map_lookup_elem#1',
+            bytecodeHex: '18 11 00 00 00 00 00 00; 85 00 00 00 01 00 00 00',
+            explanation:
+              'Calls the native BPF helper function bpf_map_lookup_elem(). The kernel performs an O(1) lockless hash table lookup in dedicated non-paged BPF memory. ' +
+              (isClean
+                ? 'Source IP ' + targetSrcIp + ' is NOT in blacklist. Helper returns R0 = 0 (NULL).'
+                : 'MATCH FOUND! Source IP ' + targetSrcIp + ' matches CRITICAL_DDOS blacklist entry. Helper returns non-NULL pointer to threat record in R0.'),
+            registers: {
+              r0: {
+                val: isClean ? 0 : 1,
+                desc: isClean ? '0x0000_0000_0000_0000 (NULL - Not Blacklisted)' : '0xffff_8881_20b0_4010 (Blacklist Hit)',
+                role: 'Map Value Pointer',
+              },
+              r1: { val: '0xffff_8881_00a1_8000', desc: '&ip_blacklist_map (BPF_MAP_TYPE_HASH)', role: 'Map Descriptor' },
+              r2: { val: '0xffff_c900_001b_ef7c', desc: '&src_ip on Stack', role: 'Key Pointer' },
+              r3: { val: '0xffff_8881_10a0_0000', desc: 'data', role: 'Packet Data Ptr' },
+              r4: { val: '0xffff_8881_10a0_0022', desc: 'data + 34', role: 'Checked' },
+              r5: { val: '0x0000_0000_0000_0000', desc: 'Unassigned', role: 'Arg 5' },
+              r6: { val: '0x0000_0000_0000_0800', desc: 'ETH_P_IP', role: 'EtherType' },
+              r7: { val: '0x0000_0000_0000_000' + targetProto.toString(16), desc: targetProtoString, role: 'IP Protocol' },
+              r8: { val: targetSrcIp, desc: targetSrcIp, role: 'Src IP' },
+              r9: { val: isSynFlood ? '0x02 (SYN)' : '0x10 (ACK)', desc: 'TCP Flags', role: 'TCP Flags' },
+              r10: { val: '0xffff_c900_001b_ef80', desc: 'Stack Frame', role: 'Read-only FP' },
+            },
+            activeVerdict: isClean ? 'XDP_PASS' : 'XDP_DROP',
+            verdictLabel: isClean ? 'BLACKLIST_MISS (Clean IP)' : 'BLACKLIST_HIT (Malicious IP)',
+            boundsCheckPassed: true,
+            mapHit: !isClean,
+            allocSkbRequired: false,
+            pipelineStage: 'MAP_LOOKUP',
+          },
+          {
+            stepIndex: 5,
+            title: '6. Threat Scoring & Per-CPU Metric Array Update',
+            asmOpcode: 'lock *(u64 *)(r0 + 8) += 1 /* atomic increment dropped_packets */',
+            bytecodeHex: 'db 00 08 00 00 00 00 00',
+            explanation:
+              'Updates high-performance kernel telemetry: increments per-CPU drop counter in BPF_MAP_TYPE_PERCPU_ARRAY. Because each CPU core writes to its own isolated memory cache-line, this telemetry update incurs zero lock contention and zero cache-line bouncing.',
+            registers: {
+              r0: { val: isClean ? 2 : 1, desc: isClean ? '0x02 (XDP_PASS Target)' : '0x01 (XDP_DROP Target)', role: 'Verdict Target' },
+              r1: { val: '0xffff_8881_00a1_9000', desc: '&percpu_stats_map', role: 'Per-CPU Array' },
+              r2: { val: '0x0000_0000_0000_0000', desc: 'Core #0 Slot', role: 'CPU Core Index' },
+              r3: { val: '0xffff_8881_10a0_0000', desc: 'data', role: 'Packet Data Ptr' },
+              r4: { val: '0xffff_8881_10a0_0022', desc: 'data + 34', role: 'Checked' },
+              r5: { val: '0x0000_0000_0000_0000', desc: 'Unassigned', role: 'Arg 5' },
+              r6: { val: '0x0000_0000_0000_0800', desc: 'ETH_P_IP', role: 'EtherType' },
+              r7: { val: '0x0000_0000_0000_000' + targetProto.toString(16), desc: targetProtoString, role: 'IP Protocol' },
+              r8: { val: targetSrcIp, desc: targetSrcIp, role: 'Src IP' },
+              r9: { val: isSynFlood ? '0x02 (SYN)' : '0x10 (ACK)', desc: 'TCP Flags', role: 'TCP Flags' },
+              r10: { val: '0xffff_c900_001b_ef80', desc: 'Stack Frame', role: 'Read-only FP' },
+            },
+            activeVerdict: isClean ? 'XDP_PASS' : 'XDP_DROP',
+            verdictLabel: isClean ? 'STATS_INCREMENTED (PASS)' : 'STATS_INCREMENTED (DROP)',
+            boundsCheckPassed: true,
+            mapHit: !isClean,
+            allocSkbRequired: false,
+            pipelineStage: 'METRICS_UPDATE',
+          },
+          {
+            stepIndex: 6,
+            title: '7. XDP Verdict Assignment (R0 Register)',
+            asmOpcode: isClean ? 'r0 = 2 /* XDP_PASS (Pass to TCP/IP Stack) */' : 'r0 = 1 /* XDP_DROP (Instant Driver Drop) */',
+            bytecodeHex: isClean ? 'b7 00 00 00 02 00 00 00' : 'b7 00 00 00 01 00 00 00',
+            explanation:
+              'Assigns the final action code to register R0. In eBPF architecture, R0 carries the return value from the program back to the Linux network driver. Action codes: XDP_ABORTED=0, XDP_DROP=1, XDP_PASS=2, XDP_TX=3, XDP_REDIRECT=4.',
+            registers: {
+              r0: { val: isClean ? 2 : 1, desc: isClean ? '2 (XDP_PASS)' : '1 (XDP_DROP)', role: 'FINAL VERDICT' },
+              r1: { val: '0xffff_8881_10a0_0000', desc: 'ctx', role: 'Context Ptr' },
+              r2: { val: '0xffff_8881_10a0_0054', desc: 'data_end', role: 'Packet End' },
+              r3: { val: '0xffff_8881_10a0_0000', desc: 'data', role: 'Packet Data Ptr' },
+              r4: { val: '0xffff_8881_10a0_0022', desc: 'data + 34', role: 'Checked' },
+              r5: { val: '0x0000_0000_0000_0000', desc: 'Unassigned', role: 'Arg 5' },
+              r6: { val: '0x0000_0000_0000_0800', desc: 'ETH_P_IP', role: 'EtherType' },
+              r7: { val: '0x0000_0000_0000_000' + targetProto.toString(16), desc: targetProtoString, role: 'IP Protocol' },
+              r8: { val: targetSrcIp, desc: targetSrcIp, role: 'Src IP' },
+              r9: { val: isSynFlood ? '0x02 (SYN)' : '0x10 (ACK)', desc: 'TCP Flags', role: 'TCP Flags' },
+              r10: { val: '0xffff_c900_001b_ef80', desc: 'Stack Frame', role: 'Read-only FP' },
+            },
+            activeVerdict: finalVerdict,
+            verdictLabel: finalVerdictLabel,
+            boundsCheckPassed: true,
+            mapHit: !isClean,
+            allocSkbRequired: isClean,
+            pipelineStage: 'VERDICT_DECISION',
+          },
+          {
+            stepIndex: 7,
+            title: '8. Driver Execution & Line-Rate Hardware Mitigation',
+            asmOpcode: 'exit /* return to network driver */',
+            bytecodeHex: '95 00 00 00 00 00 00 00',
+            explanation:
+              xdpHookMode === 'XDP_NATIVE_DRIVER'
+                ? 'XDP NATIVE DRIVER TRIUMPH: The network device driver directly recycles the RX page buffer back to the hardware descriptor ring. Zero sk_buff allocation, zero kernel locks, zero TCP/IP stack overhead. Packet dropped in 12 nanoseconds at 24.8 Mpps wire line-rate!'
+                : xdpHookMode === 'XDP_GENERIC'
+                ? 'XDP GENERIC HOOK: Executed in software after sk_buff allocation. Provides functional testing compatibility on non-XDP-native NICs, but incurs partial CPU overhead (~4.5 Mpps).'
+                : 'TRADITIONAL LINUX STACK FAILURE: Under traditional iptables, the kernel allocated a 240-byte sk_buff, triggered NAPI softirq, and traversed 5,000 netfilter rules. CPU hit 100% in ksoftirqd, causing 98.4% packet drops on legitimate traffic!',
+            registers: {
+              r0: { val: isClean ? 2 : 1, desc: isClean ? '2 (XDP_PASS)' : '1 (XDP_DROP)', role: 'FINAL VERDICT' },
+              r1: { val: '0xffff_8881_10a0_0000', desc: 'ctx', role: 'Context Ptr' },
+              r2: { val: '0xffff_8881_10a0_0054', desc: 'data_end', role: 'Packet End' },
+              r3: { val: '0xffff_8881_10a0_0000', desc: 'data', role: 'Packet Data Ptr' },
+              r4: { val: '0xffff_8881_10a0_0022', desc: 'data + 34', role: 'Checked' },
+              r5: { val: '0x0000_0000_0000_0000', desc: 'Unassigned', role: 'Arg 5' },
+              r6: { val: '0x0000_0000_0000_0800', desc: 'ETH_P_IP', role: 'EtherType' },
+              r7: { val: '0x0000_0000_0000_000' + targetProto.toString(16), desc: targetProtoString, role: 'IP Protocol' },
+              r8: { val: targetSrcIp, desc: targetSrcIp, role: 'Src IP' },
+              r9: { val: isSynFlood ? '0x02 (SYN)' : '0x10 (ACK)', desc: 'TCP Flags', role: 'TCP Flags' },
+              r10: { val: '0xffff_c900_001b_ef80', desc: 'Stack Frame', role: 'Read-only FP' },
+            },
+            activeVerdict: finalVerdict,
+            verdictLabel: finalVerdictLabel,
+            boundsCheckPassed: true,
+            mapHit: !isClean,
+            allocSkbRequired: isClean || xdpHookMode === 'TRADITIONAL_IPTABLES',
+            pipelineStage: 'ACTION_EXECUTE',
+          },
+        ];
+
+        const currentSnap = snapshots[Math.min(xdpStepIndex, snapshots.length - 1)];
+
+        return (
+          <div className="p-6 space-y-6">
+            {/* Header & Architecture Status Bar */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-4">
+              <div>
+                <h3 className="text-lg font-bold text-text flex items-center gap-2">
+                  <span>⚡</span>
+                  <span>Linux Kernel eBPF Virtual Machine &amp; XDP Packet Filter Studio</span>
+                </h3>
+                <p className="text-xs text-text-muted mt-1">
+                  High-Performance In-Situ Driver Hooks vs Standard Linux Network Stack (sk_buff &amp; iptables)
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[11px] font-mono px-2.5 py-1 rounded bg-emerald-50 text-emerald-800 border border-emerald-300 font-semibold">
+                  JIT: x86-64 Native (Active)
+                </span>
+                <span
+                  className={`text-[11px] font-mono px-2.5 py-1 rounded border font-semibold ${
+                    xdpBoundsSafetyCheck
+                      ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                      : 'bg-red-50 text-red-800 border-red-300 animate-pulse'
+                  }`}
+                >
+                  Verifier: {xdpBoundsSafetyCheck ? 'Safety Proof OK (DAG)' : 'ABORT (Unchecked Deref)'}
+                </span>
+                <span className="text-[11px] font-mono px-2.5 py-1 rounded bg-purple-50 text-purple-800 border border-purple-300 font-semibold">
+                  Mode: {xdpHookMode}
+                </span>
+              </div>
+            </div>
+
+            {/* Interactive Controls Bar */}
+            <div className="bg-surface border border-border rounded-xl p-4 space-y-4">
+              {/* Traffic Scenarios */}
+              <div className="space-y-1.5">
+                <span className="text-xs font-bold uppercase tracking-wider text-text-muted block">
+                  1. Network Traffic &amp; Attack Injection Preset:
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setXdpTrafficScenario('SYN_FLOOD_DDOS');
+                      setXdpStepIndex(0);
+                      setXdpBoundsSafetyCheck(true);
+                    }}
+                    className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all cursor-pointer ${
+                      xdpTrafficScenario === 'SYN_FLOOD_DDOS'
+                        ? 'bg-red-50 text-red-800 border-red-400 shadow-xs'
+                        : 'bg-canvas text-text-muted border-border hover:text-text'
+                    }`}
+                  >
+                    🚨 SYN Flood DDoS (10M pps)
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setXdpTrafficScenario('CLEAN_TCP_TRAFFIC');
+                      setXdpStepIndex(0);
+                      setXdpBoundsSafetyCheck(true);
+                    }}
+                    className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all cursor-pointer ${
+                      xdpTrafficScenario === 'CLEAN_TCP_TRAFFIC'
+                        ? 'bg-emerald-50 text-emerald-800 border-emerald-400 shadow-xs'
+                        : 'bg-canvas text-text-muted border-border hover:text-text'
+                    }`}
+                  >
+                    ✅ Legitimate Web Traffic (Clean)
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setXdpTrafficScenario('UDP_DNS_AMPLIFICATION');
+                      setXdpStepIndex(0);
+                      setXdpBoundsSafetyCheck(true);
+                    }}
+                    className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all cursor-pointer ${
+                      xdpTrafficScenario === 'UDP_DNS_AMPLIFICATION'
+                        ? 'bg-amber-50 text-amber-800 border-amber-400 shadow-xs'
+                        : 'bg-canvas text-text-muted border-border hover:text-text'
+                    }`}
+                  >
+                    🌊 DNS Amplification Flood (Port 53)
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setXdpTrafficScenario('VERIFIER_BOUNDS_FAULT');
+                      setXdpStepIndex(1);
+                      setXdpBoundsSafetyCheck(false);
+                    }}
+                    className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all cursor-pointer ${
+                      xdpTrafficScenario === 'VERIFIER_BOUNDS_FAULT'
+                        ? 'bg-purple-50 text-purple-800 border-purple-400 shadow-xs'
+                        : 'bg-canvas text-text-muted border-border hover:text-text'
+                    }`}
+                  >
+                    ⚠️ Verifier Bounds Rejection Trap
+                  </button>
+                </div>
+              </div>
+
+              {/* Hook Mode Selection */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-t border-border pt-3">
+                <div className="space-y-1">
+                  <span className="text-xs font-bold uppercase tracking-wider text-text-muted block">
+                    2. Kernel Ingress Datapath Hook:
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setXdpHookMode('XDP_NATIVE_DRIVER')}
+                      className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all cursor-pointer ${
+                        xdpHookMode === 'XDP_NATIVE_DRIVER'
+                          ? 'bg-primary-700 text-white border-primary-800 shadow-xs'
+                          : 'bg-canvas text-text-muted border-border hover:text-text'
+                      }`}
+                    >
+                      ⚡ XDP Native Driver Hook (24.8 Mpps)
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setXdpHookMode('XDP_GENERIC')}
+                      className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all cursor-pointer ${
+                        xdpHookMode === 'XDP_GENERIC'
+                          ? 'bg-primary-700 text-white border-primary-800 shadow-xs'
+                          : 'bg-canvas text-text-muted border-border hover:text-text'
+                      }`}
+                    >
+                      🧪 XDP Generic (Software Fallback)
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setXdpHookMode('TRADITIONAL_IPTABLES')}
+                      className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all cursor-pointer ${
+                        xdpHookMode === 'TRADITIONAL_IPTABLES'
+                          ? 'bg-red-700 text-white border-red-800 shadow-xs'
+                          : 'bg-canvas text-text-muted border-border hover:text-text'
+                      }`}
+                    >
+                      🐢 Traditional Linux Stack (iptables / sk_buff)
+                    </button>
+                  </div>
+                </div>
+
+                {/* Bounds check toggle */}
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setXdpBoundsSafetyCheck(!xdpBoundsSafetyCheck)}
+                    className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all cursor-pointer flex items-center gap-1.5 ${
+                      xdpBoundsSafetyCheck
+                        ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                        : 'bg-rose-50 text-rose-800 border-rose-300'
+                    }`}
+                  >
+                    <span>{xdpBoundsSafetyCheck ? '🔒 Bounds Check: Active' : '🔓 Bounds Check: Bypassed'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Stepper Controls */}
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3">
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setXdpStepIndex(Math.max(0, xdpStepIndex - 1))}
+                    disabled={xdpStepIndex === 0}
+                  >
+                    ◀ Prev Instruction
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setXdpStepIndex(Math.min(snapshots.length - 1, xdpStepIndex + 1))}
+                    disabled={xdpStepIndex >= snapshots.length - 1}
+                  >
+                    Next Instruction ▶
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setXdpStepIndex(0)}
+                  >
+                    Reset
+                  </Button>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-mono font-bold text-text">
+                    Step {currentSnap.stepIndex + 1} of {snapshots.length}
+                  </span>
+                  <span className="text-xs px-2.5 py-1 rounded-full font-mono font-bold bg-primary-100 text-primary-900 border border-primary-300">
+                    Stage: {currentSnap.pipelineStage}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Architecture Datapath Comparison Visualizer */}
+            <div className="bg-canvas border border-border rounded-xl p-5 space-y-4">
+              <div className="flex items-center justify-between border-b border-border pb-3">
+                <span className="text-xs font-bold uppercase tracking-wider text-text">
+                  Ingress Datapath Comparison: In-Situ Driver XDP vs Standard sk_buff Stack
+                </span>
+                <span className="text-[11px] font-mono text-primary-700 font-semibold">
+                  Zero sk_buff Allocation Invariant
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 text-xs">
+                {/* Traditional Path */}
+                <div
+                  className={`p-4 rounded-xl border transition-all space-y-3 ${
+                    xdpHookMode === 'TRADITIONAL_IPTABLES'
+                      ? 'bg-red-50/40 border-red-300 shadow-xs'
+                      : 'bg-surface border-border opacity-75'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-red-900 flex items-center gap-1.5">
+                      <span>🐢</span>
+                      <span>Standard Linux Network Stack</span>
+                    </span>
+                    <span className="text-[10px] font-mono text-red-700 bg-red-100 px-2 py-0.5 rounded font-bold">
+                      Heavyweight (1.2 Mpps Max)
+                    </span>
+                  </div>
+
+                  {/* Flow pipeline */}
+                  <div className="space-y-1.5 font-mono text-[11px]">
+                    <div className="p-2 rounded bg-canvas border border-border flex items-center justify-between">
+                      <span>1. NIC Driver DMA RX Ring</span>
+                      <span className="text-emerald-700 font-bold">Hardware Wire</span>
+                    </div>
+                    <div className="text-center text-text-muted text-[10px]">▼ Hardware IRQ &amp; SoftIRQ</div>
+                    <div className="p-2 rounded bg-red-100/70 border border-red-200 text-red-900 flex items-center justify-between">
+                      <span>2. alloc_skb() Memory Allocation</span>
+                      <span className="font-bold text-red-700">240B + Cache Miss</span>
+                    </div>
+                    <div className="text-center text-text-muted text-[10px]">▼ netif_receive_skb()</div>
+                    <div className="p-2 rounded bg-red-100/70 border border-red-200 text-red-900 flex items-center justify-between">
+                      <span>3. Netfilter / iptables Evaluation</span>
+                      <span className="font-bold text-red-700">O(N) Linear Scan</span>
+                    </div>
+                    <div className="text-center text-text-muted text-[10px]">▼ IP Routing &amp; Socket Queue</div>
+                    <div className="p-2 rounded bg-canvas border border-border flex items-center justify-between">
+                      <span>4. User Space Context Switch</span>
+                      <span className="text-amber-700 font-bold">CPU Interrupted</span>
+                    </div>
+                  </div>
+
+                  <p className="text-[11px] text-text-muted leading-relaxed">
+                    Under a 10M pps DDoS flood, alloc_skb() exhausts CPU memory caches in SoftIRQ before packet inspection begins, collapsing kernel networking.
+                  </p>
+                </div>
+
+                {/* XDP In-Situ Path */}
+                <div
+                  className={`p-4 rounded-xl border transition-all space-y-3 ${
+                    xdpHookMode === 'XDP_NATIVE_DRIVER'
+                      ? 'bg-emerald-50/40 border-emerald-300 shadow-xs'
+                      : 'bg-surface border-border opacity-75'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-emerald-900 flex items-center gap-1.5">
+                      <span>⚡</span>
+                      <span>XDP In-Situ Driver Hook (eBPF)</span>
+                    </span>
+                    <span className="text-[10px] font-mono text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded font-bold">
+                      Wire Speed (24.8 Mpps)
+                    </span>
+                  </div>
+
+                  {/* Flow pipeline */}
+                  <div className="space-y-1.5 font-mono text-[11px]">
+                    <div className="p-2 rounded bg-canvas border border-border flex items-center justify-between">
+                      <span>1. NIC Driver DMA RX Ring</span>
+                      <span className="text-emerald-700 font-bold">Hardware Wire</span>
+                    </div>
+                    <div className="text-center text-emerald-700 text-[10px] font-bold">▼ In-Situ Hook (No alloc_skb)</div>
+                    <div className="p-2 rounded bg-emerald-100/70 border border-emerald-200 text-emerald-900 flex items-center justify-between">
+                      <span>2. eBPF Bytecode Execution (JIT)</span>
+                      <span className="font-bold text-emerald-700">12 ns Sub-Cycle</span>
+                    </div>
+                    <div className="text-center text-emerald-700 text-[10px] font-bold">▼ BPF Hash Map Lookup &amp; Verdict</div>
+                    <div className="p-2 rounded bg-emerald-100/70 border border-emerald-200 text-emerald-900 flex items-center justify-between">
+                      <span>3. R0 = XDP_DROP Verdict</span>
+                      <span className="font-bold text-emerald-700">Instant Page Recycle</span>
+                    </div>
+                    <div className="text-center text-text-muted text-[10px]">▼ If XDP_PASS only</div>
+                    <div className="p-2 rounded bg-canvas border border-border flex items-center justify-between">
+                      <span>4. Allocate sk_buff for Clean Traffic</span>
+                      <span className="text-emerald-700 font-bold">100% Protected</span>
+                    </div>
+                  </div>
+
+                  <p className="text-[11px] text-text-muted leading-relaxed">
+                    XDP drops malicious packets directly inside the driver RX ring before alloc_skb() executes. Dropping takes 12 nanoseconds, keeping CPU at 3% during multi-gigabit attacks.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* eBPF 11-Register Virtual CPU Inspector & Bytecode View */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+              {/* Left 2 Cols: 11 Registers Grid */}
+              <div className="lg:col-span-2 bg-canvas border border-border rounded-xl p-5 space-y-3">
+                <div className="flex items-center justify-between border-b border-border pb-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-text">
+                    eBPF Virtual CPU 11-Register State (64-Bit Architecture)
+                  </span>
+                  <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-primary-50 text-primary-800">
+                    Active Opcode: {currentSnap.asmOpcode}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 text-xs font-mono">
+                  {Object.entries(currentSnap.registers).map(([regName, regInfo]) => {
+                    const isVerdictReg = regName === 'r0';
+                    const isCtxReg = regName === 'r1' || regName === 'r2' || regName === 'r3';
+                    const isFpReg = regName === 'r10';
+
+                    return (
+                      <div
+                        key={regName}
+                        className={`p-2.5 rounded-lg border transition-all space-y-1 ${
+                          isVerdictReg
+                            ? 'bg-amber-50/60 border-amber-300'
+                            : isCtxReg
+                            ? 'bg-emerald-50/50 border-emerald-300'
+                            : isFpReg
+                            ? 'bg-purple-50/50 border-purple-300'
+                            : 'bg-surface border-border'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between text-[10px]">
+                          <span className="font-bold text-text uppercase">{regName.toUpperCase()}</span>
+                          <span className="text-text-muted">{regInfo.role}</span>
+                        </div>
+                        <div className="text-[11px] font-bold truncate text-primary-900" title={String(regInfo.val)}>
+                          {String(regInfo.val)}
+                        </div>
+                        <div className="text-[9px] text-text-muted truncate" title={regInfo.desc}>
+                          {regInfo.desc}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Right Col: In-Kernel BPF Blacklist Map */}
+              <div className="bg-canvas border border-border rounded-xl p-5 space-y-3">
+                <div className="flex items-center justify-between border-b border-border pb-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-text">
+                    BPF Map: ip_blacklist_map
+                  </span>
+                  <span className="text-[10px] font-mono text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded font-bold">
+                    HASH (4 Entries)
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  {xdpBlacklistMap.map((entry) => {
+                    const isMatching = entry.ip === targetSrcIp;
+
+                    return (
+                      <div
+                        key={entry.ip}
+                        className={`p-2.5 rounded-lg border text-xs font-mono transition-all space-y-1 ${
+                          isMatching && currentSnap.mapHit
+                            ? 'bg-red-50 border-red-400 ring-1 ring-red-400'
+                            : 'bg-surface border-border'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-text">{entry.ip}</span>
+                          <span
+                            className={`text-[9px] px-1.5 py-0.2 rounded font-bold ${
+                              entry.threatLevel === 'CRITICAL_DDOS'
+                                ? 'bg-red-100 text-red-800'
+                                : entry.threatLevel === 'SUSPECT'
+                                ? 'bg-amber-100 text-amber-800'
+                                : 'bg-emerald-100 text-emerald-800'
+                            }`}
+                          >
+                            {entry.threatLevel}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-[10px] text-text-muted">
+                          <span>Drops: {entry.droppedCount.toLocaleString()}</span>
+                          <span>Last: {entry.lastSeenSecsAgo}s ago</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Instruction Explanation & Verdict Banner */}
+            <div
+              className={`border rounded-xl p-4 space-y-2 transition-all ${
+                currentSnap.activeVerdict === 'XDP_ABORTED'
+                  ? 'bg-rose-50 border-rose-300'
+                  : currentSnap.activeVerdict === 'XDP_DROP'
+                  ? 'bg-amber-50 border-amber-300'
+                  : 'bg-emerald-50 border-emerald-300'
+              }`}
+            >
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold px-2 py-0.5 rounded bg-primary-100 text-primary-900 font-mono">
+                    Step {currentSnap.stepIndex + 1}: {currentSnap.title}
+                  </span>
+                  <span className="text-xs font-mono font-bold text-text-muted">
+                    [{currentSnap.bytecodeHex}]
+                  </span>
+                </div>
+
+                <span
+                  className={`text-xs font-mono font-bold px-2.5 py-1 rounded ${
+                    currentSnap.activeVerdict === 'XDP_ABORTED'
+                      ? 'bg-red-200 text-red-900'
+                      : currentSnap.activeVerdict === 'XDP_DROP'
+                      ? 'bg-amber-200 text-amber-900'
+                      : 'bg-emerald-200 text-emerald-900'
+                  }`}
+                >
+                  Verdict: {currentSnap.verdictLabel}
+                </span>
+              </div>
+
+              <p className="text-xs text-text-muted leading-relaxed">
+                {currentSnap.explanation}
+              </p>
+            </div>
+
+            {/* Quantitative Architectural Performance Benchmark Table */}
+            <div className="bg-surface border border-border rounded-xl p-5 space-y-3">
+              <div className="flex items-center justify-between border-b border-border pb-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-text">
+                  Quantitative Kernel Packet Processing Benchmark (100-Byte Frames)
+                </span>
+                <span className="text-xs font-mono text-emerald-700 font-bold">
+                  XDP Native Advantage: 20x Throughput &amp; 99% Lower CPU
+                </span>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-left">
+                  <thead>
+                    <tr className="border-b border-border text-text-muted font-semibold">
+                      <th className="py-2 pr-4">Architectural Metric</th>
+                      <th className="py-2 px-4">Traditional iptables</th>
+                      <th className="py-2 px-4">XDP Generic Hook</th>
+                      <th className="py-2 px-4 text-emerald-700">XDP Native Driver</th>
+                      <th className="py-2 pl-4 text-right">XDP Offloaded (SmartNIC)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border font-mono text-[11px]">
+                    <tr>
+                      <td className="py-2 pr-4 font-sans font-medium text-text">Max Ingress Throughput</td>
+                      <td className="py-2 px-4 text-red-700">1.2 Mpps / core</td>
+                      <td className="py-2 px-4 text-amber-700">4.5 Mpps / core</td>
+                      <td className="py-2 px-4 text-emerald-700 font-bold">24.8 Mpps / core</td>
+                      <td className="py-2 pl-4 text-right text-emerald-700 font-bold">100+ Mpps (Wire ASIC)</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 pr-4 font-sans font-medium text-text">Memory Allocation Overhead</td>
+                      <td className="py-2 px-4 text-red-700">240 bytes (struct sk_buff)</td>
+                      <td className="py-2 px-4 text-amber-700">240 bytes (Allocated late)</td>
+                      <td className="py-2 px-4 text-emerald-700 font-bold">0 bytes (In-Situ RX DMA)</td>
+                      <td className="py-2 pl-4 text-right text-emerald-700 font-bold">0 bytes (FPGA Memory)</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 pr-4 font-sans font-medium text-text">CPU Core Utilization @ 10Mpps</td>
+                      <td className="py-2 px-4 text-red-700 font-bold">100% (Kernel Freeze)</td>
+                      <td className="py-2 px-4 text-amber-700">78% (Stressed)</td>
+                      <td className="py-2 px-4 text-emerald-700 font-bold">3% (Sub-millisecond)</td>
+                      <td className="py-2 pl-4 text-right text-emerald-700 font-bold">0% (Hardware Offload)</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 pr-4 font-sans font-medium text-text">Packet Drop Latency</td>
+                      <td className="py-2 px-4 text-red-700">~4,500 ns</td>
+                      <td className="py-2 px-4 text-amber-700">~850 ns</td>
+                      <td className="py-2 px-4 text-emerald-700 font-bold">~12 ns</td>
+                      <td className="py-2 pl-4 text-right text-emerald-700 font-bold">&lt; 2 ns</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 pr-4 font-sans font-medium text-text">Legitimate Traffic Loss Under DDoS</td>
+                      <td className="py-2 px-4 text-red-700 font-bold">98.4% (Severe Outage)</td>
+                      <td className="py-2 px-4 text-amber-700">22.0% (Intermittent)</td>
+                      <td className="py-2 px-4 text-emerald-700 font-bold">0.0% (Zero Drops)</td>
+                      <td className="py-2 pl-4 text-right text-emerald-700 font-bold">0.0% (Zero Drops)</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* 4 Socratic Invariant Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+              <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+                <span className="text-xs font-bold text-text block">
+                  1. In-Situ RX Ring Execution
+                </span>
+                <p className="text-[11px] text-text-muted leading-relaxed">
+                  XDP executes directly inside the network driver RX descriptor ring before sk_buff memory allocation. Dropping packets takes 12ns, mitigating multi-gigabit DDoS floods without kernel resource exhaustion.
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+                <span className="text-xs font-bold text-text block">
+                  2. Mathematical Static Verifier Safety
+                </span>
+                <p className="text-[11px] text-text-muted leading-relaxed">
+                  The in-kernel verifier guarantees safety before execution: it enforces DAG termination, bounds loops, and rejects any packet access that does not prove data + offset &lt;= data_end.
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+                <span className="text-xs font-bold text-text block">
+                  3. Lockless Per-CPU BPF Maps
+                </span>
+                <p className="text-[11px] text-text-muted leading-relaxed">
+                  BPF maps provide kernel-user space IPC without mutexes. Per-CPU arrays allocate independent cache lines per core, eliminating cross-CPU memory bouncing even at 50 million ops/sec.
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-canvas border border-border space-y-1">
+                <span className="text-xs font-bold text-text block">
+                  4. Linear iptables Complexity Elimination
+                </span>
+                <p className="text-[11px] text-text-muted leading-relaxed">
+                  Traditional iptables traverses rules linearly O(N) in netfilter, bottlenecking as firewall rules grow. eBPF replaces rule searches with O(1) hash maps and native JIT machine instructions.
+                </p>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
 
 
 

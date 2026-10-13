@@ -26,6 +26,7 @@ describe('SandboxPage', () => {
     render(<SandboxPage />);
 
     expect(screen.getByText('Interactive Code & SQL Studio')).toBeInTheDocument();
+    expect(screen.getByText('9 Applied Studios')).toBeInTheDocument();
     expect(screen.getByTestId('sql-sandbox-mock')).toBeInTheDocument();
     expect(screen.getAllByText('Department Headcount & Average Compensation').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByRole('button', { name: /Employees Earning Above Department Average/i })).toBeInTheDocument();
@@ -194,19 +195,63 @@ describe('SandboxPage', () => {
     expect(screen.getByText(/The Celebrity \/ Heavy-Hitter Key Problem/i)).toBeInTheDocument();
   });
 
+  it('switches to Concurrency & Event Loop Lab tab and interacts with event loop and scheduler models', () => {
+    render(<SandboxPage />);
+
+    const concurrencyTabBtn = screen.getByRole('button', { name: /Concurrency & Event Loop Lab/i });
+    fireEvent.click(concurrencyTabBtn);
+
+    expect(screen.getByText(/Runtime Concurrency & Event Loop Simulator/i)).toBeInTheDocument();
+    expect(screen.getByText(/Node\.js \(libuv \/ V8\)/i)).toBeInTheDocument();
+
+    // Step Node.js event loop
+    const stepBtn = screen.getByRole('button', { name: /Step Forward/i });
+    fireEvent.click(stepBtn);
+
+    // Switch to Go GMP Runtime Scheduler
+    const gmpBtn = screen.getByRole('button', { name: /Go \(GMP\)/i });
+    fireEvent.click(gmpBtn);
+    expect(screen.getByText(/Go Runtime \(GMP Work-Stealing\)/i)).toBeInTheDocument();
+
+    // Switch to Python Asyncio Cooperative Loop
+    const asyncioBtn = screen.getByRole('button', { name: /Python \(asyncio\)/i });
+    fireEvent.click(asyncioBtn);
+    expect(screen.getByText(/Python \(asyncio Event Loop\)/i)).toBeInTheDocument();
+  });
+
+  it('switches to Architecture & Storage Trade-Offs Lab tab and interacts with quorum consistency and storage engines', () => {
+    render(<SandboxPage />);
+
+    const tradeoffTabBtn = screen.getByRole('button', { name: /Architecture & Storage Trade-Offs Lab/i });
+    fireEvent.click(tradeoffTabBtn);
+
+    expect(screen.getByText(/Systems Architecture & Storage Trade-Off Laboratory/i)).toBeInTheDocument();
+    expect(screen.getByText(/Quorum & Consistency \(CAP \/ PACELC\)/i)).toBeInTheDocument();
+
+    // Switch to B+ Tree vs LSM-Tree Storage Engine
+    const lsmBtn = screen.getByRole('button', { name: /2\. B\+ Tree vs LSM/i });
+    fireEvent.click(lsmBtn);
+    expect(screen.getByText(/Storage Engine Internals \(B\+ Tree vs LSM\)/i)).toBeInTheDocument();
+
+    // Switch to Row vs Columnar Analytical Storage
+    const columnarBtn = screen.getByRole('button', { name: /3\. Row vs Columnar/i });
+    fireEvent.click(columnarBtn);
+    expect(screen.getByText(/Analytical Data Layout \(OLTP vs OLAP\)/i)).toBeInTheDocument();
+  });
+
   it('activates target studio tab directly from URL search parameter on mount', () => {
     const originalLocation = window.location;
     Object.defineProperty(window, 'location', {
-      value: { ...originalLocation, search: '?tab=system-design' },
+      value: { ...originalLocation, search: '?tab=concurrency' },
       configurable: true,
     });
 
     try {
       render(<SandboxPage />);
       expect(
-        screen.getByText(/System Design Architecture Studio & Traffic Bottleneck Simulator/i),
+        screen.getByText(/Runtime Concurrency & Event Loop Simulator/i),
       ).toBeInTheDocument();
-      expect(screen.getByText('OPTIMAL')).toBeInTheDocument();
+      expect(screen.getByText(/Node\.js \(libuv \/ V8\)/i)).toBeInTheDocument();
     } finally {
       Object.defineProperty(window, 'location', {
         value: originalLocation,

@@ -122,10 +122,10 @@ describe('CredentialsPage', () => {
     render(<CredentialsPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Claim Credential 🎖')).toBeInTheDocument();
+      expect(screen.getByText(/Claim Credential/i)).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByText('Claim Credential 🎖'));
+    fireEvent.click(screen.getByText(/Claim Credential/i));
 
     await waitFor(() => {
       expect(
@@ -141,7 +141,7 @@ describe('CredentialsPage', () => {
     render(<CredentialsPage />);
 
     await waitFor(() => {
-      const viewButtons = screen.getAllByText('View Certificate ↗');
+      const viewButtons = screen.getAllByText(/View Certificate/i);
       expect(viewButtons.length).toBeGreaterThan(0);
       fireEvent.click(viewButtons[0]);
     });
@@ -156,16 +156,16 @@ describe('CredentialsPage', () => {
     render(<CredentialsPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Copy Link 🔗')).toBeInTheDocument();
+      expect(screen.getByText(/Copy Link/i)).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByText('Copy Link 🔗'));
+    fireEvent.click(screen.getByText(/Copy Link/i));
 
     await waitFor(() => {
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
         expect.stringContaining('/verify/CRED-CLOU-12345678'),
       );
-      expect(screen.getByText('✓ Link Copied!')).toBeInTheDocument();
+      expect(screen.getByText(/Link Copied!/i)).toBeInTheDocument();
     });
   });
 });

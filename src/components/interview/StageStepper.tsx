@@ -37,16 +37,16 @@ export function StageStepper({ currentStage, className = '' }: StageStepperProps
             <div
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-all ${
                 isCurrent
-                  ? 'bg-primary-700 text-white shadow-xs ring-2 ring-primary-300'
+                  ? 'bg-lime-400 text-black shadow-[0_0_15px_rgba(163,230,53,0.3)] ring-2 ring-lime-400/50 font-bold'
                   : isCompleted
-                  ? 'bg-success-100 text-success-800 border border-success-300'
-                  : 'bg-canvas text-text-muted border border-border opacity-70'
+                  ? 'bg-lime-400/10 text-lime-400 border border-lime-400/30'
+                  : 'bg-white/5 text-slate-400 border border-white/10 opacity-70'
               }`}
             >
               {isCompleted ? (
-                <span className="text-success-700 font-bold">✓</span>
+                <span className="text-lime-400 font-bold">✓</span>
               ) : (
-                <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                <span className={`w-1.5 h-1.5 rounded-full ${isCurrent ? 'bg-black' : 'bg-current'}`} />
               )}
               <span className="hidden md:inline">{s.label}</span>
               <span className="inline md:hidden">{s.shortLabel}</span>
@@ -55,7 +55,7 @@ export function StageStepper({ currentStage, className = '' }: StageStepperProps
             {idx < STAGES.length - 1 && (
               <span
                 className={`w-3 sm:w-6 h-0.5 ${
-                  idx < currentIndex ? 'bg-success-400' : 'bg-border'
+                  idx < currentIndex ? 'bg-lime-400/50' : 'bg-white/10'
                 }`}
               />
             )}

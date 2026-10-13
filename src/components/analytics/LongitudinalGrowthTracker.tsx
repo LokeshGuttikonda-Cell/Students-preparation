@@ -377,8 +377,24 @@ export function LongitudinalGrowthTracker({
                 return (
                   <div
                     key={sess.sessionId}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Session ${idx + 1}: ${sess.title}, metric value: ${
+                      selectedMetric === 'DENSITY'
+                        ? `${sess.conceptDensity}%`
+                        : selectedMetric === 'PACE'
+                        ? `${sess.wpm} WPM`
+                        : `${sess.fillerCount} fillers`
+                    }`}
+                    aria-pressed={isSelected}
                     onClick={() => setSelectedSessionId(sess.sessionId)}
-                    className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end cursor-pointer group select-none"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setSelectedSessionId(sess.sessionId);
+                      }
+                    }}
+                    className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end cursor-pointer group select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded"
                   >
                     <span
                       className={`text-[11px] font-mono font-bold transition-transform group-hover:-translate-y-0.5 ${

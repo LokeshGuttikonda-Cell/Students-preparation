@@ -1,7 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { Card, CardContent } from '../ui/Card';
-import { Button } from '../ui/Button';
+import { ArrowRight } from 'lucide-react';
 import { RoleTrackItem } from '../../lib/roles-client';
 
 interface RoleCardProps {
@@ -23,55 +22,59 @@ export const RoleCard: React.FC<RoleCardProps> = ({ role }) => {
   };
 
   return (
-    <Card className="h-full flex flex-col justify-between hover:border-primary-700/50 hover:shadow-md transition-all">
-      <CardContent className="p-6 space-y-4">
+    <div className="bento-tile h-full flex flex-col justify-between hover:border-lime-400/40 hover:shadow-lg hover:shadow-lime-400/5 transition-all p-6 border-white/10 group">
+      <div className="space-y-4">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <span className="text-[11px] font-semibold uppercase tracking-wider bg-primary-50 text-primary-800 px-2.5 py-0.5 rounded border border-primary-200 inline-block mb-1.5">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider bg-lime-400/10 text-lime-400 px-2.5 py-0.5 rounded border border-lime-400/20 inline-block mb-1.5">
               {formatLevel(role.targetLevel)}
             </span>
-            <h3 className="text-xl font-bold text-primary-900 leading-snug">
+            <h3 className="text-xl font-display font-bold text-white leading-snug group-hover:text-lime-300 transition-colors">
               {role.name}
             </h3>
           </div>
-          <span className="text-xs font-medium text-text-muted bg-surface-muted px-2 py-1 rounded border border-border shrink-0">
+          <span className="text-xs font-mono font-medium text-slate-400 bg-white/5 px-2 py-1 rounded border border-white/10 shrink-0">
             {role.mockTestsCount} {role.mockTestsCount === 1 ? 'Mock Test' : 'Mock Tests'}
           </span>
         </div>
 
         {role.description && (
-          <p className="text-sm text-text-muted line-clamp-3 leading-relaxed">
+          <p className="text-xs sm:text-sm text-slate-300 line-clamp-3 leading-relaxed font-sans">
             {role.description}
           </p>
         )}
 
-        <div className="space-y-2 pt-2 border-t border-border/60">
-          <p className="text-xs font-semibold text-text-subtle uppercase tracking-wider">
-            Key Competencies & Weightage
+        <div className="space-y-2 pt-2 border-t border-white/10">
+          <p className="text-[10px] font-mono font-semibold text-slate-400 uppercase tracking-wider">
+            Key Competencies &amp; Weightage
           </p>
           <div className="flex flex-wrap gap-1.5">
             {role.competencies.map((comp) => (
               <span
                 key={comp.id}
-                className="text-xs bg-canvas-subtle text-text px-2 py-1 rounded border border-border/80 flex items-center gap-1"
+                className="text-xs font-mono bg-white/5 text-slate-300 px-2 py-1 rounded border border-white/10 flex items-center gap-1"
               >
                 <span>{comp.topicName}</span>
-                <span className="text-text-muted font-semibold">
+                <span className="text-lime-400 font-bold">
                   {comp.weightPercentage}%
                 </span>
               </span>
             ))}
           </div>
         </div>
-      </CardContent>
+      </div>
 
-      <div className="p-6 pt-0">
+      <div className="pt-6">
         <Link href={`/roles/${role.slug}`} className="block w-full">
-          <Button variant="secondary" className="w-full min-h-[44px] touch-manipulation">
-            Explore Role Track &rarr;
-          </Button>
+          <button
+            type="button"
+            className="w-full min-h-[46px] px-4 py-2.5 rounded-xl font-bold font-mono text-xs sm:text-sm text-slate-950 bg-lime-400 hover:bg-lime-300 active:scale-[0.99] shadow-md shadow-lime-400/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <span>Explore Role Track</span>
+            <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1.5" />
+          </button>
         </Link>
       </div>
-    </Card>
+    </div>
   );
 };

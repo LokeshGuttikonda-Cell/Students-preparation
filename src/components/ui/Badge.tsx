@@ -14,13 +14,13 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
 }
 
 const BADGE_STYLES: Record<BadgeVariant, string> = {
-  default: 'bg-neutral-100 text-neutral-800 border-neutral-300',
-  primary: 'bg-primary-50 text-primary-800 border-primary-300',
-  accent: 'bg-accent-50 text-accent-800 border-accent-300',
-  success: 'bg-success-50 text-success-700 border-success-500/30',
-  warning: 'bg-accent-50 text-accent-900 border-accent-400',
-  error: 'bg-error-50 text-error-700 border-error-500/30',
-  neutral: 'bg-neutral-100 text-neutral-700 border-neutral-200',
+  default: 'bg-white/5 text-slate-300 border-white/10 font-mono',
+  primary: 'bg-lime-400/10 text-lime-400 border-lime-400/30 font-mono',
+  accent: 'bg-cyan-400/10 text-cyan-400 border-cyan-400/30 font-mono',
+  success: 'bg-emerald-400/10 text-emerald-400 border-emerald-400/30 font-mono',
+  warning: 'bg-amber-400/10 text-amber-400 border-amber-400/30 font-mono',
+  error: 'bg-rose-400/10 text-rose-400 border-rose-400/30 font-mono',
+  neutral: 'bg-white/5 text-slate-400 border-white/10 font-mono',
 };
 
 export const Badge: React.FC<BadgeProps> = ({

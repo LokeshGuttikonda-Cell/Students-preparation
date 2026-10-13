@@ -56,12 +56,12 @@ export function VoiceWaveform({
 
   const getBarColor = (index: number) => {
     if (state === 'speaking') {
-      return index % 2 === 0 ? 'bg-primary-600' : 'bg-primary-400';
+      return index % 2 === 0 ? 'bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.6)]' : 'bg-cyan-500';
     }
     if (state === 'listening') {
-      return index % 2 === 0 ? 'bg-amber-500' : 'bg-emerald-500';
+      return index % 2 === 0 ? 'bg-lime-400 shadow-[0_0_8px_rgba(163,230,53,0.6)]' : 'bg-emerald-400';
     }
-    return 'bg-border';
+    return 'bg-white/15';
   };
 
   const getDecibelLevel = () => {
@@ -87,7 +87,7 @@ export function VoiceWaveform({
     <div className={`space-y-2 select-none ${className}`}>
       {/* 10 Visualizer Bars */}
       <div
-        className="flex items-center justify-center gap-1.5 h-16 px-4 py-2 bg-canvas/60 rounded-xl border border-border overflow-hidden"
+        className="flex items-center justify-center gap-1.5 h-16 px-4 py-2 bg-[#060b18]/90 rounded-xl border border-white/10 overflow-hidden shadow-inner"
         aria-label={`Voice audio visualizer: ${state}`}
       >
         {[...Array(10)].map((_, i) => (
@@ -103,18 +103,18 @@ export function VoiceWaveform({
 
       {/* Telemetry & Stream Status */}
       {showTelemetry && (
-        <div className="flex items-center justify-between text-[10px] font-mono text-text-muted px-1">
+        <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 px-1">
           <div className="flex items-center gap-1.5">
             <div
               className={`w-1.5 h-1.5 rounded-full ${
                 state === 'speaking'
-                  ? 'bg-primary-600 animate-ping'
+                  ? 'bg-cyan-400 animate-ping'
                   : state === 'listening'
-                  ? 'bg-emerald-500 animate-pulse'
-                  : 'bg-border'
+                  ? 'bg-lime-400 animate-pulse'
+                  : 'bg-white/20'
               }`}
             />
-            <div className="font-semibold uppercase tracking-wider text-text">
+            <div className="font-semibold uppercase tracking-wider text-slate-200">
               {state === 'speaking'
                 ? 'AI Vocalizing'
                 : state === 'listening'
@@ -122,7 +122,7 @@ export function VoiceWaveform({
                 : 'Standby'}
             </div>
           </div>
-          <div className="tabular-nums font-semibold">
+          <div className="tabular-nums font-semibold text-slate-300">
             {getDecibelLevel()}
           </div>
         </div>

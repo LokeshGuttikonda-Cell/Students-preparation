@@ -22,6 +22,7 @@ import { WeakAreaCard } from '../../../components/analytics/WeakAreaCard';
 import { AttemptHistoryTable } from '../../../components/analytics/AttemptHistoryTable';
 import { StreakWidget } from '../../../components/dashboard/StreakWidget';
 import { BadgeShowcase } from '../../../components/dashboard/BadgeShowcase';
+import { RoleHandbookProgressWidget } from '../../../components/dashboard/RoleHandbookProgressWidget';
 import {
   fetchUserStreak,
   fetchUserBadges,
@@ -30,6 +31,7 @@ import {
 } from '../../../lib/gamification-client';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
+import { BookOpen, Mic, Terminal, ArrowRight } from 'lucide-react';
 
 export default function StudentDashboardPage() {
   const router = useRouter();
@@ -125,56 +127,66 @@ export default function StudentDashboardPage() {
       {/* Main Container */}
       <main className="flex-1 max-w-content mx-auto px-6 py-10 w-full space-y-10">
         {/* Welcome & Quick Actions */}
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="space-y-1">
-            <p className="text-xs font-semibold uppercase tracking-wider text-accent-700">
-              Personalized Learning Radar
-            </p>
-            <h1 className="text-3xl font-bold tracking-tight text-primary-900">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-6">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-lime-400/20 text-lime-300 border border-lime-400/30">
+                CANDIDATE TELEMETRY
+              </span>
+              <span className="text-xs font-mono text-slate-400">Personalized Learning Radar</span>
+            </div>
+            <h1 className="text-3xl font-display font-extrabold tracking-tight text-white">
               Performance Dashboard
             </h1>
-            <p className="text-sm text-text-muted">
-              Track your diagnostic accuracy trends, target weak areas, and review past test scorecards.
+            <p className="text-xs sm:text-sm text-slate-400 font-mono">
+              Track your diagnostic accuracy trends, target weak areas, and benchmark against top cohort percentiles.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
             <Link href="/curriculum">
-              <Button variant="ghost" size="sm" className="text-xs">
-                🏛️ Knowledge Hub
+              <Button variant="secondary" size="sm" className="text-xs font-mono">
+                <BookOpen className="w-3.5 h-3.5 mr-1.5 text-lime-400" />
+                Knowledge Hub
               </Button>
             </Link>
             <Link href="/interviews">
-              <Button variant="ghost" size="sm" className="text-xs">
-                🎙️ AI Interview
+              <Button variant="secondary" size="sm" className="text-xs font-mono">
+                <Mic className="w-3.5 h-3.5 mr-1.5 text-cyan-400" />
+                AI Interview
               </Button>
             </Link>
             <Link href="/sandbox">
-              <Button variant="ghost" size="sm" className="text-xs">
-                ⚡ Sandbox
+              <Button variant="secondary" size="sm" className="text-xs font-mono">
+                <Terminal className="w-3.5 h-3.5 mr-1.5 text-lime-400" />
+                AI Lab
               </Button>
             </Link>
             <Link href="/practice">
-              <Button variant="secondary" size="sm" className="text-xs">
+              <Button variant="secondary" size="sm" className="text-xs font-mono">
                 Topic Practice
               </Button>
             </Link>
             <Link href="/mock-tests">
-              <Button variant="primary" size="sm" className="text-xs font-semibold">
-                Take Mock Test →
+              <Button variant="primary" size="sm" className="text-xs font-bold shadow-md shadow-lime-400/25 group">
+                <span>Take Mock Test</span>
+                <ArrowRight className="w-3.5 h-3.5 ml-1.5 transition-transform group-hover:translate-x-0.5" />
               </Button>
             </Link>
           </div>
         </div>
 
         {error && (
-          <div className="p-4 bg-error-50 border border-error-500/30 text-error-700 rounded-lg text-sm">
+          <div className="p-4 bg-rose-950/30 border border-rose-500/40 text-rose-300 rounded-2xl text-sm font-mono">
             {error}
           </div>
         )}
 
         {/* Daily Study Streak Tracker (Phase 3) */}
         <StreakWidget streak={streak} loading={isLoading} />
+
+        {/* IT Role Handbooks & Personalized Study Plan Accelerator */}
+        <RoleHandbookProgressWidget targetRoleId={selectedRoleId || user?.targetRoleId || undefined} />
 
         {/* Role Readiness Accelerator Section */}
         {readiness && (
@@ -205,44 +217,44 @@ export default function StudentDashboardPage() {
           <LongitudinalGrowthTracker />
         </section>
 
-        {/* Top KPI Cards */}
+        {/* Top KPI Cards (Bento Style) */}
         {analytics && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-            <Card className="p-6 space-y-2 border-border shadow-xs">
-              <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">
+            <div className="bento-tile p-6 space-y-2">
+              <span className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider block">
                 Tests Completed
               </span>
-              <div className="text-3xl sm:text-4xl font-bold text-primary-900 tabular">
+              <div className="text-3xl sm:text-4xl font-display font-extrabold text-white tabular">
                 {analytics.kpis.totalTestsCompleted}
               </div>
-              <p className="text-xs text-text-muted">
+              <p className="text-xs text-slate-400">
                 Completed practice &amp; timed mock assessment sittings
               </p>
-            </Card>
+            </div>
 
-            <Card className="p-6 space-y-2 border-border shadow-xs">
-              <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">
+            <div className="bento-tile p-6 space-y-2">
+              <span className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider block">
                 Questions Answered
               </span>
-              <div className="text-3xl sm:text-4xl font-bold text-text tabular">
+              <div className="text-3xl sm:text-4xl font-display font-extrabold text-white tabular">
                 {analytics.kpis.totalQuestionsAnswered}
               </div>
-              <p className="text-xs text-text-muted">
+              <p className="text-xs text-slate-400">
                 Cumulative questions evaluated across all sessions
               </p>
-            </Card>
+            </div>
 
-            <Card className="p-6 space-y-2 border-border shadow-xs">
-              <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">
+            <div className="bento-tile p-6 space-y-2">
+              <span className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider block">
                 Overall Accuracy
               </span>
-              <div className="text-3xl sm:text-4xl font-bold text-success-700 tabular">
+              <div className="text-3xl sm:text-4xl font-display font-extrabold text-lime-400 tabular">
                 {analytics.kpis.overallAccuracy}%
               </div>
-              <p className="text-xs text-text-muted">
+              <p className="text-xs text-slate-400">
                 Weighted aggregate correctness across all topics
               </p>
-            </Card>
+            </div>
           </div>
         )}
 

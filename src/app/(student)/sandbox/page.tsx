@@ -9,7 +9,11 @@ import { MemoryCacheInspectorSandbox } from '../../../components/sandbox/MemoryC
 import { DistributedSystemsSandbox } from '../../../components/sandbox/DistributedSystemsSandbox';
 import { KernelNetworkSandbox } from '../../../components/sandbox/KernelNetworkSandbox';
 import { SystemDesignSandbox } from '../../../components/sandbox/SystemDesignSandbox';
+import { ConcurrencyEventLoopSandbox } from '../../../components/sandbox/ConcurrencyEventLoopSandbox';
+import { ArchitectureTradeoffSandbox } from '../../../components/sandbox/ArchitectureTradeoffSandbox';
+import { AiAgentLabSandbox } from '../../../components/sandbox/AiAgentLabSandbox';
 import { Button } from '../../../components/ui/Button';
+import { Database, Code2, Eye, Cpu, Network, Cog, Layers, Zap, Scale, Bot } from 'lucide-react';
 
 interface SqlChallenge {
   id: string;
@@ -415,42 +419,77 @@ export type SandboxTab =
   | 'MEMORY'
   | 'DISTRIBUTED'
   | 'KERNEL_NETWORK'
-  | 'SYSTEM_DESIGN';
+  | 'SYSTEM_DESIGN'
+  | 'CONCURRENCY'
+  | 'TRADEOFF'
+  | 'AI_AGENT';
 
 export default function SandboxPage() {
   const [activeTab, setActiveTab] = useState<SandboxTab>('SQL');
   const [selectedSqlIndex, setSelectedSqlIndex] = useState(0);
   const [selectedCodeIndex, setSelectedCodeIndex] = useState(0);
 
-  // Sync tab with URL query parameter on mount (?tab=kernel, ?tab=system-design, etc.)
+  // Sync tab with URL query parameter or localStorage on mount (?tab=kernel, ?tab=system-design, ?tab=concurrency, etc.)
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams(window.location.search);
     const tabParam = params.get('tab')?.toUpperCase().replace(/-/g, '_');
-    if (!tabParam) return;
-
-    if (tabParam === 'SQL') setActiveTab('SQL');
-    else if (tabParam === 'CODE') setActiveTab('CODE');
-    else if (tabParam === 'VISUAL' || tabParam === 'VISUALIZER' || tabParam === 'ALGORITHM') setActiveTab('VISUALIZER');
-    else if (tabParam === 'MEMORY' || tabParam === 'CACHE') setActiveTab('MEMORY');
-    else if (tabParam === 'DISTRIBUTED' || tabParam === 'SYSTEMS') setActiveTab('DISTRIBUTED');
-    else if (tabParam === 'KERNEL' || tabParam === 'NETWORK' || tabParam === 'KERNEL_NETWORK') setActiveTab('KERNEL_NETWORK');
-    else if (tabParam === 'SYSTEM_DESIGN' || tabParam === 'DESIGN' || tabParam === 'TOPOLOGY') setActiveTab('SYSTEM_DESIGN');
+    if (tabParam) {
+      if (tabParam === 'SQL') setActiveTab('SQL');
+      else if (tabParam === 'CODE') setActiveTab('CODE');
+      else if (tabParam === 'VISUAL' || tabParam === 'VISUALIZER' || tabParam === 'ALGORITHM') setActiveTab('VISUALIZER');
+      else if (tabParam === 'MEMORY' || tabParam === 'CACHE') setActiveTab('MEMORY');
+      else if (tabParam === 'DISTRIBUTED' || tabParam === 'SYSTEMS') setActiveTab('DISTRIBUTED');
+      else if (tabParam === 'KERNEL' || tabParam === 'NETWORK' || tabParam === 'KERNEL_NETWORK') setActiveTab('KERNEL_NETWORK');
+      else if (tabParam === 'SYSTEM_DESIGN' || tabParam === 'DESIGN' || tabParam === 'TOPOLOGY') setActiveTab('SYSTEM_DESIGN');
+      else if (tabParam === 'CONCURRENCY' || tabParam === 'EVENT_LOOP' || tabParam === 'ASYNC') setActiveTab('CONCURRENCY');
+      else if (tabParam === 'TRADEOFF' || tabParam === 'STORAGE' || tabParam === 'CONSISTENCY') setActiveTab('TRADEOFF');
+      else if (tabParam === 'AI' || tabParam === 'AI_AGENT' || tabParam === 'LLM' || tabParam === 'AGENT') setActiveTab('AI_AGENT');
+    } else {
+      try {
+        const savedTab = localStorage.getItem('studentsprep_sandbox_active_tab') as SandboxTab | null;
+        if (
+          savedTab &&
+          [
+            'SQL',
+            'CODE',
+            'VISUALIZER',
+            'MEMORY',
+            'DISTRIBUTED',
+            'KERNEL_NETWORK',
+            'SYSTEM_DESIGN',
+            'CONCURRENCY',
+            'TRADEOFF',
+            'AI_AGENT',
+          ].includes(savedTab)
+        ) {
+          setActiveTab(savedTab);
+        }
+      } catch {}
+    }
   }, []);
 
   const handleTabChange = (newTab: SandboxTab) => {
     setActiveTab(newTab);
-    if (typeof window !== 'undefined' && window.history?.replaceState) {
-      const url = new URL(window.location.href);
-      let tabSlug = 'sql';
-      if (newTab === 'CODE') tabSlug = 'code';
-      else if (newTab === 'VISUALIZER') tabSlug = 'visual';
-      else if (newTab === 'MEMORY') tabSlug = 'memory';
-      else if (newTab === 'DISTRIBUTED') tabSlug = 'distributed';
-      else if (newTab === 'KERNEL_NETWORK') tabSlug = 'kernel';
-      else if (newTab === 'SYSTEM_DESIGN') tabSlug = 'system-design';
-      url.searchParams.set('tab', tabSlug);
-      window.history.replaceState({}, '', url.toString());
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('studentsprep_sandbox_active_tab', newTab);
+      } catch {}
+      if (window.history?.replaceState) {
+        const url = new URL(window.location.href);
+        let tabSlug = 'sql';
+        if (newTab === 'CODE') tabSlug = 'code';
+        else if (newTab === 'VISUALIZER') tabSlug = 'visual';
+        else if (newTab === 'MEMORY') tabSlug = 'memory';
+        else if (newTab === 'DISTRIBUTED') tabSlug = 'distributed';
+        else if (newTab === 'KERNEL_NETWORK') tabSlug = 'kernel';
+        else if (newTab === 'SYSTEM_DESIGN') tabSlug = 'system-design';
+        else if (newTab === 'CONCURRENCY') tabSlug = 'concurrency';
+        else if (newTab === 'TRADEOFF') tabSlug = 'tradeoff';
+        else if (newTab === 'AI_AGENT') tabSlug = 'ai-agent';
+        url.searchParams.set('tab', tabSlug);
+        window.history.replaceState({}, '', url.toString());
+      }
     }
   };
 
@@ -459,34 +498,35 @@ export default function SandboxPage() {
 
   return (
     <div className="min-h-dvh bg-canvas py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-5xl mx-auto space-y-6">
+      <div className="max-w-6xl mx-auto space-y-6">
         {/* Top Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-1">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/10 pb-6">
+          <div className="space-y-1.5">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-accent-700">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-lime-400 bg-lime-400/10 px-2.5 py-0.5 rounded-full border border-lime-400/20">
                 Applied Technical Lab
               </span>
-              <span className="text-[11px] font-semibold bg-primary-50 text-primary-800 px-2 py-0.5 rounded-full border border-primary-200">
+              <span className="text-[11px] font-mono font-semibold bg-cyan-400/10 text-cyan-300 px-2.5 py-0.5 rounded-full border border-cyan-400/20">
                 Interactive Code &amp; SQL Studio
               </span>
-              <span className="text-[11px] font-semibold bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-200">
-                7 Applied Studios
+              <span className="text-[11px] font-mono font-semibold bg-emerald-400/10 text-emerald-300 px-2.5 py-0.5 rounded-full border border-emerald-400/20">
+                9 Applied Studios
               </span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-text">
+            <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-white">
               SQL &amp; Code Logic Validation Sandbox
             </h1>
-            <p className="text-sm text-text-muted max-w-2xl">
-              Real engineering screening tests applied first-principles execution across 7 specialized laboratories:
+            <p className="text-xs sm:text-sm text-slate-300 max-w-2xl font-mono leading-relaxed">
+              Real engineering screening tests applied first-principles execution across 9 specialized laboratories:
               Relational SQL, Algorithmic Code Logic, Visual State Steppers, Memory &amp; Cache Coherence,
-              Distributed Systems, OS Kernel Protocols, and Multi-Tier System Design Architecture.
+              Distributed Systems, OS Kernel Protocols, Multi-Tier System Design Architecture,
+              Runtime Concurrency &amp; Event Loops, and Storage Engine &amp; Quorum Consistency Trade-Offs.
             </p>
           </div>
 
           <div className="flex items-center gap-3">
             <Link href="/dashboard">
-              <Button variant="secondary" size="md">
+              <Button variant="secondary" size="md" className="font-mono text-xs">
                 ← Back to Career Dashboard
               </Button>
             </Link>
@@ -494,107 +534,148 @@ export default function SandboxPage() {
         </div>
 
         {/* Mode Selector Tabs */}
-        <div className="flex border-b border-border gap-2 overflow-x-auto">
-          <button
-            type="button"
-            onClick={() => handleTabChange('SQL')}
-            className={`min-h-[44px] px-5 py-2 text-sm font-semibold border-b-2 transition-colors cursor-pointer flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'SQL'
-                ? 'border-primary-700 text-primary-800'
-                : 'border-transparent text-text-muted hover:text-text hover:border-border'
-            }`}
-          >
-            <span>🗄️</span>
-            <span>Relational SQL Query Lab</span>
-          </button>
+        <div className="border-b border-white/10">
+          <div className="flex items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden py-1 font-mono text-xs">
+            <button
+              type="button"
+              onClick={() => handleTabChange('SQL')}
+              className={`min-h-[44px] px-4 py-2 text-xs font-bold border-b-2 transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap shrink-0 rounded-t-xl ${
+                activeTab === 'SQL'
+                  ? 'border-lime-400 text-lime-300 bg-lime-400/10'
+                  : 'border-transparent text-slate-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Database className="w-4 h-4 text-lime-400" />
+              <span>Relational SQL Query Lab</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => handleTabChange('CODE')}
-            className={`min-h-[44px] px-5 py-2 text-sm font-semibold border-b-2 transition-colors cursor-pointer flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'CODE'
-                ? 'border-primary-700 text-primary-800'
-                : 'border-transparent text-text-muted hover:text-text hover:border-border'
-            }`}
-          >
-            <span>💻</span>
-            <span>Algorithmic Code Logic Lab</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => handleTabChange('CODE')}
+              className={`min-h-[44px] px-4 py-2 text-xs font-bold border-b-2 transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap shrink-0 rounded-t-xl ${
+                activeTab === 'CODE'
+                  ? 'border-lime-400 text-lime-300 bg-lime-400/10'
+                  : 'border-transparent text-slate-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Code2 className={`w-4 h-4 ${activeTab === 'CODE' ? 'text-lime-400' : 'text-slate-400'}`} />
+              <span>Algorithmic Code Logic Lab</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => handleTabChange('VISUALIZER')}
-            className={`min-h-[44px] px-5 py-2 text-sm font-semibold border-b-2 transition-colors cursor-pointer flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'VISUALIZER'
-                ? 'border-primary-700 text-primary-800'
-                : 'border-transparent text-text-muted hover:text-text hover:border-border'
-            }`}
-          >
-            <span>👁️</span>
-            <span>Visual Algorithm Stepper</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => handleTabChange('VISUALIZER')}
+              className={`min-h-[44px] px-4 py-2 text-xs font-bold border-b-2 transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap shrink-0 rounded-t-xl ${
+                activeTab === 'VISUALIZER'
+                  ? 'border-lime-400 text-lime-300 bg-lime-400/10'
+                  : 'border-transparent text-slate-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Eye className={`w-4 h-4 ${activeTab === 'VISUALIZER' ? 'text-lime-400' : 'text-slate-400'}`} />
+              <span>Visual Algorithm Stepper</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => handleTabChange('MEMORY')}
-            className={`min-h-[44px] px-5 py-2 text-sm font-semibold border-b-2 transition-colors cursor-pointer flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'MEMORY'
-                ? 'border-primary-700 text-primary-800'
-                : 'border-transparent text-text-muted hover:text-text hover:border-border'
-            }`}
-          >
-            <span>🧠</span>
-            <span>Memory &amp; Cache Hierarchy Lab</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => handleTabChange('MEMORY')}
+              className={`min-h-[44px] px-4 py-2 text-xs font-bold border-b-2 transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap shrink-0 rounded-t-xl ${
+                activeTab === 'MEMORY'
+                  ? 'border-lime-400 text-lime-300 bg-lime-400/10'
+                  : 'border-transparent text-slate-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Cpu className={`w-4 h-4 ${activeTab === 'MEMORY' ? 'text-lime-400' : 'text-slate-400'}`} />
+              <span>Memory &amp; Cache Hierarchy Lab</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => handleTabChange('DISTRIBUTED')}
-            className={`min-h-[44px] px-5 py-2 text-sm font-semibold border-b-2 transition-colors cursor-pointer flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'DISTRIBUTED'
-                ? 'border-primary-700 text-primary-800'
-                : 'border-transparent text-text-muted hover:text-text hover:border-border'
-            }`}
-          >
-            <span>🌐</span>
-            <span>Distributed Systems &amp; Architecture Lab</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => handleTabChange('DISTRIBUTED')}
+              className={`min-h-[44px] px-4 py-2 text-xs font-bold border-b-2 transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap shrink-0 rounded-t-xl ${
+                activeTab === 'DISTRIBUTED'
+                  ? 'border-lime-400 text-lime-300 bg-lime-400/10'
+                  : 'border-transparent text-slate-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Network className={`w-4 h-4 ${activeTab === 'DISTRIBUTED' ? 'text-lime-400' : 'text-slate-400'}`} />
+              <span>Distributed Systems &amp; Architecture Lab</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => handleTabChange('KERNEL_NETWORK')}
-            className={`min-h-[44px] px-5 py-2 text-sm font-semibold border-b-2 transition-colors cursor-pointer flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'KERNEL_NETWORK'
-                ? 'border-primary-700 text-primary-800'
-                : 'border-transparent text-text-muted hover:text-text hover:border-border'
-            }`}
-          >
-            <span>⚙️</span>
-            <span>OS Kernel &amp; Network Protocols Lab</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => handleTabChange('KERNEL_NETWORK')}
+              className={`min-h-[44px] px-4 py-2 text-xs font-bold border-b-2 transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap shrink-0 rounded-t-xl ${
+                activeTab === 'KERNEL_NETWORK'
+                  ? 'border-lime-400 text-lime-300 bg-lime-400/10'
+                  : 'border-transparent text-slate-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Cog className={`w-4 h-4 ${activeTab === 'KERNEL_NETWORK' ? 'text-lime-400' : 'text-slate-400'}`} />
+              <span>OS Kernel &amp; Network Protocols Lab</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => handleTabChange('SYSTEM_DESIGN')}
-            className={`min-h-[44px] px-5 py-2 text-sm font-semibold border-b-2 transition-colors cursor-pointer flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'SYSTEM_DESIGN'
-                ? 'border-primary-700 text-primary-800'
-                : 'border-transparent text-text-muted hover:text-text hover:border-border'
-            }`}
-          >
-            <span>🏗️</span>
-            <span>System Design Architecture Lab</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => handleTabChange('SYSTEM_DESIGN')}
+              className={`min-h-[44px] px-4 py-2 text-xs font-bold border-b-2 transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap shrink-0 rounded-t-xl ${
+                activeTab === 'SYSTEM_DESIGN'
+                  ? 'border-lime-400 text-lime-300 bg-lime-400/10'
+                  : 'border-transparent text-slate-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Layers className={`w-4 h-4 ${activeTab === 'SYSTEM_DESIGN' ? 'text-lime-400' : 'text-slate-400'}`} />
+              <span>System Design Architecture Lab</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleTabChange('CONCURRENCY')}
+              className={`min-h-[44px] px-4 py-2 text-xs font-bold border-b-2 transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap shrink-0 rounded-t-xl ${
+                activeTab === 'CONCURRENCY'
+                  ? 'border-lime-400 text-lime-300 bg-lime-400/10'
+                  : 'border-transparent text-slate-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Zap className={`w-4 h-4 ${activeTab === 'CONCURRENCY' ? 'text-lime-400' : 'text-slate-400'}`} />
+              <span>Concurrency &amp; Event Loop Lab</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleTabChange('TRADEOFF')}
+              className={`min-h-[44px] px-4 py-2 text-xs font-bold border-b-2 transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap shrink-0 rounded-t-xl ${
+                activeTab === 'TRADEOFF'
+                  ? 'border-lime-400 text-lime-300 bg-lime-400/10'
+                  : 'border-transparent text-slate-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Scale className={`w-4 h-4 ${activeTab === 'TRADEOFF' ? 'text-lime-400' : 'text-slate-400'}`} />
+              <span>Architecture &amp; Storage Trade-Offs Lab</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleTabChange('AI_AGENT')}
+              className={`min-h-[44px] px-4 py-2 text-xs font-bold border-b-2 transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap shrink-0 rounded-t-xl ${
+                activeTab === 'AI_AGENT'
+                  ? 'border-lime-400 text-lime-300 bg-lime-400/10'
+                  : 'border-transparent text-slate-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Bot className={`w-4 h-4 ${activeTab === 'AI_AGENT' ? 'text-lime-400' : 'text-slate-400'}`} />
+              <span>AI Agent &amp; LLM Systems Lab</span>
+            </button>
+          </div>
         </div>
 
         {/* Challenge Selection Pills for SQL and CODE */}
-        {activeTab !== 'VISUALIZER' && activeTab !== 'MEMORY' && activeTab !== 'DISTRIBUTED' && activeTab !== 'KERNEL_NETWORK' && activeTab !== 'SYSTEM_DESIGN' && (
-          <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+        {(activeTab === 'SQL' || activeTab === 'CODE') && (
+          <div className="bg-[#0a0f1d]/85 border border-white/10 rounded-2xl p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-text-muted">
+              <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-400">
                 Select Applied Challenge:
               </span>
-              <span className="text-xs text-primary-700 font-medium">
+              <span className="text-xs font-mono text-lime-400 font-medium">
                 {activeTab === 'SQL'
                   ? `${SQL_CHALLENGES.length} Relational Exercises`
                   : `${CODE_CHALLENGES.length} Algorithmic Exercises`}
@@ -608,21 +689,21 @@ export default function SandboxPage() {
                       key={ch.id}
                       type="button"
                       onClick={() => setSelectedSqlIndex(idx)}
-                      className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all cursor-pointer flex items-center gap-1.5 ${
+                      className={`text-xs font-mono font-semibold px-3 py-1.5 rounded-xl border transition-all cursor-pointer flex items-center gap-1.5 ${
                         selectedSqlIndex === idx
-                          ? 'bg-primary-50 text-primary-900 border-primary-400 shadow-xs'
-                          : 'bg-canvas text-text-muted border-border hover:text-text hover:border-border-hover'
+                          ? 'bg-lime-400/15 text-lime-300 border-lime-400/40 shadow-xs ring-1 ring-lime-400/20'
+                          : 'bg-[#060b18] text-slate-400 border-white/10 hover:text-white hover:border-white/20'
                       }`}
                     >
                       <span>{idx + 1}.</span>
                       <span>{ch.title}</span>
                       <span
-                        className={`text-[10px] px-1.5 py-0.2 rounded font-mono ${
+                        className={`text-[10px] px-1.5 py-0.5 rounded-md font-mono ${
                           ch.difficulty === 'EASY'
-                            ? 'bg-emerald-100 text-emerald-800'
+                            ? 'bg-emerald-400/20 text-emerald-300 border border-emerald-400/30'
                             : ch.difficulty === 'MEDIUM'
-                            ? 'bg-amber-100 text-amber-800'
-                            : 'bg-rose-100 text-rose-800'
+                            ? 'bg-amber-400/20 text-amber-300 border border-amber-400/30'
+                            : 'bg-rose-400/20 text-rose-300 border border-rose-400/30'
                         }`}
                       >
                         {ch.difficulty}
@@ -634,21 +715,21 @@ export default function SandboxPage() {
                       key={ch.id}
                       type="button"
                       onClick={() => setSelectedCodeIndex(idx)}
-                      className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all cursor-pointer flex items-center gap-1.5 ${
+                      className={`text-xs font-mono font-semibold px-3 py-1.5 rounded-xl border transition-all cursor-pointer flex items-center gap-1.5 ${
                         selectedCodeIndex === idx
-                          ? 'bg-primary-50 text-primary-900 border-primary-400 shadow-xs'
-                          : 'bg-canvas text-text-muted border-border hover:text-text hover:border-border-hover'
+                          ? 'bg-lime-400/15 text-lime-300 border-lime-400/40 shadow-xs ring-1 ring-lime-400/20'
+                          : 'bg-[#060b18] text-slate-400 border-white/10 hover:text-white hover:border-white/20'
                       }`}
                     >
                       <span>{idx + 1}.</span>
                       <span>{ch.title}</span>
                       <span
-                        className={`text-[10px] px-1.5 py-0.2 rounded font-mono ${
+                        className={`text-[10px] px-1.5 py-0.5 rounded-md font-mono ${
                           ch.difficulty === 'EASY'
-                            ? 'bg-emerald-100 text-emerald-800'
+                            ? 'bg-emerald-400/20 text-emerald-300 border border-emerald-400/30'
                             : ch.difficulty === 'MEDIUM'
-                            ? 'bg-amber-100 text-amber-800'
-                            : 'bg-rose-100 text-rose-800'
+                            ? 'bg-amber-400/20 text-amber-300 border border-amber-400/30'
+                            : 'bg-rose-400/20 text-rose-300 border border-rose-400/30'
                         }`}
                       >
                         {ch.difficulty}
@@ -663,6 +744,7 @@ export default function SandboxPage() {
         {activeTab === 'SQL' ? (
           <div key={currentSql.id} className="space-y-6">
             <SqlQuerySandbox
+              challengeId={currentSql.id}
               title={currentSql.title}
               taskDescription={currentSql.description}
               initialQuery={currentSql.initialQuery}
@@ -672,6 +754,7 @@ export default function SandboxPage() {
         ) : activeTab === 'CODE' ? (
           <div key={currentCode.id} className="space-y-6">
             <CodeLogicSandbox
+              challengeId={currentCode.id}
               title={currentCode.title}
               problemDescription={currentCode.description}
               functionName={currentCode.functionName}
@@ -695,9 +778,21 @@ export default function SandboxPage() {
           <div className="space-y-6">
             <KernelNetworkSandbox />
           </div>
-        ) : (
+        ) : activeTab === 'SYSTEM_DESIGN' ? (
           <div className="space-y-6">
             <SystemDesignSandbox />
+          </div>
+        ) : activeTab === 'CONCURRENCY' ? (
+          <div className="space-y-6">
+            <ConcurrencyEventLoopSandbox />
+          </div>
+        ) : activeTab === 'TRADEOFF' ? (
+          <div className="space-y-6">
+            <ArchitectureTradeoffSandbox />
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <AiAgentLabSandbox />
           </div>
         )}
       </div>

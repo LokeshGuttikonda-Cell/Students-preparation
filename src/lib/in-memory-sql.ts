@@ -75,6 +75,11 @@ export class InMemorySqlEngine {
     let inQuote = false;
     for (let i = 0; i < csvStr.length; i++) {
       const char = csvStr[i];
+      if (char === "'" && inQuote && i + 1 < csvStr.length && csvStr[i + 1] === "'") {
+        current += "'";
+        i++; // skip escaped quote
+        continue;
+      }
       if (char === "'" && (i === 0 || csvStr[i - 1] !== '\\')) {
         inQuote = !inQuote;
       } else if (char === ',' && !inQuote) {
@@ -92,7 +97,7 @@ export class InMemorySqlEngine {
 
   public castValue(val: string): unknown {
     if (val.startsWith("'") && val.endsWith("'")) {
-      return val.slice(1, -1);
+      return val.slice(1, -1).replace(/''/g, "'");
     }
     const lower = val.toLowerCase();
     if (lower === 'null') return null;
@@ -421,6 +426,17 @@ export class InMemorySqlEngine {
       return parts.some((p) => this.evaluateCondition(p.trim(), row));
     }
 
+    const isNotNullMatch = condition.match(/^([a-zA-Z0-9_.]+)\s+IS\s+NOT\s+NULL$/i);
+    if (isNotNullMatch) {
+      const val = this.resolveValue(isNotNullMatch[1].trim(), row);
+      return val !== null && val !== undefined;
+    }
+    const isNullMatch = condition.match(/^([a-zA-Z0-9_.]+)\s+IS\s+NULL$/i);
+    if (isNullMatch) {
+      const val = this.resolveValue(isNullMatch[1].trim(), row);
+      return val === null || val === undefined;
+    }
+
     const compMatch = condition.match(/([a-zA-Z0-9_.]+|'.*?'|\d+)\s*(=|!=|<>|>=|<=|>|<|LIKE|IN)\s*([\s\S]+)/i);
     if (!compMatch) return true;
 
@@ -457,7 +473,7 @@ export class InMemorySqlEngine {
   public resolveValue(expr: string, row: Record<string, unknown>): unknown {
     const trimmed = expr.trim();
     if (trimmed.startsWith("'") && trimmed.endsWith("'")) {
-      return trimmed.slice(1, -1);
+      return trimmed.slice(1, -1).replace(/''/g, "'");
     }
     if (!isNaN(Number(trimmed)) && trimmed !== '') {
       return Number(trimmed);
@@ -556,12 +572,21 @@ export class InMemorySqlEngine {
     const sumMatch = expr.match(/SUM\s*\((.*?)\)/i);
     if (sumMatch) {
       const col = sumMatch[1].trim();
-      return rowsInGroup.reduce((acc, r) => acc + (Number(this.resolveValue(col, r)) || 0), 0);
+      return rowsInGroup.reduce((acc, r) => {
+        const val = this.resolveValue(col, r);
+        if (val === null || val === undefined || val === '') return acc;
+        const n = Number(val);
+        return acc + (!isNaN(n) ? n : 0);
+      }, 0);
     }
     const avgMatch = expr.match(/AVG\s*\((.*?)\)/i);
     if (avgMatch) {
       const col = avgMatch[1].trim();
-      const valid = rowsInGroup.map((r) => Number(this.resolveValue(col, r))).filter((n) => !isNaN(n));
+      const valid = rowsInGroup
+        .map((r) => this.resolveValue(col, r))
+        .filter((v) => v !== null && v !== undefined && v !== '')
+        .map((v) => Number(v))
+        .filter((n) => !isNaN(n));
       if (valid.length === 0) return 0;
       const sum = valid.reduce((a, b) => a + b, 0);
       return Math.round(sum / valid.length);
@@ -569,14 +594,22 @@ export class InMemorySqlEngine {
     const maxMatch = expr.match(/MAX\s*\((.*?)\)/i);
     if (maxMatch) {
       const col = maxMatch[1].trim();
-      const nums = rowsInGroup.map((r) => Number(this.resolveValue(col, r))).filter((n) => !isNaN(n));
-      return Math.max(...nums);
+      const nums = rowsInGroup
+        .map((r) => this.resolveValue(col, r))
+        .filter((v) => v !== null && v !== undefined && v !== '')
+        .map((v) => Number(v))
+        .filter((n) => !isNaN(n));
+      return nums.length > 0 ? Math.max(...nums) : 0;
     }
     const minMatch = expr.match(/MIN\s*\((.*?)\)/i);
     if (minMatch) {
       const col = minMatch[1].trim();
-      const nums = rowsInGroup.map((r) => Number(this.resolveValue(col, r))).filter((n) => !isNaN(n));
-      return Math.min(...nums);
+      const nums = rowsInGroup
+        .map((r) => this.resolveValue(col, r))
+        .filter((v) => v !== null && v !== undefined && v !== '')
+        .map((v) => Number(v))
+        .filter((n) => !isNaN(n));
+      return nums.length > 0 ? Math.min(...nums) : 0;
     }
     return 0;
   }

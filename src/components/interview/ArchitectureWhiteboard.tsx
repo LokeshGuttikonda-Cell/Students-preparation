@@ -1,6 +1,14 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import {
+  Check,
+  FileDown,
+  X,
+  CheckCircle2,
+  AlertTriangle,
+  Zap,
+} from 'lucide-react';
 import { Button } from '../ui/Button';
 
 export interface ArchitectureNode {
@@ -306,31 +314,31 @@ export function ArchitectureWhiteboard({
   return (
     <div
       data-testid="architecture-whiteboard-studio"
-      className={`bg-surface border border-border rounded-2xl shadow-xl overflow-hidden flex flex-col ${className}`}
+      className={`bg-[#0a0f1d] border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col ${className}`}
     >
       {/* Top Header Bar */}
-      <div className="bg-canvas border-b border-border p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4">
+      <div className="bg-[#060b18]/90 border-b border-white/10 p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4">
         <div className="space-y-0.5">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-accent-700">
+            <span className="text-xs font-bold uppercase tracking-wider text-lime-400 font-mono">
               Socratic Systems Design Studio
             </span>
             <span
               className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
                 linter.tier === 'PRODUCTION_READY'
-                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                  ? 'bg-lime-400/15 text-lime-300 border-lime-400/30'
                   : linter.tier === 'MODERATE_RESILIENCE'
-                  ? 'bg-amber-50 text-amber-800 border-amber-300'
-                  : 'bg-rose-50 text-rose-800 border-rose-300'
+                  ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                  : 'bg-rose-500/15 text-rose-300 border-rose-500/30'
               }`}
             >
               Resilience: {linter.score}% ({linter.tier.replace(/_/g, ' ')})
             </span>
           </div>
-          <h3 className="text-lg sm:text-xl font-bold text-text">
+          <h3 className="text-lg sm:text-xl font-bold text-slate-100">
             Architecture Whiteboard & Topology Canvas
           </h3>
-          <p className="text-xs text-text-muted">
+          <p className="text-xs text-slate-400">
             Compose distributed systems topologies, validate single-points-of-failure (SPOF), and export structured rationales.
           </p>
         </div>
@@ -341,22 +349,32 @@ export function ArchitectureWhiteboard({
             variant="primary"
             size="sm"
             onClick={handleExport}
-            className="text-xs font-semibold"
+            className="text-xs font-semibold flex items-center gap-1.5 bg-lime-400 hover:bg-lime-300 text-black shadow-[0_0_15px_rgba(163,230,53,0.3)]"
           >
-            {isCopied ? '✓ Injected into Answer!' : '📥 Export Topology to Response'}
+            {isCopied ? (
+              <>
+                <Check className="w-3.5 h-3.5" />
+                <span>Injected into Answer!</span>
+              </>
+            ) : (
+              <>
+                <FileDown className="w-3.5 h-3.5" />
+                <span>Export Topology to Response</span>
+              </>
+            )}
           </Button>
           {onClose && (
-            <Button variant="ghost" size="sm" onClick={onClose} aria-label="Close Whiteboard">
-              ✕
+            <Button variant="ghost" size="sm" onClick={onClose} aria-label="Close Whiteboard" className="text-slate-400 hover:text-white">
+              <X className="w-4 h-4" />
             </Button>
           )}
         </div>
       </div>
 
       {/* Template Selector & Palette Ribbon */}
-      <div className="bg-surface border-b border-border p-3 flex flex-wrap items-center justify-between gap-3 text-xs">
+      <div className="bg-[#060b18]/60 border-b border-white/10 p-3 flex flex-wrap items-center justify-between gap-3 text-xs">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="font-semibold text-text-muted">Architecture Archetypes:</span>
+          <span className="font-semibold text-slate-400">Architecture Archetypes:</span>
           {(Object.keys(ARCHITECTURE_TEMPLATES) as ArchitectureTemplateKey[]).map((key) => (
             <button
               key={key}
@@ -364,8 +382,8 @@ export function ArchitectureWhiteboard({
               onClick={() => handleSelectTemplate(key)}
               className={`px-3 py-1 rounded-lg font-semibold border transition-all cursor-pointer ${
                 selectedTemplate === key
-                  ? 'bg-primary-700 text-white border-primary-700 shadow-xs'
-                  : 'bg-canvas text-text-muted border-border hover:text-text hover:border-border-hover'
+                  ? 'bg-lime-400 text-black border-lime-400 shadow-[0_0_12px_rgba(163,230,53,0.3)] font-bold'
+                  : 'bg-white/5 text-slate-400 border-white/10 hover:text-slate-200 hover:border-white/20'
               }`}
             >
               {ARCHITECTURE_TEMPLATES[key].name.split(' ')[0]} {ARCHITECTURE_TEMPLATES[key].name.split(' ')[1]}
@@ -375,32 +393,32 @@ export function ArchitectureWhiteboard({
 
         {/* Add Component Palette */}
         <div className="flex items-center gap-1.5 overflow-x-auto">
-          <span className="text-[11px] font-semibold text-text-muted shrink-0">+ Add Node:</span>
+          <span className="text-[11px] font-semibold text-slate-400 shrink-0">+ Add Node:</span>
           <button
             type="button"
             onClick={() => handleAddNode('CACHE')}
-            className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 font-mono text-[10px]"
+            className="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/25 font-mono text-[10px]"
           >
             + Cache
           </button>
           <button
             type="button"
             onClick={() => handleAddNode('MESSAGE_QUEUE')}
-            className="px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 font-mono text-[10px]"
+            className="px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 hover:bg-amber-500/25 font-mono text-[10px]"
           >
             + Queue
           </button>
           <button
             type="button"
             onClick={() => handleAddNode('READ_REPLICA')}
-            className="px-2 py-0.5 rounded bg-purple-50 text-purple-800 border border-purple-200 hover:bg-purple-100 font-mono text-[10px]"
+            className="px-2 py-0.5 rounded bg-purple-500/15 text-purple-300 border border-purple-500/30 hover:bg-purple-500/25 font-mono text-[10px]"
           >
             + Replica
           </button>
           <button
             type="button"
             onClick={() => handleAddNode('APP_SERVICE')}
-            className="px-2 py-0.5 rounded bg-sky-50 text-sky-800 border border-sky-200 hover:bg-sky-100 font-mono text-[10px]"
+            className="px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/25 font-mono text-[10px]"
           >
             + Service
           </button>
@@ -410,7 +428,7 @@ export function ArchitectureWhiteboard({
       {/* Main Studio Canvas Area */}
       <div className="grid grid-cols-1 lg:grid-cols-12 flex-1 min-h-[420px]">
         {/* SVG Interactive Canvas Column */}
-        <div className="lg:col-span-8 p-4 bg-canvas/60 relative overflow-hidden flex items-center justify-center border-b lg:border-b-0 lg:border-r border-border">
+        <div className="lg:col-span-8 p-4 bg-[#040711] relative overflow-hidden flex items-center justify-center border-b lg:border-b-0 lg:border-r border-white/10">
           <svg
             viewBox="0 0 920 320"
             className="w-full h-full max-h-[380px] select-none"
@@ -428,7 +446,7 @@ export function ArchitectureWhiteboard({
                 markerHeight="6"
                 orient="auto-start-reverse"
               >
-                <path d="M 0 1 L 10 5 L 0 9 z" fill="#0284c7" />
+                <path d="M 0 1 L 10 5 L 0 9 z" fill="#06b6d4" />
               </marker>
               <marker
                 id="arrow-async"
@@ -439,7 +457,7 @@ export function ArchitectureWhiteboard({
                 markerHeight="6"
                 orient="auto-start-reverse"
               >
-                <path d="M 0 1 L 10 5 L 0 9 z" fill="#d97706" />
+                <path d="M 0 1 L 10 5 L 0 9 z" fill="#f59e0b" />
               </marker>
               <marker
                 id="arrow-cache"
@@ -450,7 +468,7 @@ export function ArchitectureWhiteboard({
                 markerHeight="6"
                 orient="auto-start-reverse"
               >
-                <path d="M 0 1 L 10 5 L 0 9 z" fill="#059669" />
+                <path d="M 0 1 L 10 5 L 0 9 z" fill="#10b981" />
               </marker>
               <marker
                 id="arrow-repl"
@@ -461,13 +479,13 @@ export function ArchitectureWhiteboard({
                 markerHeight="6"
                 orient="auto-start-reverse"
               >
-                <path d="M 0 1 L 10 5 L 0 9 z" fill="#7c3aed" />
+                <path d="M 0 1 L 10 5 L 0 9 z" fill="#a855f7" />
               </marker>
             </defs>
 
             {/* Subtle Grid Background */}
             <pattern id="canvas-grid" width="30" height="30" patternUnits="userSpaceOnUse">
-              <path d="M 30 0 L 0 0 0 30" fill="none" stroke="#e2e8f0" strokeWidth="0.5" />
+              <path d="M 30 0 L 0 0 0 30" fill="none" stroke="#1e293b" strokeWidth="0.5" />
             </pattern>
             <rect width="100%" height="100%" fill="url(#canvas-grid)" />
 
@@ -479,12 +497,12 @@ export function ArchitectureWhiteboard({
 
               const strokeColor =
                 link.type === 'SYNC_RPC'
-                  ? '#0284c7'
+                  ? '#06b6d4'
                   : link.type === 'ASYNC_EVENT'
-                  ? '#d97706'
+                  ? '#f59e0b'
                   : link.type === 'CACHE_LOOKUP'
-                  ? '#059669'
-                  : '#7c3aed';
+                  ? '#10b981'
+                  : '#a855f7';
 
               const markerId =
                 link.type === 'SYNC_RPC'
@@ -518,9 +536,9 @@ export function ArchitectureWhiteboard({
                       textAnchor="middle"
                       fontSize="9"
                       fontWeight="bold"
-                      fill="#64748b"
+                      fill="#94a3b8"
                       fontFamily="monospace"
-                      className="select-none bg-canvas"
+                      className="select-none bg-[#040711]"
                     >
                       {link.label}
                     </text>
@@ -532,19 +550,19 @@ export function ArchitectureWhiteboard({
             {/* Render Architecture Component Nodes */}
             {nodes.map((node) => {
               const isSelected = node.id === selectedNodeId;
-              let badgeColor = '#0284c7'; // blue
-              const bgFill = '#ffffff';
+              let badgeColor = '#06b6d4'; // cyan
+              const bgFill = '#0a1022';
 
               if (node.category === 'CACHE') {
-                badgeColor = '#059669'; // emerald
+                badgeColor = '#10b981'; // emerald
               } else if (node.category === 'PERSISTENCE') {
-                badgeColor = '#7c3aed'; // purple
+                badgeColor = '#a855f7'; // purple
               } else if (node.category === 'MESSAGING') {
-                badgeColor = '#d97706'; // amber
+                badgeColor = '#f59e0b'; // amber
               } else if (node.category === 'COMPUTE') {
-                badgeColor = '#0284c7'; // sky
+                badgeColor = '#06b6d4'; // cyan
               } else if (node.category === 'EDGE') {
-                badgeColor = '#475569'; // slate
+                badgeColor = '#64748b'; // slate
               }
 
               return (
@@ -569,8 +587,8 @@ export function ArchitectureWhiteboard({
                       height="58"
                       rx="10"
                       fill="none"
-                      stroke="#1e3a8a"
-                      strokeWidth="2.5"
+                      stroke="#a3e635"
+                      strokeWidth="2"
                     />
                   )}
 
@@ -580,9 +598,9 @@ export function ArchitectureWhiteboard({
                     height="50"
                     rx="8"
                     fill={bgFill}
-                    stroke={isSelected ? '#1e3a8a' : '#cbd5e1'}
+                    stroke={isSelected ? '#a3e635' : 'rgba(255,255,255,0.15)'}
                     strokeWidth={isSelected ? '2' : '1.2'}
-                    className="shadow-xs filter drop-shadow-xs"
+                    className="shadow-md"
                   />
 
                   {/* Category Accent Stripe */}
@@ -609,7 +627,7 @@ export function ArchitectureWhiteboard({
                     y="27"
                     fontSize="10"
                     fontWeight="bold"
-                    fill="#1e293b"
+                    fill="#f1f5f9"
                     className="select-none"
                   >
                     {node.label.length > 24 ? `${node.label.slice(0, 22)}..` : node.label}
@@ -620,7 +638,7 @@ export function ArchitectureWhiteboard({
                     x="10"
                     y="42"
                     fontSize="8"
-                    fill="#64748b"
+                    fill="#94a3b8"
                     fontFamily="monospace"
                     className="select-none"
                   >
@@ -633,19 +651,19 @@ export function ArchitectureWhiteboard({
           </svg>
 
           {/* Canvas Legend */}
-          <div className="absolute bottom-2 left-3 right-3 flex flex-wrap items-center justify-between gap-2 text-[10px] text-text-muted bg-surface/90 px-3 py-1.5 rounded-lg border border-border">
+          <div className="absolute bottom-2 left-3 right-3 flex flex-wrap items-center justify-between gap-2 text-[10px] text-slate-400 bg-[#0a0f1d]/90 px-3 py-1.5 rounded-lg border border-white/10 backdrop-blur-md">
             <div className="flex items-center gap-3">
               <span className="flex items-center gap-1">
-                <span className="w-2.5 h-0.5 bg-sky-600 inline-block" /> Sync RPC
+                <span className="w-2.5 h-0.5 bg-cyan-400 inline-block" /> Sync RPC
               </span>
               <span className="flex items-center gap-1">
-                <span className="w-2.5 h-0.5 border-t border-dashed border-amber-600 inline-block" /> Async Event
+                <span className="w-2.5 h-0.5 border-t border-dashed border-amber-400 inline-block" /> Async Event
               </span>
               <span className="flex items-center gap-1">
-                <span className="w-2.5 h-0.5 bg-emerald-600 inline-block" /> Cache Lookup
+                <span className="w-2.5 h-0.5 bg-emerald-400 inline-block" /> Cache Lookup
               </span>
               <span className="flex items-center gap-1">
-                <span className="w-2.5 h-0.5 border-t border-dashed border-purple-600 inline-block" /> Replication
+                <span className="w-2.5 h-0.5 border-t border-dashed border-purple-400 inline-block" /> Replication
               </span>
             </div>
             <span>Click any node to inspect parameters</span>
@@ -653,24 +671,24 @@ export function ArchitectureWhiteboard({
         </div>
 
         {/* Right Sidebar: Linter & Node Inspector */}
-        <div className="lg:col-span-4 p-4 space-y-4 bg-surface flex flex-col justify-between overflow-y-auto">
+        <div className="lg:col-span-4 p-4 space-y-4 bg-[#0a0f1d] flex flex-col justify-between overflow-y-auto">
           {/* Selected Node Details */}
           {selectedNode ? (
-            <div className="p-3.5 bg-canvas rounded-xl border border-border space-y-2 text-xs">
-              <div className="flex items-center justify-between border-b border-border pb-2">
-                <span className="font-bold text-text">{selectedNode.label}</span>
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-surface border border-border">
+            <div className="p-3.5 bg-[#060b18] rounded-xl border border-white/10 space-y-2 text-xs">
+              <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                <span className="font-bold text-slate-200">{selectedNode.label}</span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-white/5 border border-white/10 text-slate-300">
                   {selectedNode.category}
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-2 text-[11px]">
                 <div>
-                  <span className="text-text-muted block">Instances:</span>
-                  <span className="font-mono font-bold text-text">{selectedNode.instances}x</span>
+                  <span className="text-slate-400 block">Instances:</span>
+                  <span className="font-mono font-bold text-lime-400">{selectedNode.instances}x</span>
                 </div>
                 <div>
-                  <span className="text-text-muted block">Estimated SLA:</span>
-                  <span className="font-mono font-bold text-text">
+                  <span className="text-slate-400 block">Estimated SLA:</span>
+                  <span className="font-mono font-bold text-cyan-400">
                     {selectedNode.slaMs ? `${selectedNode.slaMs}ms` : 'N/A'}
                   </span>
                 </div>
@@ -685,32 +703,32 @@ export function ArchitectureWhiteboard({
                       )
                     )
                   }
-                  className="px-2 py-1 rounded bg-surface border border-border text-[10px] font-semibold hover:text-text"
+                  className="px-2 py-1 rounded bg-white/5 border border-white/10 text-[10px] font-semibold text-slate-300 hover:text-white hover:bg-white/10"
                 >
                   + Add Instance
                 </button>
                 <button
                   type="button"
                   onClick={() => handleRemoveNode(selectedNode.id)}
-                  className="text-[10px] text-rose-600 hover:underline font-semibold"
+                  className="text-[10px] text-rose-400 hover:underline font-semibold"
                 >
                   Remove Node
                 </button>
               </div>
             </div>
           ) : (
-            <div className="p-3 bg-canvas/50 rounded-xl border border-border text-center text-xs text-text-muted">
+            <div className="p-3 bg-white/5 rounded-xl border border-white/10 text-center text-xs text-slate-400">
               Select any node on the whiteboard canvas to inspect instance count, SLAs, and routing.
             </div>
           )}
 
           {/* Architectural Linter Findings */}
           <div className="space-y-2 text-xs">
-            <div className="flex items-center justify-between font-bold text-text">
-              <span className="uppercase tracking-wider text-[11px]">Resilience Linter</span>
+            <div className="flex items-center justify-between font-bold text-slate-200">
+              <span className="uppercase tracking-wider text-[11px] font-mono">Resilience Linter</span>
               <span
                 className={`font-mono font-extrabold ${
-                  linter.score >= 85 ? 'text-emerald-700' : 'text-amber-700'
+                  linter.score >= 85 ? 'text-lime-400' : 'text-amber-400'
                 }`}
               >
                 {linter.score}/100
@@ -723,14 +741,23 @@ export function ArchitectureWhiteboard({
                   key={i}
                   className={`p-2 rounded-lg border text-[11px] leading-relaxed ${
                     f.type === 'STRENGTH'
-                      ? 'bg-emerald-50/50 border-emerald-200 text-emerald-900 dark:text-emerald-300'
+                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
                       : f.type === 'VULNERABILITY'
-                      ? 'bg-rose-50/50 border-rose-200 text-rose-900 dark:text-rose-300'
-                      : 'bg-amber-50/50 border-amber-200 text-amber-900 dark:text-amber-300'
+                      ? 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+                      : 'bg-amber-500/10 border-amber-500/30 text-amber-300'
                   }`}
                 >
-                  <span className="font-bold mr-1">
-                    {f.type === 'STRENGTH' ? '✓' : f.type === 'VULNERABILITY' ? '⚠️ SPOF:' : '⚡'}
+                  <span className="font-bold mr-1 inline-flex items-center">
+                    {f.type === 'STRENGTH' ? (
+                      <CheckCircle2 className="w-3 h-3 text-emerald-400 inline mr-1" />
+                    ) : f.type === 'VULNERABILITY' ? (
+                      <>
+                        <AlertTriangle className="w-3 h-3 text-rose-400 inline mr-1" />
+                        <span>SPOF:</span>
+                      </>
+                    ) : (
+                      <Zap className="w-3 h-3 text-amber-400 inline mr-1" />
+                    )}
                   </span>
                   {f.message}
                 </div>
@@ -739,14 +766,24 @@ export function ArchitectureWhiteboard({
           </div>
 
           {/* Bottom Export CTA */}
-          <div className="pt-2 border-t border-border">
+          <div className="pt-2 border-t border-white/10">
             <Button
               variant="primary"
               size="sm"
               onClick={handleExport}
-              className="w-full text-xs font-semibold"
+              className="w-full text-xs font-semibold flex items-center justify-center gap-1.5 bg-lime-400 hover:bg-lime-300 text-black shadow-[0_0_15px_rgba(163,230,53,0.3)]"
             >
-              {isCopied ? '✓ Injected into Answer!' : '📥 Export Architecture to Answer'}
+              {isCopied ? (
+                <>
+                  <Check className="w-3.5 h-3.5" />
+                  <span>Injected into Answer!</span>
+                </>
+              ) : (
+                <>
+                  <FileDown className="w-3.5 h-3.5" />
+                  <span>Export Architecture to Answer</span>
+                </>
+              )}
             </Button>
           </div>
         </div>

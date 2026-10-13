@@ -10,11 +10,16 @@ export const Card: React.FC<CardProps> = ({
   children,
   ...props
 }) => {
+  const hasBg = /\bbg-/.test(className);
+  const hasBorder = /\bborder(\s|$|-)/.test(className);
+  const bgClass = hasBg ? '' : 'bg-surface';
+  const borderClass = hasBorder ? '' : 'border border-border';
+
   return (
     <div
-      className={`bg-surface border border-border rounded-lg ${
-        elevated ? 'shadow-md' : 'shadow-xs'
-      } ${className}`}
+      className={`${bgClass} ${borderClass} rounded-2xl backdrop-blur-xl transition-all duration-200 ${
+        elevated ? 'shadow-md border-white/15' : 'shadow-xs'
+      } ${className}`.trim()}
       {...props}
     >
       {children}
@@ -41,7 +46,7 @@ export const CardTitle: React.FC<React.HTMLAttributes<HTMLHeadingElement>> = ({
 }) => {
   return (
     <h3
-      className={`text-xl font-bold tracking-tight text-primary-900 ${className}`}
+      className={`text-xl font-bold tracking-tight text-white ${className}`}
       {...props}
     >
       {children}
@@ -68,7 +73,7 @@ export const CardFooter: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
 }) => {
   return (
     <div
-      className={`p-6 border-t border-border bg-neutral-50/50 rounded-b-lg flex items-center justify-between ${className}`}
+      className={`p-6 border-t border-border bg-white/[0.02] rounded-b-2xl flex items-center justify-between ${className}`}
       {...props}
     >
       {children}

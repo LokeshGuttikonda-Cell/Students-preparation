@@ -10,12 +10,13 @@ import {
   type CurriculumArticle,
   type CurriculumArticleSummary,
 } from '../../../../lib/curriculum-client';
-import { Card, CardContent } from '../../../../components/ui/Card';
 import { Button } from '../../../../components/ui/Button';
+import { Terminal, Copy, Check, Sparkles, AlertTriangle, CheckCircle2, XCircle, Clock } from 'lucide-react';
 
 export default function CurriculumArticleDetailPage() {
   const routeParams = useParams<{ slug: string }>();
-  const slug = routeParams?.slug || '';
+  const rawSlug = routeParams?.slug || '';
+  const slug = decodeURIComponent(rawSlug).trim();
   const [article, setArticle] = useState<CurriculumArticle | null>(null);
   const [adjacent, setAdjacent] = useState<{
     prev: CurriculumArticleSummary | null;
@@ -44,6 +45,7 @@ export default function CurriculumArticleDetailPage() {
 
   useEffect(() => {
     async function load() {
+      if (!slug) return;
       try {
         setLoading(true);
         const [art, adj] = await Promise.all([
@@ -52,6 +54,8 @@ export default function CurriculumArticleDetailPage() {
         ]);
         setArticle(art);
         setAdjacent(adj);
+      } catch (err) {
+        console.error('Failed to load curriculum guide:', err);
       } finally {
         setLoading(false);
       }
@@ -75,32 +79,34 @@ export default function CurriculumArticleDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-dvh bg-canvas py-16 flex flex-col items-center justify-center space-y-3">
-        <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-primary-700 border-t-transparent" />
-        <p className="text-sm text-text-muted">Loading technical documentation...</p>
+      <div className="min-h-dvh bg-[#040711] text-white py-16 flex flex-col items-center justify-center space-y-3">
+        <div className="w-8 h-8 border-2 border-lime-400 border-t-transparent rounded-full animate-spin" />
+        <p className="text-xs font-mono uppercase tracking-wider text-slate-400">Loading technical documentation...</p>
       </div>
     );
   }
 
   if (!article) {
     return (
-      <div className="min-h-dvh bg-canvas py-16 px-4 text-center space-y-4">
-        <h1 className="text-2xl font-bold text-text">Guide Not Found</h1>
-        <p className="text-sm text-text-muted">
-          The requested technical documentation article could not be located.
-        </p>
-        <Link href={'/curriculum' as Route}>
-          <Button variant="primary">Return to Knowledge Hub</Button>
-        </Link>
+      <div className="min-h-dvh bg-[#040711] text-white py-16 px-4 text-center space-y-4">
+        <div className="bento-tile p-8 max-w-md mx-auto space-y-4 border-rose-500/30">
+          <h1 className="text-2xl font-display font-bold text-white">Guide Not Found</h1>
+          <p className="text-xs font-mono text-slate-400">
+            The requested technical documentation article could not be located.
+          </p>
+          <Link href={'/curriculum' as Route}>
+            <Button variant="primary">Return to Knowledge Hub</Button>
+          </Link>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-dvh bg-canvas py-8 px-4 sm:px-6 lg:px-8 relative">
+    <div className="min-h-dvh bg-[#040711] text-white selection:bg-lime-400 selection:text-black py-8 px-4 sm:px-6 lg:px-8 relative overflow-x-hidden font-sans">
       {/* Reading Progress Indicator */}
       <div
-        className="fixed top-0 left-0 h-1 bg-primary-700 z-50 transition-all duration-100"
+        className="fixed top-0 left-0 h-1 bg-lime-400 z-50 transition-all duration-100 shadow-sm shadow-lime-400/50"
         style={{ width: `${scrollPercent}%` }}
         role="progressbar"
         aria-valuenow={scrollPercent}
@@ -109,55 +115,56 @@ export default function CurriculumArticleDetailPage() {
       />
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Breadcrumbs */}
-        <div className="flex items-center gap-2 text-xs text-text-muted">
-          <Link href={'/curriculum' as Route} className="hover:text-primary-800 transition-colors">
+        <div className="flex items-center gap-2 text-xs font-mono text-slate-400">
+          <Link href={'/curriculum' as Route} className="hover:text-lime-400 transition-colors">
             Knowledge Hub
           </Link>
-          <span>/</span>
-          <span className="font-semibold text-text">{article.domainName}</span>
-          <span>/</span>
-          <span className="text-text-subtle truncate max-w-xs">{article.title}</span>
+          <span className="text-white/20">/</span>
+          <span className="font-semibold text-white">{article.domainName}</span>
+          <span className="text-white/20">/</span>
+          <span className="text-slate-400 truncate max-w-xs">{article.title}</span>
         </div>
 
         {/* Header Title Section */}
-        <div className="bg-surface p-6 sm:p-8 rounded-2xl border border-border shadow-xs space-y-4">
+        <div className="bento-tile p-6 sm:p-8 space-y-4 border-white/10 relative overflow-hidden">
           <div className="flex flex-wrap items-center gap-2.5">
-            <span className="text-xs font-bold uppercase tracking-wider text-accent-700 bg-accent-50 px-2.5 py-0.5 rounded border border-accent-200">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-lime-400 bg-lime-400/10 px-2.5 py-0.5 rounded border border-lime-400/20">
               {article.domainName}
             </span>
-            <span className="text-xs text-text-muted">
-              ⏱️ {article.readTimeMinutes} min deep read
+            <span className="text-xs font-mono text-slate-400 inline-flex items-center gap-1">
+              <Clock className="w-3.5 h-3.5 text-lime-400" />
+              <span>{article.readTimeMinutes} min deep read</span>
             </span>
-            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-primary-50 text-primary-800 border border-primary-200">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-white/5 text-slate-300 border border-white/10">
               {article.level} Level
             </span>
           </div>
 
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-primary-900 tracking-tight leading-snug">
+          <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-white tracking-tight leading-snug">
             {article.title}
           </h1>
 
-          <p className="text-sm text-text-muted leading-relaxed">
+          <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-sans">
             {article.summary}
           </p>
 
           {/* Prerequisites & Key Concepts */}
-          <div className="pt-4 border-t border-border grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+          <div className="pt-4 border-t border-white/10 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-mono">
             <div>
-              <span className="font-bold text-text block mb-1">Prerequisites:</span>
-              <ul className="list-disc list-inside text-text-muted space-y-0.5">
+              <span className="font-bold text-white block mb-1">Prerequisites:</span>
+              <ul className="list-disc list-inside text-slate-400 space-y-0.5 font-sans">
                 {article.prerequisites.map((prereq, idx) => (
                   <li key={idx}>{prereq}</li>
                 ))}
               </ul>
             </div>
             <div>
-              <span className="font-bold text-text block mb-1">Core Concepts:</span>
+              <span className="font-bold text-white block mb-1">Core Concepts:</span>
               <div className="flex flex-wrap gap-1">
                 {article.keyConcepts.map((concept, idx) => (
                   <span
                     key={idx}
-                    className="bg-canvas px-2 py-0.5 rounded text-text-subtle border border-border"
+                    className="bg-white/5 px-2 py-0.5 rounded text-slate-300 border border-white/10"
                   >
                     #{concept}
                   </span>
@@ -168,47 +175,48 @@ export default function CurriculumArticleDetailPage() {
         </div>
 
         {/* Section Quick Jump Bar */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs border-b border-border">
-          <span className="font-semibold text-text-muted shrink-0">Jump to:</span>
-          <a href="#overview" className="px-2.5 py-1 rounded-md bg-surface hover:bg-surface-hover text-text border border-border transition-colors whitespace-nowrap">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs border-b border-white/10 font-mono">
+          <span className="font-semibold text-slate-400 shrink-0">Jump to:</span>
+          <a href="#overview" className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 transition-colors whitespace-nowrap">
             1. Overview
           </a>
-          <a href="#theory" className="px-2.5 py-1 rounded-md bg-surface hover:bg-surface-hover text-text border border-border transition-colors whitespace-nowrap">
+          <a href="#theory" className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 transition-colors whitespace-nowrap">
             2. Theory &amp; Code
           </a>
-          <a href="#anti-patterns" className="px-2.5 py-1 rounded-md bg-surface hover:bg-surface-hover text-text border border-border transition-colors whitespace-nowrap">
+          <a href="#anti-patterns" className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 transition-colors whitespace-nowrap">
             3. Anti-Patterns
           </a>
-          <a href="#verification" className="px-2.5 py-1 rounded-md bg-surface hover:bg-surface-hover text-text border border-border transition-colors whitespace-nowrap">
+          <a href="#verification" className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 transition-colors whitespace-nowrap">
             4. Concept MCQs
           </a>
-          <a href="#labs" className="px-2.5 py-1 rounded-md bg-primary-50 text-primary-800 border border-primary-200 hover:bg-primary-100 transition-colors whitespace-nowrap font-medium">
-            ⚡ Applied Labs
+          <a href="#labs" className="px-2.5 py-1 rounded-lg bg-lime-400/10 text-lime-400 border border-lime-400/30 hover:bg-lime-400/20 transition-colors whitespace-nowrap font-bold flex items-center gap-1">
+            <Terminal className="w-3.5 h-3.5 text-lime-400" />
+            <span>Applied Labs</span>
           </a>
         </div>
 
         {/* Overview */}
         <div id="overview" className="space-y-3 scroll-mt-6">
-          <h2 className="text-xl font-bold text-primary-900">1. Executive Overview</h2>
-          <div className="bg-surface p-6 rounded-xl border border-border text-sm text-text leading-relaxed whitespace-pre-line">
+          <h2 className="text-xl font-display font-bold text-white">1. Executive Overview</h2>
+          <div className="bento-tile p-6 text-sm text-slate-200 leading-relaxed whitespace-pre-line border-white/10 font-sans">
             {article.overview}
           </div>
         </div>
 
         {/* Theory & Implementation Sections */}
         <div id="theory" className="space-y-6 scroll-mt-6">
-          <h2 className="text-xl font-bold text-primary-900">2. Technical Invariants &amp; Architectural Theory</h2>
+          <h2 className="text-xl font-display font-bold text-white">2. Technical Invariants &amp; Architectural Theory</h2>
           {article.theorySections.map((sec, idx) => (
-            <div key={idx} className="bg-surface p-6 rounded-xl border border-border space-y-4">
-              <h3 className="text-base font-bold text-text">{sec.heading}</h3>
-              <p className="text-sm text-text leading-relaxed whitespace-pre-line">
+            <div key={idx} className="bento-tile p-6 space-y-4 border-white/10">
+              <h3 className="text-base font-display font-bold text-white">{sec.heading}</h3>
+              <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-line font-sans">
                 {sec.content}
               </p>
 
               {sec.codeSnippet && (
                 <div className="space-y-2 pt-2">
-                  <div className="flex items-center justify-between text-xs text-text-muted px-1">
-                    <span className="font-mono uppercase font-bold text-primary-800">
+                  <div className="flex items-center justify-between text-xs font-mono text-slate-400 px-1">
+                    <span className="uppercase font-bold text-lime-400">
                       {sec.codeSnippet.language}
                     </span>
                     <div className="flex items-center gap-2">
@@ -216,17 +224,28 @@ export default function CurriculumArticleDetailPage() {
                       <button
                         type="button"
                         onClick={() => handleCopy(sec.codeSnippet!.code, idx)}
-                        className="px-2 py-0.5 text-[11px] rounded bg-surface hover:bg-surface-hover text-text border border-border transition-colors cursor-pointer"
+                        className="px-2 py-0.5 text-[11px] rounded bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 transition-colors cursor-pointer flex items-center gap-1"
                       >
-                        {copiedSnippetIdx === idx ? '✓ Copied' : '📋 Copy'}
+                        {copiedSnippetIdx === idx ? (
+                          <>
+                            <Check className="w-3 h-3 text-emerald-400" />
+                            <span>Copied</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3 h-3 text-slate-400" />
+                            <span>Copy</span>
+                          </>
+                        )}
                       </button>
                     </div>
                   </div>
-                  <pre className="p-4 rounded-lg bg-neutral-900 text-neutral-100 font-mono text-xs overflow-x-auto leading-relaxed border border-neutral-800">
+                  <pre className="p-4 rounded-xl bg-black/80 text-lime-300 font-mono text-xs overflow-x-auto leading-relaxed border border-white/10 shadow-inner">
                     <code>{sec.codeSnippet.code}</code>
                   </pre>
-                  <p className="text-xs text-text-muted italic">
-                    💡 {sec.codeSnippet.explanation}
+                  <p className="text-xs text-slate-400 italic flex items-center gap-1.5 font-sans">
+                    <Sparkles className="w-3.5 h-3.5 text-lime-400 shrink-0" />
+                    <span>{sec.codeSnippet.explanation}</span>
                   </p>
                 </div>
               )}
@@ -236,23 +255,23 @@ export default function CurriculumArticleDetailPage() {
 
         {/* Production Traps & Anti-Patterns */}
         <div id="anti-patterns" className="space-y-4 scroll-mt-6">
-          <h2 className="text-xl font-bold text-primary-900">
+          <h2 className="text-xl font-display font-bold text-white">
             3. Production Anti-Patterns &amp; Recruiter Traps
           </h2>
           <div className="space-y-3">
             {article.trapsAndAntiPatterns.map((trap, idx) => (
               <div
                 key={idx}
-                className="p-5 rounded-xl bg-amber-50/60 border border-amber-200 text-amber-950 space-y-2"
+                className="bento-tile p-5 bg-amber-950/20 border-amber-500/30 text-amber-200 space-y-2"
               >
-                <div className="flex items-center gap-2 font-bold text-amber-900 text-sm">
-                  <span>⚠️</span>
+                <div className="flex items-center gap-2 font-display font-bold text-amber-300 text-sm">
+                  <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
                   <span>Trap: {trap.trap}</span>
                 </div>
-                <p className="text-xs text-amber-800 leading-relaxed">
+                <p className="text-xs text-amber-200 leading-relaxed font-sans">
                   <strong>Misconception:</strong> {trap.misconception}
                 </p>
-                <p className="text-xs text-emerald-900 bg-emerald-100/70 p-2.5 rounded border border-emerald-200 font-medium">
+                <p className="text-xs text-emerald-300 bg-emerald-950/40 p-2.5 rounded-lg border border-emerald-500/30 font-medium font-sans">
                   <strong>Architectural Remedy:</strong> {trap.correction}
                 </p>
               </div>
@@ -263,16 +282,16 @@ export default function CurriculumArticleDetailPage() {
         {/* Interactive Practice MCQs */}
         <div id="verification" className="space-y-4 scroll-mt-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-primary-900">
+            <h2 className="text-xl font-display font-bold text-white">
               4. Socratic Concept Verification (MCQs)
             </h2>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 font-mono">
               {Object.keys(selectedAnswers).length > 0 && (
-                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-200">
+                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
                   {article.practiceMcqs.filter((q) => selectedAnswers[q.id] === q.correctIndex).length} / {article.practiceMcqs.length} Correct
                 </span>
               )}
-              <span className="text-xs text-text-muted">
+              <span className="text-xs text-slate-400">
                 {article.practiceMcqs.length} Calibrated Questions
               </span>
             </div>
@@ -285,27 +304,27 @@ export default function CurriculumArticleDetailPage() {
               const isCorrect = selectedOpt === mcq.correctIndex;
 
               return (
-                <Card key={mcq.id} className="p-5 sm:p-6 border-border shadow-xs space-y-4 bg-surface">
+                <div key={mcq.id} className="bento-tile p-5 sm:p-6 border-white/10 space-y-4">
                   <div className="flex items-start justify-between gap-3">
-                    <span className="font-semibold text-sm text-text">
+                    <span className="font-semibold text-sm text-white font-sans">
                       Q{qIdx + 1}. {mcq.question}
                     </span>
                   </div>
 
-                  <CardContent className="p-0 space-y-3">
+                  <div className="space-y-3">
                     <div className="space-y-2">
                       {mcq.options.map((opt, optIdx) => {
                         let optStyle =
-                          'bg-canvas border-border text-text hover:bg-surface-hover hover:border-border-hover';
+                          'bg-white/5 border-white/10 text-slate-200 hover:bg-white/10 hover:border-lime-400/40';
 
                         if (isAnswered) {
                           if (optIdx === mcq.correctIndex) {
                             optStyle =
-                              'bg-emerald-50 border-emerald-500 text-emerald-900 font-medium shadow-xs';
+                              'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 font-medium shadow-xs';
                           } else if (optIdx === selectedOpt && !isCorrect) {
-                            optStyle = 'bg-error-50 border-error-500 text-error-900 font-medium';
+                            optStyle = 'bg-rose-500/15 border-rose-500/40 text-rose-300 font-medium';
                           } else {
-                            optStyle = 'bg-canvas border-border text-text-muted opacity-60';
+                            optStyle = 'bg-white/[0.02] border-white/5 text-slate-500 opacity-60';
                           }
                         }
 
@@ -313,7 +332,7 @@ export default function CurriculumArticleDetailPage() {
                           <div
                             key={optIdx}
                             onClick={() => handleSelectOption(mcq.id, optIdx)}
-                            className={`p-3 rounded-lg border text-xs flex items-center justify-between transition-all cursor-pointer ${optStyle}`}
+                            className={`p-3 rounded-xl border text-xs flex items-center justify-between transition-all cursor-pointer font-sans ${optStyle}`}
                           >
                             <span>
                               <strong className="mr-2 font-mono">
@@ -322,12 +341,18 @@ export default function CurriculumArticleDetailPage() {
                               {opt}
                             </span>
                             {isAnswered && optIdx === mcq.correctIndex && (
-                              <span className="text-emerald-700 font-bold">✓ Correct</span>
+                              <span className="text-emerald-400 font-mono font-bold flex items-center gap-1">
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                <span>Correct</span>
+                              </span>
                             )}
                             {isAnswered &&
                               optIdx === selectedOpt &&
                               !isCorrect && (
-                                <span className="text-error-700 font-bold">✗ Incorrect</span>
+                                <span className="text-rose-400 font-mono font-bold flex items-center gap-1">
+                                  <XCircle className="w-3.5 h-3.5" />
+                                  <span>Incorrect</span>
+                                </span>
                               )}
                           </div>
                         );
@@ -337,20 +362,20 @@ export default function CurriculumArticleDetailPage() {
                     {/* Explanation */}
                     {showExplanations[mcq.id] && (
                       <div
-                        className={`p-4 rounded-lg text-xs leading-relaxed border ${
+                        className={`p-4 rounded-xl text-xs leading-relaxed border ${
                           isCorrect
-                            ? 'bg-emerald-50/70 border-emerald-200 text-emerald-950'
-                            : 'bg-neutral-50 border-border text-text'
+                            ? 'bg-emerald-950/30 border-emerald-500/30 text-emerald-200'
+                            : 'bg-white/5 border-white/10 text-slate-200'
                         }`}
                       >
-                        <strong className="block font-bold mb-1">
-                          {isCorrect ? '🎉 Correct Rationale:' : '💡 Detailed Rationale:'}
+                        <strong className="block font-mono font-bold mb-1">
+                          {isCorrect ? 'Correct Architectural Rationale:' : 'Detailed Architectural Rationale:'}
                         </strong>
-                        {mcq.explanation}
+                        <p className="font-sans leading-relaxed">{mcq.explanation}</p>
                       </div>
                     )}
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               );
             })}
           </div>
@@ -413,13 +438,13 @@ export default function CurriculumArticleDetailPage() {
           const studio = getDomainStudioInfo(article.domainSlug);
 
           return (
-            <div id="labs" className="bg-gradient-to-br from-primary-900 to-primary-950 text-white p-6 sm:p-8 rounded-2xl shadow-lg flex flex-col sm:flex-row items-center justify-between gap-6 scroll-mt-6">
+            <div id="labs" className="bento-tile border-lime-500/30 bg-gradient-to-br from-[#071324] via-[#091b34] to-[#040915] text-white p-6 sm:p-8 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-6 scroll-mt-6 featured-glow">
               <div className="space-y-1 text-center sm:text-left">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-accent-400">
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-lime-400">
                   Interactive Laboratory Experience
                 </span>
-                <h3 className="text-lg font-bold">Apply this knowledge in {studio.title}</h3>
-                <p className="text-xs text-primary-200 max-w-xl leading-relaxed">
+                <h3 className="text-lg font-display font-bold">Apply this knowledge in {studio.title}</h3>
+                <p className="text-xs text-slate-300 max-w-xl leading-relaxed font-sans">
                   {studio.description}
                 </p>
               </div>
@@ -428,7 +453,7 @@ export default function CurriculumArticleDetailPage() {
                   <Button
                     variant="secondary"
                     size="sm"
-                    className="bg-white text-primary-900 hover:bg-neutral-100 font-bold"
+                    className="font-bold"
                   >
                     Launch {studio.title} &rarr;
                   </Button>
@@ -437,7 +462,7 @@ export default function CurriculumArticleDetailPage() {
                   <Button
                     variant="primary"
                     size="sm"
-                    className="bg-accent-600 hover:bg-accent-700 text-white font-bold border-none"
+                    className="font-bold shadow-lg shadow-lime-400/20"
                   >
                     Practice Topic MCQs &rarr;
                   </Button>
@@ -452,20 +477,20 @@ export default function CurriculumArticleDetailPage() {
           {adjacent.prev ? (
             <Link
               href={`/curriculum/${adjacent.prev.slug}` as Route}
-              className="group p-4 rounded-xl border border-border bg-surface hover:border-primary-400 hover:shadow-xs transition-all space-y-1 block"
+              className="group p-4 rounded-xl bento-tile border-white/10 hover:border-lime-400/30 transition-all space-y-1 block"
             >
-              <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider flex items-center gap-1 group-hover:text-primary-700">
+              <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1 group-hover:text-lime-400">
                 &larr; Previous Guide
               </span>
-              <div className="text-sm font-bold text-text group-hover:text-primary-800 line-clamp-1">
+              <div className="text-sm font-display font-bold text-white group-hover:text-lime-300 line-clamp-1">
                 {adjacent.prev.title}
               </div>
-              <div className="text-xs text-text-muted">
+              <div className="text-xs font-mono text-slate-400">
                 {adjacent.prev.domainName} &bull; {adjacent.prev.readTimeMinutes} min
               </div>
             </Link>
           ) : (
-            <div className="p-4 rounded-xl border border-dashed border-border bg-surface-muted/50 text-text-muted text-xs flex items-center">
+            <div className="p-4 rounded-xl border border-dashed border-white/10 bg-white/[0.02] text-slate-500 text-xs font-mono flex items-center">
               <span>First guide in the technical knowledge series</span>
             </div>
           )}
@@ -473,27 +498,27 @@ export default function CurriculumArticleDetailPage() {
           {adjacent.next ? (
             <Link
               href={`/curriculum/${adjacent.next.slug}` as Route}
-              className="group p-4 rounded-xl border border-border bg-surface hover:border-primary-400 hover:shadow-xs transition-all space-y-1 text-right block"
+              className="group p-4 rounded-xl bento-tile border-white/10 hover:border-lime-400/30 transition-all space-y-1 text-right block"
             >
-              <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider flex items-center justify-end gap-1 group-hover:text-primary-700">
+              <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider flex items-center justify-end gap-1 group-hover:text-lime-400">
                 Next Guide &rarr;
               </span>
-              <div className="text-sm font-bold text-text group-hover:text-primary-800 line-clamp-1">
+              <div className="text-sm font-display font-bold text-white group-hover:text-lime-300 line-clamp-1">
                 {adjacent.next.title}
               </div>
-              <div className="text-xs text-text-muted">
+              <div className="text-xs font-mono text-slate-400">
                 {adjacent.next.domainName} &bull; {adjacent.next.readTimeMinutes} min
               </div>
             </Link>
           ) : (
             <Link
               href="/sandbox"
-              className="group p-4 rounded-xl border border-primary-200 bg-primary-50/50 hover:bg-primary-50 transition-all space-y-1 text-right block"
+              className="group p-4 rounded-xl bento-tile border-lime-500/30 bg-lime-400/5 hover:bg-lime-400/10 transition-all space-y-1 text-right block"
             >
-              <span className="text-[11px] font-bold text-primary-800 uppercase tracking-wider flex items-center justify-end gap-1">
+              <span className="text-[10px] font-mono font-bold text-lime-400 uppercase tracking-wider flex items-center justify-end gap-1">
                 Curriculum Complete &rarr;
               </span>
-              <div className="text-sm font-bold text-primary-900">
+              <div className="text-sm font-display font-bold text-white">
                 Explore Applied Labs in Sandbox
               </div>
             </Link>
@@ -501,11 +526,11 @@ export default function CurriculumArticleDetailPage() {
         </div>
 
         {/* Footer Navigation */}
-        <div className="pt-4 border-t border-border flex items-center justify-between text-xs text-text-muted">
-          <Link href={'/curriculum' as Route} className="hover:text-primary-800 transition-colors">
+        <div className="pt-4 border-t border-white/10 flex items-center justify-between text-xs font-mono text-slate-400">
+          <Link href={'/curriculum' as Route} className="hover:text-white transition-colors">
             &larr; Back to Knowledge Hub
           </Link>
-          <Link href="/courses" className="text-primary-800 font-semibold hover:underline">
+          <Link href="/courses" className="text-lime-400 font-semibold hover:underline">
             Explore Full Structured Courses &rarr;
           </Link>
         </div>

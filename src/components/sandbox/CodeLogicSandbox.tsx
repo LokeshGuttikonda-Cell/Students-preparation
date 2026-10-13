@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   runCodeLogic,
   type CodeTestCase,
@@ -10,6 +10,7 @@ import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 
 export interface CodeLogicSandboxProps {
+  challengeId?: string;
   initialCode?: string;
   functionName?: string;
   testCases?: CodeTestCase[];
@@ -49,6 +50,7 @@ const DEFAULT_TEST_CASES: CodeTestCase[] = [
 ];
 
 export function CodeLogicSandbox({
+  challengeId,
   initialCode = DEFAULT_CODE,
   functionName = 'findTargetSum',
   testCases = DEFAULT_TEST_CASES,
@@ -56,10 +58,60 @@ export function CodeLogicSandbox({
   problemDescription = 'Implement and test your algorithmic logic against deterministic unit test cases.',
   onSuccess,
 }: CodeLogicSandboxProps) {
-  const [code, setCode] = useState(initialCode);
+  const storageKey = challengeId
+    ? `studentsprep_code_${challengeId}`
+    : `studentsprep_code_${functionName}`;
+
+  const [code, setCode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(storageKey);
+        if (saved !== null) return saved;
+      } catch {}
+    }
+    return initialCode;
+  });
+
   const [isRunning, setIsRunning] = useState(false);
   const [result, setResult] = useState<CodeExecutionResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(storageKey);
+        if (saved !== null) {
+          setCode(saved);
+          setResult(null);
+          setErrorMessage(null);
+          return;
+        }
+      } catch {}
+    }
+    setCode(initialCode);
+    setResult(null);
+    setErrorMessage(null);
+  }, [initialCode, storageKey]);
+
+  const handleCodeChange = (val: string) => {
+    setCode(val);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(storageKey, val);
+      } catch {}
+    }
+  };
+
+  const handleReset = () => {
+    setCode(initialCode);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem(storageKey);
+      } catch {}
+    }
+    setResult(null);
+    setErrorMessage(null);
+  };
 
   const handleRun = async () => {
     if (!code.trim()) return;
@@ -110,7 +162,7 @@ export function CodeLogicSandbox({
           <textarea
             id="code-editor"
             value={code}
-            onChange={(e) => setCode(e.target.value)}
+            onChange={(e) => handleCodeChange(e.target.value)}
             rows={8}
             className="w-full p-4 font-mono text-sm bg-canvas text-text resize-y focus:outline-hidden leading-relaxed"
             placeholder="Write your function implementation here..."
@@ -121,16 +173,29 @@ export function CodeLogicSandbox({
 
       {/* Controls & Runner Status */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Button
-          type="button"
-          onClick={handleRun}
-          disabled={isRunning || !code.trim()}
-          variant="primary"
-          size="md"
-          className="min-h-[44px]"
-        >
-          {isRunning ? 'Evaluating Test Cases...' : 'Run Code Logic →'}
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button
+            type="button"
+            onClick={handleRun}
+            disabled={isRunning || !code.trim()}
+            variant="primary"
+            size="md"
+            className="min-h-[44px]"
+          >
+            {isRunning ? 'Evaluating Test Cases...' : 'Run Code Logic →'}
+          </Button>
+
+          <Button
+            type="button"
+            onClick={handleReset}
+            disabled={isRunning || code === initialCode}
+            variant="ghost"
+            size="md"
+            className="min-h-[44px] text-xs text-text-muted hover:text-text cursor-pointer"
+          >
+            ↺ Reset Code
+          </Button>
+        </div>
 
         {result && (
           <div className="flex items-center gap-2">

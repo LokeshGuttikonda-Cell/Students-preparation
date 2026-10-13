@@ -46,6 +46,15 @@ export default function MockTestRunnerPage() {
 
       setData(res);
 
+      // Check for locally cached answers in case of offline drop or accidental page refresh
+      let cachedBackup: Record<string, { selectedOptionId: string | null; isMarkedForReview: boolean }> = {};
+      if (typeof window !== 'undefined') {
+        try {
+          const raw = localStorage.getItem(`studentsprep_mocktest_backup_${testId}`);
+          if (raw) cachedBackup = JSON.parse(raw);
+        } catch {}
+      }
+
       const map = new Map<
         string,
         { selectedOptionId: string | null; isMarkedForReview: boolean }
@@ -56,6 +65,15 @@ export default function MockTestRunnerPage() {
           isMarkedForReview: ans.isMarkedForReview,
         });
       });
+
+      // Merge cached backup if candidate selected choices prior to network loss/refresh
+      Object.entries(cachedBackup).forEach(([qId, val]) => {
+        const existing = map.get(qId);
+        if (!existing || (!existing.selectedOptionId && val.selectedOptionId)) {
+          map.set(qId, val);
+        }
+      });
+
       setAnswersMap(map);
       setIsLoading(false);
       questionStartTimeRef.current = Date.now();
@@ -72,6 +90,20 @@ export default function MockTestRunnerPage() {
   const currentQuestion = data?.questions[currentIndex];
   const currentAnswer = currentQuestion ? answersMap.get(currentQuestion.id) : undefined;
 
+  const persistBackup = useCallback(
+    (map: Map<string, { selectedOptionId: string | null; isMarkedForReview: boolean }>) => {
+      if (typeof window === 'undefined') return;
+      try {
+        const obj: Record<string, { selectedOptionId: string | null; isMarkedForReview: boolean }> = {};
+        map.forEach((v, k) => {
+          obj[k] = v;
+        });
+        localStorage.setItem(`studentsprep_mocktest_backup_${testId}`, JSON.stringify(obj));
+      } catch {}
+    },
+    [testId],
+  );
+
   const handleSelectOption = useCallback(
     async (optionId: string) => {
       if (!data || !currentQuestion || isSubmitting) return;
@@ -87,6 +119,7 @@ export default function MockTestRunnerPage() {
         isMarkedForReview: isMarked,
       });
       setAnswersMap(updatedMap);
+      persistBackup(updatedMap);
 
       try {
         await saveMockTestAnswer(data.attempt.id, currentQuestion.id, {
@@ -98,7 +131,7 @@ export default function MockTestRunnerPage() {
         setError(err instanceof Error ? err.message : 'Could not save answer');
       }
     },
-    [data, currentQuestion, isSubmitting, currentAnswer, answersMap],
+    [data, currentQuestion, isSubmitting, currentAnswer, answersMap, persistBackup],
   );
 
   const handleToggleMarkForReview = useCallback(async () => {
@@ -114,6 +147,7 @@ export default function MockTestRunnerPage() {
       isMarkedForReview: newMarked,
     });
     setAnswersMap(updatedMap);
+    persistBackup(updatedMap);
 
     try {
       await saveMockTestAnswer(data.attempt.id, currentQuestion.id, {
@@ -124,7 +158,7 @@ export default function MockTestRunnerPage() {
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Could not update review status');
     }
-  }, [data, currentQuestion, isSubmitting, currentAnswer, answersMap]);
+  }, [data, currentQuestion, isSubmitting, currentAnswer, answersMap, persistBackup]);
 
   const handleClearResponse = useCallback(async () => {
     if (!data || !currentQuestion || isSubmitting) return;
@@ -136,6 +170,7 @@ export default function MockTestRunnerPage() {
       isMarkedForReview: isMarked,
     });
     setAnswersMap(updatedMap);
+    persistBackup(updatedMap);
 
     try {
       await saveMockTestAnswer(data.attempt.id, currentQuestion.id, {
@@ -146,7 +181,7 @@ export default function MockTestRunnerPage() {
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Could not clear selection');
     }
-  }, [data, currentQuestion, isSubmitting, currentAnswer, answersMap]);
+  }, [data, currentQuestion, isSubmitting, currentAnswer, answersMap, persistBackup]);
 
   const handleNext = useCallback(() => {
     if (!data) return;
@@ -188,6 +223,11 @@ export default function MockTestRunnerPage() {
     try {
       setIsSubmitting(true);
       const scorecard = await submitMockTestSession(data.attempt.id);
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.removeItem(`studentsprep_mocktest_backup_${testId}`);
+        } catch {}
+      }
       router.push(`/mock-tests/${testId}/results/${scorecard.attemptId}`);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Submission failed');
@@ -383,20 +423,20 @@ export default function MockTestRunnerPage() {
   return (
     <div className="min-h-dvh flex flex-col bg-canvas text-text">
       {/* Top Header with Timer and Test Title */}
-      <header className="border-b border-border bg-surface sticky top-0 z-30 shadow-xs">
+      <header className="border-b border-white/10 bg-[#040711]/90 backdrop-blur-xl sticky top-0 z-30 shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <h1 className="text-base sm:text-lg font-bold text-primary-900 truncate max-w-xs sm:max-w-md">
+            <h1 className="text-base sm:text-lg font-bold text-white font-display truncate max-w-xs sm:max-w-md">
               {data.attempt.title}
             </h1>
             {currentSection ? (
-              <span className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-accent-800 bg-accent-50 px-2.5 py-1 rounded border border-accent-200">
+              <span className="hidden sm:inline-flex items-center gap-1.5 text-xs font-mono font-bold text-cyan-300 bg-cyan-400/10 px-2.5 py-1 rounded-xl border border-cyan-400/20">
                 <span>{currentSection.title}</span>
                 <span>•</span>
                 <span>Q {currentIndex + 1} of {data.questions.length}</span>
               </span>
             ) : (
-              <span className="hidden sm:inline-block text-xs font-semibold text-text-muted bg-canvas px-2.5 py-1 rounded border border-border">
+              <span className="hidden sm:inline-block text-xs font-mono font-bold text-slate-400 bg-black/40 px-2.5 py-1 rounded-xl border border-white/10">
                 Q {currentIndex + 1} of {data.questions.length}
               </span>
             )}
@@ -414,6 +454,7 @@ export default function MockTestRunnerPage() {
               variant="primary"
               size="sm"
               onClick={() => setIsModalOpen(true)}
+              className="font-bold text-xs shadow-md shadow-lime-400/20"
             >
               Submit Test
             </Button>
@@ -430,16 +471,16 @@ export default function MockTestRunnerPage() {
             <button
               type="button"
               onClick={() => setIsMobilePaletteOpen(!isMobilePaletteOpen)}
-              className="w-full flex items-center justify-between p-3.5 bg-surface rounded-lg border border-border text-xs font-semibold text-text shadow-xs min-h-[44px]"
+              className="w-full flex items-center justify-between p-3.5 bento-tile text-xs font-mono font-bold text-white shadow-xs min-h-[44px]"
             >
               <span className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-primary-700" />
+                <span className="w-2.5 h-2.5 rounded-full bg-lime-400 animate-pulse" />
                 Question Palette ({answeredCount}/{data.questions.length} answered)
               </span>
-              <span className="text-primary-700">{isMobilePaletteOpen ? 'Hide ▲' : 'Show ▼'}</span>
+              <span className="text-lime-400">{isMobilePaletteOpen ? 'Hide ▲' : 'Show ▼'}</span>
             </button>
             {isMobilePaletteOpen && (
-              <div className="mt-3 bg-surface p-4 rounded-xl border border-border shadow-xs">
+              <div className="mt-3 bento-tile p-4">
                 <QuestionPalette
                   totalQuestions={data.questions.length}
                   currentIndex={currentIndex}
@@ -465,27 +506,27 @@ export default function MockTestRunnerPage() {
             />
           )}
 
-          <div className="bg-surface rounded-xl border border-border p-6 sm:p-8 space-y-6 shadow-xs">
+          <div className="bento-tile p-6 sm:p-8 space-y-6">
             {/* Meta Tags */}
-            <div className="flex items-center justify-between text-xs text-text-muted border-b border-border pb-4">
+            <div className="flex items-center justify-between text-xs font-mono text-slate-400 border-b border-white/10 pb-4">
               <div className="flex items-center gap-2">
-                <span className="font-semibold text-primary-700">
+                <span className="font-bold text-lime-400">
                   {currentQuestion.subjectName}
                 </span>
                 <span>•</span>
                 <span>{currentQuestion.topicName}</span>
               </div>
-              <span className="uppercase font-bold tracking-wider text-[11px] bg-canvas px-2 py-0.5 rounded border border-border">
+              <span className="uppercase font-bold tracking-wider text-[10px] bg-black/50 text-slate-300 px-2.5 py-0.5 rounded-full border border-white/10">
                 {currentQuestion.difficulty}
               </span>
             </div>
 
             {/* Question Statement */}
             <div className="space-y-4">
-              <span className="text-xs font-bold uppercase tracking-wider text-accent-700 tabular">
+              <span className="text-xs font-mono font-bold uppercase tracking-wider text-cyan-400 tabular">
                 Question {currentIndex + 1}
               </span>
-              <p className="text-lg sm:text-xl font-medium text-text leading-relaxed">
+              <p className="text-lg sm:text-xl font-medium text-white leading-relaxed font-sans">
                 {currentQuestion.body}
               </p>
             </div>
@@ -508,20 +549,20 @@ export default function MockTestRunnerPage() {
           </div>
 
           {/* Action Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 bg-surface p-4 rounded-xl border border-border">
+          <div className="flex flex-wrap items-center justify-between gap-3 bento-tile p-4 font-mono">
             <div className="flex items-center gap-2">
               <Button
                 variant="secondary"
                 size="sm"
                 onClick={handleToggleMarkForReview}
-                className={currentAnswer?.isMarkedForReview ? 'border-review text-review ring-1 ring-review' : ''}
+                className={`text-xs ${currentAnswer?.isMarkedForReview ? 'border-review text-purple-300 ring-1 ring-review bg-purple-950/40' : ''}`}
               >
                 <span>
                   {currentAnswer?.isMarkedForReview
                     ? '★ Marked for Review'
                     : '☆ Mark for Review'}
                 </span>
-                <kbd className="hidden sm:inline-block ml-1.5 px-1.5 py-0.5 text-[10px] font-mono bg-canvas border border-border rounded text-text-muted">
+                <kbd className="hidden sm:inline-block ml-1.5 px-1.5 py-0.5 text-[10px] font-mono bg-black/60 border border-white/10 rounded text-slate-400">
                   M
                 </kbd>
               </Button>
@@ -530,10 +571,10 @@ export default function MockTestRunnerPage() {
                   variant="ghost"
                   size="sm"
                   onClick={handleClearResponse}
-                  className="text-text-muted hover:text-error-600"
+                  className="text-slate-400 hover:text-rose-400 text-xs"
                 >
                   <span>Clear Response</span>
-                  <kbd className="hidden sm:inline-block ml-1.5 px-1.5 py-0.5 text-[10px] font-mono bg-canvas border border-border rounded text-text-muted">
+                  <kbd className="hidden sm:inline-block ml-1.5 px-1.5 py-0.5 text-[10px] font-mono bg-black/60 border border-white/10 rounded text-slate-400">
                     Del
                   </kbd>
                 </Button>
@@ -545,9 +586,10 @@ export default function MockTestRunnerPage() {
                 variant="secondary"
                 disabled={currentIndex === 0}
                 onClick={handlePrev}
+                className="text-xs"
               >
                 <span>← Previous</span>
-                <kbd className="hidden sm:inline-block ml-1 px-1.5 py-0.5 text-[10px] font-mono bg-canvas border border-border rounded text-text-muted">
+                <kbd className="hidden sm:inline-block ml-1 px-1.5 py-0.5 text-[10px] font-mono bg-black/60 border border-white/10 rounded text-slate-400">
                   P
                 </kbd>
               </Button>
@@ -555,9 +597,10 @@ export default function MockTestRunnerPage() {
                 variant="secondary"
                 disabled={currentIndex === data.questions.length - 1}
                 onClick={handleNext}
+                className="text-xs"
               >
                 <span>Next →</span>
-                <kbd className="hidden sm:inline-block ml-1 px-1.5 py-0.5 text-[10px] font-mono bg-canvas border border-border rounded text-text-muted">
+                <kbd className="hidden sm:inline-block ml-1 px-1.5 py-0.5 text-[10px] font-mono bg-black/60 border border-white/10 rounded text-slate-400">
                   N
                 </kbd>
               </Button>
@@ -566,7 +609,7 @@ export default function MockTestRunnerPage() {
                 <Button
                   variant="primary"
                   onClick={handleNextSection}
-                  className="font-semibold shadow-xs"
+                  className="font-bold text-xs shadow-md shadow-lime-400/20"
                 >
                   <span>Next Section ({nextSection.title}) →</span>
                 </Button>
@@ -576,7 +619,7 @@ export default function MockTestRunnerPage() {
         </main>
 
         {/* Right Sidebar: Question Palette (1 col, desktop only) */}
-        <aside className="hidden lg:block bg-surface rounded-xl border border-border p-5 h-fit shadow-xs">
+        <aside className="hidden lg:block bento-tile p-5 h-fit space-y-4">
           <QuestionPalette
             totalQuestions={data.questions.length}
             currentIndex={currentIndex}
@@ -585,12 +628,12 @@ export default function MockTestRunnerPage() {
             answers={answersMap}
             onSelectQuestion={handleSelectQuestion}
           />
-          <div className="hidden lg:block border-t border-border pt-3 mt-4 text-[11px] text-text-muted leading-relaxed">
-            <span className="font-semibold text-text">Keyboard shortcuts:</span>
-            <div className="mt-1 flex flex-wrap gap-1 text-[10px]">
-              <span className="bg-canvas px-1.5 py-0.5 rounded border border-border">1–4 / A–D: Select</span>
-              <span className="bg-canvas px-1.5 py-0.5 rounded border border-border">M: Review</span>
-              <span className="bg-canvas px-1.5 py-0.5 rounded border border-border">N / P: Nav</span>
+          <div className="border-t border-white/10 pt-3 text-[11px] font-mono text-slate-400 leading-relaxed">
+            <span className="font-bold text-white block mb-1">Keyboard shortcuts:</span>
+            <div className="flex flex-wrap gap-1 text-[10px]">
+              <span className="bg-black/50 px-1.5 py-0.5 rounded border border-white/10 text-slate-300">1–4 / A–D: Select</span>
+              <span className="bg-black/50 px-1.5 py-0.5 rounded border border-white/10 text-slate-300">M: Review</span>
+              <span className="bg-black/50 px-1.5 py-0.5 rounded border border-white/10 text-slate-300">N / P: Nav</span>
             </div>
           </div>
         </aside>

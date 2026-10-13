@@ -332,5 +332,93 @@ describe('KernelNetworkSandbox', () => {
     expect(screen.getAllByText(/Step 1 of 8/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText(/Kleinrock Optimal Point: Zero Queuing Delay/i)).toBeInTheDocument();
   });
+
+  it('switches to eBPF & XDP Packet Filter Studio and verifies registers, bounds checking, DDoS mitigation, and invariants', () => {
+    render(<KernelNetworkSandbox />);
+
+    const ebpfTabBtn = screen.getByRole('button', { name: /eBPF & XDP Packet Filter/i });
+    fireEvent.click(ebpfTabBtn);
+
+    // Verify Header & Architecture
+    expect(
+      screen.getByText(/Linux Kernel eBPF Virtual Machine & XDP Packet Filter Studio/i),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/JIT: x86-64 Native \(Active\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/Verifier: Safety Proof OK \(DAG\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/Mode: XDP_NATIVE_DRIVER/i)).toBeInTheDocument();
+
+    // Verify Datapath Comparison
+    expect(screen.getAllByText(/Standard Linux Network Stack/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/XDP In-Situ Driver Hook \(eBPF\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/Zero sk_buff Allocation Invariant/i)).toBeInTheDocument();
+
+    // Verify 11 Virtual CPU Registers Grid
+    expect(screen.getByText(/eBPF Virtual CPU 11-Register State/i)).toBeInTheDocument();
+    expect(screen.getByText('R0')).toBeInTheDocument();
+    expect(screen.getByText('R1')).toBeInTheDocument();
+    expect(screen.getByText('R2')).toBeInTheDocument();
+    expect(screen.getByText('R3')).toBeInTheDocument();
+    expect(screen.getByText('R10')).toBeInTheDocument();
+
+    // Verify In-Kernel BPF Map
+    expect(screen.getByText(/BPF Map: ip_blacklist_map/i)).toBeInTheDocument();
+    expect(screen.getByText('198.51.100.23')).toBeInTheDocument();
+    expect(screen.getByText('203.0.113.88')).toBeInTheDocument();
+
+    // Verify Initial Step 1
+    expect(screen.getByText(/1\. NIC RX Ring Buffer Ingress/i)).toBeInTheDocument();
+    expect(screen.getByText(/Stage: NIC_RX_DMA/i)).toBeInTheDocument();
+
+    // Step to Step 2: Verifier Bounds Check
+    const nextBtn = screen.getByRole('button', { name: /Next Instruction ▶/i });
+    fireEvent.click(nextBtn);
+    expect(screen.getByText(/2\. In-Kernel Static Verifier Safety & Bounds Check/i)).toBeInTheDocument();
+    expect(screen.getByText(/VERIFIER SAFETY PASSED/i)).toBeInTheDocument();
+
+    // Step to Step 5: BPF Map Lookup
+    fireEvent.click(nextBtn); // Step 3
+    fireEvent.click(nextBtn); // Step 4
+    fireEvent.click(nextBtn); // Step 5
+    expect(screen.getByText(/5\. In-Kernel BPF Map Lookup/i)).toBeInTheDocument();
+    expect(screen.getByText(/BLACKLIST_HIT/i)).toBeInTheDocument();
+
+    // Step to Step 7: Verdict Assignment (R0 = XDP_DROP)
+    fireEvent.click(nextBtn); // Step 6
+    fireEvent.click(nextBtn); // Step 7
+    expect(screen.getByText(/7\. XDP Verdict Assignment/i)).toBeInTheDocument();
+    expect(screen.getByText(/XDP_DROP \(Zero-Copy Driver Wire Drop\)/i)).toBeInTheDocument();
+
+    // Step to Step 8: Execution & Invariants
+    fireEvent.click(nextBtn);
+    expect(screen.getByText(/8\. Driver Execution & Line-Rate Hardware Mitigation/i)).toBeInTheDocument();
+    expect(screen.getByText(/XDP NATIVE DRIVER TRIUMPH/i)).toBeInTheDocument();
+
+    // Verify 4 Socratic Invariants
+    expect(screen.getByText('1. In-Situ RX Ring Execution')).toBeInTheDocument();
+    expect(screen.getByText('2. Mathematical Static Verifier Safety')).toBeInTheDocument();
+    expect(screen.getByText('3. Lockless Per-CPU BPF Maps')).toBeInTheDocument();
+    expect(screen.getByText('4. Linear iptables Complexity Elimination')).toBeInTheDocument();
+
+    // Verify Quantitative Benchmark Table
+    expect(screen.getByText(/Quantitative Kernel Packet Processing Benchmark/i)).toBeInTheDocument();
+    expect(screen.getByText('24.8 Mpps / core')).toBeInTheDocument();
+
+    // Test Scenario Switch: Clean Traffic
+    const cleanBtn = screen.getByRole('button', { name: /Legitimate Web Traffic/i });
+    fireEvent.click(cleanBtn);
+    expect(screen.getByText(/Step 1 of 8/i)).toBeInTheDocument();
+
+    // Test Scenario Switch: Verifier Fault Trap
+    const faultBtn = screen.getByRole('button', { name: /Verifier Bounds Rejection Trap/i });
+    fireEvent.click(faultBtn);
+    expect(screen.getByText(/SAFETY VIOLATION!/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/XDP_ABORTED/i).length).toBeGreaterThanOrEqual(1);
+
+    // Test Hook Mode Switch
+    const iptablesBtn = screen.getByRole('button', { name: /Traditional Linux Stack/i });
+    fireEvent.click(iptablesBtn);
+    expect(screen.getByText(/Mode: TRADITIONAL_IPTABLES/i)).toBeInTheDocument();
+  });
 });
+
 

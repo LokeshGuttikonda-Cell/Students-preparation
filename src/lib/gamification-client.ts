@@ -17,29 +17,44 @@ export interface BadgeItem {
 
 import { apiUrl } from './env';
 
-export async function fetchUserStreak(): Promise<StreakData> {
-  const res = await fetch(apiUrl('gamification/streak'), {
-    credentials: 'include',
-    cache: 'no-store',
-  });
+export const DEFAULT_STREAK_DATA: StreakData = {
+  currentStreakDays: 0,
+  longestStreakDays: 0,
+  lastActiveDate: null,
+  streakActiveToday: false,
+};
 
-  if (!res.ok) {
-    throw new Error('Failed to fetch user streak');
+export async function fetchUserStreak(): Promise<StreakData> {
+  try {
+    const res = await fetch(apiUrl('gamification/streak'), {
+      credentials: 'include',
+      cache: 'no-store',
+    });
+
+    if (res.ok) {
+      return (await res.json()) as StreakData;
+    }
+  } catch {
+    // Graceful offline fallback
   }
 
-  return (await res.json()) as StreakData;
+  return DEFAULT_STREAK_DATA;
 }
 
 export async function fetchUserBadges(): Promise<BadgeItem[]> {
-  const res = await fetch(apiUrl('gamification/badges'), {
-    credentials: 'include',
-    cache: 'no-store',
-  });
+  try {
+    const res = await fetch(apiUrl('gamification/badges'), {
+      credentials: 'include',
+      cache: 'no-store',
+    });
 
-  if (!res.ok) {
-    throw new Error('Failed to fetch user badges');
+    if (res.ok) {
+      return (await res.json()) as BadgeItem[];
+    }
+  } catch {
+    // Graceful offline fallback
   }
 
-  return (await res.json()) as BadgeItem[];
+  return [];
 }
 

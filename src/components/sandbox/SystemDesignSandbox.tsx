@@ -1,6 +1,23 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import {
+  Globe,
+  Scale,
+  Cpu,
+  Zap,
+  Radio,
+  Database,
+  Server,
+  AlertTriangle,
+  Layers,
+  Flame,
+  Lightbulb,
+  Network,
+  Puzzle,
+  ShieldCheck,
+  Sliders,
+} from 'lucide-react';
 
 type FailurePreset = 'NONE' | 'CACHE_STAMPEDE' | 'SYNC_RPC_CASCADE' | 'OPTIMAL_RESILIENT';
 type ShardingStrategy = 'UNIFORM_HASH' | 'RANGE_HOTSPOT' | 'CELEBRITY_HOTSPOT' | 'SALTED_COMPOSITE';
@@ -185,35 +202,38 @@ export function SystemDesignSandbox() {
             <button
               type="button"
               onClick={() => applyPreset('CACHE_STAMPEDE')}
-              className={`text-xs px-2.5 py-1 rounded-md font-medium border transition-colors cursor-pointer ${
+              className={`text-xs px-2.5 py-1 rounded-md font-medium border transition-colors cursor-pointer flex items-center gap-1.5 ${
                 activePreset === 'CACHE_STAMPEDE'
                   ? 'bg-rose-50 text-rose-800 border-rose-400 font-bold'
                   : 'bg-canvas text-text hover:bg-surface-hover border-border'
               }`}
             >
-              💥 Cache Stampede
+              <Flame className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+              <span>Cache Stampede</span>
             </button>
             <button
               type="button"
               onClick={() => applyPreset('SYNC_RPC_CASCADE')}
-              className={`text-xs px-2.5 py-1 rounded-md font-medium border transition-colors cursor-pointer ${
+              className={`text-xs px-2.5 py-1 rounded-md font-medium border transition-colors cursor-pointer flex items-center gap-1.5 ${
                 activePreset === 'SYNC_RPC_CASCADE'
                   ? 'bg-amber-50 text-amber-800 border-amber-400 font-bold'
                   : 'bg-canvas text-text hover:bg-surface-hover border-border'
               }`}
             >
-              ⚡ Cascading RPC Lock
+              <Zap className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+              <span>Cascading RPC Lock</span>
             </button>
             <button
               type="button"
               onClick={() => applyPreset('OPTIMAL_RESILIENT')}
-              className={`text-xs px-2.5 py-1 rounded-md font-medium border transition-colors cursor-pointer ${
+              className={`text-xs px-2.5 py-1 rounded-md font-medium border transition-colors cursor-pointer flex items-center gap-1.5 ${
                 activePreset === 'OPTIMAL_RESILIENT'
                   ? 'bg-emerald-50 text-emerald-800 border-emerald-400 font-bold'
                   : 'bg-canvas text-text hover:bg-surface-hover border-border'
               }`}
             >
-              🛡️ Resilient Scaled
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span>Resilient Scaled</span>
             </button>
           </div>
         </div>
@@ -298,7 +318,7 @@ export function SystemDesignSandbox() {
         {/* Controls Column */}
         <div className="lg:col-span-4 bg-surface border border-border rounded-xl p-5 space-y-5">
           <h3 className="text-sm font-bold text-text flex items-center gap-2">
-            <span>⚙️</span>
+            <Sliders className="w-4 h-4 text-primary-600 shrink-0" />
             <span>Capacity &amp; Scaling Parameters</span>
           </h3>
 
@@ -476,7 +496,7 @@ export function SystemDesignSandbox() {
         <div className="lg:col-span-8 bg-surface border border-border rounded-xl p-5 space-y-4 flex flex-col justify-between">
           <div className="flex items-center justify-between border-b border-border pb-3">
             <h3 className="text-sm font-bold text-text flex items-center gap-2">
-              <span>🗺️</span>
+              <Network className="w-4 h-4 text-primary-600 shrink-0" />
               <span>Distributed Architecture Request Propagation Topology</span>
             </h3>
             <span className="text-xs font-mono text-text-muted">
@@ -490,7 +510,10 @@ export function SystemDesignSandbox() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="bg-canvas border border-border rounded-lg p-3 relative overflow-hidden">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-text">🌍 Client Ingress Tier</span>
+                  <span className="text-xs font-bold text-text flex items-center gap-1.5">
+                    <Globe className="w-3.5 h-3.5 text-primary-600 shrink-0" />
+                    <span>Client Ingress Tier</span>
+                  </span>
                   <span className="text-[10px] font-mono bg-primary-100 text-primary-800 px-1.5 py-0.5 rounded">DNS / CDN</span>
                 </div>
                 <div className="text-xs text-text-muted mt-1">
@@ -503,7 +526,10 @@ export function SystemDesignSandbox() {
 
               <div className="bg-canvas border border-border rounded-lg p-3 relative overflow-hidden">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-text">⚖️ Layer-7 Load Balancer</span>
+                  <span className="text-xs font-bold text-text flex items-center gap-1.5">
+                    <Scale className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span>Layer-7 Load Balancer</span>
+                  </span>
                   <span className="text-[10px] font-mono bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded">Least Connections</span>
                 </div>
                 <div className="text-xs text-text-muted mt-1">
@@ -518,7 +544,10 @@ export function SystemDesignSandbox() {
             {/* Row 2: Microservice Fleet */}
             <div className="bg-canvas border border-border rounded-lg p-3.5 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-text">⚡ Application Microservice Cluster</span>
+                <span className="text-xs font-bold text-text flex items-center gap-1.5">
+                  <Cpu className="w-3.5 h-3.5 text-primary-600 shrink-0" />
+                  <span>Application Microservice Cluster</span>
+                </span>
                 <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold ${
                   metrics.serviceCpuUtil > 85 ? 'bg-rose-100 text-rose-800' : 'bg-primary-100 text-primary-800'
                 }`}>
@@ -551,7 +580,10 @@ export function SystemDesignSandbox() {
               {/* Distributed Cache */}
               <div className="bg-canvas border border-border rounded-lg p-3 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-text">🚀 Distributed Cache (In-Memory)</span>
+                  <span className="text-xs font-bold text-text flex items-center gap-1.5">
+                    <Zap className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                    <span>Distributed Cache (In-Memory)</span>
+                  </span>
                   <span className="text-[10px] font-mono bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded">Cache-Aside</span>
                 </div>
                 <div className="flex justify-between text-xs">
@@ -567,7 +599,10 @@ export function SystemDesignSandbox() {
               {/* Message Broker / Async Queue */}
               <div className="bg-canvas border border-border rounded-lg p-3 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-text">📬 Message Broker / Write Queue</span>
+                  <span className="text-xs font-bold text-text flex items-center gap-1.5">
+                    <Radio className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                    <span>Message Broker / Write Queue</span>
+                  </span>
                   <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
                     asyncQueueEnabled ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700'
                   }`}>
@@ -592,7 +627,10 @@ export function SystemDesignSandbox() {
             {/* Row 4: Database Storage Cluster */}
             <div className="bg-canvas border border-border rounded-lg p-3.5 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-text">🗄️ Relational Database Cluster (Primary &amp; Replicas)</span>
+                <span className="text-xs font-bold text-text flex items-center gap-1.5">
+                  <Database className="w-3.5 h-3.5 text-primary-600 shrink-0" />
+                  <span>Relational Database Cluster (Primary &amp; Replicas)</span>
+                </span>
                 <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold ${
                   metrics.primaryDbUtil > 85 ? 'bg-rose-100 text-rose-800' : 'bg-primary-100 text-primary-800'
                 }`}>
@@ -607,7 +645,10 @@ export function SystemDesignSandbox() {
                     : 'bg-surface border-border text-text'
                 }`}>
                   <div className="text-[11px] font-mono font-bold flex items-center justify-between">
-                    <span>👑 Primary DB</span>
+                    <span className="flex items-center gap-1">
+                      <Server className="w-3 h-3 text-primary-600 shrink-0" />
+                      <span>Primary DB</span>
+                    </span>
                     <span className="text-[9px] bg-primary-100 text-primary-800 px-1 rounded">R/W</span>
                   </div>
                   <div className="text-[10px] text-text-muted mt-1">
@@ -617,14 +658,18 @@ export function SystemDesignSandbox() {
 
                 {/* Replicas */}
                 {readReplicas === 0 ? (
-                  <div className="col-span-1 sm:col-span-3 p-2 rounded border border-dashed border-amber-300 bg-amber-50/50 flex items-center justify-center text-xs text-amber-800">
-                    ⚠️ Zero Read Replicas configured: 100% of cache misses hit the primary database!
+                  <div className="col-span-1 sm:col-span-3 p-2 rounded border border-dashed border-amber-300 bg-amber-50/50 flex items-center justify-center text-xs text-amber-800 gap-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                    <span>Zero Read Replicas configured: 100% of cache misses hit the primary database!</span>
                   </div>
                 ) : (
                   Array.from({ length: readReplicas }).map((_, idx) => (
                     <div key={idx} className="p-2 rounded border bg-surface border-border text-text">
                       <div className="text-[11px] font-mono font-bold flex items-center justify-between">
-                        <span>📖 Read Replica #{idx + 1}</span>
+                        <span className="flex items-center gap-1">
+                          <Layers className="w-3 h-3 text-emerald-600 shrink-0" />
+                          <span>Read Replica #{idx + 1}</span>
+                        </span>
                         <span className="text-[9px] bg-emerald-100 text-emerald-800 px-1 rounded">RO</span>
                       </div>
                       <div className="text-[10px] text-text-muted mt-1">
@@ -678,7 +723,7 @@ export function SystemDesignSandbox() {
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
           <div>
             <h3 className="text-base font-bold text-text flex items-center gap-2">
-              <span>🧩</span>
+              <Puzzle className="w-4 h-4 text-primary-600 shrink-0" />
               <span>Database Sharding &amp; Partition Key Distribution Analyzer</span>
             </h3>
             <p className="text-xs text-text-muted mt-0.5">
@@ -725,8 +770,9 @@ export function SystemDesignSandbox() {
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-text">{shard.shard}</span>
                 {shard.isHotspot ? (
-                  <span className="text-[10px] font-bold bg-rose-200 text-rose-900 px-1.5 py-0.5 rounded animate-pulse">
-                    🔥 HOTSPOT
+                  <span className="text-[10px] font-bold bg-rose-200 text-rose-900 px-1.5 py-0.5 rounded animate-pulse flex items-center gap-1">
+                    <Flame className="w-3 h-3 text-rose-600 shrink-0" />
+                    <span>HOTSPOT</span>
                   </span>
                 ) : (
                   <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
@@ -762,8 +808,13 @@ export function SystemDesignSandbox() {
 
               <div className="text-[10px] text-text-muted mt-1.5 flex justify-between">
                 <span>IOPS Cap: 40k</span>
-                <span className={shard.count > 40000 ? 'text-rose-600 font-bold' : ''}>
-                  {shard.count > 40000 ? '⚠️ OVER CAPACITY' : 'OK'}
+                <span className={shard.count > 40000 ? 'text-rose-600 font-bold flex items-center gap-1' : ''}>
+                  {shard.count > 40000 ? (
+                    <>
+                      <AlertTriangle className="w-3 h-3 text-rose-600 shrink-0" />
+                      <span>OVER CAPACITY</span>
+                    </>
+                  ) : 'OK'}
                 </span>
               </div>
             </div>
@@ -773,7 +824,7 @@ export function SystemDesignSandbox() {
         {/* Sharding Strategy Pedagogical Callout */}
         <div className="bg-canvas border border-border rounded-lg p-4 text-xs text-text space-y-2">
           <div className="font-bold flex items-center gap-1.5 text-text">
-            <span>💡</span>
+            <Lightbulb className="w-4 h-4 text-amber-500 shrink-0" />
             <span>Architectural Trade-off Analysis:</span>
           </div>
           {shardingStrategy === 'UNIFORM_HASH' && (
